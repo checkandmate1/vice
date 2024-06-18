@@ -784,6 +784,36 @@
     },
     "stars_config": {
         "center": "KACK",
+        "coordination_fixes": {
+            "ROZZE": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
+            "LFV": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
+            "MINNK": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
+            "NEWBE": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ]
+        },
         "airspace_awareness": [
             {
                 "fixes": ["ALL"],

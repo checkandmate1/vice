@@ -7908,6 +7908,71 @@
    ],
     "allow_long_scratchpad": [true, true],
     "force_ql_self": true,
+    "coordination_fixes": {
+      "GDM": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "ZBW"
+        }
+    ],
+    "JFUND": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "ZBW"
+        }
+    ],
+    "WOONS": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "PVD"
+        }
+    ],
+    "FREDO": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "PVD"
+        }
+    ],
+    "JAMMA": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "ZBW"
+        }
+    ],
+    "JOODY": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "ZBW"
+        }
+    ],
+    "OOSHN": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "ZBW"
+        }
+    ],
+    "ZELKA": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "ZBW"
+        }
+    ],
+    "DREEM": [
+        {
+            "type": "route",
+            "to": "A90",
+            "from": "ZBW"
+        }
+    ]
+    },
     "airspace_awareness": [
       {
         "fixes": [

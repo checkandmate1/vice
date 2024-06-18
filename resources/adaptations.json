@@ -766,56 +766,56 @@
             "EXIST": [
                 {
                     "type": "route",
-                    "to": "BMH",
+                    "to": "BHM",
                     "from": "ZTL"
                 }
             ],
             "CIVMA": [
                 {
                     "type": "route",
-                     "to": "BMH",
+                     "to": "BHM",
                     "from": "ZTL"
                 }
             ],
             "FAYEZ": [
                 {
                     "type": "route",
-                     "to": "BMH",
+                     "to": "BHM",
                     "from": "ZTL"
                 }
             ],
             "IXUSE": [
                 {
                     "type": "route",
-                    "to": "BMH",
+                    "to": "BHM",
                     "from": "ZTL"
                 }
             ],
             "BESOM": [
                 {
                     "type": "route",
-                    "to": "BMH",
+                    "to": "BHM",
                     "from": "ZTL"
                 }
             ],
             "QECKE": [
                 {
                     "type": "route",
-                    "to": "BMH",
+                    "to": "BHM",
                     "from": "ZTL"
                 }
             ],
             "KOCEY": [
                 {
                     "type": "route",
-                     "to": "BMH",
+                     "to": "BHM",
                     "from": "ZTL"
                 }
             ],
             "BOYDD": [
                 {
                     "type": "route",
-                    "to": "BMH",
+                    "to": "BHM",
                     "from": "ZTL"
                 }
             ],
@@ -872,6 +872,48 @@
                 {
                     "type": "route",
                     "to": "GSP",
+                    "from": "ZTL"
+                }
+            ],
+            "LEAVI": [
+                {
+                    "type": "route",
+                    "to": "AVL",
+                    "from": "ZTL"
+                }
+            ],
+            "JONEB": [
+                {
+                    "type": "route",
+                    "to": "AVL",
+                    "from": "ZTL"
+                }
+            ],
+            "TUSRE": [
+                {
+                    "type": "route",
+                    "to": "AVL",
+                    "from": "ZTL"
+                }
+            ],
+            "OBURY": [
+                {
+                    "type": "route",
+                    "to": "AVL",
+                    "from": "ZTL"
+                }
+            ],
+            "PUPDG": [
+                {
+                    "type": "route",
+                    "to": "AVL",
+                    "from": "ZTL"
+                }
+            ],
+            "BARRD": [
+                {
+                    "type": "route",
+                    "to": "AVL",
                     "from": "ZTL"
                 }
             ]

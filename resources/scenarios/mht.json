@@ -963,6 +963,36 @@
     },
     "stars_config": {
         "center": "KMHT",
+        "coordination_fixes": {
+            "ROZZE": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
+            "ENE": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
+            "CAMTN": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
+            "GDM": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ]
+        },
         "airspace_awareness": [
             {
                 "fixes": ["ALL"],
