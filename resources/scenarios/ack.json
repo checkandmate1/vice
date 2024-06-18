@@ -342,19 +342,6 @@
                         ]
                     },
                     {
-                        "exit": "SWANN",
-                        "destination": "KBOS",
-                        "altitude": 31000,
-                        "route": "SWANN3 SWANN BROSS Q419 JFK ROBUC3",
-                        "airlines": [
-                            {
-                                "icao": "RPA",
-                                "fleet": "default"
-                            }
-                        ]
-                    },
-
-                    {
                         "exit": "DOLIE",
                         "destination": "KAUS",
                         "altitude": 43000,
@@ -370,6 +357,101 @@
         }
     },
     "arrival_groups": {
+        "LFV": [
+            {
+                "airlines": {
+                    "KACK": [
+                        {
+                            "airport": "KBED",
+                            "icao": "EJA"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "LXJ"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "EJM"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "GPD"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "N",
+                            "fleet": "fastGA"
+                        }
+                    ],
+                    "KMVY": [
+                        {
+                            "airport": "KBED",
+                            "icao": "EJA"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "LXJ"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "EJM"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "GPD"
+                        },
+                        {
+                            "airport": "KBED",
+                            "icao": "N",
+                            "fleet": "fastGA"
+                        }   
+                    ]
+                },
+                "initial_altitude": 11000,
+                "initial_controller": "BOS_37_CTR",
+                "initial_speed": 250,
+                "route": "EURRO LFV",
+                "waypoints": "EURRO LFV/flyover"
+            }
+        ],
+        "GON": [
+            {
+                "airlines": {
+                    "KMVY": [
+                        {
+                            "airport": "KJFK",
+                            "icao": "JBU"
+                        },
+                        {
+                            "airport": "KLGA",
+                            "icao": "EDV"
+                        },
+                        {
+                            "airport": "KTEB",
+                            "icao": "N",
+                            "fleet": "fastGA"
+                        },
+                        {
+                            "airport": "KEWR",
+                            "icao": "EJA"
+                        },
+                        {
+                            "airport": "KMVY",
+                            "icao": "KAP"
+                        },
+                        {
+                            "airport": "KHPN",
+                            "icao": "CNS"
+                        }
+                    ]
+                },
+                "initial_altitude": 7000,
+                "initial_speed": 270,
+                "initial_controller": "BOS_37_CTR",
+                "route": "GON V374 MVY",
+                "waypoints": "GON MINNK/ho FALMA MVY"
+            }
+        ],
         "DEEPO1": [
             {
               "airlines": {
@@ -433,14 +515,18 @@
                         {
                             "airport": "KHYA",
                             "icao": "KAP"
+                        },
+                        {
+                            "airport": "KBOS",
+                            "icao": "JBU"
                         }
                 ]
               },
-              "initial_altitude": 25000,
+              "initial_altitude": 11000,
               "initial_controller": "BOS_37_CTR",
               "initial_speed": 310,
               "star": "DEEPO1",
-              "spawn": "DEEPO@0.6"
+              "waypoints": "MINNK/ho DEEPO/a11000/s250 CONDN SALDY/h060"
             }
           ],
         "NEWBE3": [
@@ -509,11 +595,11 @@
                     }
             ]
             },
-            "initial_altitude": 25000,
+            "initial_altitude": 9000,
             "initial_controller": "BOS_37_CTR",
             "initial_speed": 310,
             "star": "NEWBE3",
-            "spawn": "NEWBE@0.6"
+            "waypoints": "SEY/ho NEWBE DEEPO"
         }
         ]
     },
@@ -596,17 +682,24 @@
                 },
                 "NEWBE3": {
                     "KACK": 10
+                },
+                "LFV": {
+                    "KACK": 5,
+                    "KMVY": 10
+                },
+                "GON": {
+                    "KMVY": 10
                 }
             },
             "solo_controller": "ACK_N_APP",
             "multi_controllers": {
             "default" : {
-                "ACK_N_APP": {"arrivals": ["DEEPO1","NEWBE3"], "primary": true},
-                "ACK_DEP": {"departures": ["KACK","KMVY"], "backup": "ACK_N_APP"},
-                "ACK_O_APP": {"departures": ["KACK"],  "backup": "ACK_DEP"},
-                "ACK_Y_APP": {"departures": ["KACK"],  "backup": "ACK_O_APP"},
-                "ACK_S_APP": {"departures": ["KACK"],  "backup": "ACK_Y_APP"},
-                "ACK_A_APP": {"departures": ["KACK"],  "backup": "ACK_S_APP"}
+                "ACK_N_APP": {"primary": true, "departures": ["KMVY"]},
+                "ACK_DEP": {"departures": ["KACK"],"backup": "ACK_N_APP"},
+                "ACK_A_APP": {"backup": "ACK_DEP"},
+                "ACK_Y_APP": {"backup": "ACK_N_APP"},
+                "ACK_S_APP": {"backup": "ACK_Y_APP", "arrivals": ["DEEPO1", "NEWBE3", "GON"]},
+                "ACK_O_APP": {"backup": "ACK_S_APP", "arrivals": ["LFV"]}
             }
         },
         "controllers": [
@@ -647,17 +740,24 @@
                 },
                 "NEWBE3": {
                     "KACK": 10
+                },
+                "LFV": {
+                    "KACK": 5,
+                    "KMVY": 10
+                },
+                "GON": {
+                    "KMVY": 10
                 }
             },
             "solo_controller": "ACK_N_APP",
             "multi_controllers": {
             "default" : {
-                "ACK_N_APP": {"arrivals": ["DEEPO1","NEWBE3"], "primary": true},
-                "ACK_DEP": {"departures": ["KACK","KMVY"], "backup": "ACK_N_APP"},
-                "ACK_O_APP": {"departures": ["KACK"],  "backup": "ACK_DEP"},
-                "ACK_Y_APP": {"departures": ["KACK"],  "backup": "ACK_O_APP"},
-                "ACK_S_APP": {"departures": ["KACK"],  "backup": "ACK_Y_APP"},
-                "ACK_A_APP": {"departures": ["KACK"],  "backup": "ACK_S_APP"}
+                "ACK_N_APP": {"primary": true},
+                "ACK_DEP": {"departures": ["KACK"],"backup": "ACK_N_APP"},
+                "ACK_A_APP": {"backup": "ACK_DEP"},
+                "ACK_Y_APP": {"backup": "ACK_N_APP","departures": ["KMVY"]},
+                "ACK_S_APP": {"backup": "ACK_Y_APP", "arrivals": ["DEEPO1", "NEWBE3", "GON"]},
+                "ACK_O_APP": {"backup": "ACK_S_APP", "arrivals": ["LFV"]}
             }
         },
         "controllers": [

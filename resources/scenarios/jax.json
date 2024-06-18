@@ -1570,6 +1570,43 @@
   },
   "stars_config": {
   "center": "KJAX",
+  "coordination_fixes": {
+    "GOTBE": [
+         {
+          "type": "route",
+          "to": "JAX",
+          "from": "ZJX"
+         }
+      ],
+      "COROE": [
+          {
+              "type": "route",
+              "to": "JAX",
+              "from": "ZJX"
+          }
+      ],
+      "OHDEA": [
+          {
+              "type": "route",
+              "to": "JAX",
+              "from": "ZJX"
+          }
+      ],
+      "BASSS": [
+          {
+              "type": "route",
+              "to": "JAX",
+              "from": "ZJX"
+          }
+      ],
+      "HILIS": [
+          {
+              "type": "route",
+              "to": "JAX",
+              "from": "ZJX"
+          }
+      ]
+  },
   "airspace_awareness": [
     {
       "fixes": [

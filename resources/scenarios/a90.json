@@ -4915,152 +4915,251 @@
                 "waypoints": "FLYZZ/a13000+/ho FYSHR/a9000+ ROZZE"
             }
         ],
-        "DEEPO1": [
-            {
+        "LFV": [
+          {
               "airlines": {
-                "KACK": [
-                        {
-                            "airport": "KHYA",
-                            "icao": "N"
-                        },
-                        {
-                            "airport": "KHYA",
-                            "icao": "N"
-                        },
-                        {
-                            "airport": "KHYA",
-                            "icao": "N"
-                        },
-                        {
-                            "airport": "KLUK",
-                            "icao": "N"
-                        },
-                        {
-                            "airport": "KLGA",
-                            "icao": "JBU"
-                        },
-                        {
-                            "airport": "KEWR",
-                            "icao": "GJS"
-                        },
-                        {
-                            "airport": "KHYA",
-                            "icao": "AMF"
-                        },
-                        {
-                            "airport": "KHPN",
-                            "icao": "N"
-                        },
-                        {
-                            "airport": "KBOS",
-                            "icao": "RPA"
-                        },
-                        {
-                            "airport": "KBOS",
-                            "icao": "KAP"
-                        },
-                        {
-                            "airport": "KTEB",
-                            "icao": "N"
-                        },
-                        {
-                            "airport": "KEWR",
-                            "icao": "EJA"
-                        },
-                        {
-                            "airport": "KMVY",
-                            "icao": "KAP"
-                        },
-                        {
-                            "airport": "KHPN",
-                            "icao": "CNS"
-                        },
-                        {
-                            "airport": "KHYA",
-                            "icao": "KAP"
-                        }
-                ]
+                  "KACK": [
+                      {
+                          "airport": "KBED",
+                          "icao": "EJA"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "LXJ"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "EJM"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "GPD"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "N",
+                          "fleet": "fastGA"
+                      }
+                  ],
+                  "KMVY": [
+                      {
+                          "airport": "KBED",
+                          "icao": "EJA"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "LXJ"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "EJM"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "GPD"
+                      },
+                      {
+                          "airport": "KBED",
+                          "icao": "N",
+                          "fleet": "fastGA"
+                      }   
+                  ]
               },
-              "initial_altitude": 25000,
+              "initial_altitude": 11000,
               "initial_controller": "BOS_37_CTR",
-              "initial_speed": 310,
-              "star": "DEEPO1",
-              "spawn": "DEEPO@0.6"
-            }
-          ],
-        "NEWBE3": [
-        {
+              "initial_speed": 250,
+              "route": "EURRO LFV",
+              "waypoints": "EURRO LFV/flyover"
+          }
+      ],
+      "GON": [
+          {
+              "airlines": {
+                  "KMVY": [
+                      {
+                          "airport": "KJFK",
+                          "icao": "JBU"
+                      },
+                      {
+                          "airport": "KLGA",
+                          "icao": "EDV"
+                      },
+                      {
+                          "airport": "KTEB",
+                          "icao": "N",
+                          "fleet": "fastGA"
+                      },
+                      {
+                          "airport": "KEWR",
+                          "icao": "EJA"
+                      },
+                      {
+                          "airport": "KMVY",
+                          "icao": "KAP"
+                      },
+                      {
+                          "airport": "KHPN",
+                          "icao": "CNS"
+                      }
+                  ]
+              },
+              "initial_altitude": 7000,
+              "initial_speed": 270,
+              "initial_controller": "BOS_37_CTR",
+              "route": "GON V374 MVY",
+              "waypoints": "GON MINNK/ho FALMA MVY"
+          }
+      ],
+      "DEEPO1": [
+          {
             "airlines": {
-            "KACK": [
-                    {
-                        "airport": "KHYA",
-                        "icao": "N"
-                    },
-                    {
-                        "airport": "KHYA",
-                        "icao": "N"
-                    },
-                    {
-                        "airport": "KHYA",
-                        "icao": "N"
-                    },
-                    {
-                        "airport": "KLUK",
-                        "icao": "N"
-                    },
-                    {
-                        "airport": "KLGA",
-                        "icao": "JBU"
-                    },
-                    {
-                        "airport": "KEWR",
-                        "icao": "GJS"
-                    },
-                    {
-                        "airport": "KHYA",
-                        "icao": "AMF"
-                    },
-                    {
-                        "airport": "KHPN",
-                        "icao": "N"
-                    },
-                    {
-                        "airport": "KBOS",
-                        "icao": "RPA"
-                    },
-                    {
-                        "airport": "KBOS",
-                        "icao": "KAP"
-                    },
-                    {
-                        "airport": "KTEB",
-                        "icao": "N"
-                    },
-                    {
-                        "airport": "KEWR",
-                        "icao": "EJA"
-                    },
-                    {
-                        "airport": "KMVY",
-                        "icao": "KAP"
-                    },
-                    {
-                        "airport": "KHPN",
-                        "icao": "CNS"
-                    },
-                    {
-                        "airport": "KHYA",
-                        "icao": "KAP"
-                    }
-            ]
+              "KACK": [
+                      {
+                          "airport": "KHYA",
+                          "icao": "N"
+                      },
+                      {
+                          "airport": "KHYA",
+                          "icao": "N"
+                      },
+                      {
+                          "airport": "KHYA",
+                          "icao": "N"
+                      },
+                      {
+                          "airport": "KLUK",
+                          "icao": "N"
+                      },
+                      {
+                          "airport": "KLGA",
+                          "icao": "JBU"
+                      },
+                      {
+                          "airport": "KEWR",
+                          "icao": "GJS"
+                      },
+                      {
+                          "airport": "KHYA",
+                          "icao": "AMF"
+                      },
+                      {
+                          "airport": "KHPN",
+                          "icao": "N"
+                      },
+                      {
+                          "airport": "KBOS",
+                          "icao": "RPA"
+                      },
+                      {
+                          "airport": "KBOS",
+                          "icao": "KAP"
+                      },
+                      {
+                          "airport": "KTEB",
+                          "icao": "N"
+                      },
+                      {
+                          "airport": "KEWR",
+                          "icao": "EJA"
+                      },
+                      {
+                          "airport": "KMVY",
+                          "icao": "KAP"
+                      },
+                      {
+                          "airport": "KHPN",
+                          "icao": "CNS"
+                      },
+                      {
+                          "airport": "KHYA",
+                          "icao": "KAP"
+                      },
+                      {
+                          "airport": "KBOS",
+                          "icao": "JBU"
+                      }
+              ]
             },
-            "initial_altitude": 25000,
+            "initial_altitude": 11000,
             "initial_controller": "BOS_37_CTR",
             "initial_speed": 310,
-            "star": "NEWBE3",
-            "spawn": "NEWBE@0.6"
-        }
+            "star": "DEEPO1",
+            "waypoints": "MINNK/ho DEEPO/a11000/s250 CONDN SALDY/h060"
+          }
         ],
+      "NEWBE3": [
+      {
+          "airlines": {
+          "KACK": [
+                  {
+                      "airport": "KHYA",
+                      "icao": "N"
+                  },
+                  {
+                      "airport": "KHYA",
+                      "icao": "N"
+                  },
+                  {
+                      "airport": "KHYA",
+                      "icao": "N"
+                  },
+                  {
+                      "airport": "KLUK",
+                      "icao": "N"
+                  },
+                  {
+                      "airport": "KLGA",
+                      "icao": "JBU"
+                  },
+                  {
+                      "airport": "KEWR",
+                      "icao": "GJS"
+                  },
+                  {
+                      "airport": "KHYA",
+                      "icao": "AMF"
+                  },
+                  {
+                      "airport": "KHPN",
+                      "icao": "N"
+                  },
+                  {
+                      "airport": "KBOS",
+                      "icao": "RPA"
+                  },
+                  {
+                      "airport": "KBOS",
+                      "icao": "KAP"
+                  },
+                  {
+                      "airport": "KTEB",
+                      "icao": "N"
+                  },
+                  {
+                      "airport": "KEWR",
+                      "icao": "EJA"
+                  },
+                  {
+                      "airport": "KMVY",
+                      "icao": "KAP"
+                  },
+                  {
+                      "airport": "KHPN",
+                      "icao": "CNS"
+                  },
+                  {
+                      "airport": "KHYA",
+                      "icao": "KAP"
+                  }
+          ]
+          },
+          "initial_altitude": 9000,
+          "initial_controller": "BOS_37_CTR",
+          "initial_speed": 310,
+          "star": "NEWBE3",
+          "waypoints": "SEY/ho NEWBE DEEPO"
+      }
+      ],
         "ENE": [
             {
                 "airlines": {
@@ -6931,7 +7030,7 @@
       "frequency": 118250,
       "full_name": "Boston Approach",
       "scope_char": "N",
-      "sector_id": "1N"
+      "sector_id": "1R"
     },
     "BOS_S_APP": {
       "frequency": 120600,
@@ -7275,34 +7374,41 @@
                     "KPSM": 5
                 },
                 "DEEPO1": {
-                    "KACK": 5
+                  "KACK": 10
                 },
                 "NEWBE3": {
-                    "KACK": 5
+                    "KACK": 10
+                },
+                "LFV": {
+                    "KACK": 5,
+                    "KMVY": 10
+                },
+                "GON": {
+                    "KMVY": 10
                 }
             },
             "solo_controller": "BOS_DEP",
             "multi_controllers": {
             "default" : {
                 "BOS_DEP": {"departures": ["KBOS"], "primary": true},
-              "BOS_N_APP": {"backup": "BOS_DEP", "arrivals": ["JFUND2", "OOSHN5", "MANCH..LWRNC", "MANCH..LWRNC.SAT", "PSM..LWRNC", "PSM..LWRNC.SAT" ,"GDM.7K", "GDM.9K"]},
-              "BOS_S_APP": {"backup": "BOS_N_APP", "arrivals": ["ROBUC3", "FREDO.4K", "FREDO.6K",  "FREDO.8K"]},
-              "BOS_F_APP": {"backup": "BOS_N_APP"},
-              "BOS_I_APP": {"backup": "BOS_F_APP"},
-              "BOS_B_APP": {"backup": "BOS_N_APP", "arrivals": ["DREEM2.BED", "DREEM2.LWM", "DREEM2.BVY", "ZELKA2.BED", "ZELKA2.LWM", "ZELKA2.BVY"]},
-              "BOS_L_APP": {"backup": "BOS_S_APP"},
-              "BOS_U_APP": {"backup": "BOS_DEP",  "arrivals": ["WOONS.3K", "WOONS.5K", "WOONS.7K"]},
-                "MHT_Z_APP": {"backup": "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_J_APP": {"backup": "MHT_Z_APP"},
-                "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
-                "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
-                "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]},
-                "ACK_N_APP": {"arrivals": ["DEEPO1","NEWBE3"], "backup": "BOS_DEP"},
-                "ACK_DEP": {"departures": ["KACK","KMVY"], "backup": "ACK_N_APP"},
-                "ACK_O_APP": {"departures": ["KACK"],  "backup": "ACK_DEP"},
-                "ACK_Y_APP": {"departures": ["KACK"],  "backup": "ACK_O_APP"},
-                "ACK_S_APP": {"departures": ["KACK"],  "backup": "ACK_Y_APP"},
-                "ACK_A_APP": {"departures": ["KACK"],  "backup": "ACK_S_APP"}
+               "BOS_N_APP": {"backup": "BOS_DEP", "arrivals": ["JFUND2", "OOSHN5", "MANCH..LWRNC", "MANCH..LWRNC.SAT", "PSM..LWRNC", "PSM..LWRNC.SAT" ,"GDM.7K", "GDM.9K"]},
+               "BOS_S_APP": {"backup": "BOS_N_APP", "arrivals": ["ROBUC3", "FREDO.4K", "FREDO.6K",  "FREDO.8K"]},
+               "BOS_F_APP": {"backup": "BOS_N_APP"},
+               "BOS_I_APP": {"backup": "BOS_F_APP"},
+               "BOS_B_APP": {"backup": "BOS_N_APP", "arrivals": ["DREEM2.BED", "DREEM2.LWM", "DREEM2.BVY", "ZELKA2.BED", "ZELKA2.LWM", "ZELKA2.BVY"]},
+               "BOS_L_APP": {"backup": "BOS_S_APP"},
+               "BOS_U_APP": {"backup": "BOS_DEP",  "arrivals": ["WOONS.3K", "WOONS.5K", "WOONS.7K"]},
+               "MHT_Z_APP": {"primary": true},
+               "MHT_J_APP": {"backup": "MHT_Z_APP","departures": ["KMHT"]},
+               "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
+               "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
+               "MHT_W_APP": {"backup": "MHT_J_APP", "arrivals": ["CON", "GDM", "ROZZE2"]},
+               "ACK_N_APP": {"primary": true, "departures": ["KMVY"]},
+               "ACK_DEP": {"departures": ["KACK"],"backup": "ACK_N_APP"},
+               "ACK_A_APP": {"backup": "ACK_DEP"},
+               "ACK_Y_APP": {"backup": "ACK_N_APP"},
+               "ACK_S_APP": {"backup": "ACK_Y_APP", "arrivals": ["DEEPO1", "NEWBE3", "GON"]},
+               "ACK_O_APP": {"backup": "ACK_S_APP", "arrivals": ["LFV"]}
             }
         },
         "controllers": [
@@ -7515,11 +7621,18 @@
                     "KPSM": 5
                 },
                 "DEEPO1": {
-                    "KACK": 10
-                },
-                "NEWBE3": {
-                    "KACK": 10
-                }
+                  "KACK": 10
+              },
+              "NEWBE3": {
+                  "KACK": 10
+              },
+              "LFV": {
+                  "KACK": 5,
+                  "KMVY": 10
+              },
+              "GON": {
+                  "KMVY": 10
+              }
             },
             "solo_controller": "BOS_DEP",
             "multi_controllers": {
@@ -7532,17 +7645,17 @@
               "BOS_B_APP": {"backup": "BOS_N_APP", "arrivals": ["DREEM2.BED", "DREEM2.LWM", "DREEM2.BVY", "ZELKA2.BED", "ZELKA2.LWM", "ZELKA2.BVY"]},
               "BOS_L_APP": {"backup": "BOS_S_APP"},
               "BOS_U_APP": {"backup": "BOS_DEP",  "arrivals": ["WOONS.3K", "WOONS.5K", "WOONS.7K"]},
-                "MHT_J_APP": {"backup": "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_Z_APP": {"backup": "MHT_J_APP"},
-                "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
-                "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
-                "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]},
-                "ACK_N_APP": {"arrivals": ["DEEPO1","NEWBE3"], "backup": "BOS_DEP"},
-                "ACK_DEP": {"departures": ["KACK","KMVY"], "backup": "ACK_N_APP"},
-                "ACK_O_APP": {"departures": ["KACK"],  "backup": "ACK_DEP"},
-                "ACK_Y_APP": {"departures": ["KACK"],  "backup": "ACK_O_APP"},
-                "ACK_S_APP": {"departures": ["KACK"],  "backup": "ACK_Y_APP"},
-                "ACK_A_APP": {"departures": ["KACK"],  "backup": "ACK_S_APP"}
+              "MHT_J_APP": {"primary": true},
+              "MHT_Z_APP": {"backup": "MHT_J_APP",  "departures": ["KMHT"]},
+              "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
+              "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
+              "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]},
+              "ACK_N_APP": {"primary": true},
+              "ACK_DEP": {"departures": ["KACK"],"backup": "ACK_N_APP"},
+              "ACK_A_APP": {"backup": "ACK_DEP"},
+              "ACK_Y_APP": {"backup": "ACK_N_APP","departures": ["KMVY"]},
+              "ACK_S_APP": {"backup": "ACK_Y_APP", "arrivals": ["DEEPO1", "NEWBE3", "GON"]},
+              "ACK_O_APP": {"backup": "ACK_S_APP", "arrivals": ["LFV"]}
             }
         },
         "controllers": [
@@ -7755,11 +7868,18 @@
                     "KPSM": 5
                 },
                 "DEEPO1": {
-                    "KACK": 10
-                },
-                "NEWBE3": {
-                    "KACK": 10
-                }
+                  "KACK": 10
+              },
+              "NEWBE3": {
+                  "KACK": 10
+              },
+              "LFV": {
+                  "KACK": 5,
+                  "KMVY": 10
+              },
+              "GON": {
+                  "KMVY": 10
+              }
             },
             "solo_controller": "BOS_DEP",
             "multi_controllers": {
@@ -7772,17 +7892,17 @@
               "BOS_B_APP": {"backup": "BOS_N_APP", "arrivals": ["DREEM2.BED", "DREEM2.LWM", "DREEM2.BVY", "ZELKA2.BED", "ZELKA2.LWM", "ZELKA2.BVY"]},
               "BOS_L_APP": {"backup": "BOS_S_APP"},
               "BOS_U_APP": {"backup": "BOS_DEP",  "arrivals": ["WOONS.3K", "WOONS.5K", "WOONS.7K"]},
-                "MHT_J_APP": {"backup": "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_Z_APP": {"backup": "MHT_J_APP"},
-                "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
-                "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
-                "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]},
-                "ACK_N_APP": {"arrivals": ["DEEPO1","NEWBE3"], "backup": "BOS_DEP"},
-                "ACK_DEP": {"departures": ["KACK","KMVY"], "backup": "ACK_N_APP"},
-                "ACK_O_APP": {"departures": ["KACK"],  "backup": "ACK_DEP"},
-                "ACK_Y_APP": {"departures": ["KACK"],  "backup": "ACK_O_APP"},
-                "ACK_S_APP": {"departures": ["KACK"],  "backup": "ACK_Y_APP"},
-                "ACK_A_APP": {"departures": ["KACK"],  "backup": "ACK_S_APP"}
+              "MHT_J_APP": {"primary": true},
+               "MHT_Z_APP": {"backup": "MHT_J_APP",  "departures": ["KMHT"]},
+               "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
+               "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
+               "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]}, 
+               "ACK_N_APP": {"primary": true},
+               "ACK_DEP": {"departures": ["KACK"],"backup": "ACK_N_APP"},
+               "ACK_A_APP": {"backup": "ACK_DEP"},
+               "ACK_Y_APP": {"backup": "ACK_N_APP","departures": ["KMVY"]},
+               "ACK_S_APP": {"backup": "ACK_Y_APP", "arrivals": ["DEEPO1", "NEWBE3", "GON"]},
+               "ACK_O_APP": {"backup": "ACK_S_APP", "arrivals": ["LFV"]}
             }
         },
         "controllers": [
@@ -7991,6 +8111,13 @@
                 },
                 "NEWBE3": {
                     "KACK": 10
+                },
+                "LFV": {
+                    "KACK": 5,
+                    "KMVY": 10
+                },
+                "GON": {
+                    "KMVY": 10
                 }
             },
             "solo_controller": "BOS_DEP",
@@ -8004,17 +8131,17 @@
               "BOS_B_APP": {"backup": "BOS_N_APP", "arrivals": ["DREEM2.BED", "DREEM2.LWM", "DREEM2.BVY", "ZELKA2.BED", "ZELKA2.LWM", "ZELKA2.BVY"]},
               "BOS_L_APP": {"backup": "BOS_S_APP"},
               "BOS_U_APP": {"backup": "BOS_DEP",  "arrivals": ["WOONS.3K", "WOONS.5K", "WOONS.7K"]},
-                "MHT_J_APP": {"backup": "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_Z_APP": {"backup": "MHT_J_APP"},
-                "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
-                "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
-                "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]},
-                "ACK_N_APP": {"arrivals": ["DEEPO1","NEWBE3"], "backup": "BOS_DEP"},
-                "ACK_DEP": {"departures": ["KACK","KMVY"], "backup": "ACK_N_APP"},
-                "ACK_O_APP": {"departures": ["KACK"],  "backup": "ACK_DEP"},
-                "ACK_Y_APP": {"departures": ["KACK"],  "backup": "ACK_O_APP"},
-                "ACK_S_APP": {"departures": ["KACK"],  "backup": "ACK_Y_APP"},
-                "ACK_A_APP": {"departures": ["KACK"],  "backup": "ACK_S_APP"}
+              "MHT_J_APP": {"primary": true},
+              "MHT_Z_APP": {"backup": "MHT_J_APP",  "departures": ["KMHT"]},
+              "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
+              "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
+              "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]},
+              "ACK_N_APP": {"primary": true},
+              "ACK_DEP": {"departures": ["KACK"],"backup": "ACK_N_APP"},
+              "ACK_A_APP": {"backup": "ACK_DEP"},
+              "ACK_Y_APP": {"backup": "ACK_N_APP","departures": ["KMVY"]},
+              "ACK_S_APP": {"backup": "ACK_Y_APP", "arrivals": ["DEEPO1", "NEWBE3", "GON"]},
+              "ACK_O_APP": {"backup": "ACK_S_APP", "arrivals": ["LFV"]}
             }
         },
         "controllers": [
@@ -8136,10 +8263,10 @@
                 "BOS_S_APP": {"backup": "BOS_N_APP", "arrivals": ["ROBUC3","FREDO.6K",  "FREDO.8K"]},
                 "BOS_F_APP": {"backup": "BOS_N_APP"},
                 "BOS_I_APP": {"backup": "BOS_F_APP"},
-                "MHT_Z_APP": {"backup" : "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_J_APP": {"backup": "MHT_Z_APP"},
+                "MHT_Z_APP": {"primary": true},
+                "MHT_J_APP": {"backup": "MHT_Z_APP","departures": ["KMHT"]},
                 "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
-                "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]}
+                "MHT_W_APP": {"backup": "MHT_J_APP", "arrivals": ["CON", "GDM", "ROZZE2"]}
             }
         },
         "controllers": [
@@ -8240,8 +8367,8 @@
                 "BOS_S_APP": {"backup": "BOS_N_APP", "arrivals": ["ROBUC3", "FREDO.6K",  "FREDO.8K"]},
                 "BOS_F_APP": {"backup": "BOS_N_APP"},
                 "BOS_I_APP": {"backup": "BOS_F_APP"},
-                "MHT_J_APP": {"backup": "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_Z_APP": {"backup": "MHT_J_APP"},
+                "MHT_J_APP": {"primary": true},
+                "MHT_Z_APP": {"backup": "MHT_J_APP",  "departures": ["KMHT"]},
                 "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
                 "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]}
             }
@@ -8349,8 +8476,8 @@
                 "BOS_S_APP": {"backup": "BOS_N_APP", "arrivals": ["ROBUC3","FREDO.6K",  "FREDO.8K"]},
                 "BOS_F_APP": {"backup": "BOS_N_APP"},
                 "BOS_I_APP": {"backup": "BOS_F_APP"},
-                "MHT_J_APP": {"backup": "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_Z_APP": {"backup": "MHT_J_APP"},
+                "MHT_J_APP": {"primary": true},
+                "MHT_Z_APP": {"backup": "MHT_J_APP",  "departures": ["KMHT"]},
                 "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
                 "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]}
             }
@@ -8454,8 +8581,8 @@
                 "BOS_S_APP": {"backup": "BOS_N_APP", "arrivals": ["ROBUC3","FREDO.6K",  "FREDO.8K"]},
                 "BOS_F_APP": {"backup": "BOS_N_APP"},
                 "BOS_I_APP": {"backup": "BOS_F_APP"},
-                "MHT_J_APP": {"backup": "BOS_DEP", "departures": ["KMHT"]},
-                "MHT_Z_APP": {"backup": "MHT_J_APP"},
+                "MHT_J_APP": {"primary": true},
+                "MHT_Z_APP": {"backup": "MHT_J_APP",  "departures": ["KMHT"]},
                 "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
                 "MHT_W_APP": {"backup": "MHT_Z_APP", "arrivals": ["CON", "GDM", "ROZZE2"]}
             }
