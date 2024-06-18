@@ -476,7 +476,7 @@
         "initial_controller": "MCO_B_APP",
         "initial_speed": 130,
         "route": "/. DOMES EYORE",
-        "waypoints": "ROCIT APEAK/ho DOMES EYORE"
+        "waypoints": "ROCIT/ho APEAK DOMES EYORE"
       }
     ]
   },
@@ -580,7 +580,8 @@
       "approach_airspace": [
         "DAB_H_APP"
       ],
-      "arrival_runways": [
+      "arrival_runways": [
+
         {
           "airport": "KDAB",
           "runway": "7L"

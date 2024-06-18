@@ -9755,6 +9755,9 @@
   },
   "stars_config": {
   "center": "N028.25.45.781,W081.18.32.260",
+  "coordination_fixes": {
+    
+  },
   "airspace_awareness": [
     {
         "fixes": [
