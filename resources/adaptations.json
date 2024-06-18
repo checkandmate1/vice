@@ -145,6 +145,20 @@
                     "to": "ZJX",
                     "from": "ZMA"
                 }
+            ],
+            "DSIDE":  [
+                {
+                    "type": "route",
+                    "to": "TPA",
+                    "from": "ZMA"
+                }
+            ],
+            "OLENE": [
+                {
+                    "type": "route",
+                    "to": "TPA",
+                    "from": "ZJX"
+                }
             ]
         }
     },
