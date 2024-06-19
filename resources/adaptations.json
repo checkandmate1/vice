@@ -301,6 +301,69 @@
                     "to": "ZBW",
                     "from": "ZNY"
                 }
+            ],
+            "BETTE": [
+                {
+                    "type": "route",
+                    "to": "ZBW",
+                    "from": "ZNY"
+                }
+            ],
+            "HAPIE": [
+                {
+                    "type": "route",
+                    "to": "ZBW",
+                    "from": "ZNY"
+                }
+            ],
+            "FJC": [
+                {
+                    "type": "route",
+                    "to": "ABE",
+                    "from": "N90"
+                }
+            ],
+            "BOYER": [
+                {
+                    "type": "route",
+                    "to": "ABE",
+                    "from": "MDT"
+                }
+            ],
+            "ETX": [
+                {
+                    "type": "route",
+                    "to": "ABE",
+                    "from": "MDT"
+                }
+            ],
+            "KRAZE": [
+                {
+                    "type": "route",
+                    "to": "ABE",
+                    "from": "ZNY"
+                }
+            ],
+            "SNOWY": [
+                {
+                    "type": "route",
+                    "to": "ABE",
+                    "from": "ZNY"
+                }
+            ],
+            "SLATT": [
+                {
+                    "type": "route",
+                    "to": "ABE",
+                    "from": "ZNY"
+                }
+            ],
+            "DUMMR": [
+                {
+                    "type": "route",
+                    "to": "ABE",
+                    "from": "ZNY"
+                }
             ]
         }
     },
