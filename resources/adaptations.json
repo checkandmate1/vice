@@ -22,6 +22,237 @@
                     "from": "ZNY"
                 }
             ],
+            "BOJID": [
+                {
+                    "type": "route",
+                    "to": "PHL",
+                    "from": "ZNY"
+                }
+            ],
+            "HIFAL": [
+                {
+                    "type": "route",
+                    "to": "PHL",
+                    "from": "ZNY"
+                }
+            ],
+            "CHPMN": [
+                {
+                    "type": "route",
+                    "to": "PHL",
+                    "from": "ZNY"
+                }
+            ],
+            "SPERY": [
+                {
+                    "type": "route",
+                    "to": "PHL",
+                    "from": "ZNY"
+                }
+            ],
+            "JIIMS": [
+                {
+                    "type": "route",
+                    "to": "PHL",
+                    "from": "ZDC"
+                }
+            ],
+            "PAATS": [
+                {
+                    "type": "route",
+                    "to": "PHL",
+                    "from": "ZDC"
+                }
+            ],
+            "SPUDS": [
+                {
+                    "type": "route",
+                    "to": "PHL",
+                    "from": "ZDC"
+                }
+            ],
+            "KORRY": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "VIBES": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZDC"
+                }
+            ],
+            "VALRE": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZBW"
+                }
+            ],
+            "CRALY": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "MINKS": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "HEROS": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "DIALS": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "JERZY": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "GGREG": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "CAMRN": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "HTO": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZBW"
+                }
+            ],
+            "CCC": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZBW"
+                }
+            ],
+            "BELIT": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZBW"
+                }
+            ],
+            "JFK": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "SARDI": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "CREAM": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZBW"
+                }
+            ],
+            "CMK": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "BDR": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "DPK": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "ZIGGI": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "COL": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "LENDY": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "LOVES": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "NELIE": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZBW"
+                }
+            ],
+            "ROBER": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
+            "CREEL": [
+                {
+                    "type": "route",
+                    "to": "N90",
+                    "from": "ZNY"
+                }
+            ],
             "RBV": [
                 {
                     "type": "route",
@@ -76,6 +307,55 @@
     "ZBW": {
         "coordination_fixes": {
             "FLOSI": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZBW"
+                }
+            ],
+            "VALRE": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZBW"
+                }
+            ],
+            "HTO": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZBW"
+                }
+            ],
+            "CCC": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZBW"
+                }
+            ],
+            "BELIT": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZBW"
+                }
+            ],
+            "CREAM": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZBW"
+                }
+            ],
+            "DPK": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZBW"
+                }
+            ],
+            "NELIE": [
                 {
                     "type": "route",
                     "to": "ZNY",
@@ -213,6 +493,27 @@
     "ZDC": {
         "coordination_fixes": {
             "DYLIN": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZDC"
+                }
+            ],
+            "JIIMS": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZDC"
+                }
+            ],
+            "PAATS": [
+                {
+                    "type": "route",
+                    "to": "ZNY",
+                    "from": "ZDC"
+                }
+            ],
+            "VIBES": [
                 {
                     "type": "route",
                     "to": "ZNY",
