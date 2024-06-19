@@ -1129,6 +1129,34 @@
     },
     "ZFW": {
         "coordination_fixes": {
+            "ATOKA": [
+                {
+                    "type": "route",
+                    "to": "AAC",
+                    "from": "ZFW"
+                }
+            ],
+            "BARTS": [
+                {
+                    "type": "route",
+                    "to":"AAC",
+                    "from": "ZFW"
+                }
+            ],
+            "KILLR": [
+                {
+                    "type": "route",
+                    "to": "AAC",
+                    "from": "ZFW"
+                }
+            ],
+            "REELI": [
+                {
+                    "type": "route",
+                    "to": "AAC",
+                    "from": "ZFW"
+                }
+            ],
             "BEREE": [
                 {
                     "type": "route",
@@ -2061,6 +2089,17 @@
                     "type": "route",
                     "to": "SDF",
                     "from": "ZID"
+                }
+            ]
+        }
+    },
+    "ZSE": {
+        "coordination_fixes": {
+            "HHOOD": [
+                {
+                    "type": "route",
+                    "to": "S46",
+                    "from": "HHOOD"
                 }
             ]
         }
