@@ -253,6 +253,69 @@
                     "to": "RDU",
                     "from": "ZDC"
                 }
+            ],
+            "CAPSS": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "CLIPR": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "DEALE": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "WEWIL": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "TRUPS": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "VCTRY": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "HOYAS": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "SMOOT": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
+            ],
+            "JAYOH": [
+                {
+                    "type": "route",
+                    "to": "PCT",
+                    "from": "ZDC"
+                }
             ]
         }
     },
