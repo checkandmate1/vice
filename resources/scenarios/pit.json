@@ -887,14 +887,14 @@
               "star": "DEMME5",
               "runway_waypoints": {
                   "KPIT": {
-                      "28L": "LEJOY PLEEZ NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
-                      "28R": "LEJOY PLEEZ NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
-                      "10L": "LEJOY PLEEZ NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
-                      "10R": "LEJOY PLEEZ NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
-                      "32":  "LEJOY PLEEZ NESTO/a10000 DEMME GRUNZ/a6000+/h303"
+                      "28L": "LEJOY/ho PLEEZ NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
+                      "28R": "LEJOY/ho PLEEZ NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
+                      "10L": "LEJOY/ho PLEEZ NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
+                      "10R": "LEJOY/ho PLEEZ NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
+                      "32":  "LEJOY/ho PLEEZ NESTO/a10000 DEMME GRUNZ/a6000+/h303"
                   }
               },
-              "waypoints": "VINSE/ho LEJOY"
+              "waypoints": "VINSE LEJOY/ho"
       }
       ],
 
@@ -988,14 +988,14 @@
           "star": "HAYNZ7",
           "runway_waypoints": {
               "KPIT": {
-                  "28L": "EARED GRACE/a10000 HAYNZ MYRON/h126",
-                  "28R": "EARED GRACE/a10000 HAYNZ MYRON/h126",
-                  "10L": "EARED GRACE/a10000 HAYNZ ROOSA TERBL TOWEL/h282",
-                  "10R": "EARED GRACE/a10000 HAYNZ ROOSA TERBL TOWEL/h282",
-                  "32":  "EARED GRACE/a10000 HAYNZ MYRON COPPE/h166"
+                  "28L": "EARED/ho GRACE/a10000 HAYNZ MYRON/h126",
+                  "28R": "EARED/ho GRACE/a10000 HAYNZ MYRON/h126",
+                  "10L": "EARED/ho GRACE/a10000 HAYNZ ROOSA TERBL TOWEL/h282",
+                  "10R": "EARED/ho GRACE/a10000 HAYNZ ROOSA TERBL TOWEL/h282",
+                  "32":  "EARED/ho GRACE/a10000 HAYNZ MYRON COPPE/h166"
               }
           },
-          "waypoints": "SLT/ho EARED"
+          "waypoints": "SLT EARED/ho"
       }
   ],
 
@@ -1039,7 +1039,7 @@
                 "32":  "CUTTA/a10000 JESEY KRIKK PROGY PRUIT/h146"
             }
         },
-        "waypoints": "ACO/ho CUTTA/a10000"
+        "waypoints": "N041.06.39.229,W081.10.25.561 ACO/ho CUTTA/a10000"
     }
   ],
 
@@ -1067,7 +1067,7 @@
         "initial_controller": "CLE_55_CTR",
         "initial_speed": 280,
         "route": "LEJOY NESTO",
-        "waypoints": "LEJOY/ho NESTO"
+        "waypoints": "N039.58.05.014,W079.22.29.725 LEJOY/ho NESTO"
     }
     ],
 
@@ -1091,7 +1091,7 @@
           "initial_controller": "CLE_55_CTR",
           "initial_speed": 280,
           "route": "ETG HOMEE",
-          "waypoints": "ETG/ho HOMEE"
+          "waypoints": "N041.13.52.420,W078.06.01.779 ETG/ho HOMEE"
       }
     ],
 
@@ -1114,8 +1114,8 @@
         "assigned_altitude": 15000,
         "initial_controller": "CLE_55_CTR",
         "initial_speed": 280,
-        "route": "IR/ho WISKE",
-        "waypoints": "AIR/ho WISKE"
+        "route": "AIR/ho WISKE",
+        "waypoints": "N039.47.52.183,W081.02.56.495 AIR/ho WISKE"
     }
 ]
   },
