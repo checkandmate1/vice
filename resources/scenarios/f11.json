@@ -9754,6 +9754,7 @@
     }
   },
   "stars_config": {
+  "beacon_code_bank": 3,
   "center": "N028.25.45.781,W081.18.32.260",
   "coordination_fixes": {
     "RIDES": [
