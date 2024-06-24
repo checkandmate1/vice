@@ -785,6 +785,57 @@
     }
   },
   "arrival_groups": {
+    "ALLMA": [
+      {
+        "airlines": {
+          "KCRG": [
+            {
+              "airport": "KRYY",
+              "icao": "N"
+            }
+          ]
+        },
+        "initial_altitude": 12200,
+        "initial_controller": "JAX_79_CTR",
+        "route": "ALLMA",
+        "initial_speed": 250,
+        "waypoints": "N031.16.42.172,W082.24.32.799 N031.06.25.908,W082.20.41.894/a11000/h165/ho CRG"
+      }
+    ],
+    "ORL": [
+      {
+        "airlines": {
+          "KCRG": [
+            {
+              "airport": "KMTH",
+              "icao": "N"
+            }
+          ]
+        },
+        "initial_altitude": 4000,
+        "initial_controller": "DAB_N_APP",
+        "route": "SWAGS ORL",
+        "initial_speed": 250,
+        "waypoints": "N029.29.47.688,W081.25.47.012 N029.39.48.414,W081.26.44.553/ho CRG"
+      }
+    ],
+    "ESENT": [
+      {
+        "airlines": {
+          "KCRG": [
+            {
+              "airport": "KALB",
+              "icao": "LXJ"
+            }
+          ]
+        },
+        "initial_altitude": 19500,
+        "initial_controller": "JAX_54_CTR",
+        "route": "WURFL ESENT",
+        "initial_speed": 250,
+        "waypoints": "N031.12.34.108,W081.11.12.692 N031.02.30.924,W081.14.51.842/a11000/ho CRG"
+      }
+    ],
     "AYS": [
       {
         "airlines": {
@@ -1057,33 +1108,6 @@
         "waypoints": "COROE/a9000/s250 N030.28.36.167,W082.14.12.456/ho NATII/a5000-6000/s230 GUTTY/a3000/s210/h103"
       }
     ],
-    "MONIA": [
-      {
-        "airlines": {
-          "KFHB": [
-            {
-              "airport": "KDAL",
-              "icao": "EJA"
-            },
-            {
-              "airport": "KBFM",
-              "icao": "LXJ"
-            },
-            {
-              "airport": "KPNS",
-              "icao": "N",
-              "fleet": "fastGA"
-            }
-          ]
-        },
-          "assigned_altitude": 8000,
-          "initial_altitude": 10000,
-          "initial_controller": "JAX_77_CTR",
-          "initial_speed": 250,
-          "route": "/. MONIA",
-          "waypoints": "CAMJO MARQO/ho MONIA"
-      }
-    ],
     "OHDEA1": [
       {
         "airlines": {
@@ -1308,11 +1332,11 @@
           ]
         },
         "initial_altitude": 9000,
-        "expect_approach": "I8",
+        "expect_approach": "R13",
         "initial_controller": "JAX_W_APP",
         "initial_speed": 250,
         "star": "TEBOW1",
-        "scratchpad": "I8",
+        "scratchpad": "R13",
         "waypoints": "TEBOW/a9000-12000/s250 JERZI/a5000/s230/ho FAROT/a3000/s210/h038"
       }
     ]
@@ -1962,7 +1986,16 @@
     "CAPPS": "JET",
     "JAYJA": "JET",
     "SAWGY": "SAW",
-    "SSI": "SSI"
+    "SSI": "SSI",
+    "MMKAY": "",
+    "FOXAM": "",
+    "VIYAP": "",
+    "HABLE": "",
+    "KENLL": "",
+    "OCF": "",
+    "GNV": "",
+    "AYS": "",
+    "TAY": "TAY"
   },
   "stars_maps": [
       "EAST FLOW", "WEST FLOW", "CLASS C AIRSPACE", "CLASS D AIRSPACE", "GPS APPROACHES", "MULTI MVA", "SID WAYPOINTS (JAX)", "LUNNI STAR",

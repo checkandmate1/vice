@@ -2783,11 +2783,11 @@
                     "from": "ZOB"
                 }
             ],
-            "KILIT": [
+            "KILTT": [
                 {
                     "type": "route",
                     "to": "D21",
-                    "from": "ZOBN"
+                    "from": "ZOB"
                 }
             ],
             "LOPVO": [

@@ -3357,7 +3357,7 @@
                                     "from": "ZOB"
                                 }
                             ],
-                            "ROLNN": [
+                            "ROLLN": [
                                 {
                                     "type": "route",
                                     "to": "CLE",
