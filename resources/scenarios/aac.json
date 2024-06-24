@@ -1849,6 +1849,7 @@
   },
   "stars_config": {
   "center": "KAAC",
+  "beacon_bank": 1,
   "coordination_fixes": {
     "ATOKA": [
       {

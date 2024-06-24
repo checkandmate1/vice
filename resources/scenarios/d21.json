@@ -2675,6 +2675,7 @@
         }
     },
     "stars_config": {
+        "beacon_bank": 4,
         "center": "KDTW",
         "coordination_fixes": {
             "BONZZ": [

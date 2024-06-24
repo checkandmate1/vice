@@ -1430,6 +1430,7 @@
         }
     },
     "stars_config": {
+    "beacon_bank": 2,
     "center": "N034.12.14.800,W118.21.44.000",
     "coordination_fixes": {
         "ANJLL": [

@@ -1762,6 +1762,7 @@
 }
 },
 "stars_config": {
+  "beacon_bank": 1,
 "center": "KDCA",
 "coordination_fixes": {
   "CAPSS": [

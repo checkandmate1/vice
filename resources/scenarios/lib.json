@@ -2460,6 +2460,7 @@
   "stars_config": {
   "center": "N040.45.26.477,W074.24.28.789",
   "range": 60,
+  "beacon_bank": 6,
   "radar_sites": {
     "EWR": {
       "char": "E",
@@ -2509,6 +2510,7 @@
   },
       "allow_long_scratchpad": [false, false],
       "force_ql_self": true,
+      
       "coordination_fixes": {
         "MERIT": [
           {

@@ -6139,6 +6139,7 @@
       }
     },
     "stars_config": {
+      "beacon_bank": 3,
       "coordination_fixes": {
             "AALLE": [
                 {

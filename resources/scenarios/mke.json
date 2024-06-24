@@ -768,6 +768,7 @@
     }
   },
   "stars_config": {
+    "beacon_bank": 4,
   "center": "KMKE",
   "coordination_fixes": {
     "LEEDR": [

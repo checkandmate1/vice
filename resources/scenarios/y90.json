@@ -538,6 +538,7 @@
 	},
 	"stars_config": {
 		"center": "41.935711707565986, -72.6940381965002",
+		"beacon_bank": 3,
 		"coordination_fixes": {
 			"MAD": [
 				{

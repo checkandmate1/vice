@@ -689,6 +689,7 @@
   },
   "stars_config": {
   "center": "KGJT",
+  "beacon_bank": 3,
   "radar_sites": {
     "GJT": {
       "char": "A",

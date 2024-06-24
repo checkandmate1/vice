@@ -706,6 +706,7 @@
   },
   "stars_config": {
     "center": "KSLC",
+    "beacon_bank": 6,
     "coordination_fixes": {
       "CARTR": [
         {

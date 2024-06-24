@@ -1390,6 +1390,7 @@
   },
   "stars_config": {
   "center": "KIND",
+  "beacon_bank": 1,
   "coordination_fixes": {
             "BABNE": [
                 {

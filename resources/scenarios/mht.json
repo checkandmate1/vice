@@ -963,6 +963,7 @@
     },
     "stars_config": {
         "center": "KMHT",
+        "beacon_bank": 3,
         "coordination_fixes": {
             "ROZZE": [
                 {

@@ -3671,6 +3671,7 @@
   },
   "stars_config": {
     "center": "KPDX",
+    "beacon_bank": 1,
     "coordination_fixes": {
       "HHOOD": [
           {

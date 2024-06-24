@@ -9055,6 +9055,7 @@
   },
   "stars_config": {
   "center": "KSJC",
+  "beacon_bank": 3,
   "coordination_fixes": {
     "OSI": [
       {

@@ -1787,6 +1787,7 @@
     },
     "stars_config": {
     "center": "N36.4.59.17,W115.8.53.52",
+    "beacon_bank": 1,
     "coordination_fixes": {
             "CHOWW": [
                 {

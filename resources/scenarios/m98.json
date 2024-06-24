@@ -1138,6 +1138,7 @@
       },
       "stars_config": {
         "center": "KMSP",
+        "beacon_bank": 2,
         "coordination_fixes": {
             "LUCCY": [
                 {

@@ -9755,6 +9755,7 @@
   },
   "stars_config": {
   "center": "N028.25.45.781,W081.18.32.260",
+  "beacon_bank": 1,
   "coordination_fixes": {
     "BANYA": [
       {

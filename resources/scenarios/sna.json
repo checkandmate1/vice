@@ -1577,6 +1577,7 @@
         }
     },
     "stars_config": {
+        "beacon_bank": 2,
         "coordination_fixes": {
             "ANJLL": [
                       {

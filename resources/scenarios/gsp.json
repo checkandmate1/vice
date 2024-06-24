@@ -567,6 +567,7 @@
   },
   "stars_config": {
   "center": "KGSP",
+  "beacon_bank": 1,
   "coordination_fixes": {
     "ANGRI": [
       {

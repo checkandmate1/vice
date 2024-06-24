@@ -928,6 +928,7 @@
   },
   "stars_config": {
   "center": "KSAV",
+  "beacon_bank": 6,
   "coordination_fixes": {
     "VIYAP": [
          {

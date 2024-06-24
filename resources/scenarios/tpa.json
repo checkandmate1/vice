@@ -3146,6 +3146,7 @@
   },
   "stars_config": {
   "center": "N27.58.31.700,W82.31.59.700",
+  "beacon_bank": 1,
   "coordination_fixes": {
   "DSIDE":  [
     {

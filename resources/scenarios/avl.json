@@ -763,6 +763,7 @@
       },
       "stars_config": {
         "center": "KAVL",
+        "beacon_bank": 5,
         "coordination_fixes": {
           "LEAVI": [
             {

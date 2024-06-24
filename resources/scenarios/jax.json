@@ -1787,6 +1787,7 @@
   },
   "stars_config": {
   "center": "KJAX",
+  "beacon_bank": 6,
   "coordination_fixes": {
     "PENSE": [
       {
