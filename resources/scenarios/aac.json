@@ -1441,7 +1441,7 @@
         "initial_controller": "ZAE_TUL_LOW",
         "initial_speed": 300,
         "star": "TULSA4",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a11000/h190"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a11000 PRYOR/h170"
       },
       {
         "airlines": {
@@ -1459,7 +1459,7 @@
         "initial_controller": "ZAE_OKC_LOW",
         "initial_speed": 300,
         "route": "/. TUL",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a10000 TUL"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a10000 PRYOR TUL"
       },
       {
         "airlines": {
@@ -1477,7 +1477,7 @@
         "initial_controller": "ZAE_OKC_LOW",
         "initial_speed": 150,
         "route": "/. TUL",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a6000 TUL"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a6000 PRYOR TUL"
       },
       {
         "airlines": {
@@ -1542,7 +1542,7 @@
         "initial_controller": "ZAE_TUL_LOW",
         "initial_speed": 250,
         "route": "/. REELI JKE",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI JKE"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI PRYOR JKE"
       }
     ]
   },
@@ -1872,7 +1872,7 @@
           "from": "ZFW"
       }
   ],
-  "REELI": [
+  "PRYOR": [
       {
           "type": "route",
           "to": "AAC",
