@@ -3398,6 +3398,7 @@
   },
   "stars_config": {
   "center": "KLGA",
+  "beacon_bank": 6,
   "coordination_fixes": {
     "FLOSI": [
       {
@@ -3532,7 +3533,7 @@
       "from": "ZNY"
   }
 ],
-"BELIT": [
+"BELTT": [
   {
       "type": "route",
       "to": "N90",

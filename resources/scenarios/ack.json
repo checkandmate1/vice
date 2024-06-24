@@ -684,6 +684,7 @@
     },
     "stars_config": {
         "center": "KACK",
+        "beacon_bank": 3,
         "coordination_fixes": {
             "ROZZE": [
                 {

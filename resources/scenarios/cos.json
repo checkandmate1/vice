@@ -797,6 +797,7 @@
     }
   },
   "stars_config": {
+    "beacon_bank": 1,
   "center": "N038.47.36.733,W104.35.10.501",
   "coordination_fixes": {
     "OZZZY": [

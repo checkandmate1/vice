@@ -3864,6 +3864,7 @@
   },
   "stars_config": {
     "center": "KJFK",
+    "beacon_bank": 6,
     "coordination_fixes": {
       "MERIT": [
         {
@@ -3921,7 +3922,7 @@
             "from": "ZNY"
         }
     ],
-    "BELIT": [
+    "BELTT": [
         {
             "type": "route",
             "to": "N90",

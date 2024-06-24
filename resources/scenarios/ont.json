@@ -1352,6 +1352,7 @@
         } 
     },
     "stars_config": {
+    "beacon_bank": 2,
     "center": "KONT",
     "coordination_fixes": {
         "ANJLL": [
@@ -1424,7 +1425,7 @@
                       "from": "ZLA"
                   }
               ],
-              "GNKEE": [
+              "GKNEE": [
                   {
                       "type": "route",
                       "to": "SCT",

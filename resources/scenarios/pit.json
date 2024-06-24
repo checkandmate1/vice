@@ -1435,6 +1435,7 @@
       
 "stars_config": {
     "force_ql_self": true,
+    "beacon_bank": 7,
     "allow_long_scratchpad": [
     true,
     true

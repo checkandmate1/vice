@@ -5304,6 +5304,7 @@
   },
   "stars_config": {
   "center": "KPHL",
+  "beacon_bank": 1,
   "coordination_fixes": {
     "OOD": [
       {

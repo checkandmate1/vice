@@ -55,7 +55,7 @@ type World struct {
 		departures map[string]map[string]map[string]bool // airport->runway->exit
 	}
 
-	ERAMComputers  map[string]*ERAMComputer
+	ERAMComputers map[string]*ERAMComputer
 
 	// This is all read-only data that we expect other parts of the system
 	// to access directly.

@@ -3913,6 +3913,7 @@
   },
   "stars_config": {
   "center": "KLAX",
+  "beacon_bank": 2,
   "range": 80,
   "coordination_fixes": {
       "ANJLL": [
@@ -3985,7 +3986,7 @@
                     "from": "ZLA"
                 }
             ],
-            "GNKEE": [
+            "GKNEE": [
                 {
                     "type": "route",
                     "to": "SCT",

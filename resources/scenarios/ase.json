@@ -456,6 +456,7 @@
   },
   "stars_config": {
   "center": "N039.19.41.442,W106.53.21.361",
+  "beacon_bank": 4,
   "coordination_fixes": {
     "WERNR": [
        {

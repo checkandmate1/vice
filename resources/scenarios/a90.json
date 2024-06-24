@@ -8488,6 +8488,7 @@
     },
     "stars_config": {
         "center": "KBOS",
+        "beacon_bank": 3,
         "airspace_awareness": [
             {
                 "fixes": ["ALL"],

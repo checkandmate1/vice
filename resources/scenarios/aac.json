@@ -1441,7 +1441,7 @@
         "initial_controller": "ZAE_TUL_LOW",
         "initial_speed": 300,
         "star": "TULSA4",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a11000/h190"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a11000 PRYOR/h170"
       },
       {
         "airlines": {
@@ -1459,7 +1459,7 @@
         "initial_controller": "ZAE_OKC_LOW",
         "initial_speed": 300,
         "route": "/. TUL",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a10000 TUL"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a10000 PRYOR TUL"
       },
       {
         "airlines": {
@@ -1477,7 +1477,7 @@
         "initial_controller": "ZAE_OKC_LOW",
         "initial_speed": 150,
         "route": "/. TUL",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a6000 TUL"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI/a6000 PRYOR TUL"
       },
       {
         "airlines": {
@@ -1542,7 +1542,7 @@
         "initial_controller": "ZAE_TUL_LOW",
         "initial_speed": 250,
         "route": "/. REELI JKE",
-        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI JKE"
+        "waypoints": "N036.44.24.994,W094.59.19.899 N036.41.31.822,W095.03.53.404/ho REELI PRYOR JKE"
       }
     ]
   },
@@ -1614,7 +1614,7 @@
     "4V4": "N036.07.36.248,W095.20.14.895",
     "COLIN": "TUL@005/33",
     "PRYOR": "TUL@050/30",
-    "REELI": "N036.34.40.920,W095.12.42.066",
+    "REELI": "TUL@051/36",
     "MAYES": "TUL@090/41",
     "KILLR": "TUL@143/39",
     "NOBLE": "TUL@183/35",
@@ -1849,6 +1849,7 @@
   },
   "stars_config": {
   "center": "KAAC",
+  "beacon_bank": 1,
   "coordination_fixes": {
     "ATOKA": [
       {
@@ -1871,7 +1872,7 @@
           "from": "ZFW"
       }
   ],
-  "REELI": [
+  "PRYOR": [
       {
           "type": "route",
           "to": "AAC",

@@ -892,9 +892,9 @@ func (s *STARSFacilityAdaptation) PostDeserialize(e *ErrorLogger, sg *ScenarioGr
 		if _, ok := sg.locate(fix); !ok {
 			e.ErrorString("coordination fix \"%v\" cannot be located", fix)
 		}
-		acceptableTypes := []string{"route", "zone"} 
+		acceptableTypes := []string{"route", "zone"}
 		for i, fix := range fixes {
-			e.Push(fmt.Sprintf("Number %v", i)) 
+			e.Push(fmt.Sprintf("Number %v", i))
 			if !slices.Contains(acceptableTypes, fix.Type) {
 				e.ErrorString("type \"%v\" is invalid. Valid types are \"route\" and \"zone\"", fix.Type)
 			}

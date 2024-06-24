@@ -1513,6 +1513,7 @@
     },
     "stars_config": {
         "center": "KCHS",
+        "beacon_bank": 3,
         "coordination_fixes": {
             "NINJA": [
                 {

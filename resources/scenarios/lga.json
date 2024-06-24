@@ -2486,6 +2486,7 @@
   },
   "stars_config": {
   "center": "KLGA",
+  "beacon_bank": 6,
   "coordination_fixes": {
     "MERIT": [
       {

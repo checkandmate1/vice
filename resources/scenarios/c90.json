@@ -7838,6 +7838,7 @@
         },
         "stars_config": {
             "center": "N41.58.34.897,W87.54.27.062",
+            "beacon_bank": 3,
             "coordination_fixes": {
                 "NEWRK": [
                     {

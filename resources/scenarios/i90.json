@@ -2747,6 +2747,7 @@
     },
     "stars_config": {
         "center": "KIAH",
+        "beacon_bank": 1,
         "coordination_fixes": {
             "BEATL": [
                 {

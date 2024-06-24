@@ -1894,6 +1894,7 @@
     },
     "stars_config": {
         "center": "KRDU",
+        "beacon_bank": 4,
         "coordination_fixes": {
             "FAVKO": [
                 {

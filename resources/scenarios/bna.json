@@ -2300,6 +2300,7 @@
     },
     "stars_config": {
       "center": "KBNA",
+      "beacon_bank": 4,
       "coordination_fixes": {
         "BAWLS": [
             {

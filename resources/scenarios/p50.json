@@ -1398,6 +1398,7 @@
     },
     "stars_config": {
     "center": "KPHX",
+    "beacon_bank": 3,
     "coordination_fixes": {
         "BRUSR": [
             {

@@ -1041,6 +1041,7 @@
   },
   "stars_config": {
   "force_ql_self": true,
+  "beacon_bank": 3,
   "allow_long_scratchpad": [
     true,
     true
@@ -1088,7 +1089,7 @@
             "from": "ZOB"
         }
     ],
-    "ARICO": [
+    "AIRCO": [
         {
             "type": "route",
             "to": "BUF",
