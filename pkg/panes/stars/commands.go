@@ -232,7 +232,8 @@ func (sp *STARSPane) executeSTARSCommand(cmd string, ctx *panes.Context) (status
 		}
 
 		if idx, err := strconv.Atoi(callsign); err == nil {
-			if trk := ctx.ControlClient.STARSComputer().LookupTrackIndex(idx); trk != nil {
+			fac := ctx.ControlClient.Controllers[ctx.ControlClient.Callsign].Facility
+			if trk := ctx.ControlClient.STARSComputer(fac).LookupTrackIndex(idx); trk != nil {
 				// May be nil, but this is our last option
 				return ctx.ControlClient.Aircraft[trk.Identifier]
 			}
@@ -499,7 +500,8 @@ func (sp *STARSPane) executeSTARSCommand(cmd string, ctx *panes.Context) (status
 				return
 			} else {
 				// Is it an abbreviated flight plan?
-				fp, err := sim.MakeSTARSFlightPlanFromAbbreviated(cmd, ctx.ControlClient.STARSComputer(),
+				fac := ctx.ControlClient.Controllers[ctx.ControlClient.Callsign].Facility
+				fp, err := sim.MakeSTARSFlightPlanFromAbbreviated(cmd, ctx.ControlClient.STARSComputer(fac),
 					ctx.ControlClient.STARSFacilityAdaptation)
 				if fp != nil {
 					ctx.ControlClient.UploadFlightPlan(fp, sim.LocalNonEnroute, nil,
@@ -1613,7 +1615,8 @@ func (sp *STARSPane) setGlobalLeaderLine(ctx *panes.Context, callsign string, di
 func (sp *STARSPane) initiateTrack(ctx *panes.Context, callsign string) {
 	// TODO: should we actually be looking up the flight plan on the server
 	// side anyway?
-	fp, err := ctx.ControlClient.STARSComputer().GetFlightPlan(callsign)
+	fac := ctx.ControlClient.Controllers[ctx.ControlClient.Callsign].Facility
+	fp, err := ctx.ControlClient.STARSComputer(fac).GetFlightPlan(callsign)
 	if err != nil {
 		// TODO: do what here?
 	}
@@ -1890,6 +1893,8 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *panes.Context, cmd string, 
 				ctx.Lg.Info("print aircraft", slog.String("callsign", ac.Callsign),
 					slog.Any("aircraft", ac))
 				fmt.Println(spew.Sdump(ac) + "\n" + ac.Nav.FlightState.Summary())
+
+				fmt.Println(sp.Aircraft[ac.Callsign].TrackAltitude())
 				status.clear = true
 				return
 			} else if cmd == "*J" {

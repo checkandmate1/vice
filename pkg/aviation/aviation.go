@@ -1153,6 +1153,10 @@ func (c *MultiUserController) IsInboundController(group string) bool {
 	return slices.Contains(c.InboundFlows, group)
 }
 
+func IsCenterController(controller string) bool {
+	return strings.HasSuffix(controller, "CTR")
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // SquawkCodePool
 

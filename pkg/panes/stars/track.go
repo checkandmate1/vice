@@ -23,8 +23,12 @@ import (
 // ctx.ControlClient.STARSComputer().TrackInformation[ac.Callsign].  Until
 // everything is wired up, some of the information needed is still being
 // maintained in Aircraft, so we'll make an ad-hoc TrackInformation here.
+
 func (sp *STARSPane) getTrack(ctx *panes.Context, ac *av.Aircraft) *sim.TrackInformation {
-	trk := ctx.ControlClient.STARSComputer().TrackInformation[ac.Callsign]
+	stars := sp.STARSComputer(ctx)
+	trk := stars.TrackInformation[ac.Callsign]
+	return trk 
+	// In theory this is all that is needed. If `trk` is nil, it should be an LDB or something like that.
 	if trk == nil {
 		trk = &sim.TrackInformation{}
 	}
@@ -42,6 +46,13 @@ func (sp *STARSPane) getTrack(ctx *panes.Context, ac *av.Aircraft) *sim.TrackInf
 
 	return trk
 }
+
+func (sp *STARSPane) STARSComputer(ctx *panes.Context) *sim.STARSComputer {
+	_, stars, _ := ctx.ControlClient.ERAMComputers.FacilityComputers(ctx.ControlClient.Controllers[ctx.ControlClient.Callsign].Facility)
+	return stars
+}
+
+
 
 type AircraftState struct {
 	// Independently of the track history, we store the most recent track
@@ -450,7 +461,8 @@ func (sp *STARSPane) updateRadarTracks(ctx *panes.Context) {
 
 	// FIXME(mtrokel): should this be happening in the STARSComputer Update method?
 	if !ctx.ControlClient.STARSFacilityAdaptation.KeepLDB {
-		ctx.ControlClient.STARSComputer().UpdateAssociatedFlightPlans(aircraft)
+		fac := ctx.ControlClient.Controllers[ctx.ControlClient.Callsign].Facility
+		ctx.ControlClient.STARSComputer(fac).UpdateAssociatedFlightPlans(aircraft)
 	}
 }
 

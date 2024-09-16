@@ -400,13 +400,20 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 		false /* do these ever flash? */)
 
 	trk := sp.getTrack(ctx, ac)
-
+	var beaconMismatch bool 
+	var arrivalAirport, handoffId, handoffTCP string
+	beaconator := ctx.Keyboard != nil && ctx.Keyboard.IsFKeyHeld(platform.KeyF1)
+	ident := state.Ident(ctx.Now)
+	squawkingSPC, _ := av.SquawkIsSPC(ac.Squawk)
+	altitude := fmt.Sprintf("%03d", (state.TrackAltitude()+50)/100)
+	groundspeed := fmt.Sprintf("%02d", (state.TrackGroundspeed()+5)/10)
+	
+	if trk != nil {
 	// Check if the track is being handed off.
 	//
 	// handoffTCP is only set if it's coming from an enroute position or
 	// from a different facility; otherwise we just show the
 	// single-character id.
-	handoffId, handoffTCP := "", ""
 	if trk.HandoffController != "" {
 		// For inbound to us, we want to show who owns it currently; for
 		// outbound, we show who it's going to.
@@ -433,21 +440,16 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 	}
 
 	// Various other values that will be repeatedly useful below...
-	beaconator := ctx.Keyboard != nil && ctx.Keyboard.IsFKeyHeld(platform.KeyF1)
-	ident := state.Ident(ctx.Now)
-	squawkingSPC, _ := av.SquawkIsSPC(ac.Squawk)
-	altitude := fmt.Sprintf("%03d", (state.TrackAltitude()+50)/100)
-	groundspeed := fmt.Sprintf("%02d", (state.TrackGroundspeed()+5)/10)
+	
 	// Note arrivalAirport is only set if it should be shown when there is no scratchpad set
-	arrivalAirport := ""
 	if ap := ctx.ControlClient.Airports[trk.FlightPlan.ArrivalAirport]; ap != nil && !ap.OmitArrivalScratchpad {
 		arrivalAirport = trk.FlightPlan.ArrivalAirport
 		if len(arrivalAirport) == 4 && arrivalAirport[0] == 'K' {
 			arrivalAirport = arrivalAirport[1:]
 		}
 	}
-	beaconMismatch := ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC
-
+	beaconMismatch = ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC
+	}
 	switch sp.datablockType(ctx, ac) {
 	case LimitedDatablock:
 		db := &limitedDatablock{}
@@ -696,8 +698,11 @@ func (sp *STARSPane) trackDatablockColorBrightness(ctx *panes.Context, ac *av.Ai
 
 	// Cases where it's always a full datablock
 	_, forceFDB := sp.InboundPointOuts[ac.Callsign]
-	forceFDB = forceFDB || (state.OutboundHandoffAccepted && ctx.Now.Before(state.OutboundHandoffFlashEnd))
-	forceFDB = forceFDB || trk.HandingOffTo(ctx.ControlClient.Callsign)
+	if trk != nil {
+		forceFDB = forceFDB || (state.OutboundHandoffAccepted && ctx.Now.Before(state.OutboundHandoffFlashEnd))
+		forceFDB = forceFDB || trk.HandingOffTo(ctx.ControlClient.Callsign)
+	}
+	
 
 	// Figure out the datablock and position symbol brightness first
 	if ac.Callsign == sp.dwellAircraft { // dwell overrides everything as far as brightness

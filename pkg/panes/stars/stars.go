@@ -833,17 +833,22 @@ func (sp *STARSPane) visibleAircraft(ctx *panes.Context) []*av.Aircraft {
 
 		if visible {
 			aircraft = append(aircraft, ac)
-
-			// Is this the first we've seen it?
-			if state.FirstRadarTrack.IsZero() {
+			comp := sp.STARSComputer(ctx)
+			if inAcquisitionArea(ac) {
 				state.FirstRadarTrack = now
 
 				trk := sp.getTrack(ctx, ac)
 				if sp.AutoTrackDepartures && trk != nil && trk.TrackOwner == "" &&
 					ctx.ControlClient.DepartureController(ac, ctx.Lg) == ctx.ControlClient.Callsign {
-					starsFP := sim.MakeSTARSFlightPlan(ac.FlightPlan)
+					
+					starsFP := comp.ContainedPlans[ac.Squawk]
 					ctx.ControlClient.InitiateTrack(callsign, starsFP, nil, nil) // ignore error...
 				}
+			}
+			trk := sp.getTrack(ctx, ac)
+			// Drop the track owner (for landing ac)
+			if inDropArea(ac) && trk != nil {
+				comp.TrackInformation[ac.Callsign] = nil
 			}
 		}
 	}
@@ -862,6 +867,33 @@ func (sp *STARSPane) radarSiteId(radarSites map[string]*av.RadarSite) string {
 	default:
 		return "UNKNOWN"
 	}
+}
+
+// FIXME: Try to get these functions to load in without the need to import them here
+func inAcquisitionArea(ac *av.Aircraft) bool {
+	if inDropArea(ac) {
+		return false
+	}
+
+	for _, icao := range []string{ac.FlightPlan.DepartureAirport, ac.FlightPlan.ArrivalAirport} {
+		ap := av.DB.Airports[icao]
+		if math.NMDistance2LL(ap.Location, ac.Position()) <= 2 && !inDropArea(ac) {
+			return true
+		}
+	}
+	return false
+}
+
+func inDropArea(ac *av.Aircraft) bool {
+	for _, icao := range []string{ac.FlightPlan.DepartureAirport, ac.FlightPlan.ArrivalAirport} {
+		ap := av.DB.Airports[icao]
+		if math.NMDistance2LL(ap.Location, ac.Position()) <= 1 &&
+			ac.Altitude() <= float32(ap.Elevation+50) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (sp *STARSPane) initializeAudio(p platform.Platform, lg *log.Logger) {

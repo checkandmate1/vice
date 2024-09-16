@@ -79,7 +79,7 @@ func MakeERAMComputer(fac string, adapt av.ERAMAdaptation, starsBeaconBank int, 
 		FlightPlans:      make(map[av.Squawk]*STARSFlightPlan),
 		TrackInformation: make(map[string]*TrackInformation),
 		SquawkCodePool:   av.MakeCompleteSquawkCodePool(),
-		STARSCodePool:    av.MakeSquawkBankCodePool(starsBeaconBank),
+		STARSCodePool:    av.MakeSquawkBankCodePool(starsBeaconBank), //TODO: Different STARS facilities under the same ARTCC can/ should have different beacon banks. Fix this
 		Identifier:       fac,
 		eramComputers:    eramComputers,
 	}
@@ -113,7 +113,7 @@ func (comp *ERAMComputer) CreateSquawk() (av.Squawk, error) {
 func (comp *ERAMComputer) SendFlightPlans(tracon string, simTime time.Time, lg *log.Logger) {
 	// FIXME(mtrokel): does this need to remove plans from comp.FlightPlans
 	// / comp.TrackInformation after sending them?
-	return
+
 
 	sendPlanIfReady := func(fp *STARSFlightPlan) {
 		if simTime.Add(TransmitFPMessageTime).Before(fp.CoordinationTime.Time) {
@@ -121,8 +121,13 @@ func (comp *ERAMComputer) SendFlightPlans(tracon string, simTime time.Time, lg *
 		}
 
 		if coordFix, ok := comp.Adaptation.CoordinationFixes[fp.CoordinationFix]; !ok {
-			lg.Errorf("%s: no coordination fix found for STARSFlightPlan CoordinationFix",
-				fp.CoordinationFix)
+			// lg.Errorf("%v: %s: no coordination fix found for STARSFlightPlan CoordinationFix",
+			// 	comp.Identifier, fp.CoordinationFix)
+
+			// This error is mostly caused by departures whose exit gate doesn't handoff to another facility directly.
+			// (eg. DIXIE will eventually go to ZDC, but it goes to ZNY first.) For the most part, we can ignore this.
+			// TODO: Update adaptations.json so that more exit gates for other ERAM facilities are made.
+			// TODO: Have the ERAM computer be able to assign another coordination fix once the aircraft flies over it's coordination fix.
 		} else if adaptFix, err := coordFix.Fix(fp.Altitude); err != nil {
 			lg.Errorf("%s @ %s", fp.CoordinationFix, fp.Altitude)
 		} else if !slices.Contains(fp.ContainedFacilities, adaptFix.ToFacility) {
@@ -174,21 +179,32 @@ func (comp *ERAMComputer) AddTrackInformation(callsign string, trk TrackInformat
 	comp.TrackInformation[callsign] = &trk
 }
 
-func (comp *ERAMComputer) AddDeparture(fp *av.FlightPlan, tracon string, simTime time.Time) {
+func (comp *ERAMComputer) AddDeparture(ac *av.Aircraft, tracon string, simTime time.Time) error {
+	fp := ac.FlightPlan
 	starsFP := MakeSTARSFlightPlan(fp)
 
+	sq, err := comp.CreateSquawk()
+	if err != nil {
+		return err
+	}
+
+	ac.FlightPlan.AssignedSquawk = sq
+	ac.Squawk = sq
+	starsFP.AssignedSquawk = sq
+
 	if fix := comp.Adaptation.FixForRouteAndAltitude(starsFP.Route, starsFP.Altitude); fix != nil {
+		starsFP.CoordinationFix = fp.Exit
 		msg := starsFP.Message()
 		msg.SourceID = formatSourceID(comp.Identifier, simTime)
 		msg.MessageType = Plan
 		comp.SendMessageToERAM(fix.ToFacility, msg)
 
-		starsFP.CoordinationFix = fix.Name
 		starsFP.ContainedFacilities = []string{fix.ToFacility}
 	}
 
 	comp.AddFlightPlan(starsFP)
 	comp.SendMessageToSTARSFacility(tracon, FlightPlanDepartureMessage(*fp, comp.Identifier, simTime))
+	return nil
 }
 
 // Sends a message, whether that be a flight plan or any other message type to a STARS computer.
@@ -534,7 +550,7 @@ func (comp *STARSComputer) UpdateAssociatedFlightPlans(aircraft []*av.Aircraft) 
 	}
 }
 
-// This should be facility-defined in the json file, but for now it's 30nm
+// This should be facility-defined in the json file, but for now it's 2nm
 // near their departure airport.
 func inAcquisitionArea(ac *av.Aircraft) bool {
 	if inDropArea(ac) {
@@ -571,9 +587,7 @@ func (comp *STARSComputer) InitiateTrack(callsign string, controller string, fp 
 		TrackOwner: controller,
 		FlightPlan: fp,
 	}
-	if haveControl {
-		trk.HandoffController = controller
-	}
+	
 	comp.TrackInformation[callsign] = trk
 
 	// TODO: shouldn't this be done earlier?
@@ -628,6 +642,7 @@ func (comp *STARSComputer) HandoffTrack(callsign string, from *av.Controller, to
 func (comp *STARSComputer) HandoffControl(callsign string, nextController string) error {
 	trk := comp.TrackInformation[callsign]
 	if trk == nil {
+		fmt.Println("no aircraft for callsign", callsign)
 		return av.ErrNoAircraftForCallsign
 	}
 
@@ -647,7 +662,7 @@ func (comp *STARSComputer) AcceptHandoff(ac *av.Aircraft, ctrl *av.Controller,
 		return av.ErrNoAircraftForCallsign
 	}
 
-	if octrl := controllers[trk.TrackOwner]; octrl != nil && octrl.FacilityIdentifier != "" { // inter-facility
+	if octrl := controllers[trk.TrackOwner]; octrl != nil && octrl.FacilityIdentifier != ctrl.Facility { // inter-facility
 		fp := comp.ContainedPlans[ac.Squawk]
 		if fp == nil {
 			fp = trk.FlightPlan
@@ -677,15 +692,14 @@ func (comp *STARSComputer) AcceptHandoff(ac *av.Aircraft, ctrl *av.Controller,
 	return nil
 }
 
-func (comp *STARSComputer) AutomatedAcceptHandoff(ac *av.Aircraft, controller string,
-	receivingSTARS *STARSComputer, controllers map[string]*av.Controller, simTime time.Time) error {
+func (comp *STARSComputer) AutomatedAcceptHandoff(ac *av.Aircraft, controller string, controllers map[string]*av.Controller, simTime time.Time) error {
 	// TODO: can this be unified with AcceptHandoff() above?
 	trk := comp.TrackInformation[ac.Callsign]
 	if trk == nil {
 		return av.ErrNoAircraftForCallsign
 	}
-
-	if ctrl := controllers[trk.TrackOwner]; ctrl != nil && ctrl.FacilityIdentifier != "" { // inter-facility
+	octrl := controllers[trk.HandoffController]
+	if ctrl := controllers[trk.TrackOwner]; ctrl != nil && ctrl.FacilityIdentifier != octrl.FacilityIdentifier { // inter-facility
 		// TODO: in other places where a *STARSFlightPlan is passed in, can
 		// we look it up this way instead?
 		msg := comp.ContainedPlans[ac.Squawk].Message()
@@ -695,12 +709,14 @@ func (comp *STARSComputer) AutomatedAcceptHandoff(ac *av.Aircraft, controller st
 		}
 		msg.MessageType = AcceptRecallTransfer
 		comp.SendTrackInfo(ctrl.FacilityIdentifier, msg, simTime)
-	} else {
+	} 
 		// TODO(mtrokel): AcceptHandoff() always does this, but the code
 		// for automated handoffs has it under an else clause. Intentional?
+
+		// Change the information locally as well.
 		trk.TrackOwner = trk.HandoffController
 		trk.HandoffController = ""
-	}
+	
 	return nil
 }
 
@@ -1030,6 +1046,7 @@ func (fp *STARSFlightPlan) SetCoordinationFix(fa STARSFacilityAdaptation, ac *av
 	if !ok {
 		return ErrNoCoordinationFix
 	}
+	fmt.Printf("Coordination Fix for %v/%v is %v", fp.Callsign, fp.AssignedSquawk, cf)
 	fp.CoordinationFix = cf
 
 	if dist, err := ac.DistanceAlongRoute(cf); err == nil {
@@ -1227,6 +1244,8 @@ func (ec *ERAMComputers) AddArrival(ac *av.Aircraft, facility string, fa STARSFa
 		return err
 	}
 
+	// Delete this later, so I don't forget: Figure out why STARS is taking ERAM track data.
+
 	artcc, stars, err := ec.FacilityComputers(facility)
 	if err != nil {
 		return err
@@ -1239,6 +1258,7 @@ func (ec *ERAMComputers) AddArrival(ac *av.Aircraft, facility string, fa STARSFa
 
 	ac.FlightPlan.AssignedSquawk = sq
 	ac.Squawk = sq
+	starsFP.AssignedSquawk = sq
 
 	artcc.AddFlightPlan(starsFP)
 
@@ -1250,8 +1270,10 @@ func (ec *ERAMComputers) AddArrival(ac *av.Aircraft, facility string, fa STARSFa
 
 	if artcc != nil {
 		artcc.AddTrackInformation(ac.Callsign, trk)
+		fmt.Printf("ERAM AddArrival: %v/%v\n", ac.Callsign, ac.Squawk)
 	} else {
 		stars.AddTrackInformation(ac.Callsign, trk)
+		fmt.Printf("STARS AddArrival: %v/%v\n", ac.Callsign, ac.Squawk)
 	}
 	return nil
 }
@@ -1266,6 +1288,8 @@ func (ec *ERAMComputers) CompletelyDeleteAircraft(ac *av.Aircraft) {
 func (ec *ERAMComputers) HandoffTrack(ac *av.Aircraft, from, to string, controllers map[string]*av.Controller, simTime time.Time) error {
 	fromCtrl, toCtrl := controllers[from], controllers[to]
 	if fromCtrl == nil || toCtrl == nil {
+		fmt.Printf("Invalid Controller: %v,%v,%v,%v\n", from, to, fromCtrl, toCtrl)
+		fmt.Printf("Controllers: %v\n", controllers)
 		return av.ErrInvalidController
 	}
 
@@ -1275,8 +1299,10 @@ func (ec *ERAMComputers) HandoffTrack(ac *av.Aircraft, from, to string, controll
 	}
 
 	if stars != nil {
+		fmt.Printf("STARS HandoffTrack: %v/%v\n", ac.Callsign, ac.Squawk)
 		return stars.HandoffTrack(ac.Callsign, fromCtrl, toCtrl, simTime)
 	} else {
+		fmt.Printf("ERAM HandoffTrack: %v/%\nv", ac.Callsign, ac.Squawk)
 		return eram.HandoffTrack(ac, fromCtrl, toCtrl, simTime)
 	}
 }

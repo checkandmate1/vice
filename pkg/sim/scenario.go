@@ -1049,12 +1049,7 @@ func (fa *STARSFacilityAdaptation) GetCoordinationFix(fp *STARSFlightPlan, acpos
 				continue
 			}
 
-			// FIXME (as elsewhere): make this more robust
-			if strings.Contains(fp.Route, fix) {
-				return fix, true
-			}
-
-			// FIXME: why both this and checking fp.Route?
+			// Only scan the waypoints that the aircraft has not flied too.
 			for _, waypoint := range waypoints {
 				if waypoint.Fix == fix {
 					return fix, true
