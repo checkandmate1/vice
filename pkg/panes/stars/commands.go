@@ -2762,7 +2762,7 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *panes.Context, cmd string, 
 			} else if cmd == "?" {
 				ctx.Lg.Info("print aircraft", slog.String("callsign", ac.Callsign),
 					slog.Any("aircraft", ac))
-				fmt.Println(spew.Sdump(ac))
+				fmt.Println(spew.Sdump(ac) + "\n" + ac.Nav.FlightState.Summary())
 				status.clear = true
 				return
 			} else if cmd == "*F" {
@@ -2998,13 +2998,21 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *panes.Context, cmd string, 
 					} else {
 						status.err = err
 					}
-				} else {
+				} else if trk != nil {
 					// Try setting the scratchpad
 					if err := sp.setScratchpad(ctx, trk.Identifier, cmd, false, true); err != nil {
 						status.err = err
 					} else {
 						status.clear = true
 					}
+				} else { // Try to IC a track?
+					fp, err := ctx.ControlClient.STARSComputer(ctx.ControlClient.Callsign).GetFlightPlan(ac.Callsign)
+					if err != nil {
+						status.err = err
+						return
+					}
+					status.clear = true
+					sp.initiateTrack(ctx, ac.Callsign, fp)
 				}
 				return
 			}
@@ -3442,124 +3450,124 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *panes.Context, cmd string, 
 		control := sp.lookupControllerForId(ctx, cmd, ut.FlightPlan.Callsign)
 		// Change a/c type
 		switch sp.commandMode {
-			case CommandModeNone:
-				if control == nil && len(cmd) >= 3 && len(cmd) <= 6 &&
-			ut.Owner == ctx.ControlClient.Callsign {
+		case CommandModeNone:
+			if control == nil && len(cmd) >= 3 && len(cmd) <= 6 &&
+				ut.Owner == ctx.ControlClient.Callsign {
 
-			if len(cmd) == 3 || (len(cmd) <= 4 && cmd[0] == '+'){ // SP1/2, Pilot reported altitude, or interm alt
-				if cmd[0] == '+' { // SP2 or interm alt
-					if _, err := strconv.Atoi(cmd[1:]); err == nil {
-						ut.IntermAlt = cmd[1:]
-					} else {
-						ut.SP2 = cmd[1:]
+				if len(cmd) == 3 || (len(cmd) <= 4 && cmd[0] == '+') { // SP1/2, Pilot reported altitude, or interm alt
+					if cmd[0] == '+' { // SP2 or interm alt
+						if _, err := strconv.Atoi(cmd[1:]); err == nil {
+							ut.IntermAlt = cmd[1:]
+						} else {
+							ut.SP2 = cmd[1:]
+						}
+					} else if _, err := strconv.Atoi(cmd); err == nil { // Pilot reported altitude
+						if cmd == "000" {
+							cmd = ""
+						}
+						ut.PilotReportedAltitude = cmd
+					} else { // SP1
+						ut.SP1 = cmd
 					}
-				} else if _, err := strconv.Atoi(cmd); err == nil { // Pilot reported altitude
-					if cmd == "000" {
-						cmd = ""
+					ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+					status.clear = true
+					return
+				} else if len(cmd) == 4 || len(cmd) == 6 {
+					for _, ch := range cmd[:4] {
+						if !unicode.IsLetter(ch) && !unicode.IsDigit(ch) {
+							status.err = ErrSTARSCommandFormat
+							return
+						}
 					}
-					ut.PilotReportedAltitude = cmd 
-				} else { // SP1
-					ut.SP1 = cmd
-				}
-				ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
-				status.clear = true
-				return
-			} else if len(cmd) == 4 || len(cmd) == 6 {
-			for _, ch := range cmd[:4] {
-				if !unicode.IsLetter(ch) && !unicode.IsDigit(ch) {
-					status.err = ErrSTARSCommandFormat
+					if len(cmd) == 6 && cmd[len(cmd)-2] == '/' {
+						cmd = cmd[:len(cmd)-2] // Trim equip suffix
+					} else if len(cmd) == 6 {
+						status.err = ErrSTARSCommandFormat
+						return
+					}
+
+					ut.FlightPlan.AircraftType = cmd
+
+					ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+					status.clear = true
 					return
 				}
 			}
-			if len(cmd) == 6 && cmd[len(cmd)-2] == '/' {
-				cmd = cmd[:len(cmd)-2] // Trim equip suffix
-			} else if len(cmd) == 6 {
-				status.err = ErrSTARSCommandFormat
-				return
-			}
-
-			ut.FlightPlan.AircraftType = cmd
-
-			ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
-			status.clear = true
-			return
-		} 
-	}
-	if len(cmd) == 1 && ut.Owner == ctx.ControlClient.Callsign {
-			if cmd == "." {
-				ut.SP1 = ""
-				ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
-				status.clear = true
-				return
-			}
-			if cmd == "+" {
-				ut.SP2 = ""
-				ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
-				status.clear = true
-				return
-			}
-		}
-		if control != nil {
-			if control.Callsign == ctx.ControlClient.Callsign {
-				status.err = ErrSTARSIllegalPosition
-				return
-			}
-			if ut.Owner != ctx.ControlClient.Callsign {
-				status.err = ErrSTARSIllegalTrack
-				return
-			}
-
-			// Handoff unsupported track
-			ctx.ControlClient.HandoffUnsupportedTrack(ut.FlightPlan.Callsign, control.Callsign, nil, func(err error) {
-				if err != nil {
-					ctx.Lg.Errorf("Error handing off unsupported track: %v", err)
-					status.err = err
+			if len(cmd) == 1 && ut.Owner == ctx.ControlClient.Callsign {
+				if cmd == "." {
+					ut.SP1 = ""
+					ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+					status.clear = true
 					return
 				}
-			})
-			status.clear = true
-			return
-		}
-	case CommandModeHandOff:
-		if control != nil {
-			if control.Callsign == ctx.ControlClient.Callsign {
-				status.err = ErrSTARSIllegalPosition
-				return
-			}
-			if ut.Owner != ctx.ControlClient.Callsign {
-				status.err = ErrSTARSIllegalTrack
-				return
-			}
-
-			// Handoff unsupported track
-			ctx.ControlClient.HandoffUnsupportedTrack(ut.FlightPlan.Callsign, control.Callsign, nil, func(err error) {
-				if err != nil {
-					ctx.Lg.Errorf("Error handing off unsupported track: %v", err)
-					status.err = err
+				if cmd == "+" {
+					ut.SP2 = ""
+					ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+					status.clear = true
 					return
 				}
-			})
-			status.clear = true
-			return
-		}
-	case CommandModeMultiFunc:
-		if cmd == "Y." {
-			if ut.Owner == ctx.ControlClient.Callsign {
-				ut.SP1 = ""
-				ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+			}
+			if control != nil {
+				if control.Callsign == ctx.ControlClient.Callsign {
+					status.err = ErrSTARSIllegalPosition
+					return
+				}
+				if ut.Owner != ctx.ControlClient.Callsign {
+					status.err = ErrSTARSIllegalTrack
+					return
+				}
+
+				// Handoff unsupported track
+				ctx.ControlClient.HandoffUnsupportedTrack(ut.FlightPlan.Callsign, control.Callsign, nil, func(err error) {
+					if err != nil {
+						ctx.Lg.Errorf("Error handing off unsupported track: %v", err)
+						status.err = err
+						return
+					}
+				})
 				status.clear = true
 				return
 			}
-		if cmd == "Y+" {
-			if ut.Owner == ctx.ControlClient.Callsign {
-				ut.SP2 = ""
-				ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+		case CommandModeHandOff:
+			if control != nil {
+				if control.Callsign == ctx.ControlClient.Callsign {
+					status.err = ErrSTARSIllegalPosition
+					return
+				}
+				if ut.Owner != ctx.ControlClient.Callsign {
+					status.err = ErrSTARSIllegalTrack
+					return
+				}
+
+				// Handoff unsupported track
+				ctx.ControlClient.HandoffUnsupportedTrack(ut.FlightPlan.Callsign, control.Callsign, nil, func(err error) {
+					if err != nil {
+						ctx.Lg.Errorf("Error handing off unsupported track: %v", err)
+						status.err = err
+						return
+					}
+				})
 				status.clear = true
 				return
 			}
+		case CommandModeMultiFunc:
+			if cmd == "Y." {
+				if ut.Owner == ctx.ControlClient.Callsign {
+					ut.SP1 = ""
+					ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+					status.clear = true
+					return
+				}
+				if cmd == "Y+" {
+					if ut.Owner == ctx.ControlClient.Callsign {
+						ut.SP2 = ""
+						ctx.ControlClient.ChangeUnsupportedTrack(ut.FlightPlan.Callsign, ut, nil, nil)
+						status.clear = true
+						return
+					}
+				}
+			}
 		}
-		}
-	}
 
 	} else if ut != nil && cmd == "" {
 		state := sp.UnsupportedTracks[ut.FlightPlan.Callsign]
