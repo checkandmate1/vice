@@ -459,8 +459,8 @@
         "to": "ZBW",
         "from": "N90",
         "altitude": [
-          0,
-          0
+          13000,
+          99900
         ],
         "departing_airports": null,
         "arriving_airports": null

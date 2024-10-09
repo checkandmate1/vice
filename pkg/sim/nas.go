@@ -133,7 +133,7 @@ func (comp *ERAMComputer) SendFlightPlans(simTime time.Time, lg *log.Logger, air
 		} else if !fp.Sent {
 			err = comp.SendFlightPlan(fp, simTime)
 			if err != nil {
-				lg.Errorf("Error sending flight plan %v: %v", fp, err)
+				// lg.Errorf("Error sending flight plan %v: %v", fp, err)
 			}
 		}
 	}
@@ -304,11 +304,12 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 		case DepartureDM: // Stars ERAM coordination time tracking
 
 			fp := comp.FlightPlans[msg.BCN]
-
+			fmt.Println("Dm message received")
 			// Look through adapted departure routes to see if there is an adapted rout
 			var nextFix av.AdaptationFix
 			for fix, fixes := range comp.Adaptation.CoordinationFixes {
 				if !strings.Contains(fp.Route, fix) {
+					fmt.Printf("%v doesn't contain %v\n", fp.Route, fix)
 					continue
 				}
 				fixInfo, err := fixes.Fix(fp.STARSAltitude)
@@ -316,9 +317,14 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 					lg.Errorf("Error getting fix for %s: %v", fix, err) // See what kinds of errors show up and adjust this accordingly
 					continue
 				}
-				if slices.Contains(fixInfo.DepartingAirports, fp.DepartureAirport) {
+				if fixInfo.FromFacility != msg.SourceID[:3] {
+					fmt.Printf("DM: Fix %s is not from %s: %v\n", fix, msg.SourceID[:3], fixInfo.FromFacility)
+					continue
+				}
+				if slices.Contains(fixInfo.DepartingAirports, fp.DepartureAirport) || fixInfo.DepartingAirports == nil {
 					fp.NextFacility = fixInfo.ToFacility
 					nextFix = fixInfo
+					fmt.Printf("DM: Next fix for %s: %v. NextFacility: %v.\n", fp.Callsign, nextFix.Name, fp.NextFacility)
 					break
 				}
 
@@ -326,13 +332,13 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 
 			fix, ok := av.DB.LookupWaypoint(nextFix.Name)
 			if !ok {
-				lg.Errorf("Error looking up waypoint for next fix %s.", nextFix.Name)
+				fmt.Printf("Error looking up waypoint for next fix %s.", nextFix.Name)
 				break
 			}
 
 			_, _, polygon := av.DB.GetARTCC(fix, nextFix.Altitude[0]) // Theoretically nextFix.Altitude[0] should work. I think.
 			if len(polygon) == 0 {
-				lg.Warnf("No polygon found for ARTCC at fix %s", nextFix.Name)
+				lg.Errorf("No polygon found for ARTCC at fix %s, altitude %v", nextFix.Name, nextFix.Altitude[0])
 				break
 			}
 
@@ -349,6 +355,8 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 				lg.Errorf("Error looking up waypoint for before fix %s. ", beforeFix)
 				break
 			}
+
+			fmt.Println("DM: Before fix location: ", beforeFixLocation, "Fix location: ", fix)
 
 			fixLocations := [2]math.Point2LL{beforeFixLocation, fix}
 
@@ -752,6 +760,8 @@ func (comp *STARSComputer) InitiateTrack(callsign string, controller string, fp 
 		Identifier: callsign,
 	}
 
+	fmt.Println("InitiateTrack: ", trk)
+
 	comp.TrackInformation[callsign] = trk
 
 	// TODO: shouldn't this be done earlier?
@@ -764,6 +774,12 @@ func (comp *STARSComputer) InitiateTrack(callsign string, controller string, fp 
 	if idx != -1 {
 		comp.HoldForRelease = append(comp.HoldForRelease[:idx], comp.HoldForRelease[idx+1:]...)
 	}
+
+	fmt.Println("send dm msg")
+	msg := fp.Message()
+	msg.MessageType = DepartureDM
+	msg.SourceID = formatSourceID(comp.Identifier, time.Now())
+	comp.SendToOverlyingERAMFacility(msg)
 
 	return nil
 }
