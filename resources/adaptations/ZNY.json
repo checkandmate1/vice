@@ -868,6 +868,37 @@
         "arriving_airports": null
       }
     ],
+    "SBJ": [
+      {
+        "Name": "",
+        "type": "route",
+        "to": "N90",
+        "from": "ABE",
+        "altitude": [
+          0,
+          8000
+        ],
+        "departing_airports": null,
+        "arriving_airports": null
+      }
+    ],
+
+    "SBJ ARD": [
+      {
+        "Name": "",
+        "type": "route",
+        "to": "N90",
+        "from": "PHL",
+        "altitude": [
+          0,
+          4000
+        ],
+        "departing_airports": null,
+        "arriving_airports": null
+      }
+    ],
+    
+
     "SLATT": [
       {
         "Name": "",

@@ -336,10 +336,31 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 				break
 			}
 
-			_, _, polygon := av.DB.GetARTCC(fix, nextFix.Altitude[0]) // Theoretically nextFix.Altitude[0] should work. I think.
-			if len(polygon) == 0 {
-				lg.Errorf("No polygon found for ARTCC at fix %s, altitude %v", nextFix.Name, nextFix.Altitude[0])
-				break
+
+			// TODO: If there is no polygon found (impossible unless same facility is found), 
+			// keep going 5nm in that direction until there is a polygon. We already have the math. 
+			// Get LIB RVM from radarContacto
+			_, sector, polygon := av.DB.GetARTCC(fix, nextFix.Altitude[0]) // Theoretically nextFix.Altitude[0] should work. I think.
+			if len(polygon) == 0 || comp.Adaptation.FacilityIDs[sector] != nextFix.ToFacility {
+				rte := strings.Fields(av.NiceRoute(fp.Route))
+				idx := slices.Index(rte, nextFix.Name)
+				var afterFixPos math.Point2LL
+				if len(fp.Route) == idx {
+					afterFixPos = av.DB.Airports[fp.ArrivalAirport].Location
+				} else {
+					afterFixPos, _ = av.DB.LookupWaypoint(rte[idx+1])
+				}
+				checkCoordinates := math.GetCoordinates(fix, afterFixPos)
+				for _, coord := range checkCoordinates {
+					_, sector, polygon = av.DB.GetARTCC(coord, nextFix.Altitude[0])
+					if len(polygon) > 0 && comp.Adaptation.FacilityIDs[sector] == nextFix.ToFacility {
+						break
+					}
+				}
+				if len(polygon) == 0 {	
+					lg.Errorf("No polygon found for ARTCC at fix %s, altitude %v", nextFix.Name, nextFix.Altitude[0])
+					break
+				}
 			}
 
 			rte := strings.Fields(av.NiceRoute(fp.Route))

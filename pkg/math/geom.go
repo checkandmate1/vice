@@ -380,7 +380,7 @@ func interpolate(coord1, coord2 [2]float32, fraction float32) [2]float32 {
 }
 
 // Takes two lat-long coordinates and returns a slice of coordinates spaced by 5 nautical miles
-func getCoordinates(coord1, coord2 [2]float32) [][2]float32 {
+func GetCoordinates(coord1, coord2 [2]float32) [][2]float32 {
 	// Calculate the total distance between the points in nautical miles
 	totalDistance := haversineDistance(coord1, coord2)
 
