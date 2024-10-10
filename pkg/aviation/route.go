@@ -210,12 +210,31 @@ func (w *WaypointArray) UnmarshalJSON(b []byte) error {
 }
 
 // Makes the route have all the waypoints (getting in airways, etc.)
-func NiceRoute(route string) string {
+func NiceRoute(route string, arrivals map[string][]Arrival) string {
 	route = strings.TrimPrefix(route, "/. ")
+	lastFix := route[strings.LastIndex(route, " ")+1:]
+	for arrName, arrs := range arrivals {
+		idx := 0
+		if strings.Contains(arrName, lastFix) { // For an arrival group such as BLAID#/CHOWW#
+			// get the index of that arrival
+			arrsNames := strings.Split(arrName, "/")
+			for i, arrivalName := range arrsNames {
+				if arrivalName == lastFix {
+					idx = i
+				}
+			}
+			arr := arrs[idx]
+		route = route[:strings.LastIndex(route, " ")+1] + arr.Waypoints.RouteString()
+		}
+		
+	}
+
 	rte, err := ParseWaypoints(route)
 	if err != nil {
+		fmt.Printf("Error parsing route %v: %v\n",route, err)
 		return ""
 	}
+	
 	return rte.RouteString()
 }
 
@@ -539,9 +558,9 @@ func ParseWaypoints(str string) (WaypointArray, error) {
 						wp.Heading = hdg
 					}
 
-				} else {
-					return nil, fmt.Errorf("%s: unknown fix modifier: %s", field, f)
-				}
+				} else if _, err := math.ParseLatLong([]byte(field)); err != nil {
+					return nil, fmt.Errorf("%s: unknown fix modifier: %s. err: %v", field, f, err)
+				} 
 			}
 		}
 

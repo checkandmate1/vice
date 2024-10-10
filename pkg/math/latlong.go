@@ -10,6 +10,7 @@ import (
 	gomath "math"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 const NMPerLatitude = 60
@@ -247,6 +248,39 @@ func ParseLatLong(llstr []byte) (Point2LL, error) {
 			return Point2LL{}, err
 		}
 		return p, nil
+	} else if len(llstr) == 12 && strings.Contains(string(llstr), "/") {
+		coords := strings.Split(string(llstr), "/")
+		lat := coords[0]
+		lon := coords[1]
+		var err error
+		var latDeg, lonDeg, latMin, lonMin int
+		latDeg, err = strconv.Atoi(lat[:2])
+		if err != nil {
+			return Point2LL{}, err
+		}
+
+		latMin, err = strconv.Atoi(lat[2:4])
+		if err != nil {
+			return Point2LL{}, err
+		}
+
+		lonDeg, err = strconv.Atoi(lon[:3])
+		if err != nil {
+			return Point2LL{}, err
+		}
+
+		lonMin, err = strconv.Atoi(lon[3:5])
+		if err != nil {
+			return Point2LL{}, err
+		}
+		if strings.Contains(lat, "S") {
+			latDeg *= -1
+		}
+		if strings.Contains(lon, "W") {
+			lonDeg *= -1
+		}
+		 
+		return Point2LL{float32(latDeg) + (float32(latMin)/60), float32(lonDeg) + (float32(lonMin)/60)}, nil
 	} else {
 		return Point2LL{}, fmt.Errorf("%s: invalid latlong string", llstr)
 	}

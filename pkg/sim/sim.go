@@ -3752,12 +3752,14 @@ func (s *Sim) createDepartureNoLock(departureAirport, runway, category string) (
 	}
 
 	ac.FlightPlan = ac.NewFlightPlan(av.IFR, acType, departureAirport, dep.Destination)
+	
 	exitRoute := rwy.ExitRoutes[dep.Exit]
 	if err := ac.InitializeDeparture(ap, departureAirport, dep, runway, exitRoute,
 		s.State.NmPerLongitude, s.State.MagneticVariation, s.State.Scratchpads,
 		s.State.PrimaryController, s.State.MultiControllers, s.lg); err != nil {
 		return nil, err
 	}
+	ac.FlightPlan.CruiseSpeed = int(ac.AircraftPerformance().Speed.CruiseTAS)
 
 	depCtrl := ac.DepartureContactController
 	if depCtrl == "" {

@@ -174,7 +174,7 @@ func (comp *ERAMComputer) SendFlightPlan(fp *STARSFlightPlan,  simTime time.Time
 	nextFacilityFix, fixLocations, polygon := fp.FindNextFacility(currentFacilities, "", comp.ArrivalRoutes) // FIXME: this is a hack
 	// fmt.Printf("Find next facility fix: %s, next facility: %v, fix locations: %v, polygon: %v\n",
 	// nextFacilityFix, fp.NextFacility, fixLocations, polygon)
-	distance, ok := fp.IntersectionDistance(nextFacilityFix, "", fixLocations, polygon)
+	distance, ok := fp.IntersectionDistance(fp.Route, nextFacilityFix, "", fixLocations, polygon)
 	fmt.Printf("SENDFP: Intersection distance for %s: %v\n", fp.Callsign, distance)
 	if ok {
 		fp.CoordinationTime.Time = simTime.Add(time.Duration(distance / float32(fp.CruiseSpeed) * 60 * float32(time.Minute)))
@@ -196,7 +196,6 @@ func (comp *ERAMComputer) AddTrackInformation(callsign string, trk TrackInformat
 
 func (comp *ERAMComputer) AddDeparture(fp *av.FlightPlan, tracon string, simTime time.Time) error {
 	starsFP := MakeSTARSFlightPlan(fp)
-
 	if fix := comp.Adaptation.FixForRouteAndAltitude(starsFP.Route, fmt.Sprint(starsFP.Altitude)); fix != nil {
 		msg := starsFP.Message()
 		msg.SourceID = formatSourceID(comp.Identifier, simTime)
@@ -307,10 +306,17 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 			fmt.Println("Dm message received")
 			// Look through adapted departure routes to see if there is an adapted rout
 			var nextFix av.AdaptationFix
+			routeStr := av.NiceRoute(fp.Route, comp.ArrivalRoutes)
+			if routeStr == "" {
+				lg.Errorf("Bad route conversion for %v: %v", fp.Route, routeStr)
+				continue
+			}
+			rte := strings.Fields(routeStr)
 			for fix, fixes := range comp.Adaptation.CoordinationFixes {
-				if !strings.Contains(fp.Route, fix) {
-					fmt.Printf("%v doesn't contain %v\n", fp.Route, fix)
+				if !strings.Contains(routeStr, fix) {
 					continue
+				} else {
+					fmt.Printf("DM: Found fix %s in route %s\n", fix, routeStr)
 				}
 				fixInfo, err := fixes.Fix(fp.STARSAltitude)
 				if err != nil {
@@ -325,7 +331,7 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 					fp.NextFacility = fixInfo.ToFacility
 					nextFix = fixInfo
 					fmt.Printf("DM: Next fix for %s: %v. NextFacility: %v.\n", fp.Callsign, nextFix.Name, fp.NextFacility)
-					break
+					continue 
 				}
 
 			}
@@ -333,58 +339,87 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 			fix, ok := av.DB.LookupWaypoint(nextFix.Name)
 			if !ok {
 				fmt.Printf("Error looking up waypoint for next fix %s.", nextFix.Name)
-				break
+				continue 
 			}
 
 
 			// TODO: If there is no polygon found (impossible unless same facility is found), 
 			// keep going 5nm in that direction until there is a polygon. We already have the math. 
 			// Get LIB RVM from radarContacto
-			_, sector, polygon := av.DB.GetARTCC(fix, nextFix.Altitude[0]) // Theoretically nextFix.Altitude[0] should work. I think.
-			if len(polygon) == 0 || comp.Adaptation.FacilityIDs[sector] != nextFix.ToFacility {
-				rte := strings.Fields(av.NiceRoute(fp.Route))
+			artcc, sector, polygon := av.DB.GetARTCC(fix, nextFix.Altitude[0]) // Theoretically nextFix.Altitude[0] should work. I think.
+			if len(polygon) == 0 || (comp.Adaptation.FacilityIDs[sector] != nextFix.ToFacility && nextFix.ToFacility != artcc ) {
+				rte := strings.Fields(av.NiceRoute(fp.Route, comp.ArrivalRoutes))
 				idx := slices.Index(rte, nextFix.Name)
 				var afterFixPos math.Point2LL
-				if len(fp.Route) == idx {
+				
+				if idx == -1 {
+					fmt.Printf("%v: Next fix %s not found in route %v", fp.Callsign, nextFix.Name, rte)
+					continue
+				}
+				if len(rte) <= idx+1 {
 					afterFixPos = av.DB.Airports[fp.ArrivalAirport].Location
+					fmt.Println("Arrival airport afterrfixpos", fp.ArrivalAirport, afterFixPos)
 				} else {
 					afterFixPos, _ = av.DB.LookupWaypoint(rte[idx+1])
+					fmt.Println("Looking up waypoint", rte[idx+1], afterFixPos)
 				}
 				checkCoordinates := math.GetCoordinates(fix, afterFixPos)
+				if len(checkCoordinates) > 0 {
+					fmt.Printf("Check coordinates needed. Fix: %v, afterFix: %v\n", fix, afterFixPos)
+				}
+
+				// Debug purposes. TODO: Delete when ready 
+				// lineString := av.Sector{
+				// 	Type: "Feature",
+				// 	Properties: av.SectorProperties{
+				// 		AltitudeRange: [2]int{0, 99900},
+				// 		Sector: "RTE for " + fp.Callsign,
+				// 	},
+				// 	Geometry: av.SectorCoordinates{
+				// 		Type: "LineString",
+				// 		Coordinates: [][][2]float32{checkCoordinates},
+				// 	},
+				// }
+				
 				for _, coord := range checkCoordinates {
-					_, sector, polygon = av.DB.GetARTCC(coord, nextFix.Altitude[0])
-					if len(polygon) > 0 && comp.Adaptation.FacilityIDs[sector] == nextFix.ToFacility {
+					var artcc string 
+					artcc, sector, polygon = av.DB.GetARTCC(coord, nextFix.Altitude[0])
+					fmt.Printf("DM: ARTCC: %s, Sector: %s, Polygon: %v, Coordinates %v\n", artcc, sector, polygon, coord)
+					if math.PointInPolygon(coord, polygon) && (comp.Adaptation.FacilityIDs[sector] == nextFix.ToFacility || artcc == nextFix.ToFacility) {
+						fmt.Println("broke")
 						break
 					}
 				}
 				if len(polygon) == 0 {	
 					lg.Errorf("No polygon found for ARTCC at fix %s, altitude %v", nextFix.Name, nextFix.Altitude[0])
-					break
+					continue
 				}
 			}
 
-			rte := strings.Fields(av.NiceRoute(fp.Route))
 			idx := slices.Index(rte, nextFix.Name)
 			if idx == -1 {
 				lg.Errorf("Next fix %s not found in route %v", nextFix.Name, rte)
-				break
+				continue 
 			}
 
-			beforeFix := rte[idx-1]
-			beforeFixLocation, ok := av.DB.LookupWaypoint(beforeFix)
+			afterFix := rte[idx+1]
+			afterFixLocation, ok := av.DB.LookupWaypoint(afterFix)
 			if !ok {
-				lg.Errorf("Error looking up waypoint for before fix %s. ", beforeFix)
-				break
+				fmt.Println("no more afterfix????", routeStr)
+				afterFixLocation = av.DB.Airports[fp.ArrivalAirport].Location
 			}
 
-			fmt.Println("DM: Before fix location: ", beforeFixLocation, "Fix location: ", fix)
+			fmt.Println("DM: after fix location: ", afterFixLocation, "Fix location: ", fix)
 
-			fixLocations := [2]math.Point2LL{beforeFixLocation, fix}
-
-			distance, ok := fp.IntersectionDistance("", nextFix.Name, fixLocations, polygon)
+			fixLocations := [2]math.Point2LL{afterFixLocation, fix}
+			distToFirstFix := math.NMDistance2LL(av.DB.Airports[fp.DepartureAirport].Location, fixLocations[0])
+			distance, ok := fp.IntersectionDistance(routeStr, "", nextFix.Name, fixLocations, polygon)
+			distance += distToFirstFix
 			fmt.Printf("DM: Intersection distance for %s: %v\n", fp.Callsign, distance)
 			if ok {
-				fp.CoordinationTime.Time = simTime.Add(time.Duration(distance / float32(fp.CruiseSpeed) * 60 * float32(time.Minute)))
+				t := (distance / float32(fp.CruiseSpeed)) * 60
+			
+				fp.CoordinationTime.Time = simTime.Add((time.Duration(t) * time.Minute) - TransmitFPMessageTime)
 				fmt.Printf("DM: Coordination time for %s: %v\n", fp.Callsign, fp.CoordinationTime.Time)
 			} else { // Not supposed to happen.
 				fmt.Printf("DM: No intersection point found for %s\n", fp.Callsign)
@@ -1276,37 +1311,11 @@ func (fp *STARSFlightPlan) SetCoordinationFix(fa av.ERAMAdaptation, ac *av.Aircr
 }
 
 func (fp *STARSFlightPlan) FindNextFacility(currentFacilities []string, beginFix string, ar map[string][]av.Arrival) (string, [2]math.Point2LL, [][2]float32) {
-	rte := av.NiceRoute(fp.Route)
+	rte := av.NiceRoute(fp.Route, ar)
 	route := strings.Fields(rte)
 	arrivalGroup := route[len(route)-1]
 	fmt.Printf("Arrival group: .%v.\n", arrivalGroup)
 
-	var arrival av.Arrival
-
-Big:
-	for x, arr := range ar {
-		for y, slahedArrs := range strings.Split(x, "/") {
-			fmt.Println(slahedArrs, arrivalGroup)
-			if slahedArrs == arrivalGroup {
-				arrival = arr[y]
-				break Big
-			}
-		}
-	}
-	if arrival.Waypoints != nil {
-		arr := arrival.Waypoints
-		route = route[:len(route)-1]
-
-		for _, waypoint := range arr {
-			route = append(route, waypoint.Fix)
-		}
-
-	} else {
-		fmt.Printf("No STAR for %v; route is %v\n", arrivalGroup, route)
-	}
-
-	idx := slices.Index(route, beginFix)
-	route = route[idx+1:]
 	fixLocations := [2]math.Point2LL{}
 	polygon := [][2]float32{}
 	nextFacilityFix := ""
@@ -1318,9 +1327,6 @@ Big:
 
 		var fac, sector string
 		if ok {
-			if arrival.Waypoints != nil {
-
-			}
 			fac, sector, polygon = av.DB.GetARTCC(pos, alt)
 			fmt.Printf("%v is in %v sector %v\n", fix, fac, sector)
 		} else {
@@ -1345,8 +1351,7 @@ Big:
 	return "", [2]math.Point2LL{}, nil
 }
 
-func (fp *STARSFlightPlan) IntersectionDistance(startFix, endFix string, fixLocations [2]math.Point2LL, polygon [][2]float32) (float32, bool) {
-	rte := av.NiceRoute(fp.Route)
+func (fp *STARSFlightPlan) IntersectionDistance(rte, startFix, endFix string, fixLocations [2]math.Point2LL, polygon [][2]float32) (float32, bool) {
 	route := strings.Fields(rte)
 	idx := slices.Index(route, startFix)
 	route = route[idx+1:]
