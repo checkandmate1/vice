@@ -813,11 +813,16 @@ func parseARTCCBoundaries() map[string]ARTCCSectors {
 	}
 	artccSectors := make(map[string]ARTCCSectors)
 	for _, file := range files {
+		if file.Name() == ".DS_Store" {
+			continue
+		}
 		b := util.LoadResource("artcc_boundaries/" + file.Name())
+		fmt.Println("Parsing", file.Name())
 		var sectors ARTCCSectors
 		if err := util.UnmarshalJSON(b, &sectors); err != nil {
 			panic(err)
 		}
+		os.WriteFile("resources/artcc_boundaries/" + file.Name(), b, 0644)
 		artccSectors[sectors.Name] = sectors
 	}
 	return artccSectors

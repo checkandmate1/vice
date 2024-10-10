@@ -6819,8 +6819,7 @@
     "NY_CTR": {
       "frequency": 125325,
       "full_name": "New York center",
-      "scope_char": "C",
-      "sector_id": "C56",
+      "sector_id": "56",
       "facility_id": "C",
       "eram_facility": true,
       "facility": "ZNY"

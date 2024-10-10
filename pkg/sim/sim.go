@@ -2743,16 +2743,24 @@ func (s *Sim) HandoffTrack(token, callsign, controller string) error {
 			return nil
 		},
 		func(ctrl *av.Controller, ac *av.Aircraft) []av.RadioTransmission {
-			octrl := s.State.Controllers[controller]
 
-			s.eventStream.Post(Event{
-				Type:           OfferedHandoffEvent,
-				FromController: ctrl.Callsign,
-				ToController:   octrl.Callsign,
-				Callsign:       ac.Callsign,
-			})
+			// s.eventStream.Post(Event{
+			// 	Type:           OfferedHandoffEvent,
+			// 	FromController: ctrl.Callsign,
+			// 	ToController:   octrl.Callsign,
+			// 	Callsign:       ac.Callsign,
+			// })
+
+			octrl := s.State.Controllers[controller]
+			if octrl == nil {
+				octrl = &av.Controller{
+					Facility: controller,
+				}
+			}
 
 			_, stars, _ := s.State.ERAMComputers.FacilityComputers(ctrl.Facility)
+			// TODO: Add eventsteam to HandoffTrack
+			
 			if err := stars.HandoffTrack(ac.Callsign, ctrl, octrl, s.SimTime); err != nil {
 				s.lg.Errorf("HandoffTrack: %v", err)
 			}

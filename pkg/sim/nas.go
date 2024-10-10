@@ -429,30 +429,36 @@ func (comp *ERAMComputer) SortMessages(simTime time.Time, lg *log.Logger) {
 		case BeaconTerminate: // TODO: Find out what this does
 
 		case InitiateTransfer:
-			// Save the track information and forward it to another facility in necessary
-			comp.TrackInformation[msg.Identifier] = &TrackInformation{
-				TrackOwner:        msg.TrackOwner,
-				HandoffController: msg.HandoffController,
-				FlightPlan:        comp.FlightPlans[msg.BCN],
-				Identifier:        msg.Identifier,
-			}
-			if des := msg.FacilityDestination; des != comp.Identifier { // Going to another facility
+			// Save the track information and forward it to another facility if necessary
 
-				// ERAM cannot send to a STARS facility that isn't in the same ARTCC, so first check if the facility is in this ARTCC
-				if _, ok := comp.STARSComputers[des]; ok {
-					comp.SendMessageToSTARSFacility(des, msg)
-				} else { // Forward to another ERAM facility
-					// find the overlying ARTCC
-					if _, ok := av.DB.ARTCCs[des]; !ok {
-						des = av.DB.TRACONs[des].ARTCC
-					}
+			// comp.TrackInformation[msg.Identifier] = &TrackInformation{
+			// 	TrackOwner:        msg.TrackOwner,
+			// 	HandoffController: msg.HandoffController,
+			// 	FlightPlan:        comp.FlightPlans[msg.BCN],
+			// 	Identifier:        msg.Identifier,
+			// }
 
-					err := comp.SendMessageToERAM(des, msg)
-					if err != nil {
-						lg.Errorf("Error sending message to %s: %v", des, err)
-					}
+			des := msg.FacilityDestination
+			/* Possibilites for des:
+			1. C00 - ERAM will decide (should've done it already) which center it is going to.
+			2. PPP (or any other facility for that matter) - ERAM will forward it to the appropriate STARS/ ERAM facility (depending if it's
+			in the same ARTCC or not).
+			3. P1N - ERAM will forward it to the appropriate ERAM facility with a specific sector number.
+
+			Intra-facility handoffs aren't sent through ERAM, so they wouldn't be here.
+			*/
+			fp := comp.FlightPlans[msg.BCN]
+			nextFac := fp.NextFacility
+			switch des {
+			case "C00": // #1
+				if nextFac[:3] == comp.Identifier { // Last two digis are sector number (eg. ZNY66 for MANTA, ZNY68 for DIXIE, etc.)
+					// sector := nextFac[3:]
+
+
 				}
 			}
+			
+
 
 		case AcceptRecallTransfer:
 			// Find if it's an accept or recall message
@@ -516,7 +522,7 @@ func (comp *ERAMComputer) HandoffTrack(ac *av.Aircraft, from, to *av.Controller,
 		msg.FacilityDestination = to.Facility
 
 		if stars, ok := comp.STARSComputers[msg.FacilityDestination]; ok { // in host ERAM
-			comp.SendMessageToSTARSFacility(stars.Identifier, msg)
+			comp.SendMessageToSTARSFacility(stars.ERAMID, msg)
 		} else { // needs to go through another ERAM
 			var nextFacility string
 			if receivingARTCC, ok := av.DB.ARTCCs[msg.FacilityDestination]; !ok {
@@ -574,9 +580,15 @@ func (comp *ERAMComputer) DropTrack(ac *av.Aircraft) error {
 }
 
 func (comp *ERAMComputer) RequestFP(identifier, receivingFaciility string) error {
-	receivingFaciility, ok := comp.Adaptation.FacilityIDs[receivingFaciility]
-	if !ok {
-		return av.ErrNoSTARSFacility
+
+	for name, code := range comp.Adaptation.FacilityIDs {
+		if code == receivingFaciility {
+			receivingFaciility = name
+			break
+		}
+		if name == receivingFaciility {
+			return av.ErrInvalidFacility
+		}
 	}
 	if _, ok := comp.STARSComputers[receivingFaciility]; !ok {
 		return av.ErrNoSTARSFacility
@@ -677,7 +689,7 @@ func (comp *STARSComputer) CreateSquawk() (av.Squawk, error) {
 
 // Send inter-faciliy track info
 func (comp *STARSComputer) SendTrackInfo(receivingFacility string, msg FlightPlanMessage, simTime time.Time) {
-	msg.SourceID = formatSourceID(comp.Identifier, simTime)
+	msg.SourceID = formatSourceID(comp.ERAMID, simTime)
 	msg.FacilityDestination = receivingFacility
 	comp.SendToOverlyingERAMFacility(msg)
 }
@@ -693,12 +705,12 @@ func (comp *STARSComputer) SendToOverlyingERAMFacility(msg FlightPlanMessage) {
 
 func (comp *STARSComputer) RequestFlightPlan(bcn av.Squawk, simTime time.Time, requestedFacility string) {
 	if requestedFacility == "" {
-		requestedFacility = comp.Identifier
+		requestedFacility = comp.ERAMID
 	}
 	message := FlightPlanMessage{
 		MessageType:       RequestFlightPlan,
 		BCN:               bcn,
-		SourceID:          formatSourceID(comp.Identifier, simTime),
+		SourceID:          formatSourceID(comp.ERAMID, simTime),
 		RequestedFacility: requestedFacility,
 	}
 	comp.SendToOverlyingERAMFacility(message)
@@ -834,7 +846,7 @@ func (comp *STARSComputer) InitiateTrack(callsign string, controller string, fp 
 	fmt.Println("send dm msg")
 	msg := fp.Message()
 	msg.MessageType = DepartureDM
-	msg.SourceID = formatSourceID(comp.Identifier, time.Now())
+	msg.SourceID = formatSourceID(comp.ERAMID, time.Now())
 	comp.SendToOverlyingERAMFacility(msg)
 
 	return nil
@@ -867,6 +879,11 @@ func (comp *STARSComputer) DropTrack(ac *av.Aircraft) error {
 }
 
 func (comp *STARSComputer) HandoffTrack(callsign string, from *av.Controller, to *av.Controller, simTime time.Time) error {
+	var interFacility bool = true 
+	if to.Facility == from.Facility {
+		interFacility = false
+	} 
+
 	if comp == nil || from == nil || to == nil {
 		return nil
 	}
@@ -875,7 +892,7 @@ func (comp *STARSComputer) HandoffTrack(callsign string, from *av.Controller, to
 		return av.ErrNoAircraftForCallsign
 	}
 
-	if to.Facility != from.Facility { // inter-facility
+	if interFacility { // inter-facility
 		msg := trk.FlightPlan.Message()
 		msg.SourceID = formatSourceID(from.Callsign, simTime)
 		msg.TrackInformation = TrackInformation{
@@ -887,7 +904,7 @@ func (comp *STARSComputer) HandoffTrack(callsign string, from *av.Controller, to
 		msg.MessageType = InitiateTransfer
 		comp.SendTrackInfo(to.Facility, msg, simTime)
 	}
-
+	
 	trk.HandoffController = to.Callsign
 
 	return nil
