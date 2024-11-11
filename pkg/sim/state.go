@@ -80,9 +80,9 @@ func newState(selectedSplit string, liveWeather bool, isLocal bool, s *Sim, sg *
 		Aircraft:      make(map[string]*av.Aircraft),
 		METAR:         make(map[string]*av.METAR),
 		Controllers:   make(map[string]*av.Controller),
-		ERAMComputers: MakeERAMComputers(sg.STARSFacilityAdaptation, sg.ArrivalGroups,s.lg),
+		ERAMComputers: MakeERAMComputers(sg.STARSFacilityAdaptation, sg.InboundFlows,s.lg),
 	}
-
+	
 	if !isLocal {
 		var err error
 		ss.PrimaryController, err = sc.SplitConfigurations.GetPrimaryController(selectedSplit)
@@ -337,6 +337,20 @@ func (ss *State) DepartureController(ac *av.Aircraft, lg *log.Logger) string {
 
 func (ss *State) GetReleaseDepartures() []*av.Aircraft {
 	return util.FilterSlice(ss.STARSComputer(ss.TRACON).GetReleaseDepartures(),
+		func(ac *av.Aircraft) bool {
+			// When ControlClient DeleteAllAircraft() is called, we do our usual trick of
+			// making the update locally pending the next update from the server. However, it
+			// doesn't clear out the ones in the STARSComputer; that happens server side only.
+			// So, here is a band-aid to not return aircraft that no longer exist.
+			if _, ok := ss.Aircraft[ac.Callsign]; !ok {
+				return false
+			}
+			return ss.DepartureController(ac, nil) == ss.Callsign
+		})
+}
+
+func (ss *State) GetAllReleaseDepartures() []*av.Aircraft {
+	return util.FilterSlice(ss.STARSComputer(ss.TRACON).GetReleaseDepartures(), // ss.TRACON is a hack; fix it... eventually
 		func(ac *av.Aircraft) bool {
 			// When ControlClient DeleteAllAircraft() is called, we do our usual trick of
 			// making the update locally pending the next update from the server. However, it

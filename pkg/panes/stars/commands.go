@@ -563,6 +563,7 @@ func (sp *STARSPane) executeSTARSCommand(cmd string, ctx *panes.Context) (status
 			fp, err := ctx.ControlClient.STARSComputer(ctx.ControlClient.Callsign).GetFlightPlan(ac.Callsign) // TODO: change this so that it's the inputted squawk/ callsign.
 			if err != nil {
 				ctx.Lg.Errorf("Error getting flight plan for %s: %v", ac.Callsign, err)
+				status.err = ErrSTARSNoFlight
 				return
 			}
 
@@ -2734,6 +2735,7 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *panes.Context, cmd string, 
 						fp, err := ctx.ControlClient.STARSComputer(ctx.ControlClient.Callsign).GetFlightPlan(ac.Callsign)
 						if err != nil {
 							ctx.Lg.Errorf("Error getting flight plan for %s: %v", ac.Callsign, err)
+							status.err = ErrSTARSNoFlight
 							return
 						}
 						sp.initiateTrack(ctx, ac.Callsign, fp)
@@ -3049,7 +3051,7 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *panes.Context, cmd string, 
 				} else { // Try to IC a track?
 					fp, err := ctx.ControlClient.STARSComputer(ctx.ControlClient.Callsign).GetFlightPlan(ac.Callsign)
 					if err != nil {
-						status.err = err
+						status.err = ErrSTARSNoFlight
 						return
 					}
 					status.clear = true
@@ -3068,6 +3070,7 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *panes.Context, cmd string, 
 
 				if err != nil {
 					ctx.Lg.Errorf("Error getting flight plan for %s: %v", ac.Callsign, err)
+					status.err = ErrSTARSNoFlight
 					return
 				}
 

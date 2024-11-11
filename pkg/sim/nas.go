@@ -1528,11 +1528,16 @@ type UnsupportedTrack struct {
 	IntermAlt             string
 }
 
-func MakeERAMComputers(starsAdapt STARSFacilityAdaptation, arrivalRoutes map[string][]av.Arrival, lg *log.Logger) *ERAMComputers {
+func MakeERAMComputers(starsAdapt STARSFacilityAdaptation, inboundFlows map[string]InboundFlow, lg *log.Logger) *ERAMComputers {
 	ec := &ERAMComputers{
 		Computers: make(map[string]*ERAMComputer),
 	}
 	// Make the ERAM computer for each ARTCC that we have adaptations defined for.
+	arrivalRoutes := make(map[string][]av.Arrival)
+	for fac, flow := range inboundFlows {
+		arrivalRoutes[fac] = flow.Arrivals
+	}
+
 	for fac, adapt := range av.DB.ERAMAdaptations {
 		ec.Computers[fac] = MakeERAMComputer(fac, adapt, starsAdapt, ec, arrivalRoutes)
 	}
@@ -1570,7 +1575,7 @@ func (ec *ERAMComputers) FacilityComputers(fac string) (*ERAMComputer, *STARSCom
 		// This also shouldn't happen...
 		panic("no STARS computer found for " + fac)
 	}
-
+// 
 	return eram, stars, nil
 }
 

@@ -436,12 +436,6 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 	formatDBText(alerts[:], strings.Join(sp.getWarnings(ctx, ac), "/"), STARSTextAlertColor,
 		false /* do these ever flash? */)
 
-	// Values that don't need track information/ show up in all datablocks
-	beaconator := ctx.Keyboard != nil && ctx.Keyboard.IsFKeyHeld(platform.KeyF1)
-	ident := state.Ident(ctx.Now)
-	squawkingSPC, _ := av.SquawkIsSPC(ac.Squawk)
-	altitude := fmt.Sprintf("%03d", (state.TrackAltitude()+50)/100)
-	groundspeed := fmt.Sprintf("%02d", (state.TrackGroundspeed()+5)/10)
 
 	trk := sp.getTrack(ctx, ac)
 
@@ -500,13 +494,16 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 	groundspeed := fmt.Sprintf("%02d", (state.TrackGroundspeed()+5)/10)
 	// Note arrivalAirport is only set if it should be shown when there is no scratchpad set
 	arrivalAirport := ""
-	if ap := ctx.ControlClient.Airports[trk.FlightPlan.ArrivalAirport]; ap != nil && !ap.OmitArrivalScratchpad {
-		arrivalAirport = trk.FlightPlan.ArrivalAirport
-		if len(arrivalAirport) == 4 && arrivalAirport[0] == 'K' {
-			arrivalAirport = arrivalAirport[1:]
+	var beaconMismatch bool
+	var sp1 string
+	if trk != nil {
+		if ap := ctx.ControlClient.Airports[trk.FlightPlan.ArrivalAirport]; ap != nil && !ap.OmitArrivalScratchpad {
+			arrivalAirport = trk.FlightPlan.ArrivalAirport
+			if len(arrivalAirport) == 4 && arrivalAirport[0] == 'K' {
+				arrivalAirport = arrivalAirport[1:]
+			}
 		}
-	}
-	beaconMismatch := ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC
+		beaconMismatch = ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC
 
 		// Figure out what to display for scratchpad 1 (used in both FDB and PDBs)
 		sp1 = trk.SP1
@@ -584,6 +581,11 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 
 		}
 	}
+	
+	
+
+		
+	
 
 	switch sp.datablockType(ctx, ac) {
 	case LimitedDatablock:

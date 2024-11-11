@@ -1022,6 +1022,7 @@ func NewSim(ssc NewSimConfiguration, scenarioGroups map[string]map[string]*Scena
 		SimRate:   1,
 		Handoffs:  make(map[string]Handoff),
 		PointOuts: make(map[string]map[string]PointOut),
+		AwaitingHandoffs: make(map[string]Handoff),
 
 		InstructorAllowed: ssc.InstructorAllowed,
 		Instructors:       make(map[string]bool),
@@ -2252,7 +2253,7 @@ func (s *Sim) LaunchAircraft(ac av.Aircraft) {
 	defer s.mu.Unlock(s.lg)
 
 	if ac.HoldForRelease && s.State.IsDeparture(&ac) {
-		s.State.STARSComputer().AddHeldDeparture(&ac)
+		s.State.STARSComputer(ac.DepartureContactController).AddHeldDeparture(&ac)
 	} else {
 		s.addAircraftNoLock(ac)
 	}
@@ -2764,7 +2765,7 @@ func (s *Sim) HandoffTrack(token, callsign, controller string) error {
 			} else {
 				// Disallow handoff if there's a beacon code mismatch.
 				squawkingSPC, _ := ac.Squawk.IsSPC()
-				if trk := s.State.STARSComputer().TrackInformation[ac.Callsign]; trk != nil && trk.FlightPlan != nil {
+				if trk := s.State.STARSComputer(ctrl.Facility).TrackInformation[ac.Callsign]; trk != nil && trk.FlightPlan != nil {
 					if ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC {
 						return ErrBeaconMismatch
 					}
