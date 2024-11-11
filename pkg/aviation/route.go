@@ -259,6 +259,8 @@ func (w WaypointArray) RouteString() string {
 }
 
 func (w WaypointArray) CheckDeparture(e *util.ErrorLogger, controllers map[string]*Controller) {
+	defer e.CheckDepth(e.CurrentDepth())
+
 	w.checkBasics(e, controllers)
 
 	var lastMin float32 // previous minimum altitude restriction
@@ -291,6 +293,8 @@ func (w WaypointArray) CheckDeparture(e *util.ErrorLogger, controllers map[strin
 }
 
 func (w WaypointArray) checkBasics(e *util.ErrorLogger, controllers map[string]*Controller) {
+	defer e.CheckDepth(e.CurrentDepth())
+
 	for _, wp := range w {
 		e.Push(wp.Fix)
 		if wp.Speed < 0 || wp.Speed > 300 {
@@ -308,6 +312,8 @@ func (w WaypointArray) checkBasics(e *util.ErrorLogger, controllers map[string]*
 }
 
 func (w WaypointArray) CheckApproach(e *util.ErrorLogger, controllers map[string]*Controller) {
+	defer e.CheckDepth(e.CurrentDepth())
+
 	w.checkBasics(e, controllers)
 	w.checkDescending(e)
 
@@ -331,6 +337,8 @@ func (w WaypointArray) CheckApproach(e *util.ErrorLogger, controllers map[string
 }
 
 func (w WaypointArray) CheckArrival(e *util.ErrorLogger, ctrl map[string]*Controller) {
+	defer e.CheckDepth(e.CurrentDepth())
+
 	w.checkBasics(e, ctrl)
 	w.checkDescending(e)
 
@@ -348,6 +356,8 @@ func (w WaypointArray) CheckOverflight(e *util.ErrorLogger, ctrl map[string]*Con
 }
 
 func (w WaypointArray) checkDescending(e *util.ErrorLogger) {
+	defer e.CheckDepth(e.CurrentDepth())
+
 	// or at least, check not climbing...
 	var lastMin float32
 	var minFix string // last fix that established a specific minimum alt
@@ -644,6 +654,8 @@ type Locator interface {
 }
 
 func (waypoints WaypointArray) InitializeLocations(loc Locator, nmPerLongitude float32, magneticVariation float32, e *util.ErrorLogger) {
+	defer e.CheckDepth(e.CurrentDepth())
+
 	var prev math.Point2LL
 
 	for i, wp := range waypoints {
@@ -725,10 +737,14 @@ func (waypoints WaypointArray) InitializeLocations(loc Locator, nmPerLongitude f
 			// Just the arc length was specified; need to figure out the
 			// center and radius of the circle that gives that.
 			d := math.Distance2f(p0, p1)
-			if d >= wp.Arc.Length {
-				if e != nil {
+			if wp.Arc.Length < d { // no bueno
+				if math.Abs(wp.Arc.Length-d) < float32(0.1) { // allow some slop and just make it linear if it's close
+					wp.Arc = nil
+				} else if e != nil {
 					e.ErrorString("distance between waypoints %.2fnm is greater than specified arc length %.2fnm",
 						d, wp.Arc.Length)
+				}
+				if e != nil {
 					e.Pop()
 				}
 				continue
@@ -809,6 +825,8 @@ type STAR struct {
 }
 
 func (s STAR) Check(e *util.ErrorLogger) {
+	defer e.CheckDepth(e.CurrentDepth())
+
 	check := func(wps WaypointArray) {
 		for _, wp := range wps {
 			_, okn := DB.Navaids[wp.Fix]
@@ -1111,6 +1129,7 @@ type OverflightAirline struct {
 
 func (of *Overflight) PostDeserialize(loc Locator, nmPerLongitude float32, magneticVariation float32,
 	airports map[string]*Airport, controlPositions map[string]*Controller, e *util.ErrorLogger) {
+	defer e.CheckDepth(e.CurrentDepth())
 	if len(of.Waypoints) < 2 {
 		e.ErrorString("must provide at least two \"waypoints\" for overflight")
 	}

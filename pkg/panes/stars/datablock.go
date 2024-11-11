@@ -288,7 +288,7 @@ func dbDrawLine(line dbLine, td *renderer.TextDrawBuilder, pt [2]float32, font *
 
 	flush := func() {
 		if len(str) > 0 {
-			pt = td.AddText(str, pt, style)
+			pt = td.AddText(rewriteDelta(str), pt, style)
 			str = ""
 		}
 	}
@@ -489,23 +489,24 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 	}
 
 	// Various other values that will be repeatedly useful below...
-	var actype, sp1, arrivalAirport string
-	var beaconMismatch bool
-	if trk != nil {
-		actype = trk.FlightPlan.TypeWithoutSuffix()
-		if strings.Index(actype, "/") == 1 {
-			actype = actype[2:]
+	beaconator := ctx.Keyboard != nil && ctx.Keyboard.IsFKeyHeld(platform.KeyF1)
+	actype := ac.FlightPlan.TypeWithoutSuffix()
+	if strings.Index(actype, "/") == 1 {
+		actype = actype[2:]
+	}
+	ident := state.Ident(ctx.Now)
+	squawkingSPC, _ := ac.Squawk.IsSPC()
+	altitude := fmt.Sprintf("%03d", (state.TrackAltitude()+50)/100)
+	groundspeed := fmt.Sprintf("%02d", (state.TrackGroundspeed()+5)/10)
+	// Note arrivalAirport is only set if it should be shown when there is no scratchpad set
+	arrivalAirport := ""
+	if ap := ctx.ControlClient.Airports[trk.FlightPlan.ArrivalAirport]; ap != nil && !ap.OmitArrivalScratchpad {
+		arrivalAirport = trk.FlightPlan.ArrivalAirport
+		if len(arrivalAirport) == 4 && arrivalAirport[0] == 'K' {
+			arrivalAirport = arrivalAirport[1:]
 		}
-
-		// Note arrivalAirport is only set if it should be shown when there is no scratchpad set
-		arrivalAirport = ""
-		if ap := ctx.ControlClient.Airports[trk.FlightPlan.ArrivalAirport]; ap != nil && !ap.OmitArrivalScratchpad {
-			arrivalAirport = trk.FlightPlan.ArrivalAirport
-			if len(arrivalAirport) == 4 && arrivalAirport[0] == 'K' {
-				arrivalAirport = arrivalAirport[1:]
-			}
-		}
-		beaconMismatch = ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC
+	}
+	beaconMismatch := ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC
 
 		// Figure out what to display for scratchpad 1 (used in both FDB and PDBs)
 		sp1 = trk.SP1
@@ -639,7 +640,7 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 		// TODO: * if field 1 is showing pilot-reported altitude
 		field1Length := util.Select(fa.AllowLongScratchpad, 4, 3)
 		fmt1 := func(s string) string {
-			for len(s) < field1Length {
+			for len([]rune(s)) < field1Length {
 				s += " "
 			}
 			return s
@@ -736,7 +737,7 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, ac *av.Aircraft) datablock
 		// single field
 		field3Length := util.Select(ctx.ControlClient.STARSFacilityAdaptation.AllowLongScratchpad, 4, 3)
 		fmt3 := func(s string) string {
-			for len(s) < field3Length {
+			for len([]rune(s)) < field3Length {
 				s += " "
 			}
 			return s
@@ -1048,7 +1049,7 @@ func (sp *STARSPane) datablockVisible(ac *av.Aircraft, ctx *panes.Context) bool 
 		// Pointouts: This is if its been accepted,
 		// for an incoming pointout, it falls to the FDB check
 		return true
-	} else if ok, _ := av.SquawkIsSPC(ac.Squawk); ok {
+	} else if ok, _ := ac.Squawk.IsSPC(); ok {
 		// Special purpose codes
 		return true
 	} else if sp.Aircraft[ac.Callsign].DatablockType == FullDatablock {
@@ -1205,7 +1206,7 @@ func (sp *STARSPane) haveActiveWarnings(ctx *panes.Context, ac *av.Aircraft) boo
 	if state.MSAW && !state.InhibitMSAW && !state.DisableMSAW && !ps.DisableMSAW {
 		return true
 	}
-	if ok, _ := av.SquawkIsSPC(ac.Squawk); ok {
+	if ok, _ := ac.Squawk.IsSPC(); ok {
 		return true
 	}
 	if ac.SPCOverride != "" {
@@ -1239,7 +1240,7 @@ func (sp *STARSPane) getWarnings(ctx *panes.Context, ac *av.Aircraft) []string {
 	if state.MSAW && !state.InhibitMSAW && !state.DisableMSAW && !ps.DisableMSAW {
 		addWarning("LA")
 	}
-	if ok, code := av.SquawkIsSPC(ac.Squawk); ok {
+	if ok, code := ac.Squawk.IsSPC(); ok {
 		addWarning(code)
 	}
 	if ac.SPCOverride != "" {

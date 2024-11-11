@@ -315,6 +315,8 @@ type NewSimConfiguration struct {
 	TFRs            []av.TFR
 
 	LiveWeather               bool
+	InstructorAllowed         bool
+	Instructor                bool
 	SelectedRemoteSim         string
 	SelectedRemoteSimPosition string
 	RemoteSimPassword         string // for join remote only
@@ -336,6 +338,7 @@ type RemoteSim struct {
 	ScenarioName       string
 	PrimaryController  string
 	RequirePassword    bool
+	InstructorAllowed  bool
 	AvailablePositions map[string]struct{}
 	CoveredPositions   map[string]struct{}
 }
@@ -585,43 +588,23 @@ func (c *NewSimConfiguration) DrawUI(p platform.Platform) bool {
 			}
 		}
 
-		if c.NewSimType == NewSimCreateRemote {
-			if imgui.InputTextV("Name", &c.NewSimName, imgui.InputTextFlagsCallbackAlways,
-				func(cb imgui.InputTextCallbackData) int32 {
-					// Prevent excessively-long names...
-					const MaxLength = 32
-					if l := len(cb.Buffer()); l > MaxLength {
-						cb.DeleteBytes(MaxLength-1, l-MaxLength)
-					}
-					return 0
-				}) {
-				c.DisplayError = nil
-			}
-			if c.NewSimName == "" {
-				imgui.SameLine()
-				imgui.PushStyleColor(imgui.StyleColorText, imgui.Vec4{.7, .1, .1, 1})
-				imgui.Text(renderer.FontAwesomeIconExclamationTriangle)
-				imgui.PopStyleColor()
-			}
-
-			imgui.Checkbox("Require Password", &c.RequirePassword)
-			if c.RequirePassword {
-				imgui.InputTextV("Password", &c.Password, 0, nil)
-				if c.Password == "" {
-					imgui.SameLine()
-					imgui.PushStyleColor(imgui.StyleColorText, imgui.Vec4{.7, .1, .1, 1})
-					imgui.Text(renderer.FontAwesomeIconExclamationTriangle)
-					imgui.PopStyleColor()
-				}
-			}
-		}
-
 		if imgui.BeginTableV("scenario", 2, 0, imgui.Vec2{tableScale * 500, 0}, 0.) {
+			if c.NewSimType == NewSimCreateRemote {
+				imgui.TableNextRow()
+				imgui.TableNextColumn()
+				imgui.Text("Name:")
+				imgui.TableNextColumn()
+				imgui.Text(c.NewSimName)
+			}
+
 			imgui.TableNextRow()
 			imgui.TableNextColumn()
 			imgui.Text("Control Position:")
 			imgui.TableNextColumn()
 			imgui.Text(c.Scenario.SelectedController)
+			imgui.TableNextRow()
+			imgui.TableNextColumn()
+			imgui.Checkbox("Allow Instructor Sign-ins", &c.InstructorAllowed)
 
 			if len(c.Scenario.ArrivalRunways) > 0 {
 				imgui.TableNextRow()
@@ -647,6 +630,20 @@ func (c *NewSimConfiguration) DrawUI(p platform.Platform) bool {
 				c.LiveWeather = false
 			}
 			uiEndDisable(!validAirport)
+
+			if c.NewSimType == NewSimCreateRemote {
+				imgui.Checkbox("Require Password", &c.RequirePassword)
+				if c.RequirePassword {
+					imgui.InputTextV("Password", &c.Password, 0, nil)
+					if c.Password == "" {
+						imgui.SameLine()
+						imgui.PushStyleColor(imgui.StyleColorText, imgui.Vec4{.7, .1, .1, 1})
+						imgui.Text(renderer.FontAwesomeIconExclamationTriangle)
+						imgui.PopStyleColor()
+					}
+				}
+			}
+
 			imgui.TableNextColumn()
 			wind := c.Scenario.Wind
 			if c.LiveWeather {
@@ -774,6 +771,9 @@ func (c *NewSimConfiguration) DrawUI(p platform.Platform) bool {
 		if rs.RequirePassword {
 			imgui.InputTextV("Password", &c.RemoteSimPassword, 0, nil)
 		}
+		uiStartDisable(!rs.InstructorAllowed)
+		imgui.Checkbox("Sign-in as Instructor", &c.Instructor)
+		uiEndDisable(!rs.InstructorAllowed)
 	}
 
 	return false
@@ -936,6 +936,9 @@ type Sim struct {
 
 	NextPushStart time.Time // both w.r.t. sim time
 	PushEnd       time.Time
+
+	InstructorAllowed bool
+	Instructors       map[string]bool
 }
 
 // DepartureAircraft represents a departing aircraft, either still on the
@@ -1016,10 +1019,12 @@ func NewSim(ssc NewSimConfiguration, scenarioGroups map[string]map[string]*Scena
 		SimTime:        time.Now(),
 		lastUpdateTime: time.Now(),
 
-		SimRate:          1,
-		Handoffs:         make(map[string]Handoff),
-		AwaitingHandoffs: make(map[string]Handoff),
-		PointOuts:        make(map[string]map[string]PointOut),
+		SimRate:   1,
+		Handoffs:  make(map[string]Handoff),
+		PointOuts: make(map[string]map[string]PointOut),
+
+		InstructorAllowed: ssc.InstructorAllowed,
+		Instructors:       make(map[string]bool),
 	}
 
 	if !isLocal {
@@ -1085,8 +1090,8 @@ func (s *Sim) LogValue() slog.Value {
 		slog.Any("aircraft", s.State.Aircraft))
 }
 
-func (s *Sim) SignOn(callsign string) (*State, string, error) {
-	if err := s.signOn(callsign); err != nil {
+func (s *Sim) SignOn(callsign string, instructor bool) (*State, string, error) {
+	if err := s.signOn(callsign, instructor); err != nil {
 		return nil, "", err
 	}
 
@@ -1105,7 +1110,7 @@ func (s *Sim) SignOn(callsign string) (*State, string, error) {
 	return s.State.GetStateForController(callsign), token, nil
 }
 
-func (s *Sim) signOn(callsign string) error {
+func (s *Sim) signOn(callsign string, instructor bool) error {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
@@ -1128,6 +1133,9 @@ func (s *Sim) signOn(callsign string) error {
 			// Reset lastUpdateTime so that the next time Update() is
 			// called for the sim, we don't try to run a ton of steps.
 			s.lastUpdateTime = time.Now()
+		}
+		if instructor {
+			s.Instructors[callsign] = true
 		}
 	}
 
@@ -1160,6 +1168,7 @@ func (s *Sim) SignOff(token string) error {
 		ctrl.events.Unsubscribe()
 		delete(s.controllers, token)
 		delete(s.State.Controllers, ctrl.Callsign)
+		delete(s.Instructors, ctrl.Callsign)
 
 		s.eventStream.Post(Event{
 			Type:    StatusMessageEvent,
@@ -1181,7 +1190,7 @@ func (s *Sim) ChangeControlPosition(token string, callsign string, keepTracks bo
 
 	// Make sure we can successfully sign on before signing off from the
 	// current position.
-	if err := s.signOn(callsign); err != nil {
+	if err := s.signOn(callsign, false); err != nil {
 		return err
 	}
 	ctrl.Callsign = callsign
@@ -2242,7 +2251,11 @@ func (s *Sim) LaunchAircraft(ac av.Aircraft) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
-	s.addAircraftNoLock(ac)
+	if ac.HoldForRelease && s.State.IsDeparture(&ac) {
+		s.State.STARSComputer().AddHeldDeparture(&ac)
+	} else {
+		s.addAircraftNoLock(ac)
+	}
 }
 
 // Assumes the lock is already held (as is the case e.g. for automatic spawning...)
@@ -2297,6 +2310,21 @@ func (s *Sim) dispatchCommand(token string, callsign string,
 		} else if ac != nil {
 			preAc := *ac
 			radioTransmissions := cmd(ctrl, ac)
+			alreadyAdressed := false
+			for _, rt := range radioTransmissions {
+				if rt.Controller == ctrl.Callsign {
+					alreadyAdressed = true
+					break
+				}
+			}
+			if len(radioTransmissions) > 0 && s.Instructors[ctrl.Callsign] &&
+				ac.ControllingController != ctrl.Callsign && !alreadyAdressed { // prevent FC commands as well.
+				radioTransmissions = append(radioTransmissions, av.RadioTransmission{
+					Controller: ctrl.Callsign,
+					Message:    radioTransmissions[0].Message,
+					Type:       radioTransmissions[0].Type,
+				})
+			}
 			s.lg.Info("dispatch_command", slog.String("callsign", ac.Callsign),
 				slog.Any("prepost_aircraft", []av.Aircraft{preAc, *ac}),
 				slog.Any("radio_transmissions", radioTransmissions))
@@ -2315,7 +2343,7 @@ func (s *Sim) dispatchControllingCommand(token string, callsign string,
 	return s.dispatchCommand(token, callsign,
 		func(ctrl *av.Controller, ac *av.Aircraft) error {
 			// TODO(mtrokel): this needs to be updated for the STARS tracking stuff
-			if ac.ControllingController != ctrl.Callsign {
+			if ac.ControllingController != ctrl.Callsign && !s.Instructors[ctrl.Callsign] {
 				return av.ErrOtherControllerHasTrack
 			}
 			return nil
@@ -2329,7 +2357,7 @@ func (s *Sim) dispatchTrackingCommand(token string, callsign string,
 	return s.dispatchCommand(token, callsign,
 		func(ctrl *av.Controller, ac *av.Aircraft) error {
 			_, stars, _ := s.State.ERAMComputers.FacilityComputers(ctrl.Facility)
-			if trk := stars.TrackInformation[ac.Callsign]; trk == nil || trk.TrackOwner != ctrl.Callsign {
+			if trk := stars.TrackInformation[ac.Callsign]; trk == nil || trk.TrackOwner != ctrl.Callsign && !s.Instructors[ctrl.Callsign] {
 				return av.ErrOtherControllerHasTrack
 			}
 
@@ -2606,6 +2634,10 @@ func (s *Sim) UploadFlightPlan(token string, Type int, plan *STARSFlightPlan) er
 	defer s.mu.Unlock(s.lg)
 
 	ctrl := s.State.Controllers[s.controllers[token].Callsign]
+	if ctrl == nil {
+		s.lg.Errorf("%s: controller unknown", s.controllers[token].Callsign)
+		return ErrUnknownController
+	}
 	eram, stars, err := s.State.ERAMComputers.FacilityComputers(ctrl.Facility)
 	if err != nil {
 		return err
@@ -2731,8 +2763,8 @@ func (s *Sim) HandoffTrack(token, callsign, controller string) error {
 				return av.ErrInvalidController
 			} else {
 				// Disallow handoff if there's a beacon code mismatch.
-				squawkingSPC, _ := av.SquawkIsSPC(ac.Squawk)
-				if trk != nil && trk.FlightPlan != nil {
+				squawkingSPC, _ := ac.Squawk.IsSPC()
+				if trk := s.State.STARSComputer().TrackInformation[ac.Callsign]; trk != nil && trk.FlightPlan != nil {
 					if ac.Squawk != trk.FlightPlan.AssignedSquawk && !squawkingSPC {
 						return ErrBeaconMismatch
 					}

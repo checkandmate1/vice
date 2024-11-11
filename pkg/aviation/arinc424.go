@@ -486,8 +486,8 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 		Speed:   speed,
 		FlyOver: r.waypointDescription[1] == 'Y',
 		IAF:     r.waypointDescription[3] == 'A' || r.waypointDescription[3] == 'C' || r.waypointDescription[3] == 'D',
-		IF:      r.waypointDescription[3] == 'B',
-		FAF:     r.waypointDescription[3] == 'I',
+		IF:      r.waypointDescription[3] == 'B' || r.waypointDescription[3] == 'I',
+		FAF:     r.waypointDescription[3] == 'F',
 	}
 	if alt0 != 0 || alt1 != 0 {
 		switch r.altDescrip { // 5.29
@@ -497,8 +497,8 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 			wp.AltitudeRestriction = &AltitudeRestriction{Range: [2]float32{float32(alt0)}}
 		case '-':
 			wp.AltitudeRestriction = &AltitudeRestriction{Range: [2]float32{0, float32(alt0)}}
-		case 'B':
-			wp.AltitudeRestriction = &AltitudeRestriction{Range: [2]float32{float32(math.Min(alt0, alt1)), float32(math.Max(alt0, alt1))}}
+		case 'B': // “At or above to at or below”; The higher value will always appear first.
+			wp.AltitudeRestriction = &AltitudeRestriction{Range: [2]float32{float32(alt1) /* low */, float32(alt0) /* high */}}
 		case 'G', 'I':
 			// glideslope alt in second, 'at' in first
 			wp.AltitudeRestriction = &AltitudeRestriction{Range: [2]float32{float32(alt0), float32(alt0)}}
@@ -525,8 +525,7 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 
 	case "RF": // constant radius arc
 		arc = &DMEArc{
-			Fix:    strings.TrimSpace(string(r.centerFix)),
-			Radius: float32(parseInt(r.routeDistance)) / 10,
+			Length: float32(parseInt(r.routeDistance)) / 10,
 		}
 
 	case "HF", "PI": // procedure turns
