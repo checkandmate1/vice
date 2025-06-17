@@ -1256,7 +1256,7 @@
           "SBJ,ARD": {
             "cleared_altitude": 7000,
             "sid": "TEB4",
-            "handoff_controller": "Yardley",
+            "handoff_controller": "4P",
             "waypoints": "_TEB4_1a N040.52.48.511,W074.02.30.073/a2000/ho"
           },
           "COATE,GAYEL,HAAYS,NEION,": {
@@ -1311,7 +1311,7 @@
           "SBJ, ARD": {
             "cleared_altitude": 8000,
             "sid": "RUUDY6",
-            "handoff_controller": "Yardley",
+            "handoff_controller": "4P",
             "waypoints": "DAVIM WENTZ/a1500/ho N040.48.49.421,W074.11.52.573/a2000 N040.41.06.513,W074.23.03.343/a7000"
           }
         }
@@ -2663,7 +2663,7 @@
           ]
         }
       },
-      "departure_controller": "Laguardia Departure",
+      "departure_controller": "1L",
       "departure_routes": {
         "4": {
           "NEWEL,ELIOT,ZIMMZ,PARKE,LANNA,BIGGY,SBJ,WHITE": {
@@ -6329,7 +6329,7 @@
           "waypoints": " HUO LEMOR/a6000 COATE/a6000 N040.59.56.086,W074.33.54.613/a4000 N040.59.56.086,W074.33.54.613/a3000 N040.45.34.222,W074.16.26.874/a3000/s200 N040.44.16.645,W074.14.02.129/a2000/s180 LEESY/a1700 DANDY/a1500/s180 TORBY/a1300/s160 N040.50.50.669,W074.04.16.420/s130/a001 KTEB/delete",
           "cruise_altitude": 39000,
           "route": "/. ALB V489 COATE",
-          "initial_controller": "MUGZY",
+          "initial_controller": "4U",
           "initial_altitude": 6000,
           "initial_speed": 300,
           "expect_approach": "I6",
@@ -6410,7 +6410,7 @@
           "waypoints": " HUO LEMOR/a6000 COATE/a6000 N041.03.54.915,W074.40.59.564/a4000 N041.05.28.202,W074.25.23.748/a3000 N041.06.10.788,W074.10.16.360/a3000 NIPIE/a2500/s210 UNVIL/a2000/s180  TUGGZ/a1500/s170 N040.51.30.509,W074.03.33.491/a001/s130 KTEB/delete",
           "cruise_altitude": 39000,
           "route": "/. ALB V489 COATE",
-          "initial_controller": "MUGZY",
+          "initial_controller": "4U",
           "initial_altitude": 6000,
           "initial_speed": 300,
           "expect_approach": "RY9",
@@ -6889,7 +6889,7 @@
           "waypoints": "JAIKE ILENE/a13000 WACKI/a11000/s250 MAZIE REGLE/a7000/ho GNNZO/a4000 SBJ/h040",
           "cruise_altitude": 39000,
           "star": "JAIKE4",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 13000,
           "initial_speed": 300,
           "expect_approach": {
@@ -7106,7 +7106,7 @@
           "waypoints": "JAIKE ILENE/a13000 WACKI/a11000/s250 MAZIE REGLE/a7000/ho GNNZO/a3000 SBJ/h040",
           "cruise_altitude": 39000,
           "star": "JAIKE4",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 13000,
           "initial_speed": 300,
           "expect_approach": {
@@ -7323,7 +7323,7 @@
           "waypoints": "WACKI/a11000/s250 MAZIE REGLE/a7000 GNNZO/a4000 SBJ/a4000/ho4U N040.54.15.372,W074.31.23.963/a4000 N041.00.13.046,W074.27.16.111/a3000 N041.03.07.454,W074.10.52.313/a3000/s210 N041.02.34.797,W074.06.40.451/a3000 N041.02.31.336,W074.05.16.516/a2500 N040.59.07.650,W074.02.56.303/a2000/s180/clearapp TUGGZ/a1500/s170 N040.51.34.313,W074.03.28.905/a001/s130 TEB/delete",
           "cruise_altitude": 39000,
           "star": "JAIKE4",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 11000,
           "initial_speed": 300,
           "expect_approach": "RY9",
@@ -7404,7 +7404,7 @@
           "waypoints": "WACKI/a11000/s250 MAZIE REGLE/a7000 N040.29.10.794,W074.50.35.824/a4000 N040.32.39.054,W074.41.00.662/a3000/ho4U N040.41.08.916,W074.19.43.529/a3000/s210 VINGS/a2000/s180 LEESY/a1700/s180 DANDY/a1500/s180 TORBY/a1300/s150 N040.50.50.038,W074.04.11.751/a001/delete",
           "cruise_altitude": 39000,
           "star": "JAIKE4",
-          "initial_controller": "METRO",
+          "initial_controller": "4H",
           "initial_altitude": 11000,
           "initial_speed": 300,
           "expect_approach": "I6",
@@ -7485,7 +7485,7 @@
           "waypoints": "BILEY VIBES LIZZI BEUTY HARLM DREMS/a10000 N040.27.18.885,W074.25.26.522/a9000 N040.31.03.514,W074.12.18.885/a7000 N040.32.02.937,W074.08.54.814/a7000 APPLE/a4000/ho1F PROUD N040.44.46.198,W073.59.15.807/a4000 N040.57.58.422,W073.49.24.743/a4000/s210 N040.58.20.505,W073.46.27.451/a3000 N040.57.43.687,W073.44.47.805/a2000 N040.55.25.012,W073.45.27.246/a2000/s180 GREKO/a1900 N040.47.11.355,W073.52.10.526/a001 LGA/delete",
           "cruise_altitude": 35000,
           "star": "MIP4",
-          "initial_controller": "EMPYR",
+          "initial_controller": "1D",
           "initial_altitude": 10000,
           "initial_speed": 300,
           "speed_restriction": 250,
@@ -7579,7 +7579,7 @@
           "waypoints": "BILEY VIBES LIZZI BEUTY HARLM DREMS/a10000 N040.27.18.885,W074.25.26.522/a9000 N040.31.03.514,W074.12.18.885/a7000 N040.32.02.937,W074.08.54.814/a7000/ho1F APPLE/a4000 PROUD N040.43.35.364,W073.54.52.767/a4000 N040.45.50.331,W073.47.53.226/a4000 N040.51.04.031,W073.43.07.829/a3000/s210 N040.53.58.879,W073.40.36.987/a3000/s180 N040.55.05.470,W073.43.14.119/a2000 N040.53.53.345,W073.46.34.042/a2000 GREKO/a1900/s180 N040.47.11.355,W073.52.10.526/a001/s130 LGA/delete",
           "cruise_altitude": 35000,
           "star": "MIP4",
-          "initial_controller": "EMPYR",
+          "initial_controller": "1D",
           "initial_altitude": 10000,
           "initial_speed": 300,
           "speed_restriction": 250,
@@ -7673,7 +7673,7 @@
           "waypoints": "BILEY VIBES LIZZI BEUTY HARLM DREMS/a10000 N040.27.18.885,W074.25.26.522/a9000 N040.31.03.514,W074.12.18.885/a7000/ho1F N040.32.02.937,W074.08.54.814/a7000/ho1F APPLE/a4000 BENNG/a3000 RAHEL/s180/a1800 DNNIS/a1700 WARIN/a640/s140 N040.46.05.039,W073.53.02.739/a001/s130 LGA/delete",
           "cruise_altitude": 35000,
           "star": "MIP4",
-          "initial_controller": "EMPYR",
+          "initial_controller": "1D",
           "initial_altitude": 10000,
           "initial_speed": 300,
           "speed_restriction": 250,
@@ -7767,7 +7767,7 @@
           "waypoints": "IGN VALRE BASYE/a8000 HAARP/a5000 CRALY GGREG/a4000/s210 ZARID VADDR/ho1F JACIE NECOL/a4000/s180 VARAZ/a3000 BENNG/a3000 RAHEL/s180/a1800 DNNIS/a1700 WARIN/a640/s140 N040.46.05.039,W073.53.02.739/a001/s130 LGA/delete",
           "cruise_altitude": 35000,
           "star": "HAARP4",
-          "initial_controller": "HAARP",
+          "initial_controller": "1V",
           "initial_altitude": 9000,
           "initial_speed": 300,
           "speed_restriction": 250,
@@ -7861,7 +7861,7 @@
           "waypoints": "IGN VALRE BASYE/a8000 HAARP/a5000 CRALY/a4000/s210 JACIE/ho1F NECOL/a4000/s180 VARAZ/a3000 BENNG/a3000 RAHEL/s180/a1800 DNNIS/a1700 WARIN/a640/s140 N040.46.05.039,W073.53.02.739/a001/s130 LGA/delete",
           "cruise_altitude": 35000,
           "star": "HAARP4",
-          "initial_controller": "EMPYR",
+          "initial_controller": "1D",
           "initial_altitude": 9000,
           "initial_speed": 300,
           "speed_restriction": 250,
@@ -8168,7 +8168,7 @@
           "waypoints": "N040.16.57.073,W075.16.42.035 MAZIE/a4000/ho SBJ/h59",
           "cruise_altitude": 4000,
           "star": "MAZIE",
-          "initial_controller": "Philadelphia Yardley",
+          "initial_controller": "21Y",
           "initial_altitude": 4000,
           "initial_speed": 250,
           "expect_approach": null,
@@ -8237,7 +8237,7 @@
           "waypoints": "MAZIE/a4000/ho N040.28.19.324,W074.53.52.727/a4000 N040.30.37.257,W074.50.37.747/a3000 SBJ/h040",
           "cruise_altitude": 4000,
           "star": "MAZIE",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 4000,
           "initial_speed": 250,
           "expect_approach": {
@@ -8310,7 +8310,7 @@
           "waypoints": "MAZIE/a4000/ho N040.28.19.324,W074.53.52.727/a4000 N040.30.37.257,W074.50.37.747/a3000 SBJ/h040",
           "cruise_altitude": 4000,
           "star": "MAZIE",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 4000,
           "initial_speed": 250,
           "expect_approach": {
@@ -8383,7 +8383,7 @@
           "waypoints": "SHAFF/ho SAX PHLBO HOKIR/h180",
           "cruise_altitude": 39000,
           "star": "FLOSI4",
-          "initial_controller": "Newark North Arrival",
+          "initial_controller": "4A",
           "initial_altitude": 6000,
           "assigned_altitude": 6000,
           "initial_speed": 250,
@@ -8465,7 +8465,7 @@
           "waypoints": "SHAFF SAX PHLBO/ho4P HOKIR/a5000 N040.28.50.552,W074.28.23.924/a4000 N040.26.32.234,W074.23.28.419/a3000 N040.27.20.560,W074.20.48.403/a3000/s210 GRITY/a3000/s180 DOOIN/a1700 N040.40.31.507,W074.10.29.571/a0002 N040.41.54.056,W074.09.37.963/delete",
           "cruise_altitude": 39000,
           "star": "FLOSI4",
-          "initial_controller": "Newark North Arrival",
+          "initial_controller": "4A",
           "initial_altitude": 6000,
           "initial_speed": 250,
           "expect_approach": "I4R",
@@ -8546,7 +8546,7 @@
           "waypoints": "SOMTO ARD DYLIN MERSR/a8000 METRO/a6000 MARRT/ho4A N040.44.25.104,W074.35.01.602/a6000 N040.48.05.449,W074.29.54.699/a5000 N040.53.59.291,W074.21.37.402/a5000 N040.55.59.962,W074.15.23.043/a4000 N040.54.22.719,W074.07.47.687/a4000/s210 N040.53.13.533,W074.05.15.582/a3000/s180 GIMEE/a2500 BUZZD/a1800/s150 N040.42.08.723,W074.09.22.252/a001 KEWR/delete",
           "cruise_altitude": 39000,
           "star": "FLOSI4",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 8000,
           "initial_speed": 250,
           "expect_approach": "I2L",
@@ -8627,7 +8627,7 @@
           "waypoints": "RUUTH/ho RBV KEWR",
           "cruise_altitude": 7000,
           "route": "/. RUUTH V123 RBV",
-          "initial_controller": "Philadelphia Yardley",
+          "initial_controller": "21V",
           "initial_altitude": 7000,
           "assigned_altitude": 7000,
           "initial_speed": 300,
@@ -8657,7 +8657,7 @@
           "waypoints": "MXE/ho ARD METRO KEWR",
           "cruise_altitude": 5000,
           "route": "/. MXE ARD METRO",
-          "initial_controller": "Philadelphia Yardley",
+          "initial_controller": "21Y",
           "initial_altitude": 5000,
           "assigned_altitude": 5000,
           "initial_speed": 300,
@@ -8761,7 +8761,7 @@
           "waypoints": "DYLIN/ho MERSR METRO MARRT PHLBO/h025",
           "cruise_altitude": 39000,
           "star": "PHLBO4",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 6000,
           "initial_speed": 250,
           "expect_approach": "I2L",
@@ -8842,7 +8842,7 @@
           "waypoints": "DYLIN/ho MERSR METRO MARRT PHLBO/h25",
           "cruise_altitude": 39000,
           "star": "PHLBO4",
-          "initial_controller": "Yardley",
+          "initial_controller": "4P",
           "initial_altitude": 6000,
           "assigned_altitude": 6000,
           "initial_speed": 250,
@@ -8924,7 +8924,7 @@
           "waypoints": "CYN/ho GXU RBV METRO KEWR",
           "cruise_altitude": 6000,
           "route": "/. CYN GXU RBV V249 METRO",
-          "initial_controller": "McGuire Approach",
+          "initial_controller": "51Y",
           "initial_altitude": 6000,
           "assigned_altitude": 6000,
           "initial_speed": 300,
@@ -9048,7 +9048,7 @@
     "EMPYR": {
       "frequency": 127300,
       "radio_name": "New York approach",
-      "sector_id": "4D",
+      "sector_id": "1D",
       "facility": "N90"
     },
     "LGA Final": {
@@ -9063,7 +9063,7 @@
       "sector_id": "1L",
       "facility": "N90"
     },
-    "Morristown Tower": {
+    "Morristown tower": {
       "frequency": 118100,
       "radio_name": "Morristown tower",
       "sector_id": "4K",
@@ -9273,10 +9273,10 @@
           "KEWR": 0
         }
       },
-      "solo_controller": "Yardley",
+      "solo_controller": "4P",
       "multi_controllers": {
         "default": {
-          "Yardley": {
+          "4P": {
             "primary": true,
             "arrivals": [
               "FQM3",
@@ -9285,14 +9285,14 @@
               "PHL"
             ]
           },
-          "Newark North Arrival": {
+          "4A": {
             "arrivals": [
               "FLOSI4"
             ],
-            "backup": "Yardley"
+            "backup": "4P"
           },
-          "Newark Departure": {
-            "backup": "Yardley",
+          "4N": {
+            "backup": "4P",
             "departures": [
               "KEWR",
               "KTEB",
@@ -9300,33 +9300,33 @@
               "KMMU"
             ]
           },
-          "MUGZY": {
-            "backup": "Yardley"
+          "4U": {
+            "backup": "4P"
           },
-          "METRO": {
-            "backup": "MUGZY",
+          "4H": {
+            "backup": "4U",
             "arrivals": [
               "JAIKE4",
               "MAZIE"
             ]
           },
-          "ZEEBO": {
-            "backup": "MUGZY",
+          "4S": {
+            "backup": "4U",
             "arrivals": [
               "COATE",
               "LVZ4"
             ]
           },
           "4M": {
-            "backup": "Yardley"
+            "backup": "4P"
           }
         }
       },
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -9335,23 +9335,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -9426,12 +9426,12 @@
           "KLGA": 0
         }
       },
-      "solo_controller": "Newark Departure",
+      "solo_controller": "4N",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -9440,29 +9440,29 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
       ],
       "airspace": {
-        "Newark Departure": [
+        "4N": [
           "DEP_SW"
         ]
       },
@@ -9505,7 +9505,7 @@
       }
     },
     "KEWR 4L Departure": {
-      "solo_controller": "Newark Departure",
+      "solo_controller": "4N",
       "arrival_runways": [
         {
           "airport": "KEWR",
@@ -9541,10 +9541,10 @@
         }
       },
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -9553,29 +9553,29 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
       ],
       "airspace": {
-        "Newark Departure": [
+        "4N": [
           "DEP_NE"
         ]
       },
@@ -9673,10 +9673,10 @@
           "KEWR": 0
         }
       },
-      "solo_controller": "Yardley",
+      "solo_controller": "4P",
       "multi_controllers": {
         "default": {
-          "Yardley": {
+          "4P": {
             "primary": true,
             "arrivals": [
               "FQM3",
@@ -9685,14 +9685,14 @@
               "PHL"
             ]
           },
-          "Newark North Arrival": {
+          "4A": {
             "arrivals": [
               "FLOSI4"
             ],
-            "backup": "Yardley"
+            "backup": "4P"
           },
-          "Newark Departure": {
-            "backup": "Yardley",
+          "4N": {
+            "backup": "4P",
             "departures": [
               "KEWR",
               "KTEB",
@@ -9700,33 +9700,33 @@
               "KMMU"
             ]
           },
-          "MUGZY": {
-            "backup": "Yardley"
+          "4U": {
+            "backup": "4P"
           },
-          "METRO": {
-            "backup": "MUGZY",
+          "4H": {
+            "backup": "4U",
             "arrivals": [
               "JAIKE4",
               "MAZIE"
             ]
           },
-          "ZEEBO": {
-            "backup": "MUGZY",
+          "4S": {
+            "backup": "4U",
             "arrivals": [
               "COATE",
               "LVZ4"
             ]
           },
           "4M": {
-            "backup": "Yardley"
+            "backup": "4P"
           }
         }
       },
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -9735,23 +9735,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -9825,7 +9825,7 @@
         }
       ],
       "airspace": {
-        "MUGZY": [
+        "4U": [
           "ZEEBO_NE",
           "METRO_NE",
           "MUGZY_NE"
@@ -9856,12 +9856,12 @@
           "KLGA": 30
         }
       },
-      "solo_controller": "MUGZY",
+      "solo_controller": "4U",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -9870,23 +9870,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -9899,7 +9899,7 @@
     },
     "KEWR Sat. Arrivals landing SW": {
       "airspace": {
-        "MUGZY": [
+        "4U": [
           "METRO_SW",
           "ZEEBO_SW",
           "MUGZY_SW"
@@ -9959,12 +9959,12 @@
           "KLGA": 0
         }
       },
-      "solo_controller": "MUGZY",
+      "solo_controller": "4U",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -9973,23 +9973,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10019,7 +10019,7 @@
     },
     "KEWR Land 22L - ARD": {
       "airspace": {
-        "Yardley": [
+        "4P": [
           "NOA_SW",
           "FINAL_VECTORS_22",
           "YARDLEY_SW"
@@ -10045,12 +10045,12 @@
           "KEWR": 1
         }
       },
-      "solo_controller": "Yardley",
+      "solo_controller": "4P",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10059,23 +10059,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10088,7 +10088,7 @@
     },
     "KEWR Land 22L - ARD/METRO": {
       "airspace": {
-        "Yardley": [
+        "4P": [
           "NOA_SW",
           "FINAL_VECTORS_22",
           "YARDLEY_SW",
@@ -10141,12 +10141,12 @@
           "KLGA": 0
         }
       },
-      "solo_controller": "Yardley",
+      "solo_controller": "4P",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10155,23 +10155,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10206,7 +10206,7 @@
     },
     "KEWR Land 22L - South Side ARD/METRO/DEPARTURE": {
       "airspace": {
-        "Newark Departure": [
+        "4N": [
           "NOA_SW",
           "FINAL_VECTORS_22",
           "YARDLEY_SW",
@@ -10265,12 +10265,12 @@
           "KLGA": 0
         }
       },
-      "solo_controller": "Newark Departure",
+      "solo_controller": "4N",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10279,23 +10279,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10340,7 +10340,7 @@
     },
     "KEWR Land 22L - NOA + FINAL": {
       "airspace": {
-        "Newark North Arrival": [
+        "4A": [
           "NOA_SW",
           "FINAL_VECTORS_22"
         ]
@@ -10379,12 +10379,12 @@
           "KLGA": 31
         }
       },
-      "solo_controller": "Newark North Arrival",
+      "solo_controller": "4A",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10393,23 +10393,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10444,7 +10444,7 @@
     },
     "KEWR Land 22L - NOA/MUGZY + FINAL": {
       "airspace": {
-        "Newark North Arrival": [
+        "4A": [
           "NOA_SW",
           "FINAL_VECTORS_22",
           "MUGZY_SW"
@@ -10507,12 +10507,12 @@
           "KLGA": 0
         }
       },
-      "solo_controller": "Newark North Arrival",
+      "solo_controller": "4A",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10521,23 +10521,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10572,7 +10572,7 @@
     },
     "KEWR Land 29 - NOA + FINAL": {
       "airspace": {
-        "Newark North Arrival": [
+        "4A": [
           "NOA_SW",
           "FINAL_VECTORS_22"
         ]
@@ -10591,12 +10591,12 @@
           "KEWR": 23
         }
       },
-      "solo_controller": "Newark North Arrival",
+      "solo_controller": "4A",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10605,23 +10605,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10648,7 +10648,7 @@
         }
       ],
       "airspace": {
-        "Yardley": [
+        "4P": [
           "NOA_NE",
           "YARDLEY_NE",
           "FINAL_VECTORS_4"
@@ -10680,12 +10680,12 @@
           "KTEB": 10
         }
       },
-      "solo_controller": "Yardley",
+      "solo_controller": "4P",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10694,23 +10694,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10780,19 +10780,19 @@
         }
       },
       "airspace": {
-        "Yardley": [
+        "4P": [
           "NOA_NE",
           "YARDLEY_NE",
           "FINAL_VECTORS_4",
           "METRO_NE"
         ]
       },
-      "solo_controller": "Yardley",
+      "solo_controller": "4P",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10801,23 +10801,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10853,7 +10853,7 @@
         }
       ],
       "airspace": {
-        "Newark North Arrival": [
+        "4A": [
           "NOA_NE",
           "FINAL_VECTORS_4"
         ]
@@ -10866,12 +10866,12 @@
           "KEWR": 15
         }
       },
-      "solo_controller": "Newark North Arrival",
+      "solo_controller": "4A",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10880,23 +10880,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
@@ -10971,17 +10971,17 @@
         }
       },
       "airspace": {
-        "Newark Departure": [
+        "4N": [
           "NOA_NE",
           "FINAL_VECTORS_4"
         ]
       },
-      "solo_controller": "Newark Departure",
+      "solo_controller": "4N",
       "controllers": [
-        "Laguardia Departure",
-        "EMPYR",
-        "LGA Final",
-        "HAARP",
+        "1L",
+        "1D",
+        "1F",
+        "1V",
         "NY_CTR",
         "NY_68_CTR",
         "NY_35_CTR",
@@ -10990,23 +10990,23 @@
         "DC_CTR",
         "BOS_CTR",
         "BOS_SW_CTR",
-        "Newark Tower",
-        "Newark Departure",
-        "Teterboro Tower",
-        "Morristown Tower",
-        "Caldwell Tower",
-        "Newark North Arrival",
-        "Yardley",
-        "MUGZY",
-        "Liberty Departure (East)",
-        "Liberty Departure (West)",
-        "Liberty Departure (North)",
-        "Liberty Departure (South)",
-        "Allentown Approach",
-        "Philadelphia North Departure",
-        "Philadelphia Yardley",
-        "Philadelphia South Departure",
-        "McGuire Approach"
+        "4Z",
+        "4N",
+        "4J",
+        "4K",
+        "4T",
+        "4A",
+        "4P",
+        "4U",
+        "5E",
+        "5W",
+        "5T",
+        "5S",
+        "44A",
+        "21E",
+        "21Y",
+        "21V",
+        "51Y"
       ],
       "default_maps": [
         "EWR ARR/DEP"
