@@ -10,9 +10,19 @@ import (
 	gomath "math"
 	"regexp"
 	"strconv"
+
+	"github.com/golang/geo/s1"
+	"github.com/golang/geo/s2"
 )
 
 const NMPerLatitude = 60
+
+const (
+	// EarthRadiusMeters gives the mean radius of the earth used for
+	// spherical calculations.
+	EarthRadiusMeters     = 6371000
+	MetersPerNauticalMile = 1852
+)
 
 ///////////////////////////////////////////////////////////////////////////
 // Point2LL
@@ -302,32 +312,22 @@ func Sub2LL(a Point2LL, b Point2LL) Point2LL {
 // NMDistance2LL returns the distance in nautical miles between two
 // provided lat-long coordinates.
 func NMDistance2LL(a Point2LL, b Point2LL) float32 {
-	// https://www.movable-type.co.uk/scripts/latlong.html
-	const R = 6371000 // metres
-	rad := func(d float64) float64 { return float64(d) / 180 * gomath.Pi }
-	lat1, lon1 := rad(float64(a[1])), rad(float64(a[0]))
-	lat2, lon2 := rad(float64(b[1])), rad(float64(b[0]))
-	dlat, dlon := lat2-lat1, lon2-lon1
-
-	x := Sqr(gomath.Sin(dlat/2)) + gomath.Cos(lat1)*gomath.Cos(lat2)*Sqr(gomath.Sin(dlon/2))
-	c := 2 * gomath.Atan2(gomath.Sqrt(x), gomath.Sqrt(1-x))
-	dm := R * c // in metres
-
-	return float32(dm * 0.000539957)
+	llA := s2.LatLngFromDegrees(float64(a[1]), float64(a[0]))
+	llB := s2.LatLngFromDegrees(float64(b[1]), float64(b[0]))
+	angle := llA.Distance(llB)
+	meters := EarthRadiusMeters * angle.Radians()
+	return float32(meters / MetersPerNauticalMile)
 }
 
 // Fast but approximate distance between latlongs.
 func NMDistance2LLFast(a Point2LL, b Point2LL, nmPerLongitude float32) float32 {
-	anm, bnm := LL2NM(a, nmPerLongitude), LL2NM(b, nmPerLongitude)
-	return Distance2f(anm, bnm)
+	return NMDistance2LL(a, b)
 }
 
 // NMLength2ll returns the length of a vector expressed in lat-long
 // coordinates.
 func NMLength2LL(a Point2LL, nmPerLongitude float32) float32 {
-	x := a[0] * nmPerLongitude
-	y := a[1] * NMPerLatitude
-	return Sqrt(Sqr(x) + Sqr(y))
+	return NMDistance2LL(Point2LL{}, a)
 }
 
 // NM2LL converts a point expressed in nautical mile coordinates to
@@ -346,12 +346,18 @@ func LL2NM(p Point2LL, nmPerLongitude float32) [2]float32 {
 // Offset2LL returns the point at distance dist along the vector with heading hdg from
 // the given point. It assumes a (locally) flat earth.
 func Offset2LL(pll Point2LL, hdg float32, dist float32, nmPerLongitude, magneticVariation float32) Point2LL {
-	p := LL2NM(pll, nmPerLongitude)
-	h := Radians(float32(hdg - magneticVariation))
-	v := [2]float32{Sin(h), Cos(h)}
-	v = Scale2f(v, float32(dist))
-	p = Add2f(p, v)
-	return NM2LL(p, nmPerLongitude)
+	ll := s2.LatLngFromDegrees(float64(pll[1]), float64(pll[0]))
+	brng := Radians(hdg - magneticVariation)
+	d := float64(dist) * MetersPerNauticalMile / EarthRadiusMeters
+
+	lat1 := ll.Lat.Radians()
+	lon1 := ll.Lng.Radians()
+	lat2 := gomath.Asin(gomath.Sin(lat1)*gomath.Cos(d) + gomath.Cos(lat1)*gomath.Sin(d)*gomath.Cos(float64(brng)))
+	lon2 := lon1 + gomath.Atan2(gomath.Sin(float64(brng))*gomath.Sin(d)*gomath.Cos(lat1), gomath.Cos(d)-gomath.Sin(lat1)*gomath.Sin(lat2))
+
+	ll2 := s2.LatLng{Lat: s1.Angle(lat2), Lng: s1.Angle(lon2)}
+	ll2 = ll2.Normalized()
+	return Point2LL{float32(ll2.Lng.Degrees()), float32(ll2.Lat.Degrees())}
 }
 
 // Store Point2LLs as strings is JSON, for compactness/friendliness...

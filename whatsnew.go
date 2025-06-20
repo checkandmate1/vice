@@ -270,4 +270,5 @@ var whatsNew []string = []string{
 	`Improved departure flow and sequencing`,
 	`Account for displaced thresholds in approach course calculations`,
 	`Fixed multiple bugs with aircraft association, handoffs, and altitude restrictions on approaches`,
+	`Switched to spherical geometry calculations using the S2 library`,
 }

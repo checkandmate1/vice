@@ -23,9 +23,10 @@ require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/tosone/minimp3 v1.0.2
-	github.com/veandco/go-sdl2 v0.5.0-alpha.3.0.20220913133553-3c4862273074
-	golang.org/x/exp v0.0.0-20231127185646-65229373498e
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+        github.com/veandco/go-sdl2 v0.5.0-alpha.3.0.20220913133553-3c4862273074
+        golang.org/x/exp v0.0.0-20231127185646-65229373498e
+	github.com/golang/geo v0.0.0-20250613-9e8e59d779cc
+        gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

@@ -6,6 +6,10 @@ package math
 
 import (
 	"fmt"
+	gomath "math"
+
+	"github.com/golang/geo/s1"
+	"github.com/golang/geo/s2"
 )
 
 ///////////////////////////////////////////////////////////////////////////
@@ -79,13 +83,17 @@ func ParseCardinalOrdinalDirection(s string) (CardinalOrdinalDirection, error) {
 // coordinates and the provided magnetic correction is applied to the
 // result.
 func Heading2LL(from Point2LL, to Point2LL, nmPerLongitude float32, magCorrection float32) float32 {
-	v := Point2LL{to[0] - from[0], to[1] - from[1]}
+	llFrom := s2.LatLngFromDegrees(float64(from[1]), float64(from[0]))
+	llTo := s2.LatLngFromDegrees(float64(to[1]), float64(to[0]))
 
-	// Note that atan2() normally measures w.r.t. the +x axis and angles
-	// are positive for counter-clockwise. We want to measure w.r.t. +y and
-	// to have positive angles be clockwise. Happily, swapping the order of
-	// values passed to atan2()--passing (x,y), gives what we want.
-	angle := Degrees(Atan2(v[0]*nmPerLongitude, v[1]*NMPerLatitude))
+	lat1 := llFrom.Lat.Radians()
+	lat2 := llTo.Lat.Radians()
+	dLon := llTo.Lng.Radians() - llFrom.Lng.Radians()
+
+	y := gomath.Sin(dLon) * gomath.Cos(lat2)
+	x := gomath.Cos(lat1)*gomath.Sin(lat2) - gomath.Sin(lat1)*gomath.Cos(lat2)*gomath.Cos(dLon)
+	brng := gomath.Atan2(y, x)
+	angle := Degrees(float32(brng))
 	return NormalizeHeading(angle + magCorrection)
 }
 
