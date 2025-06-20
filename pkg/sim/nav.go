@@ -912,9 +912,9 @@ func (nav *Nav) updateHeading(wind av.WindModel, lg *log.Logger) {
 
 func (nav *Nav) updatePositionAndGS(wind av.WindModel, lg *log.Logger) {
 	// Calculate offset vector based on heading and current TAS.
-	hdg := nav.FlightState.Heading - nav.FlightState.MagneticVariation
+	hdgTrue := nav.FlightState.Heading - nav.FlightState.MagneticVariation
 	TAS := nav.TAS() / 3600
-	flightVector := math.Scale2f([2]float32{math.Sin(math.Radians(hdg)), math.Cos(math.Radians(hdg))}, TAS)
+	flightVector := math.Scale2f([2]float32{math.Sin(math.Radians(hdgTrue)), math.Cos(math.Radians(hdgTrue))}, TAS)
 
 	// Further offset based on the wind
 	var windVector [2]float32
@@ -922,12 +922,17 @@ func (nav *Nav) updatePositionAndGS(wind av.WindModel, lg *log.Logger) {
 		windVector = wind.GetWindVector(nav.FlightState.Position, nav.FlightState.Altitude)
 	}
 
-	// Update the aircraft's state
-	p := math.Add2f(math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude),
-		math.Add2f(flightVector, windVector))
+	groundVector := math.Add2f(flightVector, windVector)
+	dist := math.Length2f(groundVector)
+	if dist == 0 {
+		nav.FlightState.GS = 0
+		return
+	}
 
-	nav.FlightState.Position = math.NM2LL(p, nav.FlightState.NmPerLongitude)
-	nav.FlightState.GS = math.Length2f(math.Add2f(flightVector, windVector)) * 3600
+	hdg := math.Degrees(math.Atan2(groundVector[0], groundVector[1])) + nav.FlightState.MagneticVariation
+	nav.FlightState.Position = math.Offset2LL(nav.FlightState.Position, hdg, dist,
+		nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+	nav.FlightState.GS = dist * 3600
 }
 
 func (nav *Nav) DepartOnCourse(alt float32, exit string) {
