@@ -402,3 +402,51 @@ type LocationResolver interface {
 func SetLocationResolver(r LocationResolver) {
 	locr = r
 }
+
+// XYFromLL returns x/y coordinates in nautical miles on a tangent plane
+// centered at |center| that correspond to latitude-longitude position |p|.
+// Positive x is east and positive y is north.
+func XYFromLL(center, p Point2LL) [2]float32 {
+	cll := s2.LatLngFromDegrees(float64(center[1]), float64(center[0]))
+	pll := s2.LatLngFromDegrees(float64(p[1]), float64(p[0]))
+
+	lat0 := cll.Lat.Radians()
+	lon0 := cll.Lng.Radians()
+	lat := pll.Lat.Radians()
+	lon := pll.Lng.Radians()
+
+	dl := lon - lon0
+	cosc := gomath.Sin(lat0)*gomath.Sin(lat) + gomath.Cos(lat0)*gomath.Cos(lat)*gomath.Cos(dl)
+	x := gomath.Cos(lat) * gomath.Sin(dl) / cosc
+	y := (gomath.Cos(lat0)*gomath.Sin(lat) - gomath.Sin(lat0)*gomath.Cos(lat)*gomath.Cos(dl)) / cosc
+
+	nmFactor := EarthRadiusMeters / MetersPerNauticalMile
+	return [2]float32{float32(x * nmFactor), float32(y * nmFactor)}
+}
+
+// LLFromXY converts x/y coordinates in nautical miles on a tangent plane
+// centered at |center| back to latitude-longitude coordinates.
+func LLFromXY(center Point2LL, xy [2]float32) Point2LL {
+	cll := s2.LatLngFromDegrees(float64(center[1]), float64(center[0]))
+
+	lat0 := cll.Lat.Radians()
+	lon0 := cll.Lng.Radians()
+
+	x := float64(xy[0]) * MetersPerNauticalMile / EarthRadiusMeters
+	y := float64(xy[1]) * MetersPerNauticalMile / EarthRadiusMeters
+
+	rho := gomath.Sqrt(x*x + y*y)
+	if rho == 0 {
+		return center
+	}
+
+	c := gomath.Atan(rho)
+	sinC := gomath.Sin(c)
+	cosC := gomath.Cos(c)
+
+	lat := gomath.Asin(cosC*gomath.Sin(lat0) + y*sinC*gomath.Cos(lat0)/rho)
+	lon := lon0 + gomath.Atan2(x*sinC, rho*gomath.Cos(lat0)*cosC-y*gomath.Sin(lat0)*sinC)
+
+	ll := s2.LatLng{Lat: s1.Angle(lat), Lng: s1.Angle(lon)}.Normalized()
+	return Point2LL{float32(ll.Lng.Degrees()), float32(ll.Lat.Degrees())}
+}

@@ -15,9 +15,10 @@ import (
 // ScopeTransformations
 
 type ScopeTransformations struct {
-	ndcFromLatLong                       math.Matrix3
-	ndcFromWindow                        math.Matrix3
-	latLongFromWindow, windowFromLatLong math.Matrix3
+	center                     math.Point2LL
+	ndcFromXY                  math.Matrix3
+	ndcFromWindow              math.Matrix3
+	xyFromWindow, windowFromXY math.Matrix3
 }
 
 // GetScopeTransformations returns a ScopeTransformations object
@@ -27,30 +28,28 @@ func GetScopeTransformations(paneExtent math.Extent2D, magneticVariation float32
 	center math.Point2LL, rangenm float32, rotationAngle float32) ScopeTransformations {
 	width, height := paneExtent.Width(), paneExtent.Height()
 	aspect := width / height
-	ndcFromLatLong := math.Identity3x3().
+	ndcFromXY := math.Identity3x3().
 		// Final orthographic projection including the effect of the
 		// window's aspect ratio.
 		Ortho(-aspect, aspect, -1, 1).
 		// Account for magnetic variation and any user-specified rotation
 		Rotate(-math.Radians(rotationAngle+magneticVariation)).
-		// Scale based on range and nm per latitude / longitude
-		Scale(nmPerLongitude/rangenm, math.NMPerLatitude/rangenm).
-		// Translate to center point
-		Translate(-center[0], -center[1])
+		// Scale based on range
+		Scale(1/rangenm, 1/rangenm)
 
 	ndcFromWindow := math.Identity3x3().
 		Translate(-1, -1).
 		Scale(2/width, 2/height)
 
-	latLongFromNDC := ndcFromLatLong.Inverse()
-	latLongFromWindow := latLongFromNDC.PostMultiply(ndcFromWindow)
-	windowFromLatLong := latLongFromWindow.Inverse()
+	xyFromWindow := ndcFromXY.Inverse().PostMultiply(ndcFromWindow)
+	windowFromXY := xyFromWindow.Inverse()
 
 	return ScopeTransformations{
-		ndcFromLatLong:    ndcFromLatLong,
-		ndcFromWindow:     ndcFromWindow,
-		latLongFromWindow: latLongFromWindow,
-		windowFromLatLong: windowFromLatLong,
+		center:        center,
+		ndcFromXY:     ndcFromXY,
+		ndcFromWindow: ndcFromWindow,
+		xyFromWindow:  xyFromWindow,
+		windowFromXY:  windowFromXY,
 	}
 }
 
@@ -58,7 +57,7 @@ func GetScopeTransformations(paneExtent math.Extent2D, magneticVariation float32
 // to load viewing matrices so that latitude-longiture positions can be
 // provided for subsequent vertices.
 func (st *ScopeTransformations) LoadLatLongViewingMatrices(cb *renderer.CommandBuffer) {
-	cb.LoadProjectionMatrix(st.ndcFromLatLong)
+	cb.LoadProjectionMatrix(st.ndcFromXY)
 	cb.LoadModelViewMatrix(math.Identity3x3())
 }
 
@@ -73,7 +72,8 @@ func (st *ScopeTransformations) LoadWindowViewingMatrices(cb *renderer.CommandBu
 // WindowFromLatLongP transforms a point given in latitude-longitude
 // coordinates to window coordinates, snapped to a pixel center.
 func (st *ScopeTransformations) WindowFromLatLongP(p math.Point2LL) [2]float32 {
-	pw := st.windowFromLatLong.TransformPoint(p)
+	xy := math.XYFromLL(st.center, p)
+	pw := st.windowFromXY.TransformPoint(xy)
 	pw[0], pw[1] = float32(int(pw[0]+0.5))+0.5, float32(int(pw[1]+0.5))+0.5
 	return pw
 }
@@ -81,7 +81,8 @@ func (st *ScopeTransformations) WindowFromLatLongP(p math.Point2LL) [2]float32 {
 // LatLongFromWindowP transforms a point p in window coordinates to
 // latitude-longitude.
 func (st *ScopeTransformations) LatLongFromWindowP(p [2]float32) math.Point2LL {
-	return st.latLongFromWindow.TransformPoint(p)
+	xy := st.xyFromWindow.TransformPoint(p)
+	return math.LLFromXY(st.center, xy)
 }
 
 // NormalizedFromWindowP transforms a point p in window coordinates to
@@ -94,14 +95,16 @@ func (st *ScopeTransformations) NormalizedFromWindowP(p [2]float32) [2]float32 {
 // LatLongFromWindowV transforms a vector in window coordinates to a vector
 // in latitude-longitude coordinates.
 func (st *ScopeTransformations) LatLongFromWindowV(v [2]float32) math.Point2LL {
-	return st.latLongFromWindow.TransformVector(v)
+	xy := st.xyFromWindow.TransformVector(v)
+	p := math.LLFromXY(st.center, xy)
+	return math.Sub2LL(p, st.center)
 }
 
 // PixelDistanceNM returns the space between adjacent pixels expressed in
 // nautical miles.
 func (st *ScopeTransformations) PixelDistanceNM(nmPerLongitude float32) float32 {
-	ll := st.LatLongFromWindowV([2]float32{1, 0})
-	return math.NMLength2LL(ll, nmPerLongitude)
+	xy := st.xyFromWindow.TransformVector([2]float32{1, 0})
+	return math.Length2f(xy)
 }
 
 // Other
