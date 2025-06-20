@@ -13,6 +13,7 @@ import (
 	"github.com/mmp/vice/pkg/radar"
 	"github.com/mmp/vice/pkg/renderer"
 	"github.com/mmp/vice/pkg/sim"
+	"github.com/mmp/vice/pkg/util"
 )
 
 var (
@@ -26,9 +27,14 @@ var (
 type ERAMPane struct {
 	ERAMPreferenceSets map[string]*PrefrenceSet
 	prefSet            *PrefrenceSet
-	TrackState map[av.ADSBCallsign]*TrackState
+	TrackState         map[av.ADSBCallsign]*TrackState
 
 	allVideoMaps []sim.VideoMap
+
+	// Pools of datablocks used while rendering. Keeping arenas here avoids
+	// allocations every frame when the datablocks are generated.
+	fdbArena util.ObjectArena[fullDatablock]
+	ldbArena util.ObjectArena[limitedDatablock]
 
 	InboundPointOuts  map[string]string
 	OutboundPointOuts map[string]string

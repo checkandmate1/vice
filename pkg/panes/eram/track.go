@@ -162,11 +162,11 @@ func (ep *ERAMPane) drawTrack(track sim.Track, state *TrackState, ctx *panes.Con
 	ld *renderer.ColoredLinesDrawBuilder, trid *renderer.ColoredTrianglesDrawBuilder, td *renderer.TextDrawBuilder) {
 	pos := state.track.Location
 	pw := transforms.WindowFromLatLongP(pos)
-	pt := math.Add2f(pw, [2]float32{0.5, -.5}) // Text this out 
+	pt := math.Add2f(pw, [2]float32{0.5, -.5}) // Text this out
 
-	// Draw the position symbol 
+	// Draw the position symbol
 	color := ep.trackColor(state, track)
-	font := renderer.GetDefaultFont() // Change this to the actual font 
+	font := renderer.GetDefaultFont() // Change this to the actual font
 	td.AddTextCentered(position, pt, renderer.TextStyle{Font: font, Color: color})
 }
 
@@ -178,12 +178,86 @@ func (ep *ERAMPane) trackColor(state *TrackState, track sim.Track) renderer.RGB 
 	return color
 }
 
-func (ep *ERAMPane) visibleTracks(ctx *panes.Context) []sim.Track { // When radar holes are added 
+func (ep *ERAMPane) visibleTracks(ctx *panes.Context) []sim.Track { // When radar holes are added
 	// Get the visible tracks based on the current range and center.
 	var tracks []sim.Track
 	for _, trk := range ctx.Client.State.Tracks {
 		// Radar wholes neeeded for this. For now, return true
 		tracks = append(tracks, *trk)
 	}
-	return tracks 
+	return tracks
+}
+
+// datablockBrightness returns the configured brightness for the given track's
+// datablock type.
+func (ep *ERAMPane) datablockBrightness(state *TrackState) radar.ScopeBrightness {
+	ps := ep.currentPrefs()
+	if state.DatablockType == FullDatablock {
+		return ps.Brightness.FDB
+	}
+	return ps.Brightness.LDB
+}
+
+// leaderLineDirection returns the direction in which a datablock's leader line
+// should be drawn. The initial implementation always points northeast.
+func (ep *ERAMPane) leaderLineDirection(ctx *panes.Context, trk sim.Track) math.CardinalOrdinalDirection {
+	return math.NorthEast
+}
+
+// leaderLineVector returns a vector in window coordinates representing a leader
+// line of a fixed length in the given direction.
+func (ep *ERAMPane) leaderLineVector(dir math.CardinalOrdinalDirection) [2]float32 {
+	angle := dir.Heading()
+	v := [2]float32{math.Sin(math.Radians(angle)), math.Cos(math.Radians(angle))}
+	return math.Scale2f(v, 32)
+}
+
+// datablockVisible reports whether a datablock should be drawn. Design.
+func (ep *ERAMPane) datablockVisible(ctx *panes.Context, trk sim.Track) bool {
+	// design
+	return true
+}
+
+// datablockType chooses which datablock format to display. Design.
+func (ep *ERAMPane) datablockType(ctx *panes.Context, trk sim.Track) DatablockType {
+	// design
+	return LimitedDatablock
+}
+
+// trackDatablockColorBrightness returns the track color and datablock brightness. Design.
+func (ep *ERAMPane) trackDatablockColorBrightness(ctx *panes.Context, trk sim.Track) (renderer.RGB, radar.ScopeBrightness, radar.ScopeBrightness) {
+	// design
+	return renderer.RGB{}, 0, 0
+}
+
+// drawLeaderLines draws leader lines for visible datablocks.
+func (ep *ERAMPane) drawLeaderLines(ctx *panes.Context, tracks []sim.Track, dbs map[av.ADSBCallsign]datablock,
+	transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
+	ld := renderer.GetColoredLinesDrawBuilder()
+	defer renderer.ReturnColoredLinesDrawBuilder(ld)
+
+	for _, trk := range tracks {
+		if dbs[trk.ADSBCallsign] == nil {
+			continue
+		}
+
+		_, brightness, _ := ep.trackDatablockColorBrightness(ctx, trk)
+		if brightness == 0 {
+			continue
+		}
+
+		state := ep.TrackState[trk.ADSBCallsign]
+		if state == nil {
+			continue
+		}
+		p0 := transforms.WindowFromLatLongP(state.track.Location)
+		dir := ep.leaderLineDirection(ctx, trk)
+		v := ep.leaderLineVector(dir)
+		p1 := math.Add2f(p0, math.Scale2f(v, ctx.DrawPixelScale))
+		ld.AddLine(p0, p1, brightness.ScaleRGB(renderer.RGB{R: 1, G: 1, B: 1}))
+	}
+
+	transforms.LoadWindowViewingMatrices(cb)
+	cb.LineWidth(1, ctx.DPIScale)
+	ld.GenerateCommands(cb)
 }
