@@ -1,6 +1,7 @@
 package eram
 
 import (
+	"fmt"
 	"strings"
 
 	av "github.com/mmp/vice/pkg/aviation"
@@ -154,6 +155,17 @@ func fieldEmpty(f []dbChar) bool {
 	return true
 }
 
+// dbWriteText writes the provided text into the datablock field using the given
+// colour. Any unused characters remain unset.
+func dbWriteText(dst []dbChar, s string, c renderer.RGB) {
+	for i, ch := range s {
+		if i >= len(dst) {
+			break
+		}
+		dst[i] = dbChar{ch: ch, color: c}
+	}
+}
+
 // rewriteDelta is a stub used by dbDrawLine.  ERAM uses standard fonts so no
 // rewriting is required.
 func rewriteDelta(s string) string { return s }
@@ -206,6 +218,38 @@ func (db fullDatablock) draw(td *renderer.TextDrawBuilder, pt [2]float32,
 	}
 	pt[1] += float32(font.Size)
 	dbDrawLines(lines, td, pt, font, sb, brightness, dir, halfSeconds)
+}
+
+// drawLimitedDatablock renders a placeholder limited datablock for the provided
+// track using the standard ERAM datablock colour. The actual field contents are
+// intentionally minimal and should be expanded in the future.
+func (ep *ERAMPane) drawLimitedDatablock(ctx *panes.Context, trk sim.Track,
+	transforms radar.ScopeTransformations, td *renderer.TextDrawBuilder,
+	sb *strings.Builder) {
+
+	state := ep.TrackState[trk.ADSBCallsign]
+	if state == nil {
+		return
+	}
+
+	var db limitedDatablock
+	c := renderer.RGB{R: .855, G: .855, B: 0}
+
+	// TODO: design the exact fields for ERAM limited datablocks.
+	dbWriteText(db.line0[:], trk.ADSBCallsign.String(), c)
+	if trk.TransponderAltitude != 0 {
+		alt := fmt.Sprintf("%03d", int(trk.TransponderAltitude+50)/100)
+		dbWriteText(db.line1[:], alt, c)
+	}
+
+	start := transforms.WindowFromLatLongP(state.track.Location)
+	dir := ep.leaderLineDirection(ctx, trk)
+	end := math.Add2f(start, math.Scale2f(ep.leaderLineVector(dir), ctx.DrawPixelScale))
+	font := renderer.GetDefaultFont()
+	brightness := ep.datablockBrightness(state)
+	halfSeconds := ctx.Now.UnixMilli() / 500
+
+	db.draw(td, end, font, sb, brightness, dir, halfSeconds)
 }
 
 ///////////////////////////////////////////////////////////////////////////
