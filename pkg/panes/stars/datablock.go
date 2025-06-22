@@ -63,8 +63,9 @@ type fullDatablock struct {
 	field7 [2][8]dbChar
 }
 
-func (db fullDatablock) draw(td *renderer.TextDrawBuilder, pt [2]float32, font *renderer.Font, strBuilder *strings.Builder,
-	brightness radar.ScopeBrightness, leaderLineDirection math.CardinalOrdinalDirection, halfSeconds int64) {
+// lines returns the datablock lines that will be drawn for the full
+// datablock at the given time (specified in half-second increments).
+func (db fullDatablock) lines(halfSeconds int64) []dbLine {
 	// Figure out the maximum number of values any field is cycling through.
 	numVariants := func(fields [][]dbChar) int {
 		n := 0
@@ -107,6 +108,46 @@ func (db fullDatablock) draw(td *renderer.TextDrawBuilder, pt [2]float32, font *
 		dbMakeLine(selectMultiplexed([][]dbChar{db.field6[0][:], db.field6[1][:]}),
 			selectMultiplexed([][]dbChar{db.field7[0][:], db.field7[1][:]})),
 	}
+	return lines
+}
+
+func (db fullDatablock) draw(td *renderer.TextDrawBuilder, pt [2]float32, font *renderer.Font, strBuilder *strings.Builder,
+	brightness radar.ScopeBrightness, leaderLineDirection math.CardinalOrdinalDirection, halfSeconds int64) {
+	// Figure out the maximum number of values any field is cycling through.
+	numVariants := func(fields [][]dbChar) int {
+		n := 0
+		for _, field := range fields {
+			if fieldEmpty(field) {
+				break
+			}
+			n++
+		}
+		return n
+	}
+
+	// Find the maximum number of field values that we are cycling through.
+	nc := max(numVariants([][]dbChar{db.field34[0][:], db.field34[1][:], db.field34[2][:]}),
+		numVariants([][]dbChar{db.field5[0][:], db.field5[1][:], db.field5[2][:]}))
+	nc = max(nc, numVariants([][]dbChar{db.field6[0][:], db.field6[1][:]}))
+	nc = max(nc, numVariants([][]dbChar{db.field7[0][:], db.field7[1][:]}))
+
+	// Cycle 1 is 2s, others are 1.5s. Then get that in half seconds.
+	fullCycleHalfSeconds := 4 + 3*(nc-1)
+	// Figure out which cycle we are in
+	cycle := 0
+	for idx := halfSeconds % int64(fullCycleHalfSeconds); idx > 4; idx -= 3 {
+		cycle++
+	}
+
+	selectMultiplexed := func(fields [][]dbChar) []dbChar {
+		n := numVariants(fields)
+		if cycle < n {
+			return fields[cycle]
+		}
+		return fields[0]
+	}
+
+	lines := db.lines(halfSeconds)
 	pt[1] += float32(font.Size) // align leader with line 1
 	dbDrawLines(lines, td, pt, font, strBuilder, brightness, leaderLineDirection, halfSeconds)
 }
@@ -277,6 +318,21 @@ func dbChopTrailing(f []dbChar) []dbChar {
 		}
 	}
 	return nil
+}
+
+// dbLineString converts the given dbLine to a Go string, replacing unset
+// characters with spaces so that BoundText() gives the correct extent.
+func dbLineString(l dbLine) string {
+	var sb strings.Builder
+	for i := 0; i < l.Len(); i++ {
+		ch := l.ch[i]
+		if ch.ch == 0 {
+			sb.WriteByte(' ')
+		} else {
+			sb.WriteRune(ch.ch)
+		}
+	}
+	return sb.String()
 }
 
 func dbDrawLines(lines []dbLine, td *renderer.TextDrawBuilder, pt [2]float32, font *renderer.Font, strBuilder *strings.Builder,
@@ -1187,6 +1243,8 @@ func (sp *STARSPane) drawDatablocks(tracks []sim.Track, dbs map[av.ADSBCallsign]
 	transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
 	td := renderer.GetTextDrawBuilder()
 	defer renderer.ReturnTextDrawBuilder(td)
+	ld := renderer.GetColoredLinesDrawBuilder()
+	defer renderer.ReturnColoredLinesDrawBuilder(ld)
 
 	realNow := ctx.Now // for flashing rate...
 	ps := sp.currentPrefs()
@@ -1276,10 +1334,59 @@ func (sp *STARSPane) drawDatablocks(tracks []sim.Track, dbs map[av.ADSBCallsign]
 
 			halfSeconds := realNow.UnixMilli() / 500
 			db.draw(td, pll, font, &strBuilder, brightness, leaderLineDirection, halfSeconds)
+
+			// If this is a full datablock and the mouse is hovering over it,
+			// draw a yellow outline around it.
+			if _, ok := db.(fullDatablock); ok && ctx.Mouse != nil {
+				lines := db.(fullDatablock).lines(halfSeconds)
+
+				// Starting position for drawing, matching draw()
+				pt := pll
+				pt[1] += float32(font.Size)
+
+				x0, y0 := float32(1e9), float32(-1e9)
+				x1, y1 := float32(-1e9), float32(1e9)
+
+				rightJustify := leaderLineDirection >= math.South
+				for _, line := range lines {
+					text := dbLineString(line)
+					w, _ := font.BoundText(text, 0)
+					offset := float32(4)
+					if rightJustify {
+						offset = -4 - float32(w)
+					}
+					lx0 := pt[0] + offset
+					ly0 := pt[1]
+					lx1 := lx0 + float32(w)
+					ly1 := pt[1] - float32(font.Size)
+
+					if lx0 < x0 {
+						x0 = lx0
+					}
+					if lx1 > x1 {
+						x1 = lx1
+					}
+					if ly0 > y0 {
+						y0 = ly0
+					}
+					if ly1 < y1 {
+						y1 = ly1
+					}
+
+					pt[1] -= float32(font.Size)
+				}
+
+				mx, my := ctx.Mouse.Pos[0], ctx.Mouse.Pos[1]
+				if mx >= x0 && mx <= x1 && my <= y0 && my >= y1 {
+					ld.AddLineLoop(STARSFDBHoverColor, [][2]float32{{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}})
+				}
+			}
 		}
 	}
 
 	transforms.LoadWindowViewingMatrices(cb)
+	cb.LineWidth(1, ctx.DPIScale)
+	ld.GenerateCommands(cb)
 	td.GenerateCommands(cb)
 }
 

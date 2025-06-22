@@ -66,6 +66,9 @@ var (
 	STARSGhostColor             = renderer.RGB{1, 1, 0}
 	STARSSelectedAircraftColor  = renderer.RGB{0, 1, 1}
 
+	// Color of the outline around a full datablock when it is hovered.
+	STARSFDBHoverColor = renderer.RGB{1, 1, 0}
+
 	STARSATPAWarningColor = renderer.RGB{1, 1, 0}
 	STARSATPAAlertColor   = renderer.RGB{1, .215, 0}
 )
