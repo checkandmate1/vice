@@ -233,6 +233,13 @@ func FontsInit(r Renderer, p platform.Platform) {
 	fonts = make(map[FontIdentifier]*Font)
 	io := imgui.CurrentIO()
 
+	eramBuilder := imgui.NewFontGlyphRangesBuilder()
+	eramBuilder.AddRanges(io.Fonts().GlyphRangesDefault())
+	eramBuilder.AddChar(imgui.Wchar(0x2191))
+	eramBuilder.AddChar(imgui.Wchar(0x2193))
+	eramRange := imgui.NewGlyphRange()
+	eramBuilder.BuildRanges(eramRange)
+
 	// Given a map that specifies the icons used in an icon font, returns
 	// an imgui.GlyphRanges that encompasses those icons.  This GlyphRanges
 	// is then used shortly when the fonts are loaded.
@@ -242,7 +249,7 @@ func FontsInit(r Renderer, p platform.Platform) {
 		builder.AddChar(imgui.Wchar(0x2193))
 		for _, str := range icons {
 			unicode, _ := utf8.DecodeRuneInString(str)
-			builder.AddChar(imgui.Wchar(unicode))	
+			builder.AddChar(imgui.Wchar(unicode))
 		}
 		r := imgui.NewGlyphRange()
 		builder.BuildRanges(r)
@@ -277,7 +284,12 @@ func FontsInit(r Renderer, p platform.Platform) {
 			}
 
 			ttfPinner.Pin(&ttf[0])
-			ifont := io.Fonts().AddFontFromMemoryTTF(uintptr(unsafe.Pointer(&ttf[0])), int32(len(ttf)), sp)
+			var ifont *imgui.Font
+			if name == "ERAM" {
+				ifont = io.Fonts().AddFontFromMemoryTTFV(uintptr(unsafe.Pointer(&ttf[0])), int32(len(ttf)), sp, nil, eramRange.Data())
+			} else {
+				ifont = io.Fonts().AddFontFromMemoryTTF(uintptr(unsafe.Pointer(&ttf[0])), int32(len(ttf)), sp)
+			}
 
 			config := imgui.NewFontConfig()
 			config.SetMergeMode(true)
@@ -300,7 +312,6 @@ func FontsInit(r Renderer, p platform.Platform) {
 	add("Flight-Strip-Printer.ttf.zst", true, "Flight Strip Printer")
 	add("Inconsolata_Condensed-Regular.ttf.zst", true, "Inconsolata Condensed Regular")
 	add("ERAM.ttf.zst", true, "ERAM")
-
 
 	pixels, w, h, bpp := io.Fonts().GetTextureDataAsRGBA32()
 	lg.Infof("Fonts texture used %.1f MB", float32(w*h*bpp)/(1024*1024))
