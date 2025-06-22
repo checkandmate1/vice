@@ -301,6 +301,12 @@ func FontsInit(r Renderer, p platform.Platform) {
 
 			id := FontIdentifier{Name: name, Size: size}
 			fonts[id] = MakeFont(int(sp), mono, id, ifont)
+			if name == "ERAM" {
+				f := fonts[id]
+				width := f.LookupGlyph('0').AdvanceX
+				f.LookupGlyph('\u2191').AdvanceX = width
+				f.LookupGlyph('\u2193').AdvanceX = width
+			}
 		}
 	}
 
