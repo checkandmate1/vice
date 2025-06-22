@@ -286,7 +286,8 @@ func FontsInit(r Renderer, p platform.Platform) {
 			ttfPinner.Pin(&ttf[0])
 			var ifont *imgui.Font
 			if name == "ERAM" {
-				ifont = io.Fonts().AddFontFromMemoryTTFV(uintptr(unsafe.Pointer(&ttf[0])), int32(len(ttf)), sp, nil, eramRange.Data())
+				baseCfg := imgui.NewFontConfig()
+				ifont = io.Fonts().AddFontFromMemoryTTFV(uintptr(unsafe.Pointer(&ttf[0])), int32(len(ttf)), sp, baseCfg, eramRange.Data())
 			} else {
 				ifont = io.Fonts().AddFontFromMemoryTTF(uintptr(unsafe.Pointer(&ttf[0])), int32(len(ttf)), sp)
 			}
