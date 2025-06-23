@@ -336,6 +336,21 @@ func (s *Sim) addAircraftNoLock(ac Aircraft) {
 		return
 	}
 
+	if s.CIDAllocator != nil {
+		fp := ac.STARSFlightPlan
+		if fp == nil {
+			fp = s.STARSComputer.lookupFlightPlanByACID(ACID(ac.ADSBCallsign))
+		}
+		if fp != nil && fp.CID == "" {
+			if cid, err := s.CIDAllocator.Allocate(); err == nil {
+				fp.CID = cid
+				ac.STARSFlightPlan = fp
+			} else {
+				s.lg.Warn("no CID available", slog.String("callsign", string(ac.ADSBCallsign)))
+			}
+		}
+	}
+
 	s.Aircraft[ac.ADSBCallsign] = &ac
 
 	ac.Nav.Check(s.lg)
