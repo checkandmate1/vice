@@ -102,20 +102,27 @@ func (f *Font) AddGlyph(ch int, g *Glyph) {
 // LookupGlyph returns the Glyph for the specified rune.
 func (f *Font) LookupGlyph(ch rune) *Glyph {
 	if int(ch) < len(f.lowGlyphs) {
-		if g := f.lowGlyphs[ch]; g == nil {
-			g = f.createGlyph(ch)
-			f.lowGlyphs[ch] = g
-			return g
-		} else {
+		if g := f.lowGlyphs[ch]; g != nil {
 			return g
 		}
-	} else if g, ok := f.glyphs[ch]; !ok {
-		g = f.createGlyph(ch)
-		f.glyphs[ch] = g
-		return g
-	} else {
+	} else if g, ok := f.glyphs[ch]; ok {
 		return g
 	}
+
+	// All glyphs should be present for bitmap fonts. If the underlying
+	// ImGui font is unset, return an invisible placeholder rather than
+	// asking imgui to generate one (which would yield an empty glyph).
+	if f.Ifont == (imgui.Font{}) {
+		return &Glyph{}
+	}
+
+	g := f.createGlyph(ch)
+	if int(ch) < len(f.lowGlyphs) {
+		f.lowGlyphs[ch] = g
+	} else {
+		f.glyphs[ch] = g
+	}
+	return g
 }
 
 // Returns the bound of the specified text in the given font, assuming the

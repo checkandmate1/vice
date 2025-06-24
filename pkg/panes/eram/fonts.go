@@ -19,7 +19,6 @@ func (ep *ERAMPane) ERAMToolbarFont() *renderer.Font {
 	return renderer.GetFont(renderer.FontIdentifier{Name: "ERAMv102", Size: 10})
 }
 
-
 func (ep *ERAMPane) initializeFonts(r renderer.Renderer, p platform.Platform) {
 	fonts := createFontAtlas(r, p)
 	get := func(name string, size int) *renderer.Font {
@@ -73,6 +72,16 @@ func createFontAtlas(r renderer.Renderer, p platform.Platform) []*renderer.Font 
 			glyph.addToFont(ch, x, y, xres, yres, sf, f, scale)
 
 			x += dx
+		}
+
+		// Ensure placeholders exist for all ASCII glyphs so LookupGlyph
+		// never falls back to imgui when using bitmap fonts.
+		space := f.LookupGlyph(' ')
+		placeholder := &renderer.Glyph{AdvanceX: space.AdvanceX, Visible: false}
+		for i := 0; i < len(f.lowGlyphs); i++ {
+			if f.lowGlyphs[i] == nil {
+				f.AddGlyph(i, placeholder)
+			}
 		}
 
 		// Start a new line after finishing a font.
