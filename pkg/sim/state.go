@@ -288,6 +288,13 @@ func (ss *State) GetStateForController(tcp string) *State {
 		state.ControllerMonitoredBeaconCodeBlocks = ss.STARSFacilityAdaptation.MonitoredBeaconCodeBlocks
 	}
 
+	// ERAM controllers don't have entries in ControllerConfigs, so make sure
+	// they still get the scenario's default video maps.
+	if ctrl, ok := state.Controllers[tcp]; ok && ctrl.ERAMFacility {
+		state.ControllerDefaultVideoMaps = ss.ScenarioDefaultVideoMaps
+		state.ControllerVideoMaps = ss.STARSFacilityAdaptation.VideoMapNames
+	}
+
 	return &state
 }
 
