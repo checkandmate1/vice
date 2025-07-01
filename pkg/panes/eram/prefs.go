@@ -1,6 +1,8 @@
 package eram
 
 import (
+	"slices"
+
 	"github.com/mmp/vice/pkg/math"
 	"github.com/mmp/vice/pkg/radar"
 	"github.com/mmp/vice/pkg/sim"
@@ -151,6 +153,15 @@ func (ep *ERAMPane) initPrefsForLoadedSim(ss sim.State) *Preferences {
 	p := makeDefaultPreferences()
 	p.Center = ss.GetInitialCenter()
 	p.CurrentCenter = p.Center
+
+	// Make the scenario's default video maps visible
+	p.VideoMapVisible = make(map[string]interface{})
+	for _, dm := range ss.ControllerDefaultVideoMaps {
+		if idx := slices.IndexFunc(ep.allVideoMaps, func(v sim.VideoMap) bool { return v.Name == dm }); idx != -1 {
+			p.VideoMapVisible[ep.allVideoMaps[idx].Name] = nil
+		}
+	}
+
 	return p
 }
 
