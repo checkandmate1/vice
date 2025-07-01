@@ -213,8 +213,8 @@ func (ep *ERAMPane) drawtoolbar(ctx *panes.Context, transforms radar.ScopeTransf
 			if i == 22 {
 				break
 			}
-
-			if ep.drawToolbarFullButton(ctx, vm.Label, 0, scale, vis, nextRow) {
+			label := strings.ReplaceAll(vm.Label, " ", "\n")
+			if ep.drawToolbarFullButton(ctx, label, 0, scale, vis, nextRow) {
 				if vm.Label != "" {
 					if vis {
 						delete(ps.VideoMapVisible, vm.Name)
