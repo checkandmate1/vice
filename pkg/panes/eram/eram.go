@@ -233,7 +233,7 @@ func (inp *inputText) Add(str string, color renderer.RGB, location [2]float32) {
 }
 
 func (inp *inputText) AddLocation(ps *Preferences, location [2]float32) {
-	inp.Add(" " + locationSymbol + " ", ps.Brightness.Text.ScaleRGB(toolbarTextColor), location)
+	inp.Add(" "+locationSymbol+" ", ps.Brightness.Text.ScaleRGB(toolbarTextColor), location)
 }
 
 // No formatting needed
