@@ -214,6 +214,7 @@ func (ep *ERAMPane) drawtoolbar(ctx *panes.Context, transforms radar.ScopeTransf
 				break
 			}
 			label := strings.ReplaceAll(vm.Label, " ", "\n")
+			label = util.Select(vm.Label == "", "N/A MAP", label) // If the label is empty, use the name
 			if ep.drawToolbarFullButton(ctx, label, 0, scale, vis, nextRow) {
 				if vm.Label != "" {
 					if vis {
@@ -610,6 +611,9 @@ func (ep *ERAMPane) drawToolbarButton(ctx *panes.Context, text string, flags []t
 	textColor = ps.Brightness.Text.ScaleRGB(textColor) // Text has brightness in ERAM
 
 	trid.AddQuad(p0, p1, p2, p3, buttonColor)
+	if text == "N/A MAP" {
+		text = ""
+	}
 	drawToolbarText(text, td, sz, textColor)
 
 	// Draw button outline
