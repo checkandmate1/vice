@@ -2,12 +2,12 @@
 // Copyright(c) 2022-2024 vice contributors, licensed under the GNU Public License, Version 3.
 // SPDX: GPL-3.0-only
 //
-// This file handles configuration management for vice. As of version 42, the configuration
-// structure was changed to store individual pane instances (STARSPane, ERAMPane, MessagesPane,
-// FlightStripPane) and split line positions separately, rather than storing the entire
-// DisplayNode hierarchy. This prevents STARS settings (fonts, brightness, PTLs, etc.) from
-// being reset when switching between ERAM and STARS scenarios, as the pane instances are
-// now preserved across scenario changes.
+// This file handles configuration management for vice. The configuration structure
+// stores individual pane instances (STARSPane, ERAMPane, MessagesPane, FlightStripPane)
+// and split line positions separately, rather than storing the entire DisplayNode
+// hierarchy. This prevents STARS settings (fonts, brightness, PTLs, etc.) from
+// being reset when switching between ERAM and STARS scenarios, as the pane instances
+// are now preserved across scenario changes.
 
 package main
 
@@ -214,7 +214,8 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 		}
 
 		// Migration: Extract pane instances and split positions from old DisplayRoot
-		if config.Version < 42 && config.DisplayRoot != nil {
+		// This migration handles configs that still have the old DisplayRoot structure
+		if config.DisplayRoot != nil && config.STARSPane == nil && config.ERAMPane == nil {
 			config.migrateFromDisplayRoot(lg)
 		}
 
