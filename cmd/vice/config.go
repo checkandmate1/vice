@@ -380,3 +380,15 @@ func (c *Config) Activate(r renderer.Renderer, p platform.Platform, eventStream 
 
 	panes.Activate(c.DisplayRoot, r, p, eventStream, lg)
 }
+
+// RebuildDisplayRootForSim rebuilds the display hierarchy with the appropriate radar pane
+// based on the sim type (STARS vs ERAM). This is used when switching between scenarios.
+func (c *Config) RebuildDisplayRootForSim(isSTARSSim bool) {
+	var radarPane panes.Pane
+	if isSTARSSim {
+		radarPane = c.STARSPane
+	} else {
+		radarPane = c.ERAMPane
+	}
+	c.DisplayRoot = c.buildDisplayRoot(radarPane)
+}
