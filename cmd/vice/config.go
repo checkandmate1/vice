@@ -65,7 +65,8 @@ type ConfigNoSim struct {
 	// Store split line positions for user adjustments
 	SplitLinePositions [2]float32 // [0] = X split (0.8), [1] = Y split (0.075)
 
-	// Keep DisplayRoot for backward compatibility during migration
+	// DisplayRoot is rebuilt dynamically from the pane instances above.
+	// We still serialize it for now but don't rely on it for state.
 	DisplayRoot *panes.DisplayNode
 
 	TFRCache av.TFRCache
@@ -219,26 +220,8 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 			config.migrateFromDisplayRoot(lg)
 		}
 
-		// Ensure all pane instances are initialized, even if migration didn't run
-		if config.STARSPane == nil {
-			config.STARSPane = stars.NewSTARSPane()
-		}
-		if config.ERAMPane == nil {
-			config.ERAMPane = eram.NewERAMPane()
-		}
-		if config.MessagesPane == nil {
-			config.MessagesPane = panes.NewMessagesPane()
-		}
-		if config.FlightStripPane == nil {
-			config.FlightStripPane = panes.NewFlightStripPane()
-		}
-		// Initialize split positions if not set
-		if config.SplitLinePositions[0] == 0 {
-			config.SplitLinePositions[0] = 0.8
-		}
-		if config.SplitLinePositions[1] == 0 {
-			config.SplitLinePositions[1] = 0.075
-		}
+		// Ensure all panes are initialized
+		config.ensurePanesInitialized()
 
 		if config.Version < server.ViceSerializeVersion {
 			if config.DisplayRoot != nil {
@@ -278,107 +261,91 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 }
 
 // migrateFromDisplayRoot extracts pane instances and split positions from the old DisplayRoot structure
-// and stores them in the new individual pane fields. This is used for backward compatibility.
 func (c *Config) migrateFromDisplayRoot(lg *log.Logger) {
 	if c.DisplayRoot == nil {
 		return
 	}
 
-	// Extract split positions from the DisplayRoot hierarchy
+	// Extract split positions
 	if c.DisplayRoot.SplitLine.Axis == panes.SplitAxisX {
 		c.SplitLinePositions[0] = c.DisplayRoot.SplitLine.Pos
-	}
-	
-	if c.DisplayRoot.Children[0] != nil && c.DisplayRoot.Children[0].SplitLine.Axis == panes.SplitAxisY {
-		c.SplitLinePositions[1] = c.DisplayRoot.Children[0].SplitLine.Pos
+		
+		if c.DisplayRoot.Children[0] != nil && c.DisplayRoot.Children[0].SplitLine.Axis == panes.SplitAxisY {
+			c.SplitLinePositions[1] = c.DisplayRoot.Children[0].SplitLine.Pos
+		}
 	}
 
-	// Extract pane instances from the DisplayRoot hierarchy
+	// Extract pane instances
 	c.DisplayRoot.VisitPanes(func(p panes.Pane) {
 		switch pane := p.(type) {
 		case *stars.STARSPane:
-			if c.STARSPane == nil {
-				c.STARSPane = pane
-			}
+			c.STARSPane = pane
 		case *eram.ERAMPane:
-			if c.ERAMPane == nil {
-				c.ERAMPane = pane
-			}
+			c.ERAMPane = pane
 		case *panes.MessagesPane:
-			if c.MessagesPane == nil {
-				c.MessagesPane = pane
-			}
+			c.MessagesPane = pane
 		case *panes.FlightStripPane:
-			if c.FlightStripPane == nil {
-				c.FlightStripPane = pane
-			}
+			c.FlightStripPane = pane
 		}
 	})
+}
 
-	// Ensure we have all required panes
+// ensurePanesInitialized ensures that all pane instances are initialized,
+// even if they were not present in the old DisplayRoot or if they were nil.
+func (c *Config) ensurePanesInitialized() {
 	if c.STARSPane == nil {
 		c.STARSPane = stars.NewSTARSPane()
-		lg.Infof("Created new STARSPane during migration")
 	}
 	if c.ERAMPane == nil {
 		c.ERAMPane = eram.NewERAMPane()
-		lg.Infof("Created new ERAMPane during migration")
 	}
 	if c.MessagesPane == nil {
 		c.MessagesPane = panes.NewMessagesPane()
-		lg.Infof("Created new MessagesPane during migration")
 	}
 	if c.FlightStripPane == nil {
 		c.FlightStripPane = panes.NewFlightStripPane()
-		lg.Infof("Created new FlightStripPane during migration")
 	}
-
-	lg.Infof("Migrated pane instances from DisplayRoot structure")
+	// Initialize split positions if not set
+	if c.SplitLinePositions[0] == 0 {
+		c.SplitLinePositions[0] = 0.8
+	}
+	if c.SplitLinePositions[1] == 0 {
+		c.SplitLinePositions[1] = 0.075
+	}
 }
 
 // buildDisplayRoot creates a new DisplayNode hierarchy from the stored pane instances
 // and split line positions. This replaces the old approach of storing the entire hierarchy.
 func (c *ConfigNoSim) buildDisplayRoot(radarPane panes.Pane) *panes.DisplayNode {
+	// Create the messages and radar panes split
+	messagesNode := &panes.DisplayNode{Pane: c.MessagesPane}
+	radarNode := &panes.DisplayNode{Pane: radarPane}
+	
+	leftSplit := &panes.DisplayNode{
+		SplitLine: panes.SplitLine{
+			Pos:  c.SplitLinePositions[1], // Y split
+			Axis: panes.SplitAxisY,
+		},
+		Children: [2]*panes.DisplayNode{messagesNode, radarNode},
+	}
+	
+	// Create the flight strip pane
+	flightStripNode := &panes.DisplayNode{Pane: c.FlightStripPane}
+	
+	// Create the root split
 	return &panes.DisplayNode{
 		SplitLine: panes.SplitLine{
 			Pos:  c.SplitLinePositions[0], // X split
 			Axis: panes.SplitAxisX,
 		},
-		Children: [2]*panes.DisplayNode{
-			&panes.DisplayNode{
-				SplitLine: panes.SplitLine{
-					Pos:  c.SplitLinePositions[1], // Y split
-					Axis: panes.SplitAxisY,
-				},
-				Children: [2]*panes.DisplayNode{
-					&panes.DisplayNode{Pane: c.MessagesPane},
-					&panes.DisplayNode{Pane: radarPane},
-				},
-			},
-			&panes.DisplayNode{Pane: c.FlightStripPane},
-		},
+		Children: [2]*panes.DisplayNode{leftSplit, flightStripNode},
 	}
 }
 
 func (c *Config) Activate(r renderer.Renderer, p platform.Platform, eventStream *sim.EventStream, lg *log.Logger) {
-	// Prefer a robust signal of scenario type: STARS scenarios define
-	// a PrimaryAirport in the sim state; ERAM scenarios do not.
-	isSTARSSim := false
-	if c.Sim != nil {
-		isSTARSSim = c.Sim.State.TRACON != ""
-	}
-
-	// Use stored pane instances instead of creating new ones
-	var radarPane panes.Pane
-	if isSTARSSim {
-		radarPane = c.STARSPane
-	} else {
-		radarPane = c.ERAMPane
-	}
-
-	// Build the display hierarchy from stored panes and split positions
-	c.DisplayRoot = c.buildDisplayRoot(radarPane)
-
+	// Determine which radar pane to use based on sim type
+	isSTARSSim := c.Sim != nil && c.Sim.State.TRACON != ""
+	c.RebuildDisplayRootForSim(isSTARSSim)
 	panes.Activate(c.DisplayRoot, r, p, eventStream, lg)
 }
 
