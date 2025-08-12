@@ -218,6 +218,27 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 			config.migrateFromDisplayRoot(lg)
 		}
 
+		// Ensure all pane instances are initialized, even if migration didn't run
+		if config.STARSPane == nil {
+			config.STARSPane = stars.NewSTARSPane()
+		}
+		if config.ERAMPane == nil {
+			config.ERAMPane = eram.NewERAMPane()
+		}
+		if config.MessagesPane == nil {
+			config.MessagesPane = panes.NewMessagesPane()
+		}
+		if config.FlightStripPane == nil {
+			config.FlightStripPane = panes.NewFlightStripPane()
+		}
+		// Initialize split positions if not set
+		if config.SplitLinePositions[0] == 0 {
+			config.SplitLinePositions[0] = 0.8
+		}
+		if config.SplitLinePositions[1] == 0 {
+			config.SplitLinePositions[1] = 0.075
+		}
+
 		if config.Version < server.ViceSerializeVersion {
 			if config.DisplayRoot != nil {
 				config.DisplayRoot.VisitPanes(func(p panes.Pane) {
@@ -225,6 +246,12 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 						up.Upgrade(config.Version, server.ViceSerializeVersion)
 					}
 				})
+			}
+			// Also upgrade the individual panes
+			for _, pane := range []panes.Pane{config.STARSPane, config.ERAMPane, config.MessagesPane, config.FlightStripPane} {
+				if up, ok := pane.(panes.PaneUpgrader); ok && pane != nil {
+					up.Upgrade(config.Version, server.ViceSerializeVersion)
+				}
 			}
 		}
 
