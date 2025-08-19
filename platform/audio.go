@@ -31,6 +31,11 @@ type audioEngine struct {
 	speechcb func()
 	mu       sync.Mutex
 	volume   int
+
+	// Microphone capture state
+	capturing        bool
+	captureDeviceID  sdl.AudioDeviceID
+	capturePCMBuffer []int16
 }
 
 type audioEffect struct {
@@ -261,3 +266,106 @@ func audioCallback(user unsafe.Pointer, ptr *C.uint8, size C.int) {
 		out[2*i+1] = C.uint8((v >> 8) & 0xff)
 	}
 }
+
+// startCapture begins audio capture from the system's default recording device.
+func (a *audioEngine) startCapture() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.capturing {
+		return nil
+	}
+	desired := sdl.AudioSpec{
+		Freq:     AudioSampleRate,
+		Format:   sdl.AUDIO_S16SYS,
+		Channels: 1,
+		Samples:  2048,
+	}
+	dev, err := sdl.OpenAudioDevice("", true, &desired, nil, 0)
+	if err != nil || dev == 0 {
+		return fmt.Errorf("SDL OpenAudioDevice (capture): %v", err)
+	}
+	a.captureDeviceID = dev
+	a.capturePCMBuffer = a.capturePCMBuffer[:0]
+	a.capturing = true
+	sdl.ClearQueuedAudio(dev)
+	sdl.PauseAudioDevice(dev, false)
+	return nil
+}
+
+// pollCapture dequeues any available captured audio and appends it to the buffer.
+func (a *audioEngine) pollCapture() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.capturing || a.captureDeviceID == 0 {
+		return
+	}
+	n := int(sdl.GetQueuedAudioSize(a.captureDeviceID))
+	if n <= 0 {
+		return
+	}
+	buf := make([]byte, n)
+	sdl.DequeueAudio(a.captureDeviceID, buf)
+	for i := 0; i+1 < len(buf); i += 2 {
+		v := int16(buf[i]) | int16(buf[i+1])<<8
+		a.capturePCMBuffer = append(a.capturePCMBuffer, v)
+	}
+}
+
+// stopCapture stops capture and returns a WAV-encoded byte slice in memory.
+func (a *audioEngine) stopCapture() ([]byte, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.capturing {
+		return nil, nil
+	}
+	if a.captureDeviceID != 0 {
+		// Final dequeue
+		n := int(sdl.GetQueuedAudioSize(a.captureDeviceID))
+		if n > 0 {
+			buf := make([]byte, n)
+			sdl.DequeueAudio(a.captureDeviceID, buf)
+			for i := 0; i+1 < len(buf); i += 2 {
+				v := int16(buf[i]) | int16(buf[i+1])<<8
+				a.capturePCMBuffer = append(a.capturePCMBuffer, v)
+			}
+		}
+		sdl.PauseAudioDevice(a.captureDeviceID, true)
+		sdl.CloseAudioDevice(a.captureDeviceID)
+		a.captureDeviceID = 0
+	}
+	a.capturing = false
+	wav := encodeWAVFromPCM16(a.capturePCMBuffer, AudioSampleRate, 1)
+	a.capturePCMBuffer = a.capturePCMBuffer[:0]
+	return wav, nil
+}
+
+func encodeWAVFromPCM16(pcm []int16, sampleRate int, channels int) []byte {
+	byteRate := sampleRate * channels * 2
+	blockAlign := uint16(channels * 2)
+	dataSize := len(pcm) * 2
+	riffSize := 36 + dataSize
+	buf := make([]byte, 44+dataSize)
+	copy(buf[0:], []byte("RIFF"))
+	putu32(buf[4:], uint32(riffSize))
+	copy(buf[8:], []byte("WAVE"))
+	copy(buf[12:], []byte("fmt "))
+	putu32(buf[16:], 16)
+	putu16(buf[20:], 1)
+	putu16(buf[22:], uint16(channels))
+	putu32(buf[24:], uint32(sampleRate))
+	putu32(buf[28:], uint32(byteRate))
+	putu16(buf[32:], blockAlign)
+	putu16(buf[34:], 16)
+	copy(buf[36:], []byte("data"))
+	putu32(buf[40:], uint32(dataSize))
+	off := 44
+	for _, v := range pcm {
+		buf[off] = byte(v & 0xff)
+		buf[off+1] = byte((uint16(v) >> 8) & 0xff)
+		off += 2
+	}
+	return buf
+}
+
+func putu16(b []byte, v uint16) { b[0] = byte(v); b[1] = byte(v >> 8) }
+func putu32(b []byte, v uint32) { b[0] = byte(v); b[1] = byte(v >> 8); b[2] = byte(v >> 16); b[3] = byte(v >> 24) }

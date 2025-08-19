@@ -44,6 +44,35 @@ func (sp *STARSPane) DrawUI(p platform.Platform, config *platform.Config) {
 		imgui.EndCombo()
 	}
 
+	// Push-To-Talk key capture
+	imgui.Separator()
+	imgui.Text("Push To Talk Key:")
+	imgui.SameLine()
+	imgui.Text(fmt.Sprintf("%v", sp.PushToTalkKey))
+	imgui.SameLine()
+	if !sp.capturingPTTKey {
+		if imgui.Button("Set##ptt") {
+			sp.capturingPTTKey = true
+		}
+		imgui.SameLine()
+		if imgui.Button("Clear##ptt") {
+			sp.PushToTalkKey = 0
+		}
+	} else {
+		imgui.Text("Press any key...")
+		// Capture one key press
+		capture := func(k imgui.Key) bool { if imgui.IsKeyPressedBool(k) { sp.PushToTalkKey = k; sp.capturingPTTKey = false; return true }; return false }
+		// Letters
+		for k := imgui.KeyA; k <= imgui.KeyZ; k++ { if capture(k) { break } }
+		// Numbers
+		for k := imgui.Key0; k <= imgui.Key9; k++ { if capture(k) { break } }
+		// Common keys
+		_ = capture(imgui.KeySpace) || capture(imgui.KeyEnter) || capture(imgui.KeyTab)
+		_ = capture(imgui.KeyLeftCtrl) || capture(imgui.KeyLeftAlt) || capture(imgui.KeyLeftShift)
+		// Function keys
+		for k := imgui.KeyF1; k <= imgui.KeyF24; k++ { if capture(k) { break } }
+	}
+
 	imgui.Separator()
 	imgui.Text("Non-standard Audio Effects")
 

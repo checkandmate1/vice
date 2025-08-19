@@ -133,4 +133,13 @@ type Platform interface {
 	// StopPlayAudio stops playback of the audio effect specified
 	// by the given identifier.
 	StopPlayAudio(id int)
+
+	// StartAudioCapture begins microphone capture. Audio is buffered in memory.
+	StartAudioCapture() error
+	// IsAudioCapturing returns true if microphone capture is active.
+	IsAudioCapturing() bool
+	// PollAudioCapture dequeues any available captured audio into the in-memory buffer.
+	PollAudioCapture()
+	// StopAudioCapture stops capture and returns a WAV byte slice (PCM 16-bit mono) in memory.
+	StopAudioCapture() ([]byte, error)
 }
