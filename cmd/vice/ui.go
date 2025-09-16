@@ -28,6 +28,7 @@ import (
 	"github.com/mmp/vice/util"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/ncruces/zenity"
 	"github.com/pkg/browser"
 )
 
@@ -85,9 +86,9 @@ func uiInit(r renderer.Renderer, p platform.Platform, config *Config, es *sim.Ev
 		imgui.CurrentStyle().ScaleAllSizes(p.DPIScale())
 	}
 
-	ui.font = renderer.GetFont(renderer.FontIdentifier{Name: "Roboto Regular", Size: config.UIFontSize})
-	ui.aboutFont = renderer.GetFont(renderer.FontIdentifier{Name: "Roboto Regular", Size: 18})
-	ui.aboutFontSmall = renderer.GetFont(renderer.FontIdentifier{Name: "Roboto Regular", Size: 14})
+	ui.font = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: config.UIFontSize})
+	ui.aboutFont = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: 18})
+	ui.aboutFontSmall = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: 14})
 	ui.eventsSubscription = es.Subscribe()
 
 	if iconImage, err := png.Decode(bytes.NewReader([]byte(iconPNG))); err != nil {
@@ -1082,8 +1083,8 @@ func uiDrawKeyboardWindow(c *client.ControlClient, config *Config, platform plat
 
 	imgui.Separator()
 
-	fixedFont := renderer.GetFont(renderer.FontIdentifier{Name: "Roboto Mono", Size: config.UIFontSize})
-	italicFont := renderer.GetFont(renderer.FontIdentifier{Name: "Roboto Mono Italic", Size: config.UIFontSize})
+	fixedFont := renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoMono, Size: config.UIFontSize})
+	italicFont := renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoMonoItalic, Size: config.UIFontSize})
 
 	// Tighten up the line spacing
 	spc := style.ItemSpacing()
@@ -1365,11 +1366,11 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, p platform.Pl
 	config.InhibitDiscordActivity.Store(!update)
 
 	if imgui.BeginComboV("UI Font Size", strconv.Itoa(config.UIFontSize), imgui.ComboFlagsHeightLarge) {
-		sizes := renderer.AvailableFontSizes("Roboto Regular")
+		sizes := renderer.AvailableFontSizes(renderer.RobotoRegular)
 		for _, size := range sizes {
 			if imgui.SelectableBoolV(strconv.Itoa(size), size == config.UIFontSize, 0, imgui.Vec2{}) {
 				config.UIFontSize = size
-				ui.font = renderer.GetFont(renderer.FontIdentifier{Name: "Roboto Regular", Size: config.UIFontSize})
+				ui.font = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: config.UIFontSize})
 			}
 		}
 		imgui.EndCombo()
@@ -1399,6 +1400,58 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, p platform.Pl
 
 			imgui.EndCombo()
 		}
+	}
+
+	if imgui.CollapsingHeaderBoolPtr("Scenario Files", nil) {
+		imgui.BeginGroup()
+		imgui.Text(fmt.Sprintf("Scenario: %s", util.Select(config.ScenarioFile != "", config.ScenarioFile, "None Selected")))
+		imgui.SameLine()
+		if imgui.Button("Select##scenario") {
+			path, err := zenity.SelectFile(
+				zenity.Title("Select Scenario JSON File"),
+				zenity.FileFilters{
+					{
+						Name:     "JSON Files",
+						Patterns: []string{"*.json"},
+					},
+				},
+			)
+			if err != nil {
+				fmt.Printf("Error selecting scenario file: %v\n", err)
+			} else {
+				config.ScenarioFile = path
+			}
+		}
+		imgui.SameLine()
+		if imgui.Button("Clear##scenario") {
+			config.ScenarioFile = ""
+		}
+		imgui.EndGroup()
+
+		imgui.BeginGroup()
+		imgui.Text(fmt.Sprintf("Video Map: %s", util.Select(config.VideoMapFile != "", config.VideoMapFile, "None Selected")))
+		imgui.SameLine()
+		if imgui.Button("Select##videoMap") {
+			path, err := zenity.SelectFile(
+				zenity.Title("Select Video Map JSON File"),
+				zenity.FileFilters{
+					{
+						Name:     "Video Map JSON Files",
+						Patterns: []string{"*.json"},
+					},
+				},
+			)
+			if err != nil {
+				fmt.Printf("Error selecting video map file: %v\n", err)
+			} else {
+				config.VideoMapFile = path
+			}
+		}
+		imgui.SameLine()
+		if imgui.Button("Clear##videoMap") {
+			config.VideoMapFile = ""
+		}
+		imgui.EndGroup()
 	}
 
 	config.DisplayRoot.VisitPanes(func(pane panes.Pane) {

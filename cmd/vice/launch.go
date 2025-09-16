@@ -90,12 +90,12 @@ func (c *NewSimConfiguration) SetScenario(groupName, scenarioName string) {
 	}
 	c.GroupName = groupName
 
-	if c.Scenario, ok = groupConfig.ScenarioConfigs[scenarioName]; !ok {
+	if c.ScenarioConfig, ok = groupConfig.ScenarioConfigs[scenarioName]; !ok {
 		if scenarioName != "" {
 			c.lg.Errorf("%s: scenario not found in group %s", scenarioName, c.GroupName)
 		}
 		scenarioName = groupConfig.DefaultScenario
-		c.Scenario = groupConfig.ScenarioConfigs[scenarioName]
+		c.ScenarioConfig = groupConfig.ScenarioConfigs[scenarioName]
 	}
 	c.ScenarioName = scenarioName
 }
@@ -263,13 +263,13 @@ func (c *NewSimConfiguration) DrawUI(p platform.Platform, config *Config) bool {
 			imgui.EndTable()
 		}
 
-		if sc := c.Scenario.SplitConfigurations; sc.Len() > 1 {
-			if imgui.BeginComboV("Split", c.Scenario.SelectedSplit, imgui.ComboFlagsHeightLarge) {
+		if sc := c.ScenarioConfig.SplitConfigurations; sc.Len() > 1 {
+			if imgui.BeginComboV("Split", c.ScenarioConfig.SelectedSplit, imgui.ComboFlagsHeightLarge) {
 				for _, split := range sc.Splits() {
-					if imgui.SelectableBoolV(split, split == c.Scenario.SelectedSplit, 0, imgui.Vec2{}) {
+					if imgui.SelectableBoolV(split, split == c.ScenarioConfig.SelectedSplit, 0, imgui.Vec2{}) {
 						var err error
-						c.Scenario.SelectedSplit = split
-						c.Scenario.SelectedController, err = sc.GetPrimaryController(split)
+						c.ScenarioConfig.SelectedSplit = split
+						c.ScenarioConfig.SelectedController, err = sc.GetPrimaryController(split)
 						if err != nil {
 							c.lg.Errorf("unable to find primary controller: %v", err)
 						}
@@ -279,137 +279,102 @@ func (c *NewSimConfiguration) DrawUI(p platform.Platform, config *Config) bool {
 			}
 		}
 
-		if imgui.BeginTableV("scenario", 2, 0, imgui.Vec2{tableScale * 600, 0}, 0.) {
-			if c.newSimType == NewSimCreateRemote {
-				imgui.TableNextRow()
-				imgui.TableNextColumn()
-				imgui.Text("Name:")
-				imgui.TableNextColumn()
-				imgui.Text(c.NewSimName)
-			}
+		if c.newSimType == NewSimCreateRemote {
+			imgui.Text("Name: " + c.NewSimName)
+		}
 
-			fmtPosition := func(id string) string {
-				if tracon := c.selectedTRACONConfigs[c.GroupName]; tracon != nil {
-					if ctrl, ok := tracon.ControlPositions[id]; ok {
-						id += " (" + ctrl.Position + ")"
-					}
-				}
-				return id
-			}
-
-			if len(c.Scenario.ArrivalRunways) > 0 {
-				var a []string
-				for _, rwy := range c.Scenario.ArrivalRunways {
-					a = append(a, rwy.Airport+"/"+rwy.Runway)
-				}
-				sort.Strings(a)
-				base := "Landing: "
-				for len(a) > 0 {
-					imgui.TableNextRow()
-					imgui.TableNextColumn()
-					const max = 5 // per line
-					if len(a) > max {
-						imgui.Text(base + strings.Join(a[:max], ", "))
-						base = "    "
-						a = a[max:]
-					} else {
-						imgui.Text(base + strings.Join(a, ", "))
-						break
-					}
+		fmtPosition := func(id string) string {
+			if tracon := c.selectedTRACONConfigs[c.GroupName]; tracon != nil {
+				if ctrl, ok := tracon.ControlPositions[id]; ok {
+					id += " (" + ctrl.Position + ")"
 				}
 			}
+			return id
+		}
 
-			imgui.TableNextRow()
-			imgui.TableNextColumn()
-			imgui.Text("Control Position:")
-			imgui.TableNextColumn()
-			imgui.Text(fmtPosition(c.Scenario.SelectedController))
-
-			imgui.TableNextRow()
-			imgui.TableNextColumn()
-			imgui.Checkbox("Allow Instructor/RPO Sign-ins", &c.AllowInstructorRPO)
-			if c.AllowInstructorRPO {
-				imgui.TableNextRow()
-				imgui.TableNextColumn()
-				imgui.Text("Sign in as:")
-				imgui.TableNextColumn()
-				var curPos int32 // 0 -> primaryController
-				if c.connectionConfig.Position == "INS" {
-					curPos = 1
-				} else if c.connectionConfig.Position == "RPO" {
-					curPos = 2
-				}
-				if imgui.RadioButtonIntPtr(c.Scenario.SelectedController, &curPos, 0) {
-					c.connectionConfig.Position = "" // default: server will sort it out
-				}
-				if imgui.RadioButtonIntPtr("Instructor", &curPos, 1) {
-					c.connectionConfig.Position = "INS"
-				}
-				if imgui.RadioButtonIntPtr("RPO", &curPos, 2) {
-					c.connectionConfig.Position = "RPO"
-				}
-
-				// Allow instructor mode for regular controllers when not signing in as dedicated instructor/RPO
-				if c.connectionConfig.Position == "" {
-					imgui.TableNextRow()
-					imgui.TableNextColumn()
-					imgui.TableNextColumn()
-					imgui.Checkbox("Also sign in as Instructor", &c.Instructor)
+		if len(c.ScenarioConfig.ArrivalRunways) > 0 {
+			var a []string
+			for _, rwy := range c.ScenarioConfig.ArrivalRunways {
+				a = append(a, rwy.Airport+"/"+rwy.Runway)
+			}
+			sort.Strings(a)
+			base := "Landing: "
+			for len(a) > 0 {
+				const max = 5 // per line
+				if len(a) > max {
+					imgui.Text(base + strings.Join(a[:max], ", "))
+					base = "    "
+					a = a[max:]
+				} else {
+					imgui.Text(base + strings.Join(a, ", "))
+					break
 				}
 			}
+		}
 
-			if c.newSimType == NewSimCreateRemote {
-				imgui.TableNextRow()
-				imgui.TableNextColumn()
-				imgui.Checkbox("Require Password", &c.RequirePassword)
-				if c.RequirePassword {
-					imgui.TableNextColumn()
-					imgui.InputTextWithHint("Password", "", &c.Password, 0, nil)
-					if c.Password == "" {
-						imgui.SameLine()
-						imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{.7, .1, .1, 1})
-						imgui.Text(renderer.FontAwesomeIconExclamationTriangle)
-						imgui.PopStyleColor()
-					}
+		imgui.Text("Control Position: " + fmtPosition(c.ScenarioConfig.SelectedController))
+
+		imgui.Checkbox("Allow Instructor/RPO Sign-ins", &c.AllowInstructorRPO)
+		if c.AllowInstructorRPO {
+			imgui.Text("Sign in as:")
+			var curPos int32 // 0 -> primaryController
+			if c.connectionConfig.Position == "INS" {
+				curPos = 1
+			} else if c.connectionConfig.Position == "RPO" {
+				curPos = 2
+			}
+			if imgui.RadioButtonIntPtr(c.ScenarioConfig.SelectedController, &curPos, 0) {
+				c.connectionConfig.Position = "" // default: server will sort it out
+			}
+			if imgui.RadioButtonIntPtr("Instructor", &curPos, 1) {
+				c.connectionConfig.Position = "INS"
+			}
+			if imgui.RadioButtonIntPtr("RPO", &curPos, 2) {
+				c.connectionConfig.Position = "RPO"
+			}
+
+			// Allow instructor mode for regular controllers when not signing in as dedicated instructor/RPO
+			if c.connectionConfig.Position == "" {
+				imgui.Checkbox("Also sign in as Instructor", &c.Instructor)
+			}
+		}
+
+		if c.newSimType == NewSimCreateRemote {
+			imgui.Checkbox("Require Password", &c.RequirePassword)
+			if c.RequirePassword {
+				imgui.InputTextWithHint("Password", "", &c.Password, 0, nil)
+				if c.Password == "" {
+					imgui.SameLine()
+					imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{.7, .1, .1, 1})
+					imgui.Text(renderer.FontAwesomeIconExclamationTriangle)
+					imgui.PopStyleColor()
 				}
 			}
+		}
 
-			// Show TTS disable option if the server supports TTS
-			if c.selectedServer != nil && c.selectedServer.HaveTTS {
-				imgui.TableNextRow()
-				imgui.TableNextColumn()
-				imgui.Checkbox("Disable text-to-speech", &config.DisableTextToSpeech)
-				// Also update configs for both joining remote sims and creating new sims
-				c.connectionConfig.DisableTextToSpeech = config.DisableTextToSpeech
-				c.NewSimConfiguration.DisableTextToSpeech = config.DisableTextToSpeech
-			}
+		// Show TTS disable option if the server supports TTS
+		if c.selectedServer != nil && c.selectedServer.HaveTTS {
+			imgui.Checkbox("Disable text-to-speech", &config.DisableTextToSpeech)
+			// Also update configs for both joining remote sims and creating new sims
+			c.connectionConfig.DisableTextToSpeech = config.DisableTextToSpeech
+			c.NewSimConfiguration.DisableTextToSpeech = config.DisableTextToSpeech
+		}
 
-			imgui.TableNextRow()
-			imgui.TableNextColumn()
-			imgui.Checkbox("Ensure last two characters in callsigns are unique",
-				&c.NewSimConfiguration.EnforceUniqueCallsignSuffix)
+		imgui.Checkbox("Ensure last two characters in callsigns are unique",
+			&c.NewSimConfiguration.EnforceUniqueCallsignSuffix)
 
-			imgui.TableNextRow()
-			imgui.TableNextColumn()
-			imgui.Text("Wind:")
+		wind := c.ScenarioConfig.AverageWind
+		var dir string
+		if wind.Direction == 0 {
+			dir = "Variable"
+		} else {
+			dir = fmt.Sprintf("%03d", int(wind.Direction+5)/10*10)
+		}
 
-			imgui.TableNextColumn()
-			wind := c.Scenario.AverageWind
-
-			var dir string
-			if wind.Direction == 0 {
-				dir = "Variable"
-			} else {
-				dir = fmt.Sprintf("%03d", int(wind.Direction+5)/10*10)
-			}
-
-			if wind.Gust > wind.Speed {
-				imgui.Text(fmt.Sprintf("%s at %.0f gust %.0f", dir, wind.Speed, wind.Gust))
-			} else {
-				imgui.Text(fmt.Sprintf("%s at %.0f", dir, wind.Speed))
-			}
-
-			imgui.EndTable()
+		if wind.Gust > wind.Speed {
+			imgui.Text(fmt.Sprintf("Wind: %s at %.0f gust %.0f", dir, wind.Speed, wind.Gust))
+		} else {
+			imgui.Text(fmt.Sprintf("Wind: %s at %.0f", dir, wind.Speed))
 		}
 	} else {
 		// Join remote
@@ -516,8 +481,8 @@ func (c *NewSimConfiguration) DrawRatesUI(p platform.Platform) bool {
 	// Check rate limits and clamp if necessary
 	const rateLimit = 100.0
 	rateClamped := false
-	if !c.Scenario.LaunchConfig.CheckRateLimits(rateLimit) {
-		c.Scenario.LaunchConfig.ClampRates(rateLimit)
+	if !c.ScenarioConfig.LaunchConfig.CheckRateLimits(rateLimit) {
+		c.ScenarioConfig.LaunchConfig.ClampRates(rateLimit)
 		rateClamped = true
 	}
 
@@ -528,10 +493,10 @@ func (c *NewSimConfiguration) DrawRatesUI(p platform.Platform) bool {
 		imgui.PopStyleColor()
 	}
 
-	drawDepartureUI(&c.Scenario.LaunchConfig, p)
-	drawVFRDepartureUI(&c.Scenario.LaunchConfig, p)
-	drawArrivalUI(&c.Scenario.LaunchConfig, p)
-	drawOverflightUI(&c.Scenario.LaunchConfig, p)
+	drawDepartureUI(&c.ScenarioConfig.LaunchConfig, p)
+	drawVFRDepartureUI(&c.ScenarioConfig.LaunchConfig, p)
+	drawArrivalUI(&c.ScenarioConfig.LaunchConfig, p)
+	drawOverflightUI(&c.ScenarioConfig.LaunchConfig, p)
 	return false
 }
 
@@ -551,6 +516,7 @@ func (c *NewSimConfiguration) Start() error {
 		}
 	} else {
 		// Create sim configuration for new sim
+		c.NewSimConfiguration.StartTime = time.Now()
 		if err := c.mgr.CreateNewSim(c.NewSimConfiguration, c.selectedServer, c.lg); err != nil {
 			c.lg.Errorf("CreateNewSim failed: %v", err)
 			return err

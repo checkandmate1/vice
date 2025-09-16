@@ -13,6 +13,7 @@ import (
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/util"
+	"golang.org/x/sync/errgroup"
 )
 
 var dryRun = flag.Bool("dryrun", false, "Don't upload to GCS or archive local files")
@@ -26,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	usage := func() {
-		fmt.Fprintf(os.Stderr, "usage: wxingest [flags] [metar|wx|hrrr]...\nwhere [flags] may be:\n")
+		fmt.Fprintf(os.Stderr, "usage: wxingest [flags] [metar|precip|atmos]...\nwhere [flags] may be:\n")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -52,23 +53,28 @@ func main() {
 
 	launchHTTPServer()
 
+	var eg errgroup.Group
 	if len(flag.Args()) == 0 {
-		ingestMETAR(sb)
-		ingestWX(sb)
-		ingestHRRR(sb)
+		eg.Go(func() error { return ingestMETAR(sb) })
+		eg.Go(func() error { return ingestPrecip(sb) })
+		eg.Go(func() error { return ingestHRRR(sb) })
 	} else {
 		for _, a := range flag.Args() {
 			switch strings.ToLower(a) {
 			case "metar":
-				ingestMETAR(sb)
-			case "wx":
-				ingestWX(sb)
-			case "hrrr":
-				ingestHRRR(sb)
+				eg.Go(func() error { return ingestMETAR(sb) })
+			case "precip":
+				eg.Go(func() error { return ingestPrecip(sb) })
+			case "atmos":
+				eg.Go(func() error { return ingestHRRR(sb) })
 			default:
 				usage()
 			}
 		}
+	}
+
+	if err := eg.Wait(); err != nil {
+		LogError("%v", err)
 	}
 }
 
@@ -96,18 +102,6 @@ func LogFatal(msg string, args ...any) {
 	os.Exit(1)
 }
 
-func EnqueueObjects(sb StorageBackend, base string, ch chan<- string) error {
-	objs, err := sb.List(base)
-	if err == nil {
-		LogInfo("%s: found %d objects", base, len(objs))
-		for name := range objs {
-			ch <- name
-		}
-	}
-	close(ch)
-	return err
-}
-
 func launchHTTPServer() {
 	mux := http.NewServeMux()
 
@@ -122,6 +116,5 @@ func launchHTTPServer() {
 		go http.Serve(listener, mux)
 	} else {
 		fmt.Fprintf(os.Stderr, "Unable to start HTTP server: %v", err)
-		os.Exit(1)
 	}
 }
