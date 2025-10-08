@@ -496,6 +496,9 @@ func (ep *ERAMPane) modifyFlightPlan(ctx *panes.Context, cid string, spec sim.Fl
 			}
 		})
 	// Send aircraft commands if an ERAM command is entered
+	if ep.DisableERAMtoRadio {
+		return
+	}
 	if alt := spec.AssignedAltitude.Value + spec.InterimAlt.Value; alt > 0 { // Only one will be set
 		var cmd string
 		state := ep.TrackState[trk.ADSBCallsign]
@@ -550,7 +553,7 @@ func (ep *ERAMPane) flightPlanDirect(ctx *panes.Context, acid sim.ACID, fix stri
 		}
 	})
 	trk, _ := ctx.Client.State.GetTrackByACID(acid)
-	if trk != nil {
+	if !ep.DisableERAMtoRadio && trk != nil {
 		cmd := "D" + fix
 		ep.runAircraftCommands(ctx, trk.ADSBCallsign, cmd)
 	}
@@ -763,7 +766,7 @@ func (ep *ERAMPane) lookupControllerForID(ctx *panes.Context, controller string,
 	}
 
 	for _, control := range ctx.Client.State.Controllers {
-		if control.Id() == controller {
+		if control.ERAMID() == controller {
 			return control, nil
 		}
 	}
