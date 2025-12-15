@@ -55,6 +55,8 @@ type Preferences struct {
 		Position      [2]float32
 		DisplayFixes  bool // ATC TOOLS overlay of CRR fixes
 	}
+
+	DisplayWeatherLevel [radar.NumWxLevels]bool
 }
 
 const numSavedPreferenceSets = 10
@@ -194,6 +196,8 @@ func makeDefaultPreferences() *Preferences {
 	}
 	prefs.CRR.Position = [2]float32{10, 600}
 	prefs.CRR.DisplayFixes = false
+
+	prefs.DisplayWeatherLevel = [radar.NumWxLevels]bool{true, true, true,true,true,true} // ERAM only has 3 levels
 	return &prefs
 }
 

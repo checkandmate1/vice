@@ -919,7 +919,7 @@ func (sp *STARSPane) drawWX(ctx *panes.Context, transforms radar.ScopeTransforma
 		}
 	}
 
-	sp.weatherRadar.Draw(ctx, sp.wxHistoryDraw, weatherBrightness, weatherContrast, ps.DisplayWeatherLevel,
+	sp.weatherRadar.Draw(ctx, radar.STARS, sp.wxHistoryDraw, weatherBrightness, weatherContrast, ps.DisplayWeatherLevel,
 		transforms, cb)
 }
 

@@ -127,6 +127,11 @@ type ERAMPane struct {
 	commandMode       CommandMode     `json:"-"`
 	drawRouteAircraft av.ADSBCallsign `json:"-"`
 	drawRoutePoints   []math.Point2LL `json:"-"`
+
+	weatherRadar radar.WeatherRadar
+
+	wxNextHistoryStepTime time.Time
+	wxHistoryDraw         int
 }
 
 func NewERAMPane() *ERAMPane {
@@ -251,6 +256,8 @@ func (ep *ERAMPane) Draw(ctx *panes.Context, cb *renderer.CommandBuffer) {
 			ep.consumeMouseEvents(ctx, transforms)
 		}
 	}
+
+	ep.drawWX(ctx, transforms, cb)
 
 	// handleCapture
 	// updateAudio
@@ -653,6 +660,28 @@ func (ep *ERAMPane) getVideoMapLibrary(ss sim.State, client *client.ControlClien
 		return ml, nil
 	}
 	return client.GetVideoMapLibrary(filename)
+}
+
+func (ep *ERAMPane) drawWX(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
+	ps := ep.currentPrefs()
+	ps.DisplayWeatherLevel = [radar.NumWxLevels]bool{true, true, true, true, true, true}
+	// weatherBrightness := float32(ps.Brightness.Weather) / float32(100)
+	// weatherContrast := float32(ps.Brightness.WxContrast) / float32(100)
+	// TODO: Find out if these have bright values like STARS does.
+	var weatherBrightness float32 = 1.0
+	var weatherContrast float32 = 1.0
+
+	if !ep.wxNextHistoryStepTime.IsZero() && ctx.Now.After(ep.wxNextHistoryStepTime) {
+		ep.wxHistoryDraw--
+		if ep.wxHistoryDraw > 0 {
+			ep.wxNextHistoryStepTime = ctx.Now.Add(5 * time.Second)
+		} else {
+			ep.wxNextHistoryStepTime = time.Time{}
+		}
+	}
+
+	ep.weatherRadar.Draw(ctx, radar.ERAM, 0, weatherBrightness, weatherContrast, ps.DisplayWeatherLevel,
+		transforms, cb)
 }
 
 // cloneStringAnyMap returns a shallow copy of map[string]interface{}

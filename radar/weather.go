@@ -19,7 +19,7 @@ import (
 // WeatherRadar provides functionality for fetching precipitation data
 // from the server and displaying it in radar scopes.
 type WeatherRadar struct {
-	tracon          string
+	facility        string
 	nextFetchTime   time.Time
 	fetchInProgress bool
 	precipCh        chan *wx.Precip
@@ -234,6 +234,17 @@ var wxStippleDense [32]uint32 = [32]uint32{
 	0b11000000000000001100000000000000,
 }
 
+var wxStippleERAM [32]uint32 = [32]uint32{
+	4278255360, 4278255360, 4278255360, 4278255360,
+	4278255360, 4278255360, 4278255360, 4278255360,
+	16711935, 16711935, 16711935, 16711935,
+	16711935, 16711935, 16711935, 16711935,
+	4278255360, 4278255360, 4278255360, 4278255360,
+	4278255360, 4278255360, 4278255360, 4278255360,
+	16711935, 16711935, 16711935, 16711935,
+	16711935, 16711935, 16711935, 16711935,
+}
+
 // The above stipple masks are ordered so that they match the orientation
 // of how we want them drawn on the screen, though that doesn't seem to be
 // how glPolygonStipple expects them, which is with the bits in each byte
@@ -251,8 +262,23 @@ func reverseStippleBytes(stipple [32]uint32) [32]uint32 {
 	return result
 }
 
-// Draw draws the current weather radar data, if available.
-func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32, contrast float32,
+const (
+	STARS = iota
+	ERAM
+)
+
+func (w *WeatherRadar) Draw(ctx *panes.Context, radar int, hist int, intensity float32, contrast float32,
+	active [NumWxLevels]bool, transforms ScopeTransformations, cb *renderer.CommandBuffer) {
+	switch radar {
+	case STARS:
+		w.drawSTARS(ctx, hist, intensity, contrast, active, transforms, cb)
+	case ERAM:
+		w.drawERAM(ctx, hist, intensity, contrast, active, transforms, cb)
+	}
+}
+
+// DrawSTARS draws the current weather radar data for STARS, if available.
+func (w *WeatherRadar) drawSTARS(ctx *panes.Context, hist int, intensity float32, contrast float32,
 	active [NumWxLevels]bool, transforms ScopeTransformations, cb *renderer.CommandBuffer) {
 	w.mu.Lock(ctx.Lg)
 	defer w.mu.Unlock(ctx.Lg)
@@ -270,9 +296,9 @@ func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32, con
 	default:
 	}
 
-	traconChanged := w.tracon != ctx.Client.State.TRACON
+	traconChanged := w.facility != ctx.Client.State.TRACON
 	if traconChanged {
-		w.tracon = ctx.Client.State.TRACON
+		w.facility = ctx.Client.State.TRACON
 		w.fetchInProgress = false
 		w.nextFetchTime = time.Time{}
 		w.cb = [numWxHistory][NumWxLevels]*renderer.CommandBuffer{}
@@ -306,6 +332,66 @@ func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32, con
 			}
 			// Draw the same quads again, just with a different color and stippled.
 			cb.SetRGB(renderer.RGB{contrast, contrast, contrast})
+			cb.Call(*w.cb[hist][i])
+			cb.DisablePolygonStipple()
+		}
+	}
+}
+
+// DrawERAM draws the current weather radar data for ERAM, if available.
+// STARS has 6 levels, ERAM has 3 levels, so 0 & 1 levels for STARS are 0 for ERAM, etc.
+func (w *WeatherRadar) drawERAM(ctx *panes.Context, hist int, intensity float32, contrast float32,
+	active [NumWxLevels]bool, transforms ScopeTransformations, cb *renderer.CommandBuffer) {
+	w.mu.Lock(ctx.Lg)
+	defer w.mu.Unlock(ctx.Lg)
+
+	select {
+	case err := <-w.errCh:
+		ctx.Lg.Warnf("%v", err)
+		w.fetchInProgress = false
+	case precip := <-w.precipCh:
+		// Shift history down before storing the latest
+		w.cb[2], w.cb[1] = w.cb[1], w.cb[0]
+		w.cb[0] = makeWeatherCommandBuffers(precip)
+
+		w.fetchInProgress = false
+	default:
+	}
+
+	artccChanged := w.facility != ctx.Client.State.TRACON
+
+	if artccChanged {
+		w.facility = ctx.Client.State.TRACON
+		w.fetchInProgress = false
+		w.nextFetchTime = time.Time{}
+		w.cb = [numWxHistory][NumWxLevels]*renderer.CommandBuffer{}
+	}
+	shouldFetch := ctx.Client.State.SimTime.After(w.nextFetchTime) && !w.fetchInProgress
+
+	if shouldFetch {
+		w.fetchPrecipitation(ctx)
+	}
+
+	hist = math.Clamp(hist, 0, len(w.cb)-1)
+	transforms.LoadLatLongViewingMatrices(cb)
+	for i := range w.cb[hist] {
+		if active[i] && w.cb[hist][i] != nil {
+			// RGBs from STARS Manual, B-5
+			baseColor := util.Select(i == 0 || i == 1, renderer.RGB{0, 0, .51}, renderer.RGB{0, .51, .51})
+			cb.SetRGB(baseColor.Scale(intensity))
+			cb.Call(*w.cb[hist][i])
+
+			if i == 0 || i == 1 || i == 4 || i == 5 {
+				// No stipple
+				continue
+			}
+
+			cb.EnablePolygonStipple()
+			if i == 2 || i == 3 {
+				cb.PolygonStipple(wxStippleERAM)
+			}
+			// Draw the same quads again, just with a different color and stippled.
+			cb.SetRGB(renderer.RGB{0, 0, 0})
 			cb.Call(*w.cb[hist][i])
 			cb.DisablePolygonStipple()
 		}
