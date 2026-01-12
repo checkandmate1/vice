@@ -366,11 +366,14 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 				}
 			}
 
-		case sim.ForceQLEvent:
+	case sim.ForceQLEvent:
+		// Only the target TCP should see the force quicklook
+		if ctx.UserControlsPosition(event.ToController) {
 			if sp.ForceQLACIDs == nil {
 				sp.ForceQLACIDs = make(map[sim.ACID]interface{})
 			}
 			sp.ForceQLACIDs[event.ACID] = nil
+		}
 
 		case sim.TransferRejectedEvent:
 			if state, ok := sp.trackStateForACID(ctx, event.ACID); ok {
