@@ -409,50 +409,51 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 	}
 
 	tableScale := util.Select(runtime.GOOS == "windows", p.DPIScale(), float32(1))
+
 	var runningSims map[string]*server.RunningSim
 	if c.mgr.RemoteServer != nil {
 		runningSims = c.mgr.RemoteServer.GetRunningSims()
 
-		if imgui.BeginTableV("server", 2, 0, imgui.Vec2{tableScale * 500, 0}, 0.) {
-			imgui.TableNextRow()
-			imgui.TableNextColumn()
-			imgui.Text("Sim options:")
+		origType := c.newSimType
 
-			origType := c.newSimType
-
-			doButton := func(ty newSimType, srv *client.Server) {
-				if imgui.RadioButtonIntPtr(ty.String(), (*int32)(&c.newSimType), int32(ty)) && origType != ty {
-					c.selectedServer = srv
-					c.SetFacility(c.Facility)
-					c.displayError = nil
-				}
+		doButton := func(ty newSimType, srv *client.Server) {
+			if imgui.RadioButtonIntPtr(ty.String(), (*int32)(&c.newSimType), int32(ty)) && origType != ty {
+				c.selectedServer = srv
+				c.SetFacility(c.Facility)
+				c.displayError = nil
 			}
-
-			imgui.TableNextColumn()
-			doButton(NewSimCreateLocal, c.mgr.LocalServer)
-
-			imgui.TableNextRow()
-			imgui.TableNextColumn()
-			imgui.TableNextColumn()
-			doButton(NewSimCreateRemote, c.mgr.RemoteServer)
-
-			imgui.TableNextRow()
-			imgui.TableNextColumn()
-			imgui.TableNextColumn()
-
-			if len(runningSims) == 0 {
-				imgui.BeginDisabled()
-				if c.newSimType == NewSimJoinRemote {
-					c.newSimType = NewSimCreateRemote
-				}
-			}
-			doButton(NewSimJoinRemote, c.mgr.RemoteServer)
-			if len(runningSims) == 0 {
-				imgui.EndDisabled()
-			}
-
-			imgui.EndTable()
 		}
+
+		imgui.Indent()
+		doButton(NewSimCreateLocal, c.mgr.LocalServer)
+		imgui.SameLine()
+
+		style := imgui.CurrentStyle()
+
+		// Analysis mode toggle button - positioned on the same line as "Sim options" text
+		buttonWidth := imgui.CalcTextSize(renderer.FontAwesomeIconCog).X + 2*style.FramePadding().X
+		// Position cog at the right edge, aligned with Clear button below
+		imgui.SetCursorPosX(imgui.ContentRegionAvail().X + imgui.CursorPosX() - buttonWidth)
+		if imgui.Button(renderer.FontAwesomeIconCog + "##scenario_analysis") {
+			config.ScenarioAnalysisMode = !config.ScenarioAnalysisMode
+		}
+		if imgui.IsItemHovered() {
+			imgui.SetTooltip("Enable scenario analytics")
+		}
+
+		doButton(NewSimCreateRemote, c.mgr.RemoteServer)
+
+		if len(runningSims) == 0 {
+			imgui.BeginDisabled()
+			if c.newSimType == NewSimJoinRemote {
+				c.newSimType = NewSimCreateRemote
+			}
+		}
+		doButton(NewSimJoinRemote, c.mgr.RemoteServer)
+		if len(runningSims) == 0 {
+			imgui.EndDisabled()
+		}
+		imgui.Unindent()
 	} else {
 		imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{1, .5, .5, 1})
 		imgui.Text("Unable to connect to the vice server; only local scenarios are available.")

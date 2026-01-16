@@ -79,6 +79,8 @@ type ConfigNoSim struct {
 
 	UserPTTKey         imgui.Key
 	SelectedMicrophone string
+
+	ScenarioAnalysisMode bool
 }
 
 type ConfigSim struct {
