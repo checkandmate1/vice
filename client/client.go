@@ -865,6 +865,16 @@ func (s *Server) GetRunningSims() map[string]*server.RunningSim {
 	return s.runningSims
 }
 
+// GetAllScenarioStats fetches all scenario analytics from the server
+func (s *Server) GetAllScenarioStats() (*server.GetAllScenarioStatsResult, error) {
+	var result server.GetAllScenarioStatsResult
+	err := s.callWithTimeout(server.GetAllScenarioStatsRPC, struct{}{}, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func getClient(hostname string, lg *log.Logger) (*RPCClient, error) {
 	conn, err := net.Dial("tcp", hostname)
 	if err != nil {
@@ -951,4 +961,23 @@ func (c *ControlClient) GetLastCommand() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.LastCommand
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Scenario Analytics
+
+// ReportScenarioUsage reports scenario usage to the server (async, fire-and-forget)
+func (c *ControlClient) ReportScenarioUsage(facility, groupName, scenarioName string, startTime time.Time, duration time.Duration) {
+	req := &server.ReportScenarioUsageRequest{
+		Facility:     facility,
+		GroupName:    groupName,
+		ScenarioName: scenarioName,
+		StartTime:    startTime,
+		Duration:     duration,
+	}
+	// Fire and forget - we don't care about the result
+	go func() {
+		var result struct{}
+		_ = c.client.callWithTimeout(server.ReportScenarioUsageRPC, req, &result)
+	}()
 }

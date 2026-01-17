@@ -38,12 +38,13 @@ type SimManager struct {
 	sessionsByToken map[string]*simSession
 
 	// Helpers and such
-	tts            sim.TTSProvider
-	wxProvider     wx.Provider
-	sttProvider    STTTranscriptProvider
-	providersReady chan struct{}
-	mapManifests   map[string]*sim.VideoMapManifest
-	lg             *log.Logger
+	tts              sim.TTSProvider
+	wxProvider       wx.Provider
+	sttProvider      STTTranscriptProvider
+	providersReady   chan struct{}
+	mapManifests     map[string]*sim.VideoMapManifest
+	analyticsManager *AnalyticsManager
+	lg               *log.Logger
 
 	// Stats and internal details
 	mu               util.LoggingMutex
@@ -92,7 +93,7 @@ func (s *ScenarioSpec) AllAirports() []string {
 // Constructor and Initialization
 
 func NewSimManager(scenarioGroups map[string]map[string]*scenarioGroup, scenarioCatalogs map[string]map[string]*ScenarioCatalog,
-	mapManifests map[string]*sim.VideoMapManifest, serverAddress string, isLocal bool, lg *log.Logger) *SimManager {
+	mapManifests map[string]*sim.VideoMapManifest, serverAddress string, isLocal bool, enableAnalytics bool, lg *log.Logger) *SimManager {
 	sm := &SimManager{
 		scenarioGroups:   scenarioGroups,
 		scenarioCatalogs: scenarioCatalogs,
@@ -104,6 +105,11 @@ func NewSimManager(scenarioGroups map[string]map[string]*scenarioGroup, scenario
 		local:            isLocal,
 		providersReady:   make(chan struct{}),
 		lg:               lg,
+	}
+
+	// Initialize analytics manager on remote server, or when explicitly enabled for local testing
+	if !isLocal || enableAnalytics {
+		sm.analyticsManager = NewAnalyticsManager(lg)
 	}
 
 	// Initialize TTS and WX providers asynchronously so the server can start

@@ -55,6 +55,9 @@ var (
 		pttRecording bool
 		pttGarbling  bool // true if PTT pressed while audio was playing (no recording)
 		pttCapture   bool // capturing new PTT key assignment
+
+		// Analytics tracking for scenario usage
+		analyticsClient *ScenarioAnalyticsClient
 	}
 
 	//go:embed icons/tower-256x256.png
@@ -91,6 +94,7 @@ func uiInit(r renderer.Renderer, p platform.Platform, config *Config, es *sim.Ev
 	ui.aboutFont = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: 18})
 	ui.aboutFontSmall = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: 14})
 	ui.eventsSubscription = es.Subscribe()
+	ui.analyticsClient = NewScenarioAnalyticsClient(lg)
 
 	if iconImage, err := png.Decode(bytes.NewReader([]byte(iconPNG))); err != nil {
 		lg.Errorf("Unable to decode icon PNG: %v", err)

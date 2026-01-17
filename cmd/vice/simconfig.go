@@ -44,6 +44,9 @@ type NewSimConfiguration struct {
 	emergencies     []sim.Emergency
 	lg              *log.Logger
 
+	// Analytics client for tracking scenario usage and displaying stats
+	analyticsClient *ScenarioAnalyticsClient
+
 	// UI state
 	newSimType          newSimType
 	joinRequest         server.JoinSimRequest
@@ -164,6 +167,7 @@ func MakeNewSimConfiguration(mgr *client.ConnectionManager, defaultFacility *str
 		tfrCache:        tfrCache,
 		emergencies:     emergencies,
 		NewSimRequest:   server.MakeNewSimRequest(),
+		analyticsClient: ui.analyticsClient, // Use global analytics client
 	}
 
 	c.SetFacility(*defaultFacility)
@@ -426,21 +430,6 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 
 		imgui.Indent()
 		doButton(NewSimCreateLocal, c.mgr.LocalServer)
-		imgui.SameLine()
-
-		style := imgui.CurrentStyle()
-
-		// Analysis mode toggle button - positioned on the same line as "Sim options" text
-		buttonWidth := imgui.CalcTextSize(renderer.FontAwesomeIconCog).X + 2*style.FramePadding().X
-		// Position cog at the right edge, aligned with Clear button below
-		imgui.SetCursorPosX(imgui.ContentRegionAvail().X + imgui.CursorPosX() - buttonWidth)
-		if imgui.Button(renderer.FontAwesomeIconCog + "##scenario_analysis") {
-			config.ScenarioAnalysisMode = !config.ScenarioAnalysisMode
-		}
-		if imgui.IsItemHovered() {
-			imgui.SetTooltip("Enable scenario analytics")
-		}
-
 		doButton(NewSimCreateRemote, c.mgr.RemoteServer)
 
 		if len(runningSims) == 0 {
@@ -479,13 +468,20 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 	if c.newSimType == NewSimCreateLocal || c.newSimType == NewSimCreateRemote {
 		tableScale := util.Select(runtime.GOOS == "windows", p.DPIScale(), float32(1))
 
+		// Refresh analytics stats if analysis mode is enabled
+		if config.ScenarioAnalysisMode && c.analyticsClient != nil && c.mgr.RemoteServer != nil {
+			c.analyticsClient.RefreshStatsIfNeeded(c.mgr.RemoteServer)
+		}
+
 		// Search/filter input
-		imgui.SetNextItemWidth(imgui.ContentRegionAvail().X - 60)
+		imgui.SetNextItemWidth(imgui.ContentRegionAvail().X - 200)
 		imgui.InputTextWithHint("##filter", "Search scenarios, TRACONs, ARTCCs...", &c.filterText, 0, nil)
 		imgui.SameLine()
 		if imgui.Button("Clear") {
 			c.filterText = ""
 		}
+		imgui.SameLine()
+		imgui.Checkbox("Show Analytics", &config.ScenarioAnalysisMode)
 		imgui.Spacing()
 
 		// Precompute lowercased filter text once for all filter checks
@@ -729,6 +725,16 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 							selectedARTCC = artcc // Update for this frame
 						}
 					}
+					// Analytics tooltip for ARTCC
+					if config.ScenarioAnalysisMode && c.analyticsClient != nil && imgui.IsItemHovered() {
+						if stats := c.analyticsClient.GetARTCCStats(artcc); stats != nil {
+							imgui.SetTooltip(FormatFacilityTooltip(stats))
+						} else if c.analyticsClient.HasStats() {
+							imgui.SetTooltip("No usage data")
+						} else {
+							imgui.SetTooltip("Loading analytics...")
+						}
+					}
 				}
 			}
 			imgui.EndChild()
@@ -771,6 +777,16 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 					label := formatFacilityLabel(facility)
 					if imgui.SelectableBoolV(label, facility == c.Facility, 0, imgui.Vec2{}) && facility != c.Facility {
 						c.SetFacility(facility)
+					}
+					// Analytics tooltip for facility/TRACON
+					if config.ScenarioAnalysisMode && c.analyticsClient != nil && imgui.IsItemHovered() {
+						if stats := c.analyticsClient.GetFacilityStats(facility); stats != nil {
+							imgui.SetTooltip(FormatFacilityTooltip(stats))
+						} else if c.analyticsClient.HasStats() {
+							imgui.SetTooltip("No usage data")
+						} else {
+							imgui.SetTooltip("Loading analytics...")
+						}
 					}
 
 					// Display sub-items (groups for TRACONs, areas for ARTCCs)
@@ -844,6 +860,16 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 						selected := s.groupName == c.GroupName && s.scenarioName == c.ScenarioName
 						if imgui.SelectableBoolV(s.scenarioName, selected, 0, imgui.Vec2{}) {
 							c.SetScenario(s.groupName, s.scenarioName)
+						}
+						// Analytics tooltip for scenario
+						if config.ScenarioAnalysisMode && c.analyticsClient != nil && imgui.IsItemHovered() {
+							if stats := c.analyticsClient.GetScenarioStats(c.Facility, s.groupName, s.scenarioName); stats != nil {
+								imgui.SetTooltip(FormatScenarioTooltip(stats))
+							} else if c.analyticsClient.HasStats() {
+								imgui.SetTooltip("No usage data")
+							} else {
+								imgui.SetTooltip("Loading analytics...")
+							}
 						}
 					}
 				}
@@ -1431,6 +1457,11 @@ func (c *NewSimConfiguration) Start(config *Config) error {
 			c.lg.Errorf("CreateNewSim failed: %v", err)
 			return err
 		}
+	}
+
+	// Start analytics session tracking
+	if c.analyticsClient != nil && config.ScenarioAnalysisMode {
+		c.analyticsClient.StartSession(c.Facility, c.GroupName, c.ScenarioName)
 	}
 
 	*c.defaultFacility = c.Facility

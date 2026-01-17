@@ -68,11 +68,12 @@ const ViceRPCVersion = ViceSerializeVersion
 const ViceHTTPServerPort = 6502
 
 type ServerLaunchConfig struct {
-	Port          int // if 0, finds an open one
-	ExtraScenario string
-	ExtraVideoMap string
-	ServerAddress string // address to use for remote TTS provider
-	IsLocal       bool
+	Port            int // if 0, finds an open one
+	ExtraScenario   string
+	ExtraVideoMap   string
+	ServerAddress   string // address to use for remote TTS provider
+	IsLocal         bool
+	EnableAnalytics bool // enable analytics logging (even for local servers)
 }
 
 func LaunchServer(config ServerLaunchConfig, lg *log.Logger) {
@@ -129,7 +130,7 @@ func makeServer(config ServerLaunchConfig, lg *log.Logger) (int, func(), util.Er
 	serverFunc := func() {
 		server := rpc.NewServer()
 
-		sm := NewSimManager(scenarioGroups, scenarioCatalogs, mapManifests, config.ServerAddress, config.IsLocal, lg)
+		sm := NewSimManager(scenarioGroups, scenarioCatalogs, mapManifests, config.ServerAddress, config.IsLocal, config.EnableAnalytics, lg)
 		if err := server.Register(sm); err != nil {
 			lg.Errorf("unable to register SimManager: %v", err)
 			os.Exit(1)

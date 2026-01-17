@@ -65,6 +65,7 @@ var (
 	replayDuration    = flag.String("replay-duration", "3600", "replay duration in seconds or 'until:CALLSIGN'")
 	waypointCommands  = flag.String("waypoint-commands", "", "waypoint commands in format 'FIX:CMD CMD CMD, FIX:CMD ...,'")
 	starsRandoms      = flag.Bool("starsrandoms", false, "run STARS command fuzz testing with full UI (randomly picks a scenario)")
+	logAnalytics      = flag.Bool("loganalytics", false, "enable analytics logging on local server (for testing)")
 )
 
 func setupSignalHandler(profiler *util.Profiler) {
@@ -310,11 +311,12 @@ func main() {
 		nav.InitNavLog(*navLog, *navLogCategories, *navLogCallsign)
 
 		server.LaunchServer(server.ServerLaunchConfig{
-			Port:          *serverPort,
-			ExtraScenario: *scenarioFilename,
-			ExtraVideoMap: *videoMapFilename,
-			ServerAddress: *serverAddress,
-			IsLocal:       false,
+			Port:            *serverPort,
+			ExtraScenario:   *scenarioFilename,
+			ExtraVideoMap:   *videoMapFilename,
+			ServerAddress:   *serverAddress,
+			IsLocal:         false,
+			EnableAnalytics: *logAnalytics,
 		}, lg)
 	} else if *showRoutes != "" {
 		cliInit()
@@ -579,6 +581,12 @@ func main() {
 				if fuzzController != nil {
 					fuzzController.PrintStatistics()
 				}
+
+				// Report analytics session before disconnecting
+				if ui.analyticsClient != nil && config.ScenarioAnalysisMode && controlClient != nil {
+					ui.analyticsClient.EndSession(controlClient)
+				}
+
 				saveSim := mgr.ClientIsLocal() && fuzzController == nil // Don't save fuzz sims
 				config.SaveIfChanged(render, plat, controlClient, saveSim, lg)
 				mgr.Disconnect()
