@@ -196,6 +196,21 @@
           "72": []
         }
       },
+      "NYD": {
+        "inbound_assignments": {
+          "FQM3": "72",
+          "MIP4-ETG": "72",
+          "MIP4-PSB": "72",
+          "MIP4-SFK": "72",
+          "NABOR": "72",
+          "TRISH4": "72",
+          "WLKES": "72",
+          "SPUDS7": "72"
+        },
+        "default_consolidation": {
+          "72": []
+        }
+      },
       "N42": {
         "inbound_assignments": {
           "TRISH4 (42)": "42",
@@ -420,6 +435,155 @@
           "10": ["08"],
           "08": ["09"],
           "09": ["27"]
+        }
+      },
+      "N34": {
+        "inbound_assignments": {
+          "PUCKY1-HOXIE": "34",
+          "LVZ5": "34",
+          "HNK": "34",
+          "Overflights (34)": "34"
+        },
+        "default_consolidation": {
+          "34": []
+        }
+      },
+      "N35": {
+        "inbound_assignments": {
+          "Overflights (35)": "35"
+        },
+        "default_consolidation": {
+          "35": []
+        }
+      },
+      "N36": {
+        "inbound_assignments": {
+          "PUCKY1 - JENNO": "36",
+          "PUCKY1 - YODAA": "36"
+        },
+        "departure_assignments": {
+          "KJFK": "36"
+        },
+        "default_consolidation": {
+          "36": []
+        }
+      },
+      "N49": {
+        "inbound_assignments": {
+          "PUCKY1 - HOXIE": "49",
+          "LVZ5": "49"
+        },
+        "default_consolidation": {
+          "49": []
+        }
+      },
+      "N50": {
+        "inbound_assignments": {
+          "HNK (50)": "50",
+          "STUBN": "50",
+          "CORDS": "50"
+        },
+        "default_consolidation": {
+          "50": []
+        }
+      },
+      "N51": {
+        "inbound_assignments": {
+          "SPUDS7 - CFB": "51",
+          "SPUDS7 - DNY": "51"
+        },
+        "default_consolidation": {
+          "51": []
+        }
+      },
+      "N92": {
+        "inbound_assignments": {
+          "SPUDS7": "92"
+        },
+        "departure_assignments": {
+          "KPHL": "92"
+        },
+        "default_consolidation": {
+          "92": []
+        }
+      },
+      "N75": {
+        "inbound_assignments": {
+          "MIP4-ETG": "75",
+          "MIP4-PSB": "75",
+          "MIP4-SFK": "75",
+          "FQM3": "75"
+        },
+        "default_consolidation": {
+          "75": []
+        }
+      },
+      "NYC": {
+        "inbound_assignments": {
+          "SPUDS7 - CFB": "51",
+          "SPUDS7 - DNY": "51",
+          "STUBN": "50",
+          "PUCKY1 - HOXIE": "49",
+          "LVZ5": "49",
+          "PUCKY1 - JENNO": "36",
+          "PUCKY1 - YODAA": "36",
+          "Overflights (35)": "35"
+        },
+        "default_consolidation": {
+          "34": ["35"],
+          "35": ["36"],
+          "36": ["49"],
+          "49": ["50"],
+          "50": ["51"]
+        }
+      },
+      "ACD": {
+        "inbound_assignments": {
+          "SPUDS7 - CFB": "51",
+          "SPUDS7 - DNY": "51",
+          "STUBN": "50",
+          "PUCKY1 - HOXIE": "49",
+          "LVZ5": "49",
+          "PUCKY1 - JENNO": "36",
+          "PUCKY1 - YODAA": "36",
+          "Overflights (35)": "35",
+          "CLIPR3 (25)": "25",
+          "HYPER9 - SARAA (26)": "26",
+          "HYPER9 - HIKES (26)": "26",
+          "HAR5 (27)": "27",
+          "TRISH4 (27)": "27",
+          "Overflights": "26",
+          "BOJID4 - JST (27)": "27",
+          "HAR (27)": "26",
+          "MIP4-ETG": "72",
+          "MIP4-SFK": "72",
+          "MIP4-PSB": "72",
+          "FQM3": "72"
+        },
+        "departure_assignments": {
+          "KJFK": "36"
+        },
+        "default_consolidation": {
+          "34": [
+            "35",
+            "09",
+            "27",
+            "25",
+            "36",
+            "49",
+            "50",
+            "51",
+            "26",
+            "10",
+            "08",
+            "72",
+            "73",
+            "74",
+            "75",
+            "91",
+            "92",
+            "93"
+          ]
         }
       }
     },
