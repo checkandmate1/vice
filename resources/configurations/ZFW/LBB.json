@@ -18,6 +18,66 @@
     }
   ],
   "facility_adaptations": {
-    "configurations": {}
+    "configurations": {
+      "STD": {
+        "inbound_assignments": {
+          "BRHMA": "1E",
+          "OWUPO": "1E",
+          "SJT": "1E",
+          "GTH": "1E",
+          "FLATT": "1E",
+          "ABI": "1E"
+        },
+
+        "departure_assignments": {
+          "KLBB": "1E"
+        },
+
+        "default_consolidation": {
+          "1E": []
+        }
+      }
+    },
+    "center": "KLBB",
+    "controllers": {
+      "1E": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 17000,
+            "vertices": "N034.19.56.438,W101.45.38.671 N034.19.32.447,W102.00.01.950 N034.15.32.629,W102.13.43.699 N034.08.33.542,W102.25.15.811 N034.00.40.402,W102.29.37.038 N033.49.43.062,W102.35.20.031 N033.37.49.088,W102.36.40.341 N033.26.08.696,W102.33.24.400 N033.15.45.043,W102.26.03.958 N033.07.54.320,W102.15.28.042 N033.01.29.593,W102.04.09.142 N033.00.01.853,W101.50.11.846 N033.02.06.452,W101.36.02.411 N033.07.27.404,W101.23.21.828 N033.15.52.597,W101.13.13.597 N033.26.19.229,W101.06.09.799 N033.38.07.573,W101.03.12.755 N033.50.06.710,W101.04.38.942 N034.00.53.160,W101.10.17.541 N034.10.17.129,W101.19.32.378 N034.16.42.378,W101.31.40.854 N034.19.56.438,W101.45.38.671"
+          }
+        ]
+      }
+    },
+    "filters": {
+      "inhibit_ca": [
+        {
+          "id": "LBBNOCA",
+          "description": "LBB CONFLICT SUPPRESS",
+          "type": "circle",
+          "floor": 0,
+          "ceiling": 2000,
+          "radius": 5,
+          "center": "KLBB"
+        }
+      ]
+    },
+    "areas": {
+      "1": {
+        "default_airport": "KLBB",
+        "video_maps": [
+          "LBB MAIN",
+          "LBB MVA",
+          "LBB CLASS C",
+          "LBB ROUTES",
+          "MAF-ABI__LBB107 MAF-ABI",
+          "VFR__LBB144 VFR",
+          "MOA__LLB109 Lancer MOA",
+          "ZFW__ZFW"
+        ]
+      }
+    },
+    "video_map_file": "videomaps/ZFW-videomaps.gob.zst"
   }
 }
