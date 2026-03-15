@@ -13,5 +13,6 @@
   - Many other improvements to interpreting ambiguous instructions
 - STARS:
   - Fixed a bug with datablock formatting when aircraft are squawking the wrong code.
-                
-              
+- Facility engineering
+  - Added support for per-area and per-controller "altimeters" lists
+  - Added "cleared_altitude" for arrivals/overflights: this is like "cleared_altitude" for departures--aircraft try to get to that altitude when able, but obey altitude restrictions in their route while doing so.
