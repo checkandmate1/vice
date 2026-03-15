@@ -1627,7 +1627,7 @@
                         ]
                     },
                     "cruise_altitude": 33000,
-                    "initial_altitude": 15000,
+                    "initial_altitude": 9000,
                     "initial_controller": "N27",
                     "initial_speed": 280,
                     "route": "/. EMI",

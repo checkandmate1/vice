@@ -53048,7 +53048,7 @@
             "arrivals": [
                 {
                     "star": "JFUND2",
-                    "initial_altitude": 19000,
+                    "initial_altitude": 17000,
                     "initial_controller": "C36",
                     "initial_speed": 310,
                     "waypoints": "DUBLE/a17000/ho BASEZ JFUND",
@@ -77442,7 +77442,7 @@
             "arrivals": [
                 {
                     "star": "JFUND2",
-                    "initial_altitude": 19000,
+                    "initial_altitude": 17000,
                     "initial_controller": "1R",
                     "initial_speed": 310,
                     "waypoints": "DUBLE/a17000 BASEZ JFUND",

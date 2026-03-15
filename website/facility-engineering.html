@@ -3283,6 +3283,14 @@ Given the id, the approach can be specified with:</p>
                   altitude restrictions, leave this unspecified.</td>
 </tr>
 <tr>
+<td>"cleared_altitude"</td>
+<td>Number</td>
+<td>(<i>Optional</i>) If specified, the aircraft will descend to the given altitude while still
+                  respecting any altitude restrictions on its waypoints. Use this instead of "assigned_altitude"
+                  when the route has altitude restrictions that must be honored (e.g., "cross REELI at or above
+                  11000") but the aircraft should continue descending after passing them.</td>
+</tr>
+<tr>
 <td>"coordination_fix"</td>
 <td>String</td>
 <td>(<i>Optional</i>) If specified, gives the name of the coordination fix for the arrival.</td>

@@ -254,6 +254,10 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 			alt := arr.AssignedAltitude
 			nav.Altitude.Assigned = &alt
 		}
+		if arr.ClearedAltitude > 0 {
+			alt := arr.ClearedAltitude
+			nav.Altitude.Cleared = &alt
+		}
 
 		nav.FinalAltitude = max(nav.FinalAltitude, arr.InitialAltitude)
 		nav.FlightState.Altitude = arr.InitialAltitude

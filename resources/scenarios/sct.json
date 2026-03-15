@@ -9703,7 +9703,7 @@
           },
           "route": "BRUEN2",
           "initial_controller": "C39",
-          "initial_altitude": 33000,
+          "initial_altitude": 29000,
           "initial_speed": 310,
           "expect_approach": null,
           "airlines": {
@@ -12820,7 +12820,7 @@
           },
           "star": "RUKKI1",
           "initial_controller": "C14",
-          "initial_altitude": 32000,
+          "initial_altitude": 23000,
           "initial_speed": 280,
           "expect_approach": null,
           "airlines": {
@@ -12876,7 +12876,7 @@
           },
           "star": "BAUBB3",
           "initial_controller": "C14",
-          "initial_altitude": 32000,
+          "initial_altitude": 23000,
           "initial_speed": 280,
           "expect_approach": null,
           "airlines": {

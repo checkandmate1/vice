@@ -420,7 +420,7 @@
                     "cruise_altitude": 36000,
                     "star": "DPK3",
                     "initial_controller": "C37",
-                    "initial_altitude": 24000,
+                    "initial_altitude": 19000,
                     "initial_speed": 250,
                     "expect_approach": null,
                     "airlines": {

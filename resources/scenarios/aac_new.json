@@ -4645,7 +4645,7 @@
             "arrivals": [
                 {
                     "star": "TUL4",
-                    "initial_altitude": 21000,
+                    "initial_altitude": 15000,
                     "initial_speed": 260,
                     "speed_restriction": 260,
                     "initial_controller": "C51",
@@ -4760,7 +4760,7 @@
             "arrivals": [
                 {
                     "star": "TUL4",
-                    "initial_altitude": 21000,
+                    "initial_altitude": 16000,
                     "initial_speed": 260,
                     "speed_restriction": 260,
                     "initial_controller": "C51",
@@ -5629,9 +5629,10 @@
                 {
                     "star": "TULSA4",
                     "initial_altitude": 11000,
+                    "cleared_altitude": 6000,
                     "initial_speed": 250,
                     "initial_controller": "1N",
-                    "waypoints": "N036.36.09.483,W095.03.52.086/ho REELI/a11000+ N036.32.33.259,W095.06.55.118/a6000/h190",
+                    "waypoints": "N036.36.09.483,W095.03.52.086/ho REELI/a11000+ N036.32.33.259,W095.06.55.118/h190",
                     "expect_approach": {
                         "KAAC": "I8R"
                     },
@@ -7471,7 +7472,7 @@
                     "initial_speed": 210,
                     "initial_controller": "1S",
                     "scratchpad": "28L",
-                    "waypoints": "N036.06.23.628,W095.45.51.113/s210 N036.05.20.800,W095.38.45.942/a10000 N036.05.16.419,W095.37.56.257/a5000 N036.01.50.014,W095.13.32.411/s170 N036.03.55.739,W095.13.04.066/s170/h310/clearapp",
+                    "waypoints": "N036.06.23.628,W095.45.51.113/s210 N036.05.20.800,W095.38.45.942/a10000 N036.05.16.419,W095.37.56.257 N036.01.50.014,W095.13.32.411/s170 N036.03.55.739,W095.13.04.066/s170/h310/clearapp",
                     "expect_approach": {
                         "KAAC": "R8L"
                     },

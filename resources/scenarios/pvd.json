@@ -502,7 +502,7 @@
                         ]
                     },
                     "route": "PEAKE PVD",
-                    "initial_altitude": 18000,
+                    "initial_altitude": 16000,
                     "initial_controller": "C18",
                     "initial_speed": 290,
                     "waypoints": "N041.33.13.070,W070.11.00.800/ho PEAKE/a11000"

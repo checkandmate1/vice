@@ -5484,7 +5484,7 @@
                     },
                     "star": "FRDMM6",
                     "initial_controller": "C05",
-                    "initial_altitude": 18000,
+                    "initial_altitude": 17000,
                     "initial_speed": 280,
                     "expect_approach": null,
                     "scratchpad": "FRD",

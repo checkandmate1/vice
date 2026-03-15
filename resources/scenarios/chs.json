@@ -1416,7 +1416,7 @@
                     },
                     "star": "BAGGY3",
                     "initial_controller": "C72",
-                    "initial_altitude": 13000,
+                    "initial_altitude": 11000,
                     "initial_speed": 280,
                     "expect_approach": null,
                     "airlines": {

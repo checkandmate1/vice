@@ -111,6 +111,7 @@ type Arrival struct {
 	InitialController   ControlPosition `json:"initial_controller"`
 	InitialAltitude     float32         `json:"initial_altitude"`
 	AssignedAltitude    float32         `json:"assigned_altitude"`
+	ClearedAltitude     float32         `json:"cleared_altitude"`
 	InitialSpeed        float32         `json:"initial_speed"`
 	SpeedRestriction    float32         `json:"speed_restriction"`
 	Scratchpad          string          `json:"scratchpad"`

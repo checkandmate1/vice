@@ -2219,7 +2219,7 @@
                     "cruise_altitude": 34000,
                     "route": "/. SKYKO",
                     "initial_controller": "C16",
-                    "initial_altitude": 16000,
+                    "initial_altitude": 14000,
                     "initial_speed": 200,
                     "expect_approach": null,
                     "airlines": {
@@ -2256,7 +2256,7 @@
                     "cruise_altitude": 34000,
                     "route": "/. SKYKO",
                     "initial_controller": "C16",
-                    "initial_altitude": 16000,
+                    "initial_altitude": 14000,
                     "initial_speed": 300,
                     "expect_approach": null,
                     "airlines": {

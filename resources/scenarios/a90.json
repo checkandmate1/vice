@@ -4923,7 +4923,7 @@
                     "cruise_altitude": 15000,
                     "star": "DEEPO2",
                     "initial_controller": "C37",
-                    "initial_altitude": 13000,
+                    "initial_altitude": 11000,
                     "initial_speed": 310,
                     "expect_approach": null,
                     "airlines": {
@@ -6315,7 +6315,7 @@
                     "cruise_altitude": 35000,
                     "star": "ROBUC3",
                     "initial_controller": "1S",
-                    "initial_altitude": 8000,
+                    "initial_altitude": 7000,
                     "initial_speed": 230,
                     "speed_restriction": 220,
                     "scratchpad": "I4R",

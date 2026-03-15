@@ -1307,7 +1307,7 @@
                     },
                     "star": "CESAN4",
                     "initial_controller": "C81",
-                    "initial_altitude": 19000,
+                    "initial_altitude": 11000,
                     "initial_speed": 280,
                     "expect_approach": null,
                     "airlines": {

@@ -2455,7 +2455,7 @@
                             }
                         ]
                     },
-                    "initial_altitude": 16000,
+                    "initial_altitude": 13000,
                     "initial_speed": 250,
                     "speed_restriction": 250,
                     "star": "DADES1",

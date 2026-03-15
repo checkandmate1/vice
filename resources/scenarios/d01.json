@@ -12590,7 +12590,7 @@
                     },
                     "cruise_altitude": 35000,
                     "expect_approach": "I7",
-                    "initial_altitude": 23000,
+                    "initial_altitude": 19000,
                     "initial_controller": "1H",
                     "initial_speed": 250,
                     "route": "FLATI5",

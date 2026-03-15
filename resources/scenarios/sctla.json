@@ -992,7 +992,7 @@
                     },
                     "route": "BRUEN2",
                     "initial_controller": "C39",
-                    "initial_altitude": 33000,
+                    "initial_altitude": 29000,
                     "initial_speed": 310,
                     "expect_approach": null,
                     "airlines": {

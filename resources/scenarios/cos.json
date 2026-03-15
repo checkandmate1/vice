@@ -638,7 +638,7 @@
                         ]
                     },
                     "cruise_altitude": 34000,
-                    "initial_altitude": 18000,
+                    "initial_altitude": 17000,
                     "description": "",
                     "initial_controller": "C29",
                     "initial_speed": 270,

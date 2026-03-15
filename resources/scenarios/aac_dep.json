@@ -5447,7 +5447,7 @@
             "arrivals": [
                 {
                     "star": "TUL4",
-                    "initial_altitude": 21000,
+                    "initial_altitude": 15000,
                     "initial_speed": 280,
                     "speed_restriction": 280,
                     "initial_controller": "C51",
@@ -5710,7 +5710,7 @@
             "arrivals": [
                 {
                     "star": "TUL4",
-                    "initial_altitude": 21000,
+                    "initial_altitude": 16000,
                     "initial_speed": 280,
                     "speed_restriction": 280,
                     "initial_controller": "1N",

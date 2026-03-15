@@ -1817,7 +1817,7 @@
                     "waypoints": "COLTS/a30000 BOREK LOPVO ITPEG PICUP/a10000/ho AUTTO GIGGY/a4000/h230",
                     "star": "GIGGY2",
                     "initial_controller": "C48",
-                    "initial_altitude": 31000,
+                    "initial_altitude": 30000,
                     "initial_speed": 280,
                     "expect_approach": null,
                     "airlines": {
