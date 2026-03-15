@@ -635,7 +635,16 @@ func (s *Sim) createIFRDepartureNoLock(departureAirport string, runway av.Runway
 	nasFp.EntryFix = util.Select(len(ac.FlightPlan.DepartureAirport) == 4, ac.FlightPlan.DepartureAirport[1:],
 		ac.FlightPlan.DepartureAirport)
 	nasFp.ExitFix = shortExit
-	nasFp.Scratchpad = dep.Scratchpad
+	if dep.Scratchpad != "" { // this has top priority
+		nasFp.Scratchpad = dep.Scratchpad
+	} else if sp1 := s.State.FacilityAdaptation.Datablocks.Scratchpad1; sp1.DisplayExitFix ||
+		sp1.DisplayExitFix1 || sp1.DisplayExitGate || sp1.DisplayAltExitGate {
+		// Don't set the scratchpad; it will be set automatically.
+	} else if sp, ok := s.State.FacilityAdaptation.Scratchpads[string(dep.Exit)]; ok {
+		nasFp.Scratchpad = sp
+	} else {
+		nasFp.Scratchpad = s.State.FacilityAdaptation.Scratchpads[shortExit]
+	}
 	nasFp.SecondaryScratchpad = dep.SecondaryScratchpad
 	nasFp.RequestedAltitude = ac.FlightPlan.Altitude
 	nasFp.AssignedAltitude = util.Select(!isTRACON, ac.FlightPlan.Altitude, 0)
