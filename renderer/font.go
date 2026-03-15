@@ -225,6 +225,7 @@ var (
 	FontAwesomeIconSnowflake           = faUsedIcons["Snowflake"]
 	FontAwesomeIconSquare              = faUsedIcons["Square"]
 	FontAwesomeIconSun                 = faUsedIcons["Sun"]
+	FontAwesomeIconThumbtack           = faUsedIcons["Thumbtack"]
 	FontAwesomeIconTrash               = faUsedIcons["Trash"]
 	FontAwesomeIconWind                = faUsedIcons["Wind"]
 )
@@ -278,6 +279,7 @@ var (
 		"Snowflake":           FontAwesomeString("Snowflake"),
 		"Square":              FontAwesomeString("Square"),
 		"Sun":                 FontAwesomeString("Sun"),
+		"Thumbtack":           FontAwesomeString("Thumbtack"),
 		"Trash":               FontAwesomeString("Trash"),
 		"Wind":                FontAwesomeString("Wind"),
 	}

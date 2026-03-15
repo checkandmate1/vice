@@ -1748,7 +1748,9 @@ func drawScenarioInfoWindow(config *Config, c *client.ControlClient, activeRadar
 	imgui.SetNextWindowSizeConstraints(imgui.Vec2{sz.X + 50, 0}, imgui.Vec2{100000, 100000})
 
 	show := true
+	applyPinWindowClass("ScenarioInfo", config)
 	imgui.BeginV(c.State.SimDescription+"###ScenarioInfo", &show, imgui.WindowFlagsAlwaysAutoResize)
+	drawPinButton("ScenarioInfo", config)
 
 	if imgui.CollapsingHeaderBoolPtr("Controllers", nil) {
 		// Make big(ish) tables somewhat more legible

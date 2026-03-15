@@ -2,6 +2,7 @@
 - Scenario updates: MIA (Gecko), ZNY A/C, PHL (Ryan G)
 - There are now VFR aircraft doing pattern work at airports with VFR traffic.
 - Adjusted radio noise simulation to reduce muffling of pilot responses
+- Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)
 - Bugfixes:
   - You can now tell VFR aircraft to "contact tower" without them complaining that they weren't assigned an approach.
   - Fixed a few crashes under unusual circumstances.

@@ -119,7 +119,8 @@ func (msg *Message) ImguiColor() imgui.Vec4 {
 	return imgui.Vec4{X: c.R, Y: c.G, Z: c.B, W: 1}
 }
 
-func (mp *MessagesPane) DrawWindow(show *bool, c *client.ControlClient, p platform.Platform, lg *log.Logger) {
+func (mp *MessagesPane) DrawWindow(show *bool, c *client.ControlClient, p platform.Platform,
+	unpinnedWindows map[string]struct{}, lg *log.Logger) {
 	// Only play sounds if the window has been continuously visible. If
 	// more than 250ms have elapsed since the last DrawWindow call, we
 	// must have missed frames (window was hidden), so drain accumulated
@@ -134,6 +135,7 @@ func (mp *MessagesPane) DrawWindow(show *bool, c *client.ControlClient, p platfo
 		mp.font.ImguiPush()
 	}
 	imgui.BeginV("Messages", show, 0)
+	DrawPinButton("Messages", unpinnedWindows)
 	if imgui.BeginChildStrV("##messages_scroll", imgui.Vec2{}, 0, 0) {
 		for _, msg := range mp.messages {
 			color := msg.ImguiColor()
