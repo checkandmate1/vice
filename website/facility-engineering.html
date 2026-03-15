@@ -1049,6 +1049,14 @@
                                   Used to define controller-specific airspace boundaries for the area.</td>
                               </tr>
                               <tr>
+                                <td>"altimeters"</td>
+                                <td>Array of strings</td>
+                                <td>If specified, lists the airports whose altimeters are displayed in the SSA list
+                                  for controllers in this area. Overridden by per-controller
+                                  <code>"altimeters"</code> and overrides the facility-level
+                                  <code>"facility_adaptations"."lists"."ssa"."altimeters"</code> setting.</td>
+                              </tr>
+                              <tr>
                                 <td>"beacon_code_blocks"</td>
                                 <td>String</td>
                                 <td>Comma-separated beacon code banks or discrete codes
@@ -1230,6 +1238,14 @@
                               <tr><th>Element</th><th>Type</th><th>Description</th></tr>
                             </thead>
                             <tbody>
+                              <tr>
+                                <td>"altimeters"</td>
+                                <td>Array of strings</td>
+                                <td>If specified, lists the airports whose altimeters are displayed in the SSA list
+                                  for this controller. Takes priority over the facility-level
+                                  <code>"facility_adaptations"."lists"."ssa"."altimeters"</code> setting
+                                  and the automatic default.</td>
+                              </tr>
                               <tr>
                                 <td>"beacon_code_blocks"</td>
                                 <td>String</td>

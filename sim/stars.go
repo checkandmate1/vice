@@ -880,6 +880,7 @@ type STARSController struct {
 	MonitoredBeaconCodeBlocksString *string       `json:"beacon_code_blocks"`
 	MonitoredBeaconCodeBlocks       []av.Squawk
 	FlightFollowingAirspace         []av.AirspaceVolume `json:"flight_following_airspace"`
+	Altimeters                      []string            `json:"altimeters"`
 }
 
 // STARSArea provides default configuration for all controllers
@@ -896,6 +897,7 @@ type STARSArea struct {
 	MonitoredBeaconCodeBlocksString *string                        `json:"beacon_code_blocks,omitempty"`
 	MonitoredBeaconCodeBlocks       []av.Squawk                    `json:"-"`
 	FlightFollowingAirspace         []av.AirspaceVolume            `json:"flight_following_airspace,omitempty"`
+	Altimeters                      []string                       `json:"altimeters,omitempty"`
 	Scratchpads                     map[string]string              `json:"scratchpads,omitempty"`
 	CoordinationLists               []CoordinationList             `json:"coordination_lists,omitempty"`
 	AirspaceAwareness               []AirspaceAwareness            `json:"airspace_awareness,omitempty"`

@@ -617,7 +617,22 @@ func (sp *STARSPane) drawSSAList(ctx *panes.Context, pw [2]float32, listStyle re
 	}
 
 	if filter.All || filter.AirportWeather {
-		airports := ctx.FacilityAdaptation.Lists.SSA.Altimeters
+		// Check for controller-specific altimeters first, then per-area,
+		// then facility-level SSA altimeters, then auto-discover.
+		var airports []string
+		if cc, ok := ctx.FacilityAdaptation.Controllers[ctx.UserPrimaryPosition()]; ok {
+			airports = cc.Altimeters
+		}
+		if len(airports) == 0 {
+			if area := ctx.UserController().Area; area != "" {
+				if ac, ok := ctx.FacilityAdaptation.Areas[area]; ok {
+					airports = ac.Altimeters
+				}
+			}
+		}
+		if len(airports) == 0 {
+			airports = ctx.FacilityAdaptation.Lists.SSA.Altimeters
+		}
 		if len(airports) == 0 {
 			airports = util.SortedMapKeys(ctx.Client.State.Airports)
 
