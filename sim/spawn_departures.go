@@ -50,6 +50,27 @@ func exitRoutesHaveVariedHeadings(exitRoutes map[av.ExitID]*av.ExitRoute) bool {
 	return false
 }
 
+// exitRoutesHaveVariedSIDs returns true if the given exit routes have
+// different SID names. This is used to determine whether departures
+// should report their SID when checking in with departure control.
+func exitRoutesHaveVariedSIDs(exitRoutes map[av.ExitID]*av.ExitRoute) bool {
+	var firstSID string
+	first := true
+	for _, route := range exitRoutes {
+		sid := route.SID
+		if sid == "" {
+			continue
+		}
+		if first {
+			firstSID = sid
+			first = false
+		} else if sid != firstSID {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Sim) spawnDepartures() {
 	now := s.State.SimTime
 
@@ -605,6 +626,7 @@ func (s *Sim) createIFRDepartureNoLock(departureAirport string, runway av.Runway
 		return nil, err
 	}
 	ac.ReportDepartureHeading = exitRoutesHaveVariedHeadings(exitRoutes)
+	ac.ReportDepartureSID = exitRoutesHaveVariedSIDs(exitRoutes)
 
 	shortExit := dep.Exit.Base()
 	isTRACON := av.DB.IsTRACON(s.State.Facility)

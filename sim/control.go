@@ -2247,7 +2247,11 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 		if !ac.IsAssociated() {
 			return "", ""
 		}
-		rt = ac.Nav.DepartureMessage(pc.ReportDepartureHeading)
+		sid := ""
+		if ac.ReportDepartureSID {
+			sid = ac.SID
+		}
+		rt = ac.Nav.DepartureMessage(sid, pc.ReportDepartureHeading)
 
 		// Handle emergency activation for departures
 		humanAllocated := !s.isVirtualController(ac.ControllerFrequency)

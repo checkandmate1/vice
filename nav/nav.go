@@ -747,16 +747,70 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 	return strings.Join(lines, "\n")
 }
 
-func (nav *Nav) DepartureMessage(reportHeading bool) *av.RadioTransmission {
+// procedureHasAltRestrictions returns whether any remaining waypoints on the
+// SID (if checkSID) or STAR (otherwise) have altitude restrictions.
+func (nav *Nav) procedureHasAltRestrictions(checkSID bool) bool {
+	for i := range nav.Waypoints {
+		onProc := util.Select(checkSID, nav.Waypoints[i].OnSID(), nav.Waypoints[i].OnSTAR())
+		if onProc && nav.Waypoints[i].AltitudeRestriction() != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// addAltitudePhrasing appends realistic altitude reporting to the
+// transmission based on the aircraft's current flight state.
+func (nav *Nav) addAltitudePhrasing(rt *av.RadioTransmission, targetAlt float32) {
+	cur := nav.FlightState.Altitude
+	diff := targetAlt - cur
+
+	if diff > 200 {
+		// Climbing, not near target
+		rt.Add("[leaving|out of] {alt} [climbing|for] {alt}", cur, targetAlt)
+	} else if diff < -200 {
+		// Descending, not near target
+		rt.Add("[leaving|out of] {alt} [descending to|for] {alt}", cur, targetAlt)
+	} else if math.Abs(diff) > 10 {
+		// Leveling near target
+		rt.Add("[leveling|at] {alt}", targetAlt)
+	} else {
+		// At altitude
+		rt.Add("[at|] {alt}", cur)
+	}
+}
+
+func (nav *Nav) DepartureMessage(sid string, reportHeading bool) *av.RadioTransmission {
 	rt := &av.RadioTransmission{Type: av.RadioTransmissionContact}
 
-	// Altitude information
 	target := util.Select(nav.Altitude.Assigned != nil, nav.Altitude.Assigned, nav.Altitude.Cleared)
-	if target != nil && *target-nav.FlightState.Altitude > 100 {
-		// one of the two should be set, but just in case...
-		rt.Add("[at|] {alt} climbing {alt}", nav.FlightState.Altitude, *target)
+	climbing := target != nil && *target-nav.FlightState.Altitude > 200
+
+	if sid != "" && climbing {
+		if nav.Altitude.Assigned != nil && nav.procedureHasAltRestrictions(true) {
+			// SID with climbing via + controller override: "except maintaining {alt}"
+			rt.Add("[leaving|out of] {alt} climbing via the {sid} [departure|] except maintaining {alt}",
+				nav.FlightState.Altitude, sid, *nav.Altitude.Assigned)
+		} else if nav.procedureHasAltRestrictions(true) {
+			// SID with altitude restrictions, climbing via
+			rt.Add("[leaving|out of] {alt} climbing via the {sid} [departure|]",
+				nav.FlightState.Altitude, sid)
+		} else {
+			// SID without altitude restrictions
+			rt.Add("[leaving|out of] {alt} [for|climbing] {alt} [on the {sid} departure|]",
+				nav.FlightState.Altitude, *target, sid)
+		}
+	} else if climbing {
+		// No SID, just climbing
+		rt.Add("[leaving|out of] {alt} [for|climbing] {alt}",
+			nav.FlightState.Altitude, *target)
 	} else {
-		rt.Add("[at|] {alt}", nav.FlightState.Altitude)
+		// At altitude or leveling
+		if target != nil {
+			nav.addAltitudePhrasing(rt, *target)
+		} else {
+			rt.Add("[at|] {alt}", nav.FlightState.Altitude)
+		}
 	}
 
 	// Heading information for departures with varied exit headings
@@ -773,8 +827,12 @@ func (nav *Nav) DepartureMessage(reportHeading bool) *av.RadioTransmission {
 	return rt
 }
 
-func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string, reportHeading bool, isDeparture bool) *av.RadioTransmission {
+func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string, runway string,
+	reportHeading bool, isDeparture bool) *av.RadioTransmission {
 	var resp av.RadioTransmission
+
+	// Find the first applicable fix assignment for reporting
+	fixName, fixAlt := nav.firstFixAssignment()
 
 	if isDeparture && reportHeading {
 		// Departure with varied headings
@@ -785,38 +843,94 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 		case TurningToHeading:
 			resp.Add("[turning to|about to turn to] [heading|] {hdg}", hdg)
 		}
+		// Add altitude after heading for departures
+		nav.addContactAltitude(&resp, star, fixName, fixAlt)
 	} else if hdg, ok := nav.AssignedHeading(); ok && reportHeading {
-		// Arrival being vectored
+		// Being vectored - heading + altitude
 		resp.Add("[heading {hdg}|on a {hdg} heading]", hdg)
+		nav.addContactAltitude(&resp, "", fixName, fixAlt)
 	} else if star != "" {
-		if nav.Altitude.Assigned == nil {
-			resp.Add("descending on the {star}", star)
-		} else {
-			resp.Add("on the {star}", star)
-		}
+		// On a STAR
+		nav.addStarAltitude(&resp, star, fixName, fixAlt)
+	} else {
+		// Simple altitude
+		nav.addContactAltitude(&resp, "", fixName, fixAlt)
 	}
 
-	if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != nav.FlightState.Altitude {
-		resp.Add("[at|] {alt} for {alt} [assigned|]", nav.FlightState.Altitude, *nav.Altitude.Assigned)
+	// Runway assignment
+	if runway != "" {
+		resp.Add("[runway {rwy}|for runway {rwy}]", runway)
+	}
+
+	// Speed assignment
+	if nav.Speed.Assigned != nil {
+		resp.Add("[assigned {spd}|{spd} knots]", *nav.Speed.Assigned)
+	}
+
+	return &resp
+}
+
+// firstFixAssignment finds the first controller-assigned crossing restriction
+// in the remaining waypoints. Returns the fix name and altitude, or empty/0
+// if none.
+func (nav *Nav) firstFixAssignment() (string, float32) {
+	for _, wp := range nav.Waypoints {
+		if fa, ok := nav.FixAssignments[wp.Fix]; ok && fa.Arrive.Altitude != nil {
+			// Use the floor; upgrade to the ceiling if one is set.
+			alt := fa.Arrive.Altitude.Range[0]
+			if fa.Arrive.Altitude.Range[1] != 0 {
+				alt = fa.Arrive.Altitude.Range[1]
+			}
+			return wp.Fix, alt
+		}
+	}
+	return "", 0
+}
+
+// addStarAltitude adds combined STAR + altitude phraseology.
+func (nav *Nav) addStarAltitude(rt *av.RadioTransmission, star string, fixName string, fixAlt float32) {
+	hasAltRestrictions := nav.procedureHasAltRestrictions(false)
+	cur := nav.FlightState.Altitude
+	descending := nav.Altitude.Assigned == nil && hasAltRestrictions
+
+	if descending && fixName != "" {
+		// Descending via STAR with a controller fix assignment exception
+		rt.Add("[leaving|out of] {alt} descending via [the|] {star} [arrival|] except [to cross|crossing] {fix} at {alt}",
+			cur, star, fixName, fixAlt)
+	} else if descending {
+		// Descending via STAR, no override
+		rt.Add("[leaving|out of] {alt} descending via the {star} [arrival|]", cur, star)
+	} else if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != cur {
+		// On STAR with controller-assigned altitude
+		rt.Add("on the {star} [at|] {alt} for {alt} [assigned|]", star, cur, *nav.Altitude.Assigned)
+	} else {
+		// On STAR at altitude
+		rt.Add("on the {star} [at|] {alt}", star, cur)
+	}
+}
+
+// addContactAltitude adds altitude phraseology for non-STAR contexts (vectored, departures, etc.).
+func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, fixName string, fixAlt float32) {
+	cur := nav.FlightState.Altitude
+
+	if fixName != "" && star == "" {
+		// Fix crossing restriction without a STAR
+		rt.Add("[leaving|out of] {alt} [to cross|crossing] {fix} at {alt}", cur, fixName, fixAlt)
+	} else if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != cur {
+		nav.addAltitudePhrasing(rt, *nav.Altitude.Assigned)
 	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok && !nav.flyingPT() {
 		alt := c.Altitude
 		if nav.Altitude.Cleared != nil {
 			alt = min(alt, *nav.Altitude.Cleared)
 		}
-		if nav.FlightState.Altitude != alt {
-			resp.Add("[at|] {alt} for {alt}", nav.FlightState.Altitude, alt)
+		if cur != alt {
+			nav.addAltitudePhrasing(rt, alt)
 		} else {
-			resp.Add("[at|] {alt}", nav.FlightState.Altitude)
+			rt.Add("[at|] {alt}", cur)
 		}
 	} else {
-		resp.Add("[at|] {alt}", nav.FlightState.Altitude)
+		rt.Add("[at|] {alt}", cur)
 	}
-
-	if nav.Speed.Assigned != nil {
-		resp.Add("assigned {spd}", *nav.Speed.Assigned)
-	}
-
-	return &resp
 }
 
 func (nav *Nav) DivertToAirport(airport string) {
