@@ -161,6 +161,8 @@ func runLint(lg *log.Logger) error {
 	var e util.ErrorLogger
 	scenarioGroups, _, _, _ := server.LoadScenarioGroups(*scenarioFilename, *videoMapFilename, false /* skipVideoMaps */, &e, lg)
 
+	server.LintScenarioGroups(scenarioGroups, &e)
+
 	// Check emergencies.json
 	loadEmergencies(&e)
 
