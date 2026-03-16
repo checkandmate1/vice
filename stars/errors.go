@@ -66,6 +66,7 @@ var (
 	ErrSTARSIllegalTCW                 = NewSTARSError("ILL TCW")
 	ErrSTARSIllegalText                = NewSTARSError("ILL TEXT")
 	ErrSTARSIllegalTrack               = NewSTARSError("ILL TRK")
+	ErrSTARSIllegalTrackLocalFP        = NewSTARSError("ILL TRK - LCL FP")
 	ErrSTARSIllegalValue               = NewSTARSError("ILL VALUE")
 	ErrSTARSMultipleFlights            = NewSTARSError("MULTIPLE FLIGHT")
 	ErrSTARSNoFlight                   = NewSTARSError("NO FLIGHT")
@@ -127,6 +128,7 @@ var starsErrorRemap = map[error]*STARSError{
 	sim.ErrTCWNotVacant:                    ErrSTARSIllegalPosition,
 	sim.ErrTooManyRestrictionAreas:         ErrSTARSCapacity,
 	sim.ErrTrackIsActive:                   ErrSTARSIllegalTrack,
+	sim.ErrIllegalTrackLocalFP:             ErrSTARSIllegalTrackLocalFP,
 	sim.ErrTrackIsBeingHandedOff:           ErrSTARSIllegalTrack,
 	sim.ErrTrackIsNotActive:                ErrSTARSIllegalTrack,
 	sim.ErrUnknownAircraftType:             ErrSTARSIllegalParam,

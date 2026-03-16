@@ -22,6 +22,7 @@ var (
 	ErrIllegalACType                   = errors.New("Illegal aircraft type")
 	ErrIllegalBeaconCode               = errors.New("Illegal beacon code")
 	ErrIllegalFunction                 = errors.New("Illegal function")
+	ErrIllegalTrackLocalFP             = errors.New("Illegal track - local flight plan")
 	ErrIllegalPosition                 = errors.New("Illegal position")
 	ErrIllegalScratchpad               = errors.New("Illegal scratchpad")
 	ErrInvalidAbbreviatedFP            = errors.New("Invalid abbreviated flight plan")

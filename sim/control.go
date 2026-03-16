@@ -686,6 +686,14 @@ func (s *Sim) HandoffTrack(tcw TCW, acid ACID, toTCP TCP) error {
 					return ErrBeaconMismatch
 				}
 			}
+
+			// Can't hand off a local flight plan to an external facility.
+			toCtrl := s.State.Controllers[resolvedTCP]
+			if toCtrl.IsExternal() &&
+				(fp.PlanType == LocalNonEnroute || fp.PlanType == RemoteNonEnroute) {
+				return ErrIllegalTrackLocalFP
+			}
+
 			return nil
 		},
 		func(tcw TCW, fp *NASFlightPlan, ac *Aircraft) {
@@ -993,12 +1001,11 @@ func (s *Sim) PointOut(fromTCW TCW, acid ACID, toTCP TCP) error {
 
 	return s.dispatchTrackedFlightPlanCommand(fromTCW, acid,
 		func(tcw TCW, fp *NASFlightPlan, ac *Aircraft) error {
-			fromTCP := s.State.PrimaryPositionForTCW(fromTCW)
 			if octrl, ok := s.State.Controllers[toTCP]; !ok {
 				return av.ErrNoController
-			} else if octrl.Facility != s.State.Controllers[fromTCP].Facility {
-				// Can't point out to another STARS facility.
-				return av.ErrInvalidController
+			} else if octrl.IsExternal() && (fp.PlanType == LocalNonEnroute || fp.PlanType == RemoteNonEnroute) {
+				// Can't point out a local flight plan to an external facility.
+				return ErrIllegalTrackLocalFP
 			} else if s.State.TCWControlsPosition(fromTCW, toTCP) {
 				// Can't point out to ourself (including consolidated positions)
 				return av.ErrInvalidController
