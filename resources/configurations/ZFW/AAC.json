@@ -236,12 +236,6 @@
         "slope_angle": 0.175
       }
     },
-    "scratchpads": {
-      "COLIN.RNAV": "RCO",
-      "MAYES.RNAV": "RMA",
-      "NOBLE.RNAV": "RNO",
-      "SHAWN.RNAV": "RSH"
-    },
     "significant_points": {
       "COLIN": {
         "short_name": "COL",
