@@ -702,9 +702,12 @@ type QuicklookRegion struct {
 
 type QuicklookRegions []QuicklookRegion
 
-func (r *QuicklookRegion) PostDeserialize(controlPositions map[TCP]*av.Controller, loc av.Locator, e *util.ErrorLogger) {
-	r.AirspaceVolume.PostDeserialize(loc, e)
+func (r *QuicklookRegion) ValidateTCPs(controlPositions map[TCP]*av.Controller, e *util.ErrorLogger) {
 	r.FilterQualifiers.PostDeserialize(controlPositions, e)
+}
+
+func (r *QuicklookRegion) PostDeserialize(loc av.Locator, e *util.ErrorLogger) {
+	r.AirspaceVolume.PostDeserialize(loc, e)
 }
 
 // exitFixDisplayName returns the name that would be displayed as the
@@ -786,14 +789,46 @@ type FDAMTrackState struct {
 	PreEntryOwnerLeaderDirection *math.CardinalOrdinalDirection
 }
 
-func (r *FDAMRegion) PostDeserialize(controlPositions map[TCP]*av.Controller, loc av.Locator, e *util.ErrorLogger) {
-	r.AirspaceVolume.PostDeserialize(loc, e)
+func (r *FDAMRegion) ValidateTCPs(controlPositions map[TCP]*av.Controller, e *util.ErrorLogger) {
 	r.FilterQualifiers.PostDeserialize(controlPositions, e)
 
 	if r.TCPsString != "" {
 		e.ErrorString(`"tcps" is not supported for FDAM regions`)
 	}
 	r.TCPs = nil // FDAM regions don't filter by user position
+
+	r.NewOwnerTCPString = strings.ToUpper(strings.TrimSpace(r.NewOwnerTCPString))
+	if r.NewOwnerTCPString != "" {
+		tcp := ControlPosition(r.NewOwnerTCPString)
+		if _, ok := controlPositions[tcp]; !ok {
+			e.ErrorString(`unknown TCP %q in "new_owner_tcp"`, r.NewOwnerTCPString)
+		} else {
+			r.NewOwnerTCP = tcp
+		}
+	}
+
+	// Parse pointout TCPs
+	if r.PointoutTCPsString != "" {
+		for v := range strings.SplitSeq(r.PointoutTCPsString, ",") {
+			v = strings.ToUpper(strings.TrimSpace(v))
+			if v == "" {
+				continue
+			}
+			tcp := ControlPosition(v)
+			if _, ok := controlPositions[tcp]; !ok {
+				e.ErrorString(`unknown TCP %q in "pointout_tcps"`, v)
+			} else {
+				r.PointoutTCPs = append(r.PointoutTCPs, tcp)
+			}
+		}
+	}
+	if r.ImmediatePointout && len(r.PointoutTCPs) == 0 {
+		e.ErrorString(`"pointout_tcps" must be specified when "immediate_pointout" is true`)
+	}
+}
+
+func (r *FDAMRegion) PostDeserialize(loc av.Locator, e *util.ErrorLogger) {
+	r.AirspaceVolume.PostDeserialize(loc, e)
 
 	parseDirection := func(s, field string) *math.CardinalOrdinalDirection {
 		s = strings.ToUpper(strings.TrimSpace(s))
@@ -818,37 +853,8 @@ func (r *FDAMRegion) PostDeserialize(controlPositions map[TCP]*av.Controller, lo
 	if r.HandoffInitiateTransfer != "I" && r.HandoffInitiateTransfer != "T" && r.HandoffInitiateTransfer != "N" {
 		e.ErrorString(`invalid "handoff_initiate_transfer" %q: must be "I", "T", or "N"`, r.HandoffInitiateTransfer)
 	}
-
-	r.NewOwnerTCPString = strings.ToUpper(strings.TrimSpace(r.NewOwnerTCPString))
-	if r.NewOwnerTCPString != "" {
-		tcp := ControlPosition(r.NewOwnerTCPString)
-		if _, ok := controlPositions[tcp]; !ok {
-			e.ErrorString(`unknown TCP %q in "new_owner_tcp"`, r.NewOwnerTCPString)
-		} else {
-			r.NewOwnerTCP = tcp
-		}
-	}
 	if r.HandoffInitiateTransfer != "N" && r.NewOwnerTCP == "" {
 		e.ErrorString(`"new_owner_tcp" must be specified when "handoff_initiate_transfer" is %q`, r.HandoffInitiateTransfer)
-	}
-
-	// Parse pointout TCPs
-	if r.PointoutTCPsString != "" {
-		for v := range strings.SplitSeq(r.PointoutTCPsString, ",") {
-			v = strings.ToUpper(strings.TrimSpace(v))
-			if v == "" {
-				continue
-			}
-			tcp := ControlPosition(v)
-			if _, ok := controlPositions[tcp]; !ok {
-				e.ErrorString(`unknown TCP %q in "pointout_tcps"`, v)
-			} else {
-				r.PointoutTCPs = append(r.PointoutTCPs, tcp)
-			}
-		}
-	}
-	if r.ImmediatePointout && len(r.PointoutTCPs) == 0 {
-		e.ErrorString(`"pointout_tcps" must be specified when "immediate_pointout" is true`)
 	}
 
 	if r.RetainOwnerLeaderDirection && r.NewOwnerLeaderDirection == nil {
@@ -1468,8 +1474,7 @@ const (
 	LocalNonEnroute
 )
 
-func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, controlledAirports []string, allAirports []string,
-	controlPositions map[TCP]*av.Controller, e *util.ErrorLogger) {
+func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, e *util.ErrorLogger) {
 	defer e.CheckDepth(e.CurrentDepth())
 
 	if ctr := fa.CenterString; ctr == "" {
@@ -1480,60 +1485,19 @@ func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, controlledAirports
 		fa.Center = pos
 	}
 
-	if len(fa.Controllers) > 0 {
-		// Handle beacon code blocks
-		for tcp, config := range fa.Controllers {
-			for i := range config.FlightFollowingAirspace {
-				if config.FlightFollowingAirspace[i].Id == "" {
-					config.FlightFollowingAirspace[i].Id = "FF" + string(tcp) + strconv.Itoa(i+1)
-				}
-				if config.FlightFollowingAirspace[i].Description == "" {
-					config.FlightFollowingAirspace[i].Description = "FLIGHT FOLLOWING " + string(tcp) + " " + strconv.Itoa(i+1)
-				}
-
-				config.FlightFollowingAirspace[i].PostDeserialize(loc, e)
-			}
-
-			config.MonitoredBeaconCodeBlocks = nil
-			if config.MonitoredBeaconCodeBlocksString == nil {
-				// None specified: 12xx block by default
-				config.MonitoredBeaconCodeBlocks = append(config.MonitoredBeaconCodeBlocks, 0o12)
-			} else {
-				for s := range strings.SplitSeq(*config.MonitoredBeaconCodeBlocksString, ",") {
-					s = strings.TrimSpace(s)
-					if code, err := av.ParseSquawkOrBlock(s); err != nil {
-						e.ErrorString(`invalid beacon code %q in "beacon_code_blocks": %v`, s, err)
-					} else {
-						config.MonitoredBeaconCodeBlocks = append(config.MonitoredBeaconCodeBlocks, code)
-					}
-				}
-			}
+	// Locator-dependent controller flight following airspace validation.
+	for _, config := range fa.Controllers {
+		for i := range config.FlightFollowingAirspace {
+			config.FlightFollowingAirspace[i].PostDeserialize(loc, e)
 		}
 	}
 
-	// Process area configs similarly to controller configs.
+	// Locator-dependent area config validation.
 	for areaNum, ac := range fa.Areas {
 		e.Push(fmt.Sprintf("areas[%s]", areaNum))
 
 		for i := range ac.FlightFollowingAirspace {
-			if ac.FlightFollowingAirspace[i].Id == "" {
-				ac.FlightFollowingAirspace[i].Id = fmt.Sprintf("FFA%s-%d", areaNum, i+1)
-			}
-			if ac.FlightFollowingAirspace[i].Description == "" {
-				ac.FlightFollowingAirspace[i].Description = fmt.Sprintf("FLIGHT FOLLOWING AREA %s %d", areaNum, i+1)
-			}
 			ac.FlightFollowingAirspace[i].PostDeserialize(loc, e)
-		}
-
-		if ac.MonitoredBeaconCodeBlocksString != nil {
-			for s := range strings.SplitSeq(*ac.MonitoredBeaconCodeBlocksString, ",") {
-				s = strings.TrimSpace(s)
-				if code, err := av.ParseSquawkOrBlock(s); err != nil {
-					e.ErrorString(`invalid beacon code %q in "beacon_code_blocks": %v`, s, err)
-				} else {
-					ac.MonitoredBeaconCodeBlocks = append(ac.MonitoredBeaconCodeBlocks, code)
-				}
-			}
 		}
 
 		if ac.CenterString != "" {
@@ -1554,138 +1518,7 @@ func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, controlledAirports
 			ac.Airspace[name] = volumes
 		}
 
-		for _, sp := range ac.Scratchpads {
-			if !fa.CheckScratchpad(sp) {
-				e.ErrorString(`%s: invalid scratchpad in area "scratchpads"`, sp)
-			}
-		}
-
 		e.Pop()
-	}
-
-	for _, sp := range fa.Scratchpads {
-		if !fa.CheckScratchpad(sp) {
-			e.ErrorString(`%s: invalid scratchpad in "scratchpads"`, sp)
-		}
-	}
-
-	switch fa.Monitor {
-	// Ugly: we need to keep this in sync with colorSets in stars/stars.go
-	case "":
-		fa.Monitor = "legacy" // default
-	case "legacy", "mdm3", "mdm4":
-	default:
-		e.ErrorString(`%s: invalid value for "monitor": must be "legacy", "mdm3", or "mdm4"`, fa.Monitor)
-	}
-
-	makeCircleAirportFilters := func(id string, description string, radius float32,
-		floor int, ceiling int, airports []string) FilterRegions {
-		var regions FilterRegions
-		for _, apname := range airports {
-			ap, ok := av.DB.Airports[apname]
-			if !ok {
-				e.ErrorString("Airport %q not found", apname)
-			}
-			if len(apname) == 4 {
-				apname = apname[1:]
-			}
-			regions = append(regions, FilterRegion{
-				AirspaceVolume: av.AirspaceVolume{
-					Id:          id + apname,
-					Description: description + " " + apname,
-					Type:        av.AirspaceVolumeCircle,
-					Floor:       0,
-					Ceiling:     ap.Elevation + ceiling,
-					Center:      ap.Location,
-					Radius:      radius,
-				},
-			})
-		}
-		return regions
-	}
-
-	// (Re)compute this ourselves rather than taking it as an argument
-	// since the one in ScenarioGroup depends on our initializing Center
-	// which just happened above.
-	nmPerLongitude := math.NMPerLongitudeAt(fa.Center)
-
-	makePolygonAirportFilters := func(id string, description string, delta float32,
-		floor int, ceiling int, airports []string) FilterRegions {
-		var regions FilterRegions
-		for _, apname := range airports {
-			ap, ok := av.DB.Airports[apname]
-			if !ok {
-				e.ErrorString("Airport %q not found", apname)
-			}
-			if len(apname) == 4 {
-				apname = apname[1:]
-			}
-
-			p := util.MapSlice(ap.Runways, func(r av.Runway) [2]float32 { return math.LL2NM(r.Threshold, nmPerLongitude) })
-			var hull [][2]float32
-
-			if len(p) == 2 {
-				// Single runway so compute an OBB directly.
-				v := math.Normalize2f(math.Sub2f(p[1], p[0]))
-				v = math.Scale2f(v, delta)
-				nv := math.Scale2f(v, -1)
-				vp := [2]float32{v[1], -v[0]} // perp
-				nvp := math.Scale2f(vp, -1)
-
-				hull = [][2]float32{
-					math.Add2f(p[0], math.Add2f(nv, vp)),
-					math.Add2f(p[1], math.Add2f(v, vp)),
-					math.Add2f(p[1], math.Add2f(v, nvp)),
-					math.Add2f(p[0], math.Add2f(nv, nvp))}
-			} else {
-				// Convex hull of the runway threshold points
-				hull = math.ConvexHull(p)
-
-				// Expand the hull by delta: hacky polygon dilation--
-				// compute the average point as a center and then offset
-				// each away from it.
-				var c [2]float32
-				for _, p := range hull {
-					c = math.Add2f(c, p)
-				}
-				c = math.Scale2f(c, 1/float32(len(hull)))
-				for i := range hull {
-					v := math.Sub2f(hull[i], c)
-					hull[i] = math.Add2f(hull[i], math.Scale2f(v, delta))
-				}
-			}
-
-			// Back to lat-long for the AirspaceVolume
-			pll := util.MapSlice(hull, func(p [2]float32) math.Point2LL { return math.NM2LL(p, nmPerLongitude) })
-
-			regions = append(regions, FilterRegion{
-				AirspaceVolume: av.AirspaceVolume{
-					Id:          id + apname,
-					Description: description + " " + apname,
-					Type:        av.AirspaceVolumePolygon,
-					Floor:       0,
-					Ceiling:     ap.Elevation + ceiling,
-					Vertices:    pll,
-				},
-			})
-		}
-		return regions
-	}
-
-	if len(fa.Filters.ArrivalDrop) == 0 {
-		fa.Filters.ArrivalDrop = makePolygonAirportFilters("DROP", "ARRIVAL DROP", 0.35, 0, 500, controlledAirports)
-	}
-	if len(fa.Filters.Departure) == 0 {
-		fa.Filters.Departure = makePolygonAirportFilters("DEP", "DEPARTURE", 0.5, 0, 500, controlledAirports)
-	}
-	if len(fa.Filters.InhibitCA) == 0 {
-		fa.Filters.InhibitCA = makeCircleAirportFilters("NOCA", "CONFLICT SUPPRESS", 5, 0, 3000, controlledAirports)
-	}
-	if len(fa.Filters.InhibitMSAW) == 0 {
-		fa.Filters.InhibitMSAW = makeCircleAirportFilters("NOSA", "MSAW SUPPRESS", 5, 0, 3000, controlledAirports)
-	}
-	if len(fa.Filters.SurfaceTracking) == 0 {
-		fa.Filters.SurfaceTracking = makePolygonAirportFilters("SURF", "SURFACE TRACKING", 0.15, 0, 200, allAirports)
 	}
 
 	checkFilter := func(f FilterRegions, name string) {
@@ -1714,7 +1547,7 @@ func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, controlledAirports
 		ids := make(map[string]any)
 		for i, filt := range fa.Filters.Quicklook {
 			e.Push(filt.Description)
-			fa.Filters.Quicklook[i].PostDeserialize(controlPositions, loc, e)
+			fa.Filters.Quicklook[i].PostDeserialize(loc, e)
 
 			if _, ok := ids[filt.Id]; ok {
 				e.ErrorString(`quicklook filter "id"s must be unique: %q was repeated`, filt.Id)
@@ -1729,7 +1562,7 @@ func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, controlledAirports
 		ids := make(map[string]any)
 		for i, filt := range fa.Filters.FDAM {
 			e.Push(filt.Description)
-			fa.Filters.FDAM[i].PostDeserialize(controlPositions, loc, e)
+			fa.Filters.FDAM[i].PostDeserialize(loc, e)
 
 			if _, ok := ids[filt.Id]; ok {
 				e.ErrorString(`FDAM filter "id"s must be unique: %q was repeated`, filt.Id)

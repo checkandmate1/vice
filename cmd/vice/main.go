@@ -167,8 +167,8 @@ func runLint(lg *log.Logger) error {
 	videoMaps := make(map[string]any)
 	for _, sgs := range scenarioGroups {
 		for _, sg := range sgs {
-			if sg.FacilityAdaptation.VideoMapFile != "" {
-				videoMaps[sg.FacilityAdaptation.VideoMapFile] = nil
+			if sg.FacilityConfig.FacilityAdaptation.VideoMapFile != "" {
+				videoMaps[sg.FacilityConfig.FacilityAdaptation.VideoMapFile] = nil
 			}
 		}
 	}
