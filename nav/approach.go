@@ -348,7 +348,12 @@ func (nav *Nav) prepareForApproach(straightIn bool) av.CommandIntent {
 	}
 
 	if directApproachFix {
-		// all good
+		// The aircraft is going direct to an approach fix; clear any
+		// OnApproachCourse state that DirectFix may have set (which
+		// is used to gate altitude before clearance). Without this,
+		// ClearedApproach incorrectly sets NoPT when it sees
+		// OnApproachCourse, skipping the procedure turn.
+		nav.Approach.InterceptState = NotIntercepting
 	} else if assignedHeading {
 		nav.Approach.InterceptState = InitialHeading
 	} else {

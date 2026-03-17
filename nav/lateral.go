@@ -146,7 +146,8 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 		nav.Airwork = nil // Done.
 	}
 
-	if nav.Airwork == nil && nav.Heading.Assigned == nil && nav.Heading.Hold == nil {
+	if nav.Airwork == nil && nav.Heading.Assigned == nil && nav.Heading.Hold == nil &&
+		nav.Heading.Standard45PT == nil && nav.Heading.RacetrackPT == nil {
 		return nav.updateWaypoints(callsign, wxs, fp, simTime)
 	}
 

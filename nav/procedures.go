@@ -60,7 +60,7 @@ const (
 )
 
 func (nav *Nav) flyProcedureTurnIfNecessary() {
-	wp := nav.Waypoints
+	wp := nav.AssignedWaypoints()
 	if !nav.Approach.Cleared || len(wp) < 2 || wp[0].ProcedureTurn() == nil || nav.Approach.NoPT {
 		return
 	}
@@ -77,16 +77,19 @@ func (nav *Nav) flyProcedureTurnIfNecessary() {
 		}
 	}
 
+	// Ensure the approach waypoints are in nav.Waypoints (not just in
+	// DeferredNavHeading) so they're available after the PT completes.
+	nav.Waypoints = wp
+	nav.DeferredNavHeading = nil
+
 	switch wp[0].ProcedureTurn().Type {
 	case av.PTRacetrack:
 		// Immediate heading update here (and below) since it's the
 		// autopilot doing this at the appropriate time (vs. a controller
 		// instruction.)
 		nav.Heading = NavHeading{RacetrackPT: MakeFlyRacetrackPT(nav, wp)}
-		nav.DeferredNavHeading = nil
 	case av.PTStandard45:
 		nav.Heading = NavHeading{Standard45PT: MakeFlyStandard45PT(nav, wp)}
-		nav.DeferredNavHeading = nil
 
 	default:
 		panic("Unhandled procedure turn type")
@@ -106,7 +109,7 @@ func MakeFlyStandard45PT(nav *Nav, wp []av.Waypoint) *FlyStandard45PT {
 		FixLocation:    wp[0].Location,
 		InboundHeading: inboundHeading,
 		AwayHeading:    math.NormalizeHeading(awayHeading),
-		State:          PTStateApproaching,
+		State:          PT45StateApproaching,
 	}
 }
 
@@ -291,6 +294,13 @@ func (fp *FlyRacetrackPT) GetAltitude(nav *Nav) (float32, bool) {
 	return float32(fp.ProcedureTurn.ExitAltitude), descend
 }
 
+func (fp *FlyStandard45PT) GetAltitude(nav *Nav) (float32, bool) {
+	descend := fp.ProcedureTurn.ExitAltitude != 0 &&
+		nav.FlightState.Altitude > float32(fp.ProcedureTurn.ExitAltitude) &&
+		fp.State != PT45StateApproaching
+	return float32(fp.ProcedureTurn.ExitAltitude), descend
+}
+
 func (fp *FlyStandard45PT) GetHeading(nav *Nav, wxs wx.Sample) (float32, av.TurnDirection, float32) {
 	outboundHeading := math.OppositeHeading(fp.InboundHeading)
 
@@ -307,18 +317,20 @@ func (fp *FlyStandard45PT) GetHeading(nav *Nav, wxs wx.Sample) (float32, av.Turn
 		return fixHeading, av.TurnClosest, StandardTurnRate
 	case PT45StateTurningOutbound:
 		if nav.FlightState.Heading == outboundHeading {
-			fp.State = PTStateFlyingOutbound
+			fp.State = PT45StateFlyingOutbound
 			fp.SecondsRemaining = 60
 		}
 		return outboundHeading, av.TurnClosest, StandardTurnRate
 	case PT45StateFlyingOutbound:
 		fp.SecondsRemaining--
 		if fp.SecondsRemaining == 0 {
-
+			fp.State = PT45StateTurningAway
 		}
 		return outboundHeading, av.TurnClosest, StandardTurnRate
 	case PT45StateTurningAway:
 		if nav.FlightState.Heading == fp.AwayHeading {
+			fp.State = PT45StateFlyingAway
+			fp.SecondsRemaining = 60
 		}
 
 		return fp.AwayHeading, av.TurnClosest, StandardTurnRate

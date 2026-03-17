@@ -325,25 +325,25 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 					drawArrow(toNM.TransformPoint([2]float32{0, -len / 2}), hdg)
 					drawArrow(toNM.TransformPoint([2]float32{2, -len / 2}), hdg+math.Radians(180))
 				} else if pt.Type == av.PTStandard45 {
-					// Line outbound to the next fix
-					addseg([2]float32{0, 0}, [2]float32{0, len / 2})
+					// Line outbound from the fix (away from next fix)
+					addseg([2]float32{0, 0}, [2]float32{0, -len / 2})
 
-					// 45 degrees off from that for 4nm
+					// 45 degrees off from outbound for 4nm
 					const sqrt2over2 = 0.70710678
-					pe := [2]float32{4 * sqrt2over2, len/2 + 4*sqrt2over2}
-					addseg([2]float32{0, len / 2}, pe)
+					pe := [2]float32{4 * sqrt2over2, -(len/2 + 4*sqrt2over2)}
+					addseg([2]float32{0, -len / 2}, pe)
 
 					// Draw an arc from the previous leg around to the inbound course.
-					pae := drawarc(math.Add2f(pe, [2]float32{-sqrt2over2, sqrt2over2}), 135, -45)
+					pae := drawarc(math.Add2f(pe, [2]float32{-sqrt2over2, -sqrt2over2}), 45, 225)
 					// Intercept of the 45 degree line from the end of the
 					// arc back to the y axis.
-					pint := [2]float32{0, pae[1] - pae[0]}
+					pint := [2]float32{0, pae[1] + pae[0]}
 					addseg(pae, pint)
 
 					// inbound course + arrow
-					pinb := math.Add2f(pint, [2]float32{0, -1})
+					pinb := math.Add2f(pint, [2]float32{0, 1})
 					addseg(pint, pinb)
-					drawArrow(toNM.TransformPoint(pinb), hdg+math.Radians(180))
+					drawArrow(toNM.TransformPoint(pinb), hdg)
 				} else {
 					ctx.Lg.Errorf("unhandled PT type in drawWaypoints")
 				}

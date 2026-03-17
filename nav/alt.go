@@ -253,6 +253,11 @@ func (nav *Nav) TargetAltitude() (float32, float32) {
 			return alt, rate
 		}
 	}
+	if nav.Heading.Standard45PT != nil {
+		if alt, ok := nav.Heading.Standard45PT.GetAltitude(nav); ok {
+			return alt, rate
+		}
+	}
 
 	// Controller-assigned altitude overrides everything else
 	if nav.Altitude.Assigned != nil {
