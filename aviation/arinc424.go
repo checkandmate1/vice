@@ -867,7 +867,7 @@ func markTBarNoPT(transitions map[string]WaypointArray, recs []ssaRecord, fixes 
 		}
 		bearing := math.Heading2LL(centralLoc, flankLoc, nmPerLongitude, 0)
 		diff := math.HeadingDifference(bearing, inboundCourse)
-		if diff < 45 || diff > 135 {
+		if diff < 80 || diff > 100 {
 			return
 		}
 	}
