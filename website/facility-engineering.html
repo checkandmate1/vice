@@ -3329,8 +3329,6 @@
             </section>
             <section class="docs-section" id="fe-arrivals">
               <h3 class="section-heading">Arrivals and Overflights</h3>
-              <p><i>Note: until recently, overflights were not supported and
-                  arrivals were specified using the "arrival_groups" variable, which is no longer available.</i></p>
               <p>Arrivals and overflights are specified via the "inbound_flows" variable,
                 which allows specifying the ways that aircraft from adjacent facilities
                 enter the TRACON.  "inbound_flows" has two members, "arrivals" and
@@ -3358,7 +3356,6 @@
                   </tr>
                 </thead>
                 <tbody>
-
                   <tr>
                     <td>"airlines"</td>
                     <td>Object</td>
@@ -3381,8 +3378,7 @@
                   <tr>
                     <td>"cruise_altitude"</td>
                     <td>Number</td>
-                    <td>The aircraft's final cruise altitude. (This is only
-                      used in the aircraft's flight strip.) If
+                    <td>(<i>Optional</i>) The aircraft's final cruise altitude. (This is only used in the aircraft's flight strip.) If
                       unspecified, <i>vice</i> tries to choose a reasonable
                       cruise altitude based on the distance and direction of flight.</td>
                   </tr>
@@ -3459,23 +3455,23 @@
                 CAMRN4 arrival group at KJFK:
               </p>
               <pre>
-                "airlines": {
-                "KFRG": [
-                {
-                "airport": "KDCA",
-                "icao": "EJA"
-                },
-                ...
-                ],
-                "KJFK": [
-                {
-                "airport": "MMMY",
-                "fleet": "long",
-                "icao": "AMX"
-                },
-                ...
-                ]
-                }
+  "airlines": {
+      "KFRG": [
+          {
+              "airport": "KDCA",
+              "icao": "EJA"
+          },
+          ...
+      ],
+      "KJFK": [
+          {
+              "airport": "MMMY",
+              "fleet": "long",
+              "icao": "AMX"
+          },
+          ...
+      ]
+  }
               </pre>
               <p>We can see that CAMRN4 applies to both the KFRG and KJFK airports, though with different airlines
                 and different departure airports for the arrivals. The specified departure airports (here, KDCA and MMMY)
