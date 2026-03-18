@@ -249,8 +249,9 @@ func (c *NewSimConfiguration) initDefaultWindDirection() {
 		}
 	}
 
-	avgRwyHeading := math.VectorHeading(sumRunwayVecs)
-	avgRwyMagneticHeading := avgRwyHeading + c.ScenarioSpec.MagneticVariation
+	// Runway headings from the database are already magnetic, so the
+	// average is magnetic as well; no further conversion needed.
+	avgRwyMagneticHeading := math.VectorHeading(sumRunwayVecs)
 
 	// Set default wind direction range to ±30 degrees from average runway heading
 	windDirMin := int(math.NormalizeHeading(avgRwyMagneticHeading - 30))

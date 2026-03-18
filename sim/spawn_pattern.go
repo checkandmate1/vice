@@ -157,6 +157,18 @@ func (s *Sim) spawnPatternAircraft() {
 			continue
 		}
 
+		// Don't spawn pattern aircraft in IMC. Check the airport's
+		// METAR first, then fall back to the primary airport's.
+		if metar, ok := s.State.METAR[name]; ok {
+			if !metar.IsVMC() {
+				continue
+			}
+		} else if metar, ok := s.State.METAR[s.State.PrimaryAirport]; ok {
+			if !metar.IsVMC() {
+				continue
+			}
+		}
+
 		faaAP, ok := av.DB.Airports[name]
 		if !ok {
 			continue

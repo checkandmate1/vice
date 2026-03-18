@@ -528,9 +528,14 @@ func (s *Sim) setInitialSpawnTimes(now time.Time) {
 			state.VFRSpawnRate = scaleRate(vfrRate, s.State.LaunchConfig.VFRDepartureRateScale)
 			state.NextVFRSpawn = randomDelay(state.VFRSpawnRate)
 
-			// Initialize pattern state for airports with VFR activity
-			s.PatternState[name] = &PatternState{
-				NextSpawn: now.Add(randomWait(patternSpawnRate, false, s.Rand)),
+			// Initialize pattern state for airports with VFR activity,
+			// but not at airports that also have IFR departures or arrivals.
+			_, hasIFRDepartures := s.State.LaunchConfig.DepartureRates[name]
+			_, hasIFRArrivals := s.State.ArrivalAirports[name]
+			if !hasIFRDepartures && !hasIFRArrivals {
+				s.PatternState[name] = &PatternState{
+					NextSpawn: now.Add(randomWait(patternSpawnRate, false, s.Rand)),
+				}
 			}
 		}
 	}

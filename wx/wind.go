@@ -124,7 +124,7 @@ func (ws *WindSpecifier) Matches(metar METAR, magVar float32) bool {
 			return false
 		}
 
-		windMagnetic := float32(*metar.WindDir) - magVar
+		windMagnetic := float32(*metar.WindDir) + magVar
 		if !matchesDirection(ws.Direction, windMagnetic) {
 			return false
 		}
@@ -312,7 +312,7 @@ func (wf *WeatherFilter) Matches(metar METAR, magVar float32) bool {
 			// Variable winds don't match a specific direction requirement
 			return false
 		}
-		windMagnetic := math.NormalizeHeading(float32(*metar.WindDir) - magVar)
+		windMagnetic := math.NormalizeHeading(float32(*metar.WindDir) + magVar)
 
 		minDir := 0
 		if wf.WindDirMin != nil {
@@ -373,7 +373,7 @@ func matchesWindsAloftAt(f *WindsAloftFilter, atmosByTime *AtmosByTime, t time.T
 	}
 
 	// Convert true heading to magnetic
-	windMagnetic := math.NormalizeHeading(direction - magVar)
+	windMagnetic := math.NormalizeHeading(direction + magVar)
 	speedKnots := int(speed + 0.5)
 
 	// Check speed constraints
