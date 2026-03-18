@@ -325,24 +325,41 @@ func (nav *Nav) prepareForApproach(straightIn bool) av.CommandIntent {
 	directApproachFix := false
 	_, assignedHeading := nav.AssignedHeading()
 	if !assignedHeading {
-		// See if any of the waypoints in our route connect to the approach
+		// See if any of the waypoints in our route connect to the approach. Prefer a route where
+		// the fix has a procedure turn; some approaches have multiple transitions where a fix
+		// appears both with and without a PT.
 		navwps := nav.AssignedWaypoints()
-	outer:
-		for i, wp := range navwps {
-			for _, app := range ap.Waypoints {
-				if idx := slices.IndexFunc(app, func(awp av.Waypoint) bool { return wp.Fix == awp.Fix }); idx != -1 {
-					// Splice the routes
-					directApproachFix = true
-					navwps = append(navwps[:i], app[idx:]...)
-					navwps = append(navwps, nav.FlightState.ArrivalAirport)
-
-					if dh := nav.DeferredNavHeading; dh != nil && len(dh.Waypoints) > 0 {
-						dh.Waypoints = navwps
-					} else {
-						nav.Waypoints = navwps
+		bestRoute, bestIdx, navIdx := func() ([]av.Waypoint, int, int) {
+			for i, wp := range navwps {
+				var candidate []av.Waypoint
+				var candidateIdx int
+				for _, route := range ap.Waypoints {
+					idx := slices.IndexFunc(route, func(awp av.Waypoint) bool { return wp.Fix == awp.Fix })
+					if idx == -1 {
+						continue
 					}
-					break outer
+					if route[idx].ProcedureTurn() != nil {
+						return route, idx, i
+					}
+					if candidate == nil {
+						candidate, candidateIdx = route, idx
+					}
 				}
+				if candidate != nil {
+					return candidate, candidateIdx, i
+				}
+			}
+			return nil, 0, 0
+		}()
+
+		if bestRoute != nil {
+			directApproachFix = true
+			navwps = append(navwps[:navIdx], bestRoute[bestIdx:]...)
+			navwps = append(navwps, nav.FlightState.ArrivalAirport)
+			if dh := nav.DeferredNavHeading; dh != nil && len(dh.Waypoints) > 0 {
+				dh.Waypoints = navwps
+			} else {
+				nav.Waypoints = navwps
 			}
 		}
 	}
