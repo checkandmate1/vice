@@ -58,8 +58,7 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Tim
 			// Apply wind correction to track the localizer course, not just
 			// fly the runway heading. Without this, strong crosswind would
 			// blow the aircraft off the localizer.
-			hdgTrue := math.MagneticToTrue(*nav.Heading.Assigned, nav.FlightState.MagneticVariation)
-			heading = nav.headingForTrack(hdgTrue, wxs)
+			heading = nav.headingForTrack(*nav.Heading.Assigned, wxs)
 			NavLog(callsign, simTime, NavLogApproach, "TurningToJoin: not on centerline, flying wind-corrected hdg %.0f (rwy hdg %.0f)", heading, *nav.Heading.Assigned)
 			return
 		}
