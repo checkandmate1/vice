@@ -324,7 +324,7 @@ func (s *scenario) PostDeserialize(sg *scenarioGroup, e *util.ErrorLogger, manif
 					rwy.GoAround.IsRunwayHeading = true
 					for _, appr := range ap.Approaches {
 						if appr.Runway == rwy.Runway.Base() {
-							rwy.GoAround.Heading = int(appr.RunwayHeading(sg.NmPerLongitude, sg.MagneticVariation) + 0.5)
+							rwy.GoAround.Heading = int(math.TrueToMagnetic(appr.RunwayHeading(sg.NmPerLongitude), sg.MagneticVariation) + 0.5)
 							break
 						}
 					}
@@ -937,8 +937,8 @@ func (sg *scenarioGroup) PostDeserialize(e *util.ErrorLogger, catalogs map[strin
 				e.ErrorString("distance %q: %v", strs[3], err)
 			} else {
 				// Offset along the given heading and distance from the fix.
-				sg.Fixes[fix] = math.Offset2LL(pll, float32(hdg), float32(dist), sg.NmPerLongitude,
-					sg.MagneticVariation)
+				sg.Fixes[fix] = math.Offset2LL(pll, math.MagneticToTrue(math.MagneticHeading(hdg), sg.MagneticVariation),
+					float32(dist), sg.NmPerLongitude)
 			}
 		} else if pos, ok := sg.Locate(location); ok {
 			// It's something simple. Check this after FIX@HDG/DIST,

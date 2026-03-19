@@ -71,28 +71,27 @@ func (s *Sim) currentVFRRunway(airport string) (rwy, opp av.Runway, ok bool) {
 // patternBuilder creates waypoints offset from a runway threshold.
 // It replaces the duplicated offset/addpt closures across the generators.
 type patternBuilder struct {
-	threshold                         math.Point2LL
-	depHdg, leftHdg                   float32
-	elevation                         int
-	nmPerLongitude, magneticVariation float32
+	threshold       math.Point2LL
+	depHdg, leftHdg math.TrueHeading
+	elevation       int
+	nmPerLongitude  float32
 }
 
 func newPatternBuilder(rwy av.Runway, elevation int, nmPerLongitude, magneticVariation float32) patternBuilder {
-	depHdg := rwy.Heading
+	depHdg := math.MagneticToTrue(rwy.Heading, magneticVariation)
 	return patternBuilder{
-		threshold:         rwy.Threshold,
-		depHdg:            depHdg,
-		leftHdg:           math.NormalizeHeading(depHdg - 90),
-		elevation:         elevation,
-		nmPerLongitude:    nmPerLongitude,
-		magneticVariation: magneticVariation,
+		threshold:      rwy.Threshold,
+		depHdg:         depHdg,
+		leftHdg:        math.NormalizeHeading(depHdg - 90),
+		elevation:      elevation,
+		nmPerLongitude: nmPerLongitude,
 	}
 }
 
 func (b patternBuilder) waypoint(name string, along, lateral, deltaAlt float32, speed int16, phase uint8) av.Waypoint {
-	p := math.Offset2LL(b.threshold, b.depHdg, along, b.nmPerLongitude, b.magneticVariation)
+	p := math.Offset2LL(b.threshold, b.depHdg, along, b.nmPerLongitude)
 	if lateral != 0 {
-		p = math.Offset2LL(p, b.leftHdg, lateral, b.nmPerLongitude, b.magneticVariation)
+		p = math.Offset2LL(p, b.leftHdg, lateral, b.nmPerLongitude)
 	}
 	alt := float32(b.elevation) + deltaAlt
 	wp := av.Waypoint{
@@ -418,9 +417,8 @@ func (s *Sim) sequenceVFRLanding(ac *Aircraft) {
 	}
 
 	if s.patternClearForEntry(airport) {
-		hdgToRwy := math.Heading2LL(ac.Position(), rwy.Threshold,
-			s.State.NmPerLongitude, s.State.MagneticVariation)
-		if math.HeadingDifference(hdgToRwy, rwy.Heading) <= 60 && s.finalClear(airport) {
+		hdgToRwy := math.Heading2LL(ac.Position(), rwy.Threshold, s.State.NmPerLongitude)
+		if math.HeadingDifference(hdgToRwy, math.MagneticToTrue(rwy.Heading, s.State.MagneticVariation)) <= 60 && s.finalClear(airport) {
 			wps := generateStraightInWaypoints(rwy, faaAP.Elevation,
 				s.State.NmPerLongitude, s.State.MagneticVariation)
 			ac.Nav.Waypoints = wps
@@ -518,7 +516,7 @@ func (s *Sim) generateOrbitWaypoints(airport string) []av.Waypoint {
 	// Randomize altitude ±200ft around TPA.
 	tpa := float32(faaAP.Elevation+1000) + float32(s.Rand.Intn(401)-200)
 
-	depHdg := rwy.Heading
+	depHdg := math.MagneticToTrue(rwy.Heading, s.State.MagneticVariation)
 	// Right of runway (opposite the left-traffic pattern side).
 	rightHdg := math.NormalizeHeading(depHdg + 90)
 
@@ -526,13 +524,13 @@ func (s *Sim) generateOrbitWaypoints(airport string) []av.Waypoint {
 	// ±0.5nm along the runway heading.
 	lateralDist := 2.5 + s.Rand.Float32()
 	alongDist := s.Rand.Float32() - 0.5
-	center := math.Offset2LL(rwy.Threshold, rightHdg, lateralDist, s.State.NmPerLongitude, s.State.MagneticVariation)
-	center = math.Offset2LL(center, depHdg, alongDist, s.State.NmPerLongitude, s.State.MagneticVariation)
+	center := math.Offset2LL(rwy.Threshold, rightHdg, lateralDist, s.State.NmPerLongitude)
+	center = math.Offset2LL(center, depHdg, alongDist, s.State.NmPerLongitude)
 
 	radius := float32(1) // nm
 	wps := make([]av.Waypoint, 4)
-	for i, hdg := range []float32{0, 90, 180, 270} {
-		p := math.Offset2LL(center, hdg, radius, s.State.NmPerLongitude, s.State.MagneticVariation)
+	for i, hdg := range []math.TrueHeading{0, 90, 180, 270} {
+		p := math.Offset2LL(center, hdg, radius, s.State.NmPerLongitude)
 		wp := av.Waypoint{
 			Fix:      fmt.Sprintf("_orbit_%d", i+1),
 			Location: p,

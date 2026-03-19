@@ -128,8 +128,8 @@ type AdaptationFixes []AdaptationFix
 
 ///////////////////////////////////////////////////////////////////////////
 
-func (ap FAAAirport) SelectBestRunway(windDir float32, magneticVariation float32) (*Runway, *Runway) {
-	whdg := math.NormalizeHeading(windDir + magneticVariation)
+func (ap FAAAirport) SelectBestRunway(windDir math.TrueHeading, magneticVariation float32) (*Runway, *Runway) {
+	whdg := math.TrueToMagnetic(windDir, magneticVariation)
 
 	// Find best aligned runway
 	minDelta := float32(1000)
@@ -671,7 +671,7 @@ func parseHPF() map[string][]Hold {
 		}
 
 		if course, err := strconv.Atoi(h.courseInbound); err == nil {
-			hold.InboundCourse = float32(course)
+			hold.InboundCourse = math.MagneticHeading(course)
 		}
 		if h.turnDirection == "R" {
 			hold.TurnDirection = TurnRight

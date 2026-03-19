@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/mmp/vice/log"
+	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/rand"
 	"github.com/mmp/vice/util"
 )
@@ -797,19 +798,25 @@ func (FixSnippetFormatter) Validate(arg any) error {
 
 type HeadingSnippetFormatter struct{}
 
-func (HeadingSnippetFormatter) Written(arg any) string {
-	hdg, ok := arg.(int)
-	if !ok {
-		hdg = int(arg.(float32))
+func headingArg(arg any) int {
+	switch v := arg.(type) {
+	case int:
+		return v
+	case float32:
+		return int(v)
+	case math.MagneticHeading:
+		return int(v)
+	default:
+		panic(fmt.Sprintf("unexpected heading arg type %T", arg))
 	}
-	return fmt.Sprintf("%03d", hdg)
+}
+
+func (HeadingSnippetFormatter) Written(arg any) string {
+	return fmt.Sprintf("%03d", headingArg(arg))
 }
 
 func (HeadingSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
-	hdg, ok := arg.(int)
-	if !ok {
-		hdg = int(arg.(float32))
-	}
+	hdg := headingArg(arg)
 
 	if r.Bool() || hdg < 100 {
 		return sayDigits(hdg, 3)
@@ -819,12 +826,12 @@ func (HeadingSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
 }
 
 func (HeadingSnippetFormatter) Validate(arg any) error {
-	if _, ok := arg.(int); !ok {
-		if _, ok := arg.(float32); !ok {
-			return fmt.Errorf("expected int/float32 arg, got %T", arg)
-		}
+	switch arg.(type) {
+	case int, float32, math.MagneticHeading:
+		return nil
+	default:
+		return fmt.Errorf("expected int/float32/MagneticHeading arg, got %T", arg)
 	}
-	return nil
 }
 
 ///////////////////////////////////////////////////////////////////////////

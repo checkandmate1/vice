@@ -1159,7 +1159,6 @@ func (s *Sim) SendRouteCoordinates(tcw TCW, acid ACID, minutes int) error {
 	// Build the path starting from the aircraft's current position
 	currentPos := ac.Nav.FlightState.Position
 	nmPerLongitude := ac.Nav.FlightState.NmPerLongitude
-	magVar := ac.Nav.FlightState.MagneticVariation
 	const nmPerLatitude float32 = 60
 
 	var distance float32
@@ -1171,7 +1170,7 @@ func (s *Sim) SendRouteCoordinates(tcw TCW, acid ACID, minutes int) error {
 		if distance+legDistance >= requiredDistance {
 			// The endpoint is somewhere along this leg
 			remainingDistance := requiredDistance - distance
-			bearing := math.Heading2LL(currentPos, wp, nmPerLongitude, magVar)
+			bearing := math.Heading2LL(currentPos, wp, nmPerLongitude)
 
 			// Create a new waypoint at the calculated position
 			location := math.Point2LL{
@@ -1714,13 +1713,13 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 
 	// Convert o'clock to heading offset from aircraft heading
 	// 12 o'clock = 0 degrees, 3 o'clock = 90 degrees, etc.
-	oclockHeading := float32((oclock % 12) * 30) // 0, 30, 60, 90... 330
+	oclockHeading := math.MagneticHeading((oclock % 12) * 30) // 0, 30, 60, 90... 330
 	trafficHeading := math.NormalizeHeading(ac.Heading() + oclockHeading)
 
 	// Calculate the approximate position of the reported traffic
 	nmPerLong := ac.NmPerLongitude()
 	magVar := ac.MagneticVariation()
-	trafficPos := math.Offset2LL(ac.Position(), trafficHeading, float32(miles), nmPerLong, magVar)
+	trafficPos := math.Offset2LL(ac.Position(), math.MagneticToTrue(trafficHeading, magVar), float32(miles), nmPerLong)
 
 	// Search for actual traffic near the reported position
 	// Tolerance: +/- 2 miles horizontal, +/- 1000 feet vertical
@@ -2773,7 +2772,7 @@ func parseHold(command string) (string, *av.Hold, bool) {
 			if err != nil || radial <= 0 || radial > 360 {
 				return "", nil, false
 			}
-			hold.InboundCourse = float32(radial)
+			hold.InboundCourse = math.MagneticHeading(radial)
 
 		default:
 			return "", nil, false

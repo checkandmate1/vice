@@ -167,7 +167,7 @@ func (ar *CRDARegion) TryMakeGhost(trk RadarTrack, heading float32,
 	}
 }
 
-func (a *ATPAVolume) Inside(p math.Point2LL, alt, hdg, nmPerLongitude, magneticVariation float32) bool {
+func (a *ATPAVolume) Inside(p math.Point2LL, alt float32, hdg math.MagneticHeading, nmPerLongitude, magneticVariation float32) bool {
 	if alt < a.Floor || alt > a.Ceiling {
 		return false
 	}
@@ -182,7 +182,7 @@ func (a *ATPAVolume) Inside(p math.Point2LL, alt, hdg, nmPerLongitude, magneticV
 func (a *ATPAVolume) GetRect(nmPerLongitude, magneticVariation float32) [4]math.Point2LL {
 	// Segment along the approach course
 	p0 := math.LL2NM(a.Threshold, nmPerLongitude)
-	hdg := a.Heading - magneticVariation + 180
+	hdg := float32(math.MagneticToTrue(math.OppositeHeading(a.Heading), magneticVariation))
 	v := math.SinCos(math.Radians(hdg))
 	p1 := math.Add2f(p0, math.Scale2f(v, a.Length))
 
@@ -289,8 +289,8 @@ func (ap *Airport) PostDeserialize(icao string, loc Locator, nmPerLongitude floa
 
 			// Add the final fix at the runway threshold.
 			alt := rwy.Elevation + rwy.ThresholdCrossingHeight
-			threshold := math.Offset2LL(rwy.Threshold, rwy.Heading, rwy.DisplacedThresholdDistance,
-				nmPerLongitude, magneticVariation)
+			threshold := math.Offset2LL(rwy.Threshold, math.MagneticToTrue(rwy.Heading, magneticVariation),
+				rwy.DisplacedThresholdDistance, nmPerLongitude)
 
 			thresholdWP := Waypoint{
 				Fix:      "_" + appr.Runway + "_THRESHOLD",
@@ -870,7 +870,7 @@ type Approach struct {
 func (ap *Approach) FAFSegment(nmPerLongitude, magneticVariation float32) ([]Waypoint, int) {
 	// For approaches with multiple segments, want the segment that is most
 	// closely aligned with the runway.
-	rwyHdg := ap.RunwayHeading(nmPerLongitude, magneticVariation)
+	rwyHdg := ap.RunwayHeading(nmPerLongitude)
 
 	bestWpsIdx, bestWpsFAFIdx := -1, -1
 	minDiff := float32(360)
@@ -893,7 +893,7 @@ func (ap *Approach) FAFSegment(nmPerLongitude, magneticVariation float32) ([]Way
 			fafIdx++
 		}
 
-		hdg := math.Heading2LL(wps[fafIdx-1].Location, wps[fafIdx].Location, nmPerLongitude, magneticVariation)
+		hdg := math.Heading2LL(wps[fafIdx-1].Location, wps[fafIdx].Location, nmPerLongitude)
 
 		diff := math.HeadingDifference(hdg, rwyHdg)
 		if diff < minDiff {
@@ -915,6 +915,6 @@ func (ap *Approach) ExtendedCenterline(nmPerLongitude, magneticVariation float32
 	return [2]math.Point2LL{ap.Threshold, ap.OppositeThreshold}
 }
 
-func (ap *Approach) RunwayHeading(nmPerLongitude, magneticVariation float32) float32 {
-	return math.Heading2LL(ap.Threshold, ap.OppositeThreshold, nmPerLongitude, magneticVariation)
+func (ap *Approach) RunwayHeading(nmPerLongitude float32) math.TrueHeading {
+	return math.Heading2LL(ap.Threshold, ap.OppositeThreshold, nmPerLongitude)
 }

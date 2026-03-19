@@ -16,7 +16,7 @@ import (
 	"github.com/mmp/vice/wx"
 )
 
-func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Time) (heading float32, turn av.TurnDirection) {
+func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Time) (heading math.MagneticHeading, turn av.TurnDirection) {
 	// Baseline
 	heading, turn = *nav.Heading.Assigned, av.TurnClosest
 
@@ -26,27 +26,29 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Tim
 	case InitialHeading:
 		// On a heading. Is it time to turn?  Allow a lot of slop, but just
 		// fly through the localizer if it's too sharp an intercept
-		hdg := ap.RunwayHeading(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-		if d := math.HeadingDifference(hdg, nav.FlightState.Heading); d > 45 {
+		hdgTrue := ap.RunwayHeading(nav.FlightState.NmPerLongitude)
+		acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
+		if d := math.HeadingDifference(hdgTrue, acftTrue); d > 45 {
 			NavLog(callsign, simTime, NavLogApproach, "InitialHeading: intercept angle %.1f too sharp, continuing heading %.0f", d, nav.FlightState.Heading)
 			return
 		}
 
 		loc := ap.ExtendedCenterline(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
 
-		if nav.shouldTurnToIntercept(loc[0], hdg, av.TurnClosest, wxs) {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading->TurningToJoin: turning to intercept runway hdg %.0f", hdg)
+		hdgMag := math.TrueToMagnetic(hdgTrue, nav.FlightState.MagneticVariation)
+		if nav.shouldTurnToIntercept(loc[0], hdgMag, av.TurnClosest, wxs) {
+			NavLog(callsign, simTime, NavLogApproach, "InitialHeading->TurningToJoin: turning to intercept runway hdg %.0f", hdgMag)
 			nav.Approach.InterceptState = TurningToJoin
 			// The autopilot is doing this, so start the turn immediately;
 			// don't use EnqueueHeading. However, leave any deferred
 			// heading/direct fix in place, as it represents a controller
 			// command that should still be followed.
-			nav.Heading = NavHeading{Assigned: &hdg}
+			nav.Heading = NavHeading{Assigned: &hdgMag}
 			// Just in case.. Thus we will be ready to pick up the
 			// approach waypoints once we capture.
 			nav.Waypoints = []av.Waypoint{nav.FlightState.ArrivalAirport}
 		} else {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading: not yet time to turn, acft hdg %.0f rwy hdg %.0f", nav.FlightState.Heading, hdg)
+			NavLog(callsign, simTime, NavLogApproach, "InitialHeading: not yet time to turn, acft hdg %.0f rwy hdg %.0f", nav.FlightState.Heading, hdgMag)
 		}
 		return
 
@@ -56,7 +58,7 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Tim
 			// Apply wind correction to track the localizer course, not just
 			// fly the runway heading. Without this, strong crosswind would
 			// blow the aircraft off the localizer.
-			hdgTrue := *nav.Heading.Assigned - nav.FlightState.MagneticVariation
+			hdgTrue := math.MagneticToTrue(*nav.Heading.Assigned, nav.FlightState.MagneticVariation)
 			heading = nav.headingForTrack(hdgTrue, wxs)
 			NavLog(callsign, simTime, NavLogApproach, "TurningToJoin: not on centerline, flying wind-corrected hdg %.0f (rwy hdg %.0f)", heading, *nav.Heading.Assigned)
 			return
@@ -66,25 +68,26 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Tim
 		// we'll call that good enough. Now we need to figure out which
 		// fixes in the approach are still ahead and then add them to
 		// the aircraft's waypoints.
-		apHeading := ap.RunwayHeading(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+		apHeading := ap.RunwayHeading(nav.FlightState.NmPerLongitude)
 
 		wps, idx := ap.FAFSegment(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+		acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 		for idx > 0 {
 			prev := wps[idx-1]
 			hdg := math.Heading2LL(prev.Location, wps[idx].Location,
-				nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+				nav.FlightState.NmPerLongitude)
 
 			if math.HeadingDifference(hdg, apHeading) > 5 { // not on the final approach course
 				break
 			}
 
 			acToWpHeading := math.Heading2LL(nav.FlightState.Position, wps[idx].Location,
-				nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+				nav.FlightState.NmPerLongitude)
 			acToPrevHeading := math.Heading2LL(nav.FlightState.Position, wps[idx-1].Location,
-				nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+				nav.FlightState.NmPerLongitude)
 
-			da := math.Mod(acToWpHeading-nav.FlightState.Heading+360, 360)
-			db := math.Mod(acToPrevHeading-nav.FlightState.Heading+360, 360)
+			da := math.Mod(float32(acToWpHeading-acftTrue)+360, 360)
+			db := math.Mod(float32(acToPrevHeading-acftTrue)+360, 360)
 			if (da < 180 && db > 180) || (da > 180 && db < 180) {
 				// prev and current are on different sides of the current
 				// heading, so don't take the prev so we don't turn away
@@ -394,11 +397,12 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	// First try to find the first (if any) waypoint along the approach
 	// that is within 15 degrees of the aircraft's current heading.
 	intercept := -1
+	acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	for i := range wp {
 		h := math.Heading2LL(nav.FlightState.Position, wp[i].Location,
-			nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+			nav.FlightState.NmPerLongitude)
 
-		if math.HeadingDifference(h, nav.FlightState.Heading) < 30 {
+		if math.HeadingDifference(h, acftTrue) < 30 {
 			intercept = i
 			break
 		}
@@ -419,7 +423,7 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	// Work in nm coordinates
 	pac0 := math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude)
 	// Find a second point along its current course (note: ignoring wind)
-	hdg := nav.FlightState.Heading - nav.FlightState.MagneticVariation
+	hdg := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	dir := math.SinCos(math.Radians(hdg))
 	pac1 := math.Add2f(pac0, dir)
 

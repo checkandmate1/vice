@@ -25,7 +25,7 @@ type RadarTrack struct {
 	TrueAltitude        float32
 	TransponderAltitude float32
 	Location            math.Point2LL
-	Heading             float32
+	Heading             math.MagneticHeading
 	Groundspeed         float32
 	TypeOfFlight        TypeOfFlight
 }
@@ -497,7 +497,7 @@ func icaoFromCallsign(callsign string) string {
 
 type Runway struct {
 	Id                         string
-	Heading                    float32
+	Heading                    math.MagneticHeading
 	Threshold                  math.Point2LL
 	ThresholdCrossingHeight    int // delta from elevation
 	Elevation                  int

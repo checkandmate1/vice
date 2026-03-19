@@ -568,7 +568,7 @@ func MakeStandardSampleForAltitude(alt float32) Sample {
 	return MakeSample([2]float32{0, 0}, temperature, dewpoint, pressure)
 }
 
-func (s WindSample) WindDirection() float32 {
+func (s WindSample) WindDirection() math.TrueHeading {
 	// WindVec is a velocity vector (direction air is moving). To report
 	// the meteorological "wind FROM" direction, we take the opposite of
 	// the direction the velocity vector points.

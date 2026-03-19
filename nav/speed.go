@@ -246,8 +246,8 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 	// and only start transitioning to the landing reference speed in the
 	// last half mile before touchdown.
 	if nav.Speed.Assigned == nil && fd != 0 && fd < 10 {
-		hdg := nav.Approach.Assigned.RunwayHeading(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-		approachSpeed := nav.Perf.ApproachSpeed(wxs.WindDirection(), wxs.WindSpeed(), 0 /* FIXME: GUST */, hdg)
+		hdg := nav.Approach.Assigned.RunwayHeading(nav.FlightState.NmPerLongitude)
+		approachSpeed := nav.Perf.ApproachSpeed(float32(wxs.WindDirection()), wxs.WindSpeed(), 0 /* FIXME: GUST */, float32(hdg))
 
 		if fd < 0.5 {
 			// Short final: slow down to landing speed.

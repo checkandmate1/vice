@@ -348,7 +348,7 @@ const (
 
 // HeadingIntent represents heading assignment commands
 type HeadingIntent struct {
-	Heading    float32
+	Heading    math.MagneticHeading
 	Type       HeadingType
 	Turn       HeadingTurn // for HeadingAssign: which way to turn
 	Degrees    int         // for HeadingTurnLeft/Right: how many degrees
@@ -382,15 +382,15 @@ func (h HeadingIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 
 // ReportHeadingIntent represents "say heading" responses
 type ReportHeadingIntent struct {
-	Current  float32
-	Assigned *float32
+	Current  math.MagneticHeading
+	Assigned *math.MagneticHeading
 }
 
 func (r ReportHeadingIntent) Render(rt *RadioTransmission, rnd *rand.Rand) {
 	if r.Assigned != nil && *r.Assigned != r.Current {
 		// Round current heading to multiple of 5 toward assigned heading
-		current := r.Current
-		assigned := *r.Assigned
+		current := float32(r.Current)
+		assigned := float32(*r.Assigned)
 
 		lower := math.Floor(current/5) * 5
 		upper := math.Ceil(current/5) * 5
@@ -416,7 +416,7 @@ func (r ReportHeadingIntent) Render(rt *RadioTransmission, rnd *rand.Rand) {
 			// Rounded heading equals assigned, just report current
 			rt.Add("[heading|] {hdg}", r.Current)
 		} else {
-			rt.Add("[heading|at|] {hdg} [turning to|turning|] {hdg}", rounded, assigned)
+			rt.Add("[heading|at|] {hdg} [turning to|turning|] {hdg}", rounded, *r.Assigned)
 		}
 	} else {
 		rt.Add("[heading|] {hdg}", r.Current)
@@ -465,7 +465,7 @@ type NavigationIntent struct {
 	Type           NavigationType
 	Fix            string
 	SecondFix      string               // for DepartFixDirect
-	Heading        float32              // for DepartFixHeading
+	Heading        math.MagneticHeading // for DepartFixHeading
 	HoldDirection  string               // "left" or "right" for holds
 	HoldLegLength  string               // e.g., "2 mile" or "1 minute"
 	AltRestriction *AltitudeRestriction // for CrossFixAt

@@ -761,7 +761,7 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 		// Bias heading to within ±90° of the departure runway heading so
 		// the aircraft flies away from the airport before sightseeing,
 		// rather than immediately looping back over the field.
-		hdg := rwy.Heading + float32(-90+s.Rand.Intn(181))
+		hdg := rwy.Heading + math.MagneticHeading(-90+s.Rand.Intn(181))
 		v := [2]float32{dist * math.Sin(math.Radians(hdg)), dist * math.Cos(math.Radians(hdg))}
 		dnm := math.LL2NM(depap.Location, s.State.NmPerLongitude)
 		midnm := math.Add2f(dnm, v)
@@ -772,8 +772,7 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 	wps := make([]av.Waypoint, 0, 20)
 
 	wps = append(wps, av.Waypoint{Fix: "_dep_threshold", Location: rwy.Threshold})
-	opp := math.Offset2LL(rwy.Threshold, rwy.Heading, 1 /* nm */, s.State.NmPerLongitude,
-		s.State.MagneticVariation)
+	opp := math.Offset2LL(rwy.Threshold, math.MagneticToTrue(rwy.Heading, s.State.MagneticVariation), 1 /* nm */, s.State.NmPerLongitude)
 	wps = append(wps, av.Waypoint{Fix: "_opp", Location: opp})
 
 	rg := av.MakeRouteGenerator(rwy.Threshold, opp, s.State.NmPerLongitude)
@@ -781,13 +780,13 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 	wps = append(wps, wp0)
 
 	// Fly a downwind if needed
-	var hdg float32
+	var hdg math.TrueHeading
 	if len(routeWps) > 0 {
-		hdg = math.Heading2LL(opp, routeWps[0].Location, s.State.NmPerLongitude, s.State.MagneticVariation)
+		hdg = math.Heading2LL(opp, routeWps[0].Location, s.State.NmPerLongitude)
 	} else {
-		hdg = math.Heading2LL(opp, mid, s.State.NmPerLongitude, s.State.MagneticVariation)
+		hdg = math.Heading2LL(opp, mid, s.State.NmPerLongitude)
 	}
-	turn := math.HeadingSignedTurn(rwy.Heading, hdg)
+	turn := math.HeadingSignedTurn(math.MagneticToTrue(rwy.Heading, s.State.MagneticVariation), hdg)
 	if turn < -120 {
 		// left downwind
 		wps = append(wps, rg.Waypoint("_dep_downwind1", 1, 1.5))

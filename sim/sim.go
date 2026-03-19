@@ -1766,11 +1766,10 @@ func (s *Sim) generateFlightFollowingMessage(ac *Aircraft) *av.RadioTransmission
 			// departure airport as a candidate as it may be well outside
 			// the TRACON.
 			if d := math.NMDistance2LL(ac.Position(), ac.DepartureAirportLocation()); d < dist {
-				hdg := math.Heading2LL(ac.DepartureAirportLocation(), ac.Position(), s.State.NmPerLongitude,
-					s.State.MagneticVariation)
+				hdg := math.Heading2LL(ac.DepartureAirportLocation(), ac.Position(), s.State.NmPerLongitude)
 				return ac.FlightPlan.DepartureAirport, math.Compass(hdg), d, true
 			} else {
-				hdg := math.Heading2LL(center, ac.Position(), s.State.NmPerLongitude, s.State.MagneticVariation)
+				hdg := math.Heading2LL(center, ac.Position(), s.State.NmPerLongitude)
 				return closest.Description, math.Compass(hdg), dist, false
 			}
 		}
@@ -1971,7 +1970,7 @@ func (s *Sim) getGoAroundProcedureForAircraft(ac *Aircraft) *GoAroundProcedure {
 
 	approach := ac.Nav.Approach.Assigned
 	return &GoAroundProcedure{
-		Heading:           int(approach.RunwayHeading(s.State.NmPerLongitude, s.State.MagneticVariation) + 0.5),
+		Heading:           int(math.TrueToMagnetic(approach.RunwayHeading(s.State.NmPerLongitude), s.State.MagneticVariation) + 0.5),
 		IsRunwayHeading:   true,
 		Altitude:          1000 * int((ac.Nav.FlightState.ArrivalAirportElevation+2500)/1000),
 		HandoffController: s.getGoAroundController(ac),

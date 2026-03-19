@@ -303,7 +303,7 @@ func (nav *Nav) ExpediteClimb() av.CommandIntent {
 	}
 }
 
-func (nav *Nav) AssignHeading(hdg float32, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
+func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. {hdg} isn't a valid heading", hdg)
 	}
@@ -331,7 +331,7 @@ func (nav *Nav) AssignHeading(hdg float32, turn av.TurnDirection, simTime time.T
 	return intent
 }
 
-func (nav *Nav) assignHeading(hdg float32, turn av.TurnDirection, simTime time.Time) {
+func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime time.Time) {
 	approachCleared := nav.Approach.Cleared
 
 	if _, ok := nav.AssignedHeading(); !ok {
@@ -592,7 +592,8 @@ func (nav *Nav) HoldAtFix(callsign string, fix string, hold *av.Hold) av.Command
 func (nav *Nav) makeFlyHold(callsign string, hold av.Hold) *FlyHold {
 	// Calculate heading from aircraft's current position to fix
 	pHold, _ := av.DB.LookupWaypoint(hold.Fix)
-	hdg := math.Heading2LL(nav.FlightState.Position, pHold, nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+	hdg := math.TrueToMagnetic(math.Heading2LL(nav.FlightState.Position, pHold, nav.FlightState.NmPerLongitude),
+		nav.FlightState.MagneticVariation)
 
 	NavLog(callsign, time.Time{}, NavLogHold, "makeFlyHold: headingToFix=%.1f hold_inbound=%.1f turn=%s -> %s",
 		hdg, hold.InboundCourse, hold.TurnDirection, hold.Entry(hdg).String())
@@ -625,7 +626,7 @@ func (nav *Nav) DepartFixDirect(fixa string, fixb string) av.CommandIntent {
 	}
 }
 
-func (nav *Nav) DepartFixHeading(fix string, hdg float32) av.CommandIntent {
+func (nav *Nav) DepartFixHeading(fix string, hdg math.MagneticHeading) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. Heading {hdg} is invalid", hdg)
 	}
@@ -634,7 +635,7 @@ func (nav *Nav) DepartFixHeading(fix string, hdg float32) av.CommandIntent {
 	}
 
 	nfa := nav.FixAssignments[fix]
-	h := float32(hdg)
+	h := hdg
 	nfa.Depart.Heading = &h
 	nav.FixAssignments[fix] = nfa
 

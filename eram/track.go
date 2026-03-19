@@ -93,11 +93,11 @@ func (ts *TrackState) HeadingVector(nmPerLongitude, magneticVariation float32) m
 	return math.NM2LL(v, nmPerLongitude)
 }
 
-func (ts *TrackState) TrackHeading(nmPerLongitude float32) float32 {
+func (ts *TrackState) TrackHeading(nmPerLongitude float32) math.TrueHeading {
 	if !ts.HaveHeading() {
 		return -1
 	}
-	return math.Heading2LL(ts.PreviousTrack.Location, ts.Track.Location, nmPerLongitude, 0)
+	return math.Heading2LL(ts.PreviousTrack.Location, ts.Track.Location, nmPerLongitude)
 }
 
 func (ep *ERAMPane) trackStateForACID(ctx *panes.Context, acid sim.ACID) (*TrackState, bool) {
@@ -514,7 +514,7 @@ func (ep *ERAMPane) drawPTLs(ctx *panes.Context, tracks []sim.Track, transforms 
 		if heading == -1 {
 			continue // dont draw PTLs for tracks that don't have a calculated heading
 		}
-		ptlEnd := math.Offset2LL(pos, heading, dist, ctx.NmPerLongitude, 0)
+		ptlEnd := math.Offset2LL(pos, heading, dist, ctx.NmPerLongitude)
 		p0 := transforms.WindowFromLatLongP(pos)
 		p1 := transforms.WindowFromLatLongP(ptlEnd)
 		color := ep.trackDatablockColor(ctx, trk)

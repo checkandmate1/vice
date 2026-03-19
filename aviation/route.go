@@ -102,6 +102,11 @@ func (wp *Waypoint) InitExtra() *WaypointExtra {
 	return wp.Extra
 }
 
+// MagneticHeading returns the waypoint's heading as MagneticHeading.
+func (wp Waypoint) MagneticHeading() math.MagneticHeading {
+	return math.MagneticHeading(wp.Heading)
+}
+
 // Flag readers (value receiver)
 func (wp Waypoint) PresentHeading() bool { return wp.Flags&WaypointFlagPresentHeading != 0 }
 func (wp Waypoint) NoPT() bool           { return wp.Flags&WaypointFlagNoPT != 0 }
@@ -1594,7 +1599,7 @@ type DMEArc struct {
 	Center         math.Point2LL
 	Radius         float32
 	Length         float32
-	InitialHeading float32
+	InitialHeading math.MagneticHeading
 	Direction      DMEArcDirection
 }
 
@@ -1675,11 +1680,12 @@ func (arc *DMEArc) Initialize(loc Locator, startLoc, endLoc math.Point2LL, nmPer
 		}
 	}
 
-	// Heading from the center of the arc to the start fix
-	hfix := math.Heading2LL(arc.Center, startLoc, nmPerLongitude, magneticVariation)
-
-	// Then perpendicular to that, depending on the arc's direction
-	arc.InitialHeading = math.NormalizeHeading(hfix + float32(util.Select(arc.Direction.IsClockwise(), 90, -90)))
+	// Heading from the center of the arc to the start fix (true), then
+	// convert to magnetic; perpendicular depending on the arc's direction.
+	hfix := math.Heading2LL(arc.Center, startLoc, nmPerLongitude)
+	arc.InitialHeading = math.TrueToMagnetic(
+		math.OffsetHeading(hfix, float32(util.Select(arc.Direction.IsClockwise(), 90, -90))),
+		magneticVariation)
 
 	return true
 }
@@ -1702,8 +1708,8 @@ func (t TurnDirection) String() string {
 
 // Hold represents a charted holding pattern from CIFP or HPF
 type Hold struct {
-	Fix             string  // Fix identifier where hold is located
-	InboundCourse   float32 // Inbound magnetic course to the fix
+	Fix             string               // Fix identifier where hold is located
+	InboundCourse   math.MagneticHeading // Inbound magnetic course to the fix
 	TurnDirection   TurnDirection
 	LegLengthNM     float32 // Distance-based leg length (nautical miles), 0 if time-based
 	LegMinutes      float32 // Time-based leg duration (minutes), 0 if distance-based
@@ -1751,7 +1757,7 @@ func (e HoldEntry) String() string {
 	return []string{"Direct", "Parallel", "Teardrop"}[int(e)]
 }
 
-func (h Hold) Entry(headingToFix float32) HoldEntry {
+func (h Hold) Entry(headingToFix math.MagneticHeading) HoldEntry {
 	outboundCourse := math.OppositeHeading(h.InboundCourse)
 
 	// Dividing line is 70° from outbound on holding side This creates

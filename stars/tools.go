@@ -229,7 +229,7 @@ func (sp *STARSPane) drawRBLs(ctx *panes.Context, transforms radar.ScopeTransfor
 
 	drawRBL := func(p0 math.Point2LL, p1 math.Point2LL, idx int, gs float32) {
 		// Format the range-bearing line text for the two positions.
-		hdg := math.Heading2LL(p0, p1, ctx.NmPerLongitude, ctx.MagneticVariation)
+		hdg := float32(math.TrueToMagnetic(math.Heading2LL(p0, p1, ctx.NmPerLongitude), ctx.MagneticVariation))
 		dist := math.NMDistance2LL(p0, p1)
 		text := fmt.Sprintf(" %03d/%.2f", int(hdg+.5), dist) // leading space for alignment
 		if gs != 0 {
@@ -483,7 +483,7 @@ func (sp *STARSPane) drawScenarioArrivalRoutes(ctx *panes.Context, transforms ra
 						} else if wp[0].Heading != 0 {
 							// This should be the only other case... The heading arrow is drawn
 							// up to 2nm out, so put the runway 1nm along its axis.
-							a := math.Radians(float32(wp[0].Heading) - ctx.MagneticVariation)
+							a := math.Radians(math.MagneticToTrue(wp[0].MagneticHeading(), ctx.MagneticVariation))
 							v := math.SinCos(a)
 							pend := math.LL2NM(wp[0].Location, ctx.NmPerLongitude)
 							pend = math.Add2f(pend, v)
@@ -702,7 +702,7 @@ func (sp *STARSPane) drawPTLs(ctx *panes.Context, transforms radar.ScopeTransfor
 		dist := float32(state.track.Groundspeed) / 60 * ps.PTLLength
 
 		// h is a vector in nm coordinates with length l=dist
-		hdg := state.TrackHeading(ctx.NmPerLongitude)
+		hdg := float32(state.TrackHeading(ctx.NmPerLongitude))
 		h := math.SinCos(math.Radians(hdg))
 		h = math.Scale2f(h, dist)
 		end := math.Add2f(math.LL2NM(state.track.Location, ctx.NmPerLongitude), h)
@@ -794,12 +794,12 @@ func (sp *STARSPane) drawRingsAndCones(ctx *panes.Context, transforms radar.Scop
 			if drawATPACone {
 				// The cone is oriented to point toward the leading aircraft.
 				if sfront, ok := sp.TrackState[state.ATPALeadAircraftCallsign]; ok {
-					coneHeading = math.Heading2LL(state.track.Location, sfront.track.Location,
-						ctx.NmPerLongitude, ctx.MagneticVariation)
+					coneHeading = float32(math.TrueToMagnetic(math.Heading2LL(state.track.Location, sfront.track.Location,
+						ctx.NmPerLongitude), ctx.MagneticVariation))
 				}
 			} else {
 				// The cone is oriented along the aircraft's heading.
-				coneHeading = state.TrackHeading(ctx.NmPerLongitude) + ctx.MagneticVariation
+				coneHeading = float32(math.TrueToMagnetic(state.TrackHeading(ctx.NmPerLongitude), ctx.MagneticVariation))
 			}
 			rot := math.Rotator2f(coneHeading)
 			for i := range pts {
@@ -932,7 +932,7 @@ func (sp *STARSPane) drawWind(ctx *panes.Context, transforms radar.ScopeTransfor
 
 		// Rotate so we can draw an arrow pointing in the wind direction;
 		// add an extra 180 so it points where the wind is blowing.
-		rot := math.Rotator2f(samp.WindDirection() + 180)
+		rot := math.Rotator2f(float32(samp.WindDirection()) + 180)
 
 		// Draw arrow shaft
 		shaftStart := math.Add2f(pw, rot([2]float32{0, -arrowLength / 2}))
@@ -1006,7 +1006,7 @@ func (sp *STARSPane) displaySignificantPointInfo(p0, p1 math.Point2LL, nmPerLong
 		d := math.NMDistance2LL(p0, sig.Location)
 		str := ""
 		if d > 1 { // no bearing range if within 1nm
-			hdg := math.Heading2LL(p0, sig.Location, nmPerLongitude, magneticVariation)
+			hdg := float32(math.TrueToMagnetic(math.Heading2LL(p0, sig.Location, nmPerLongitude), magneticVariation))
 			str = fmt.Sprintf("%03d/%.2f ", int(hdg), d)
 			for len(str) < 9 {
 				str += " "
@@ -1079,7 +1079,7 @@ func (sp *STARSPane) drawHoldPattern(ctx *panes.Context, transforms radar.ScopeT
 
 	// Inbound course (magnetic to true)
 	inboundMag := hold.InboundCourse
-	inboundTrue := inboundMag - ctx.MagneticVariation
+	inboundTrue := math.MagneticToTrue(inboundMag, ctx.MagneticVariation)
 	inboundRad := math.Radians(inboundTrue)
 
 	// Outbound is 180° from inbound
@@ -1145,10 +1145,10 @@ func (sp *STARSPane) drawHoldPattern(ctx *panes.Context, transforms radar.ScopeT
 
 	// Draw arrow on outbound leg showing direction of flight
 	outboundMid := math.Mid2f(outboundStart, outboundEnd)
-	aa := outboundRad + math.Radians(180+30)
+	aa := outboundRad + math.Radians(float32(180+30))
 	pa := math.Add2f(outboundMid, math.Scale2f(math.SinCos(aa), 0.5))
 	ld.AddLine(math.NM2LL(outboundMid, ctx.NmPerLongitude), math.NM2LL(pa, ctx.NmPerLongitude), color)
-	ba := outboundRad - math.Radians(180+30)
+	ba := outboundRad - math.Radians(float32(180+30))
 	pb := math.Add2f(outboundMid, math.Scale2f(math.SinCos(ba), 0.5))
 	ld.AddLine(math.NM2LL(outboundMid, ctx.NmPerLongitude), math.NM2LL(pb, ctx.NmPerLongitude), color)
 

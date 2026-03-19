@@ -239,19 +239,21 @@ func (c *NewSimConfiguration) initDefaultWindDirection() {
 			if slices.ContainsFunc(c.ScenarioSpec.DepartureRunways, func(r sim.DepartureRunway) bool {
 				return r.Airport == ap && r.Runway.Base() == rwy.Id
 			}) {
-				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(rwy.Heading))
+				// HeadingVector expects TrueHeading; we pass magnetic headings here,
+				// but the constant magnetic variation cancels in the vector average.
+				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(math.TrueHeading(rwy.Heading)))
 			}
 			if slices.ContainsFunc(c.ScenarioSpec.ArrivalRunways, func(r sim.ArrivalRunway) bool {
 				return r.Airport == ap && r.Runway.Base() == rwy.Id
 			}) {
-				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(rwy.Heading))
+				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(math.TrueHeading(rwy.Heading)))
 			}
 		}
 	}
 
 	// Runway headings from the database are already magnetic, so the
 	// average is magnetic as well; no further conversion needed.
-	avgRwyMagneticHeading := math.VectorHeading(sumRunwayVecs)
+	avgRwyMagneticHeading := float32(math.VectorHeading(sumRunwayVecs))
 
 	// Set default wind direction range to ±30 degrees from average runway heading
 	windDirMin := int(math.NormalizeHeading(avgRwyMagneticHeading - 30))

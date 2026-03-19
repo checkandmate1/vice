@@ -69,7 +69,7 @@ type Nav struct {
 // before pilots start to follow assignments.
 type DeferredNavHeading struct {
 	Time    time.Time
-	Heading *float32
+	Heading *math.MagneticHeading
 	Turn    *av.TurnDirection
 	Hold    *FlyHold
 	// For direct fix, this will be the updated set of waypoints.
@@ -126,7 +126,7 @@ type FlightState struct {
 	NmPerLongitude    float32
 
 	Position     math.Point2LL
-	Heading      float32
+	Heading      math.MagneticHeading
 	Altitude     float32
 	PrevAltitude float32
 	IAS, GS      float32 // speeds...
@@ -178,7 +178,7 @@ type NavSpeed struct {
 const MaxIAS = 290
 
 type NavHeading struct {
-	Assigned     *float32
+	Assigned     *math.MagneticHeading
 	Turn         *av.TurnDirection
 	Arc          *av.DMEArc
 	JoiningArc   bool
@@ -211,7 +211,7 @@ type NavFixAssignment struct {
 	}
 	Depart struct {
 		Fix     *av.Waypoint
-		Heading *float32
+		Heading *math.MagneticHeading
 	}
 	Hold *av.Hold
 }
@@ -223,7 +223,7 @@ type NavAirwork struct {
 
 	RemainingSteps  int
 	NextMoveCounter int
-	Heading         float32
+	Heading         math.MagneticHeading
 	TurnRate        float32
 	TurnDirection   av.TurnDirection
 	IAS             float32
@@ -348,7 +348,7 @@ func makeNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerform
 		MagneticVariation: magneticVariation,
 		NmPerLongitude:    nmPerLongitude,
 		Position:          nav.Waypoints[0].Location,
-		Heading:           float32(nav.Waypoints[0].Heading),
+		Heading:           nav.Waypoints[0].MagneticHeading(),
 	}
 
 	if nav.FlightState.Position.IsZero() {
@@ -357,8 +357,8 @@ func makeNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerform
 	}
 
 	if nav.FlightState.Heading == 0 { // unassigned, so get the heading using the next fix
-		nav.FlightState.Heading = math.Heading2LL(nav.FlightState.Position,
-			nav.Waypoints[1].Location, nav.FlightState.NmPerLongitude,
+		nav.FlightState.Heading = math.TrueToMagnetic(
+			math.Heading2LL(nav.FlightState.Position, nav.Waypoints[1].Location, nav.FlightState.NmPerLongitude),
 			nav.FlightState.MagneticVariation)
 	}
 
@@ -428,7 +428,7 @@ func (nav *Nav) IsAirborne() bool {
 
 // AssignedHeading returns the aircraft's current heading assignment, if
 // any, regardless of whether the pilot has yet started following it.
-func (nav *Nav) AssignedHeading() (float32, bool) {
+func (nav *Nav) AssignedHeading() (math.MagneticHeading, bool) {
 	if dh := nav.DeferredNavHeading; dh != nil {
 		if dh.Heading != nil {
 			return *dh.Heading, true
@@ -472,7 +472,7 @@ func (nav *Nav) DepartureHeading() (int, DepartureHeadingState) {
 // few seconds in the future. It should only be called for heading changes
 // due to controller instructions to the pilot and never in cases where the
 // autopilot is changing the heading assignment.
-func (nav *Nav) EnqueueHeading(hdg float32, turn av.TurnDirection, approachCleared bool, simTime time.Time) {
+func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, approachCleared bool, simTime time.Time) {
 	var delay float32
 	if approachCleared {
 		// Minimal delay if the aircraft has been cleared for an approach.

@@ -397,7 +397,7 @@ func ParseARINC424(r io.Reader) ARINC424Result {
 				ap := result.Airports[icao]
 				ap.Runways = append(ap.Runways, Runway{
 					Id:                         rwy,
-					Heading:                    float32(parseInt(line[27:31])) / 10,
+					Heading:                    math.MagneticHeading(float32(parseInt(line[27:31])) / 10),
 					Threshold:                  parseLatLong(line[32:41], line[41:51]),
 					ThresholdCrossingHeight:    parseInt(line[75:77]),
 					Elevation:                  parseInt(line[66:71]),
@@ -865,8 +865,8 @@ func markTBarNoPT(transitions map[string]WaypointArray, recs []ssaRecord, fixes 
 		if !ok {
 			return
 		}
-		bearing := math.Heading2LL(centralLoc, flankLoc, nmPerLongitude, 0)
-		diff := math.HeadingDifference(bearing, inboundCourse)
+		bearing := math.Heading2LL(centralLoc, flankLoc, nmPerLongitude)
+		diff := math.HeadingDifference(float32(bearing), inboundCourse)
 		if diff < 80 || diff > 100 {
 			return
 		}
@@ -1000,10 +1000,10 @@ func parseHoldingPattern(line []byte) (Hold, bool) {
 		// True bearing - store as-is per design decision
 		// Conversion to magnetic will be done at point of use
 		if !empty(line[39:42]) {
-			h.InboundCourse = float32(parseInt(line[39:42]))
+			h.InboundCourse = math.MagneticHeading(parseInt(line[39:42]))
 		}
 	} else if !empty(line[39:43]) {
-		h.InboundCourse = float32(parseInt(line[39:43])) / 10.0
+		h.InboundCourse = math.MagneticHeading(float32(parseInt(line[39:43])) / 10.0)
 	}
 
 	// Turn direction (column 44)
@@ -1068,7 +1068,7 @@ func extractHoldsFromSSA(rec ssaRecord, procName, procType string) (Hold, bool) 
 
 	// Inbound magnetic course (from outboundMagneticCourse field per ARINC-424)
 	if !empty(rec.outboundMagneticCourse) {
-		h.InboundCourse = float32(parseInt(rec.outboundMagneticCourse)) / 10.0
+		h.InboundCourse = math.MagneticHeading(float32(parseInt(rec.outboundMagneticCourse)) / 10.0)
 	}
 
 	// Leg length or leg time (from routeDistance field)

@@ -16,12 +16,11 @@ import (
 	"github.com/mmp/vice/wx"
 )
 
-func (nav *Nav) headingForTrack(hdg float32, wxs wx.Sample) float32 {
+func (nav *Nav) headingForTrack(hdg math.TrueHeading, wxs wx.Sample) math.MagneticHeading {
 	// Update heading for wind and magnetic variation.
 	v := math.SinCos(math.Radians(hdg))
 	v = math.Scale2f(v, nav.FlightState.GS)
-	hdg -= wxs.Deflection(v)
-	return math.NormalizeHeading(hdg + nav.FlightState.MagneticVariation)
+	return math.TrueToMagnetic(math.OffsetHeading(hdg, -wxs.Deflection(v)), nav.FlightState.MagneticVariation)
 }
 
 func (nav *Nav) updateHeading(callsign string, wxs wx.Sample, simTime time.Time) {
@@ -45,11 +44,11 @@ func (nav *Nav) updateHeading(callsign string, wxs wx.Sample, simTime time.Time)
 	var turn float32
 	switch turnDirection {
 	case av.TurnLeft:
-		angle := math.NormalizeHeading(nav.FlightState.Heading - targetHeading)
+		angle := float32(math.NormalizeHeading(nav.FlightState.Heading - targetHeading))
 		angle = min(angle, turnRate)
 		turn = -angle
 	case av.TurnRight:
-		angle := math.NormalizeHeading(targetHeading - nav.FlightState.Heading)
+		angle := float32(math.NormalizeHeading(targetHeading - nav.FlightState.Heading))
 		angle = min(angle, turnRate)
 		turn = angle
 	case av.TurnClosest:
@@ -58,12 +57,12 @@ func (nav *Nav) updateHeading(callsign string, wxs wx.Sample, simTime time.Time)
 	}
 
 	// Finally, do the turn.
-	nav.FlightState.Heading = math.NormalizeHeading(nav.FlightState.Heading + turn)
+	nav.FlightState.Heading = math.OffsetHeading(nav.FlightState.Heading, turn)
 }
 
 func (nav *Nav) updatePositionAndGS(wxs wx.Sample) {
 	// Calculate offset vector based on heading and current TAS.
-	hdg := nav.FlightState.Heading - nav.FlightState.MagneticVariation
+	hdg := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	TAS := nav.TAS(wxs.Temperature()+273.15) / 3600
 	flightVector := math.Scale2f(math.SinCos(math.Radians(hdg)), TAS)
 
@@ -154,7 +153,7 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 	return nil
 }
 
-func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time) (heading float32, turn av.TurnDirection, rate float32) {
+func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time) (heading math.MagneticHeading, turn av.TurnDirection, rate float32) {
 	if nav.Airwork != nil {
 		return nav.Airwork.TargetHeading()
 	}
@@ -206,7 +205,7 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 			v := math.Sub2f(pac, pc)
 			// Heading from center to aircraft, which we assume to be more
 			// or less on the arc already.
-			angle := math.VectorHeading(v) // x, y, as elsewhere..
+			angle := float32(math.VectorHeading(v)) // x, y, as elsewhere..
 
 			// Choose a point a bit farther ahead on the arc
 			angle += float32(util.Select(arc.Direction.IsClockwise(), 10, -10))
@@ -221,18 +220,15 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 		}
 
 		// No magnetic correction yet, just the raw geometric heading vector
-		hdg := math.Heading2LL(nav.FlightState.Position, pTarget, nav.FlightState.NmPerLongitude, 0)
-		v := math.SinCos(math.Radians(hdg))
+		trueHdg := math.Heading2LL(nav.FlightState.Position, pTarget, nav.FlightState.NmPerLongitude)
+		v := math.SinCos(math.Radians(trueHdg))
 		v = math.Scale2f(v, nav.FlightState.GS)
 
 		if nav.IsAirborne() {
-			hdg -= wxs.Deflection(v)
+			trueHdg = math.OffsetHeading(trueHdg, -wxs.Deflection(v))
 		}
 
-		// Incorporate magnetic variation in the final heading
-		hdg += nav.FlightState.MagneticVariation
-
-		heading = math.NormalizeHeading(hdg)
+		heading = math.TrueToMagnetic(trueHdg, nav.FlightState.MagneticVariation)
 	}
 
 	// We have a heading and a direction; now figure out if we need to
@@ -240,21 +236,19 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 
 	// signed difference, negative is turn left
 	headingDelta := func() float32 {
+		diff := float32(heading) - float32(nav.FlightState.Heading)
 		switch turn {
 		case av.TurnLeft:
-			diff := heading - nav.FlightState.Heading
 			if diff > 0 {
 				return diff - 360 // force left turn
 			}
 			return diff // already left
 		case av.TurnRight:
-			diff := heading - nav.FlightState.Heading
 			if diff < 0 {
 				return diff + 360 // force right turn
 			}
 			return diff // already right
 		default:
-			diff := heading - nav.FlightState.Heading
 			if diff > 180 {
 				diff -= 360
 			} else if diff < -180 {
@@ -331,21 +325,21 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 
 	// Are we nearly at the fix and is it time to turn for the outbound heading?
 	// First, figure out the outbound heading.
-	var hdg float32
+	var hdg math.MagneticHeading
 	if len(nav.Approach.AtFixClearedRoute) > 1 &&
 		nav.Approach.AtFixClearedRoute[0].Fix == wp.Fix {
-		hdg = math.Heading2LL(wp.Location, nav.Approach.AtFixClearedRoute[1].Location,
-			nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+		hdg = math.TrueToMagnetic(math.Heading2LL(wp.Location, nav.Approach.AtFixClearedRoute[1].Location,
+			nav.FlightState.NmPerLongitude), nav.FlightState.MagneticVariation)
 	} else if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Heading != nil {
 		// controller assigned heading at the fix.
 		hdg = *nfa.Depart.Heading
 	} else if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Fix != nil {
 		// depart fix direct
-		hdg = math.Heading2LL(wp.Location, nfa.Depart.Fix.Location,
-			nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+		hdg = math.TrueToMagnetic(math.Heading2LL(wp.Location, nfa.Depart.Fix.Location,
+			nav.FlightState.NmPerLongitude), nav.FlightState.MagneticVariation)
 	} else if wp.Heading != 0 {
 		// Leaving the next fix on a specified heading.
-		hdg = float32(wp.Heading)
+		hdg = wp.MagneticHeading()
 	} else if wp.PresentHeading() {
 		hdg = nav.FlightState.Heading
 	} else if wp.Arc() != nil {
@@ -353,8 +347,8 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		hdg = wp.Arc().InitialHeading
 	} else if len(nav.Waypoints) > 1 {
 		// Otherwise, find the heading to the following fix.
-		hdg = math.Heading2LL(wp.Location, nav.Waypoints[1].Location,
-			nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+		hdg = math.TrueToMagnetic(math.Heading2LL(wp.Location, nav.Waypoints[1].Location,
+			nav.FlightState.NmPerLongitude), nav.FlightState.MagneticVariation)
 	} else {
 		// No more waypoints (likely about to land), so just
 		// plan to stay on the current heading.
@@ -468,12 +462,12 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 			}
 		} else if wp.Heading != 0 && !clearedAtFix {
 			// We have an outbound heading
-			hdg := float32(wp.Heading)
+			hdg := wp.MagneticHeading()
 			turn := wp.Turn()
 			nav.Heading = NavHeading{Assigned: &hdg, Turn: &turn}
 		} else if wp.PresentHeading() && !clearedAtFix {
 			// Round to nearest 5 degrees
-			hdg := float32(5 * int((nav.FlightState.Heading+2.5)/5))
+			hdg := math.MagneticHeading(5 * int((float32(nav.FlightState.Heading)+2.5)/5))
 			hdg = math.NormalizeHeading(hdg)
 			nav.Heading = NavHeading{Assigned: &hdg}
 		} else if wp.Arc() != nil {
@@ -595,7 +589,7 @@ func isTurnRight(currentHdg, targetHdg float32, turn av.TurnDirection) bool {
 // Given a fix location and an outbound heading, returns true when the
 // aircraft should start the turn to outbound to intercept the outbound
 // radial.
-func (nav *Nav) shouldTurnForOutbound(p math.Point2LL, hdg float32, turn av.TurnDirection, wxs wx.Sample) bool {
+func (nav *Nav) shouldTurnForOutbound(p math.Point2LL, hdg math.MagneticHeading, turn av.TurnDirection, wxs wx.Sample) bool {
 	eta := nav.ETA(p)
 
 	// Always start the turn if we've almost passed the fix.
@@ -613,8 +607,8 @@ func (nav *Nav) shouldTurnForOutbound(p math.Point2LL, hdg float32, turn av.Turn
 
 	// Get two points that give the line of the outbound course.
 	p0 := math.LL2NM(p, nav.FlightState.NmPerLongitude)
-	hm := hdg - nav.FlightState.MagneticVariation
-	p1 := math.Add2f(p0, math.SinCos(math.Radians(hm)))
+	hdgTrue := math.MagneticToTrue(hdg, nav.FlightState.MagneticVariation)
+	p1 := math.Add2f(p0, math.SinCos(math.Radians(hdgTrue)))
 
 	// Make a ghost aircraft to use to simulate the turn.
 	nav2 := *nav
@@ -644,9 +638,10 @@ func (nav *Nav) shouldTurnForOutbound(p math.Point2LL, hdg float32, turn av.Turn
 
 // Given a point and a radial, returns true when the aircraft should
 // start turning to intercept the radial.
-func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg float32, turn av.TurnDirection, wxs wx.Sample) bool {
+func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg math.MagneticHeading, turn av.TurnDirection, wxs wx.Sample) bool {
 	p0nm := math.LL2NM(p0, nav.FlightState.NmPerLongitude)
-	p1 := math.Add2f(p0nm, math.SinCos(math.Radians(hdg-nav.FlightState.MagneticVariation)))
+	hdgTrue := math.MagneticToTrue(hdg, nav.FlightState.MagneticVariation)
+	p1 := math.Add2f(p0nm, math.SinCos(math.Radians(hdgTrue)))
 
 	initialDist := math.SignedPointLineDistance(math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude), p0nm, p1)
 	eta := math.Abs(initialDist) / nav.FlightState.GS * 3600 // in seconds
@@ -663,7 +658,6 @@ func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg float32, turn av.Tur
 
 	// Calculate the expected crab angle needed for wind correction.
 	// The aircraft's heading will differ from the track by this amount.
-	hdgTrue := hdg - nav.FlightState.MagneticVariation
 	v := math.SinCos(math.Radians(hdgTrue))
 	v = math.Scale2f(v, nav.FlightState.GS)
 	crabAngle := math.Abs(wxs.Deflection(v))
@@ -690,7 +684,7 @@ func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg float32, turn av.Tur
 
 // Analytical version of shouldTurnForOutbound using geometry rather than
 // simulation. Currently unused - kept for future integration.
-func (nav *Nav) shouldTurnForOutboundAnalytical(p math.Point2LL, hdg float32, turn av.TurnDirection) bool {
+func (nav *Nav) shouldTurnForOutboundAnalytical(p math.Point2LL, hdg math.MagneticHeading, turn av.TurnDirection) bool {
 	eta := nav.ETA(p)
 	if eta < 2 {
 		return true
@@ -707,8 +701,8 @@ func (nav *Nav) shouldTurnForOutboundAnalytical(p math.Point2LL, hdg float32, tu
 	}
 
 	currentPos := math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude)
-	currentHdg := nav.FlightState.Heading - nav.FlightState.MagneticVariation
-	targetHdg := hdg - nav.FlightState.MagneticVariation
+	currentHdg := float32(math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation))
+	targetHdg := float32(math.MagneticToTrue(hdg, nav.FlightState.MagneticVariation))
 
 	turnRight := isTurnRight(currentHdg, targetHdg, turn)
 	rollout := rolloutPosition(currentPos, currentHdg, targetHdg, radius, turnRight)
@@ -725,9 +719,9 @@ func (nav *Nav) shouldTurnForOutboundAnalytical(p math.Point2LL, hdg float32, tu
 
 // Analytical version of shouldTurnToIntercept using geometry rather than
 // simulation. Currently unused - kept for future integration.
-func (nav *Nav) shouldTurnToInterceptAnalytical(p0 math.Point2LL, hdg float32, turn av.TurnDirection) bool {
+func (nav *Nav) shouldTurnToInterceptAnalytical(p0 math.Point2LL, hdg math.MagneticHeading, turn av.TurnDirection) bool {
 	lineOrigin := math.LL2NM(p0, nav.FlightState.NmPerLongitude)
-	targetHdgTrue := hdg - nav.FlightState.MagneticVariation
+	targetHdgTrue := float32(math.MagneticToTrue(hdg, nav.FlightState.MagneticVariation))
 	lineDir := math.SinCos(math.Radians(targetHdgTrue))
 	lineEnd := math.Add2f(lineOrigin, lineDir)
 
@@ -749,7 +743,7 @@ func (nav *Nav) shouldTurnToInterceptAnalytical(p0 math.Point2LL, hdg float32, t
 		return false
 	}
 
-	currentHdg := nav.FlightState.Heading - nav.FlightState.MagneticVariation
+	currentHdg := float32(math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation))
 	turnRight := isTurnRight(currentHdg, targetHdgTrue, turn)
 	rollout := rolloutPosition(currentPos, currentHdg, targetHdgTrue, radius, turnRight)
 	rolloutDist := math.SignedPointLineDistance(rollout, lineOrigin, lineEnd)
@@ -780,13 +774,13 @@ var (
 
 const StandardTurnRate = 3
 
-func TurnAngle(from, to float32, turn av.TurnDirection) float32 {
+func TurnAngle(from, to math.MagneticHeading, turn av.TurnDirection) float32 {
 	switch turn {
 	case av.TurnLeft:
-		return math.NormalizeHeading(from - to)
+		return float32(math.NormalizeHeading(from - to))
 
 	case av.TurnRight:
-		return math.NormalizeHeading(to - from)
+		return float32(math.NormalizeHeading(to - from))
 
 	case av.TurnClosest:
 		return math.Abs(math.HeadingDifference(from, to))

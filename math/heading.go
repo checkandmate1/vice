@@ -11,6 +11,17 @@ import (
 ///////////////////////////////////////////////////////////////////////////
 // headings and directions
 
+type MagneticHeading float32
+type TrueHeading float32
+
+func MagneticToTrue(h MagneticHeading, magneticVariation float32) TrueHeading {
+	return TrueHeading(NormalizeHeading(float32(h) - magneticVariation))
+}
+
+func TrueToMagnetic(h TrueHeading, magneticVariation float32) MagneticHeading {
+	return MagneticHeading(NormalizeHeading(float32(h) + magneticVariation))
+}
+
 type CardinalOrdinalDirection int
 
 type HeadingT interface{ ~int | ~float32 }
@@ -76,31 +87,31 @@ func ParseCardinalOrdinalDirection(s string) (CardinalOrdinalDirection, error) {
 	return CardinalOrdinalDirection(0), fmt.Errorf("invalid direction")
 }
 
-// Heading2LL returns the heading from the point |from| to the point |to|
-// in degrees.  The provided points should be in latitude-longitude
-// coordinates and the provided magnetic correction is applied to the
-// result.
-func Heading2LL(from Point2LL, to Point2LL, nmPerLongitude float32, magCorrection float32) float32 {
+// Heading2LL returns the true heading from the point |from| to the point
+// |to| in degrees. The provided points should be in latitude-longitude
+// coordinates.
+func Heading2LL(from Point2LL, to Point2LL, nmPerLongitude float32) TrueHeading {
 	v := Point2LL{to[0] - from[0], to[1] - from[1]}
 	angle := Degrees(Atan2(v[0]*nmPerLongitude, v[1]*NMPerLatitude))
-	return NormalizeHeading(angle + magCorrection)
+	return TrueHeading(NormalizeHeading(angle))
 }
 
-func VectorHeading(v [2]float32) float32 {
+func VectorHeading(v [2]float32) TrueHeading {
 	// Note that atan2() normally measures w.r.t. the +x axis and angles
 	// are positive for counter-clockwise. We want to measure w.r.t. +y and
 	// to have positive angles be clockwise. Happily, swapping the order of
 	// values passed to atan2()--passing (x,y), gives what we want.
-	return NormalizeHeading(Degrees(Atan2(v[0], v[1])))
+	return TrueHeading(NormalizeHeading(Degrees(Atan2(v[0], v[1]))))
 }
 
-func HeadingVector(hdg float32) [2]float32 {
+func HeadingVector(hdg TrueHeading) [2]float32 {
 	return SinCos(Radians(hdg))
 }
 
 // HeadingDifference returns the minimum difference between two
 // headings. (i.e., the result is always in the range [0,180].)
-func HeadingDifference[T HeadingT](a, b T) T {
+// The result is a plain angular delta, not a heading.
+func HeadingDifference[T HeadingT](a, b T) float32 {
 	var d T
 	if a > b {
 		d = a - b
@@ -110,15 +121,14 @@ func HeadingDifference[T HeadingT](a, b T) T {
 	if d > T(180) {
 		d = 360 - d
 	}
-	return d
+	return float32(d)
 }
 
-// Figure out which way is closest: first find the angle to rotate the
-// target heading by so that it's aligned with 180 degrees. This lets us
-// not worry about the complexities of the wrap around at 0/360..
-func HeadingSignedTurn[T HeadingT](cur, target T) T {
+// HeadingSignedTurn returns the signed angular delta to turn from cur to target.
+// Positive is a right turn, negative is a left turn.
+func HeadingSignedTurn[T HeadingT](cur, target T) float32 {
 	rot := NormalizeHeading(180 - target)
-	return 180 - NormalizeHeading(cur+rot) // w.r.t. 180 target
+	return float32(180 - NormalizeHeading(cur+rot)) // w.r.t. 180 target
 }
 
 // compass converts a heading expressed into degrees into a string
@@ -162,6 +172,12 @@ func NormalizeHeading[T HeadingT](h T) T {
 
 func OppositeHeading[T HeadingT](h T) T {
 	return NormalizeHeading(h + 180)
+}
+
+// OffsetHeading adds a float32 angular delta to a heading and normalizes
+// the result, preserving the heading's type.
+func OffsetHeading[T ~float32](h T, delta float32) T {
+	return T(NormalizeHeading(float32(h) + delta))
 }
 
 // IsHeadingBetween checks if heading h is between h1 and h2 (clockwise from h1 to h2).

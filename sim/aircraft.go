@@ -278,11 +278,11 @@ func (ac *Aircraft) ExpediteClimb() av.CommandIntent {
 }
 
 func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
-	return ac.Nav.AssignHeading(float32(heading), turn, simTime)
+	return ac.Nav.AssignHeading(math.MagneticHeading(heading), turn, simTime)
 }
 
 func (ac *Aircraft) TurnLeft(deg int, simTime time.Time) av.CommandIntent {
-	hdg := math.NormalizeHeading(ac.Nav.FlightState.Heading - float32(deg))
+	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(-deg))
 	ac.Nav.AssignHeading(hdg, av.TurnLeft, simTime)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnLeft,
@@ -292,7 +292,7 @@ func (ac *Aircraft) TurnLeft(deg int, simTime time.Time) av.CommandIntent {
 }
 
 func (ac *Aircraft) TurnRight(deg int, simTime time.Time) av.CommandIntent {
-	hdg := math.NormalizeHeading(ac.Nav.FlightState.Heading + float32(deg))
+	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(deg))
 	ac.Nav.AssignHeading(hdg, av.TurnRight, simTime)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnRight,
@@ -314,7 +314,7 @@ func (ac *Aircraft) HoldAtFix(fix string, hold *av.Hold) av.CommandIntent {
 }
 
 func (ac *Aircraft) DepartFixHeading(fix string, hdg int) av.CommandIntent {
-	return ac.Nav.DepartFixHeading(strings.ToUpper(fix), float32(hdg))
+	return ac.Nav.DepartFixHeading(strings.ToUpper(fix), math.MagneticHeading(hdg))
 }
 
 func (ac *Aircraft) DepartFixDirect(fixa, fixb string) av.CommandIntent {
@@ -572,7 +572,7 @@ func (ac *Aircraft) Altitude() float32 {
 	return ac.Nav.FlightState.Altitude
 }
 
-func (ac *Aircraft) Heading() float32 {
+func (ac *Aircraft) Heading() math.MagneticHeading {
 	return ac.Nav.FlightState.Heading
 }
 
@@ -718,7 +718,7 @@ func PlausibleFinalAltitude(fp av.FlightPlan, perf av.AircraftPerformance, nmPer
 		alt = min(alt, 17) // VFRs stay out of class A airspace
 	}
 
-	if math.Heading2LL(pDep, pArr, nmPerLongitude, magneticVariation) > 180 {
+	if math.TrueToMagnetic(math.Heading2LL(pDep, pArr, nmPerLongitude), magneticVariation) > 180 {
 		// Decrease rather than increasing so that we don't potentially go
 		// above the aircraft's ceiling.
 		alt--

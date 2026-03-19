@@ -324,7 +324,7 @@ func (ep *ERAMPane) drawScenarioArrivalRoutes(ctx *panes.Context, transforms rad
 						} else if wp[0].Heading != 0 {
 							// This should be the only other case... The heading arrow is drawn
 							// up to 2nm out, so put the runway 1nm along its axis.
-							a := math.Radians(float32(wp[0].Heading) - ctx.MagneticVariation)
+							a := math.Radians(math.MagneticToTrue(wp[0].MagneticHeading(), ctx.MagneticVariation))
 							v := math.SinCos(a)
 							pend := math.LL2NM(wp[0].Location, ctx.NmPerLongitude)
 							pend = math.Add2f(pend, v)
