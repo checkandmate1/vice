@@ -247,24 +247,12 @@ func (nav *Nav) TargetAltitude() (float32, float32) {
 		rate = 0 // still return the desired altitude, just no oomph to get there.
 	}
 
-	// Ugly to be digging into heading here, but anyway...
-	if nav.Heading.RacetrackPT != nil {
-		if alt, ok := nav.Heading.RacetrackPT.GetAltitude(nav); ok {
-			return alt, rate
-		}
-	}
-	if nav.Heading.Standard45PT != nil {
-		if alt, ok := nav.Heading.Standard45PT.GetAltitude(nav); ok {
-			return alt, rate
-		}
-	}
-
 	// Controller-assigned altitude overrides everything else
 	if nav.Altitude.Assigned != nil {
 		return *nav.Altitude.Assigned, rate
 	}
 
-	if c, ok := nav.getWaypointAltitudeConstraint(); ok && !nav.flyingPT() {
+	if c, ok := nav.getWaypointAltitudeConstraint(); ok {
 		if c.ETA < 5 || nav.FlightState.Altitude < c.Altitude {
 			// Always climb as soon as we can
 			alt := c.Altitude
@@ -319,11 +307,6 @@ func (nav *Nav) TargetAltitude() (float32, float32) {
 
 	// Baseline: stay where we are
 	return nav.FlightState.Altitude, 0
-}
-
-func (nav *Nav) flyingPT() bool {
-	return (nav.Heading.RacetrackPT != nil && nav.Heading.RacetrackPT.State != PTStateApproaching) ||
-		(nav.Heading.Standard45PT != nil && nav.Heading.Standard45PT.State != PT45StateApproaching)
 }
 
 type WaypointCrossingConstraint struct {

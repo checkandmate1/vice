@@ -146,8 +146,8 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 		nav.Airwork = nil // Done.
 	}
 
-	if nav.Airwork == nil && nav.Heading.Assigned == nil && nav.Heading.Hold == nil &&
-		nav.Heading.Standard45PT == nil && nav.Heading.RacetrackPT == nil {
+	if nav.Airwork == nil && nav.Heading.Assigned == nil &&
+		nav.Heading.Hold == nil && len(nav.Heading.Maneuvers) == 0 {
 		return nav.updateWaypoints(callsign, wxs, fp, simTime)
 	}
 
@@ -174,12 +174,8 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 	if (nav.Approach.InterceptState == InitialHeading ||
 		nav.Approach.InterceptState == TurningToJoin) && nav.Heading.Assigned != nil {
 		heading, turn = nav.ApproachHeading(callsign, wxs, simTime)
-	} else if nav.Heading.RacetrackPT != nil {
-		nav.FlightState.BankAngle = 0
-		return nav.Heading.RacetrackPT.GetHeading(nav, wxs)
-	} else if nav.Heading.Standard45PT != nil {
-		nav.FlightState.BankAngle = 0
-		return nav.Heading.Standard45PT.GetHeading(nav, wxs)
+	} else if len(nav.Heading.Maneuvers) > 0 {
+		return nav.maneuverGetHeading(wxs, simTime)
 	} else if nav.Heading.Hold != nil {
 		nav.FlightState.BankAngle = 0
 		return nav.Heading.Hold.GetHeading(callsign, nav, wxs, simTime)
