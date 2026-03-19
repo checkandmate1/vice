@@ -16,11 +16,12 @@ import (
 	"github.com/mmp/vice/wx"
 )
 
-func (nav *Nav) headingForTrack(hdg math.TrueHeading, wxs wx.Sample) math.MagneticHeading {
-	// Update heading for wind and magnetic variation.
-	v := math.SinCos(math.Radians(hdg))
+func (nav *Nav) headingForTrack(hdg math.MagneticHeading, wxs wx.Sample) math.MagneticHeading {
+	// Convert magnetic track to true, then adjust for wind and convert back.
+	trueHdg := math.MagneticToTrue(hdg, nav.FlightState.MagneticVariation)
+	v := math.SinCos(math.Radians(trueHdg))
 	v = math.Scale2f(v, nav.FlightState.GS)
-	return math.TrueToMagnetic(math.OffsetHeading(hdg, -wxs.Deflection(v)), nav.FlightState.MagneticVariation)
+	return math.TrueToMagnetic(math.OffsetHeading(trueHdg, -wxs.Deflection(v)), nav.FlightState.MagneticVariation)
 }
 
 func (nav *Nav) updateHeading(callsign string, wxs wx.Sample, simTime time.Time) {
