@@ -91,7 +91,7 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 	}
 
 	NavLog(callsign, simTime, NavLogAltitude, "atmosFactor=%.3f climb=%.0f descent=%.0f pressure=%.1f temp=%.1f",
-		atmosFactor, climb, descent, wxs.Pressure(), wxs.Temperature())
+		atmosFactor, climb, descent, wxs.Pressure(), wxs.Temperature().Celsius())
 
 	const rateFadeAltDifference = 500
 	const rateMaxDeltaPercent = 0.075
@@ -193,7 +193,7 @@ func (nav *Nav) atmosClimbFactor(wxs wx.Sample) float32 {
 	pressureAltitude := mbToPressureAltitude(wxs.Pressure())
 	isaTemp := 15 - (2 * pressureAltitude / 1000)
 	tempFactor := float32(1)
-	tempDeviation := wxs.Temperature() - isaTemp
+	tempDeviation := wxs.Temperature().Celsius() - isaTemp
 	if tempDeviation > 0 {
 		tempFactor = 1 + (tempCorrection * tempDeviation)
 	}

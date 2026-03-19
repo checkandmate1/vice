@@ -5,6 +5,7 @@
 package aviation
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -15,7 +16,43 @@ import (
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/rand"
 	"github.com/mmp/vice/util"
+
+	"github.com/vmihailenco/msgpack/v5"
 )
+
+// Temperature represents a temperature value with explicit unit safety.
+// Internally stored as Celsius; use Celsius() or Kelvin() to access.
+// JSON and msgpack serialize as a plain float in Celsius for wire compatibility.
+type Temperature struct {
+	celsius float32
+}
+
+func MakeTemperatureFromCelsius(c float32) Temperature {
+	return Temperature{celsius: c}
+}
+
+func MakeTemperatureFromKelvin(k float32) Temperature {
+	return Temperature{celsius: k - 273.15}
+}
+
+func (t Temperature) Celsius() float32 { return t.celsius }
+func (t Temperature) Kelvin() float32  { return t.celsius + 273.15 }
+
+func (t Temperature) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.celsius)
+}
+
+func (t *Temperature) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &t.celsius)
+}
+
+func (t Temperature) MarshalMsgpack() ([]byte, error) {
+	return msgpack.Marshal(t.celsius)
+}
+
+func (t *Temperature) UnmarshalMsgpack(data []byte) error {
+	return msgpack.Unmarshal(data, &t.celsius)
+}
 
 type RadarTrack struct {
 	ADSBCallsign        ADSBCallsign
@@ -929,15 +966,15 @@ func TASToIAS(tas, altitude float32) float32 {
 	return tas * math.Sqrt(DensityRatioAtAltitude(altitude))
 }
 
-func TASToMach(tas float32, temp float32) float32 {
+func TASToMach(tas float32, temp Temperature) float32 {
 	// speed of sound = sqrt(ratio of specific heats (1.4) * gas constant for dry air (287 J/(kg*K)) * temperature in kelvin)
 	// convert to knots (* 1.94384)
-	sound := math.Sqrt(1.4*287*temp) * 1.94384
+	sound := math.Sqrt(1.4*287*temp.Kelvin()) * 1.94384
 	return tas / sound
 }
 
-func MachToTAS(mach float32, temp float32) float32 {
-	sound := math.Sqrt(1.4*287*temp) * 1.94384
+func MachToTAS(mach float32, temp Temperature) float32 {
+	sound := math.Sqrt(1.4*287*temp.Kelvin()) * 1.94384
 	return mach * sound
 }
 

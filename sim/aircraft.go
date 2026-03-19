@@ -188,7 +188,7 @@ func (ac *Aircraft) InitializeFlightPlan(r av.FlightRules, acType, dep, arr stri
 	}
 }
 
-func (ac *Aircraft) TAS(temp float32) float32 {
+func (ac *Aircraft) TAS(temp av.Temperature) float32 {
 	return ac.Nav.TAS(temp)
 }
 
@@ -225,7 +225,7 @@ func (ac *Aircraft) AssignAltitude(altitude int, afterSpeed bool) av.CommandInte
 	return ac.Nav.AssignAltitude(float32(altitude), afterSpeed)
 }
 
-func (ac *Aircraft) AssignMach(mach float32, afterAltitude bool, temp float32) av.CommandIntent {
+func (ac *Aircraft) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {
 	return ac.Nav.AssignMach(mach, afterAltitude, temp)
 }
 
@@ -249,16 +249,16 @@ func (ac *Aircraft) MaintainPresentSpeed() av.CommandIntent {
 	return ac.Nav.MaintainPresentSpeed()
 }
 
-func (ac *Aircraft) SaySpeed(tempKelvin float32) av.CommandIntent {
-	return ac.Nav.SaySpeed(tempKelvin)
+func (ac *Aircraft) SaySpeed(temp av.Temperature) av.CommandIntent {
+	return ac.Nav.SaySpeed(temp)
 }
 
 func (ac *Aircraft) SayIndicatedSpeed() av.CommandIntent {
 	return ac.Nav.SayIndicatedSpeed()
 }
 
-func (ac *Aircraft) SayMach(tempKelvin float32) av.CommandIntent {
-	return ac.Nav.SayMach(tempKelvin)
+func (ac *Aircraft) SayMach(temp av.Temperature) av.CommandIntent {
+	return ac.Nav.SayMach(temp)
 }
 
 func (ac *Aircraft) SayHeading() av.CommandIntent {

@@ -69,7 +69,7 @@ func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 	return intent
 }
 
-func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp float32) av.CommandIntent {
+func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {
 	if mach == 0 {
 		nav.Speed = NavSpeed{}
 		return av.SpeedIntent{Type: av.SpeedCancel}
@@ -192,7 +192,7 @@ func (nav *Nav) MaintainPresentSpeed() av.CommandIntent {
 	return av.SpeedIntent{Speed: speed, Type: av.SpeedPresentSpeed}
 }
 
-func (nav *Nav) SaySpeed(temp float32) av.CommandIntent {
+func (nav *Nav) SaySpeed(temp av.Temperature) av.CommandIntent {
 	if nav.machTransition() {
 		return nav.SayMach(temp)
 	}
@@ -208,11 +208,11 @@ func (nav *Nav) SayIndicatedSpeed() av.CommandIntent {
 	return intent
 }
 
-func (nav *Nav) SayMach(tempKelvin float32) av.CommandIntent {
+func (nav *Nav) SayMach(temp av.Temperature) av.CommandIntent {
 	if !nav.machTransition() {
 		return av.MakeUnableIntent("unable. we haven't reached mach transition altitude")
 	}
-	currentMach := nav.Mach(tempKelvin)
+	currentMach := nav.Mach(temp)
 	intent := av.ReportMachIntent{Current: currentMach}
 	if nav.Speed.Assigned != nil && nav.Speed.Mach {
 		intent.Assigned = nav.Speed.Assigned

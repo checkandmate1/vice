@@ -395,7 +395,7 @@ func makeNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerform
 	return nav
 }
 
-func (nav *Nav) TAS(temp float32) float32 {
+func (nav *Nav) TAS(temp av.Temperature) float32 {
 	tas := av.IASToTAS(nav.FlightState.IAS, nav.FlightState.Altitude)
 	if nav.machTransition() {
 		tas = min(tas, av.MachToTAS(nav.Perf.Speed.MaxMach, temp))
@@ -405,7 +405,7 @@ func (nav *Nav) TAS(temp float32) float32 {
 	return tas
 }
 
-func (nav *Nav) Mach(temp float32) float32 {
+func (nav *Nav) Mach(temp av.Temperature) float32 {
 	tas := nav.TAS(temp)
 	return av.TASToMach(tas, temp)
 }
@@ -671,7 +671,7 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 	// Speed; don't be as exhaustive as we are for altitude
 	targetAltitude, _ := nav.TargetAltitude()
 	lines = append(lines, fmt.Sprintf("IAS %d GS %d TAS %d", int(nav.FlightState.IAS),
-		int(nav.FlightState.GS), int(nav.TAS(wxs.Temperature()+273.15))))
+		int(nav.FlightState.GS), int(nav.TAS(wxs.Temperature()))))
 	ias, _ := nav.TargetSpeed(targetAltitude, &fp, wxs, nil)
 	if nav.Speed.MaintainSlowestPractical {
 		lines = append(lines, fmt.Sprintf("Maintain slowest practical speed: %.0f kts", ias))

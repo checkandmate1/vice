@@ -574,9 +574,9 @@ func sampleFieldFromGRIB2(grid *Grid, records []*squall.GRIB2, facilityID string
 			case "VGRD":
 				stack.Levels[levelIndex].VComponent = value
 			case "TMP":
-				stack.Levels[levelIndex].Temperature = value
+				stack.Levels[levelIndex].Temperature = av.MakeTemperatureFromKelvin(value)
 			case "DPT":
-				stack.Levels[levelIndex].Dewpoint = value
+				stack.Levels[levelIndex].Dewpoint = av.MakeTemperatureFromKelvin(value)
 			case "HGT":
 				stack.Levels[levelIndex].Height = value
 			default:

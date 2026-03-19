@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/util"
 )
@@ -57,11 +58,11 @@ type AtmosSampleStack struct {
 // VComponent is the northward wind velocity in m/s (positive = moving north).
 // These match the standard GRIB2 UGRD/VGRD convention.
 type AtmosSample struct {
-	UComponent  float32 // eastward velocity m/s
-	VComponent  float32 // northward velocity m/s
-	Temperature float32 // Kelvin
-	Dewpoint    float32 // Kelvin
-	Height      float32 // geopotential height (meters)
+	UComponent  float32        // eastward velocity m/s
+	VComponent  float32        // northward velocity m/s
+	Temperature av.Temperature // temperature
+	Dewpoint    av.Temperature // dewpoint
+	Height      float32        // geopotential height (meters)
 }
 
 // For storage, this information is encoded in structure-of-arrays format,
@@ -190,14 +191,14 @@ func convertStacksToSOALevels[K comparable](stacks map[K]*AtmosSampleStack, keys
 			levels[i].Heading = append(levels[i].Heading, uint8(math.Round(hdg+1)/2))
 			levels[i].Speed = append(levels[i].Speed, uint8(math.Round(spd)))
 
-			tc := level.Temperature - 273.15 // K -> C
+			tc := level.Temperature.Celsius()
 			tq := int(math.Round(tc))
 			if tq < -128 || tq > 127 {
 				return levels, fmt.Errorf("bad temperature: %d not in -128-127", tq)
 			}
 			levels[i].Temperature = append(levels[i].Temperature, int8(tq))
 
-			dc := level.Dewpoint - 273.15 // K -> C
+			dc := level.Dewpoint.Celsius()
 			dq := int(math.Round(dc))
 			if dq < -128 || dq > 127 {
 				return levels, fmt.Errorf("bad dewpoint: %d not in -128-127", dq)
@@ -244,8 +245,8 @@ func convertSOALevelsToStacks[K comparable](levels [NumSampleLevels]AtmosLevelsS
 		var stack AtmosSampleStack
 		for j, level := range decodedLevels {
 			s := AtmosSample{
-				Temperature: float32(level.Temperature[i]) + 273.15, // C -> K
-				Dewpoint:    float32(level.Dewpoint[i]) + 273.15,    // C -> K
+				Temperature: av.MakeTemperatureFromCelsius(float32(level.Temperature[i])),
+				Dewpoint:    av.MakeTemperatureFromCelsius(float32(level.Dewpoint[i])),
 				Height:      float32(level.Height[i])*100 - windHeightOffset,
 			}
 			s.UComponent, s.VComponent = dirSpeedToUV(float32(level.Heading[i])*2, float32(level.Speed[i]))
@@ -444,11 +445,11 @@ func CheckAtmosConversion(at AtmosByPoint, soa AtmosByPointSOA) error {
 				return fmt.Errorf("Speed mismatch round trip %f - %f", s, cs)
 			}
 
-			if math.Abs(sl.Temperature-ckl.Temperature) > 0.51 {
-				return fmt.Errorf("Temperature mismatch round trip %f - %f", sl.Temperature, ckl.Temperature)
+			if math.Abs(sl.Temperature.Kelvin()-ckl.Temperature.Kelvin()) > 0.51 {
+				return fmt.Errorf("Temperature mismatch round trip %f - %f", sl.Temperature.Kelvin(), ckl.Temperature.Kelvin())
 			}
-			if math.Abs(sl.Dewpoint-ckl.Dewpoint) > 0.51 {
-				return fmt.Errorf("Dewpoint mismatch round trip %f - %f", sl.Dewpoint, ckl.Dewpoint)
+			if math.Abs(sl.Dewpoint.Kelvin()-ckl.Dewpoint.Kelvin()) > 0.51 {
+				return fmt.Errorf("Dewpoint mismatch round trip %f - %f", sl.Dewpoint.Kelvin(), ckl.Dewpoint.Kelvin())
 			}
 			if math.Abs(sl.Height-ckl.Height) > 51 {
 				return fmt.Errorf("Height mismatch round trip %f - %f", sl.Height, ckl.Height)
@@ -506,14 +507,14 @@ func (s WindSample) WindVec() [2]float32 {
 	}
 }
 
-// Temperature returns the temperature in Celsius
-func (s Sample) Temperature() float32 {
-	return float32(s.temperature)
+// Temperature returns the temperature
+func (s Sample) Temperature() av.Temperature {
+	return av.MakeTemperatureFromCelsius(float32(s.temperature))
 }
 
-// Dewpoint returns the dewpoint in Celsius
-func (s Sample) Dewpoint() float32 {
-	return float32(s.dewpoint)
+// Dewpoint returns the dewpoint
+func (s Sample) Dewpoint() av.Temperature {
+	return av.MakeTemperatureFromCelsius(float32(s.dewpoint))
 }
 
 // Pressure returns the pressure in millibars
@@ -612,14 +613,14 @@ func (s WindSample) Component(course float32) float32 {
 
 func (s Sample) String() string {
 	return fmt.Sprintf("Wind %03d at %d, temp %.1fC, dewpoint %.1fC (%.1f%% rel. humidity), pressure %.1f mb",
-		int(s.WindDirection()), int(s.WindSpeed()+0.5), s.Temperature(), s.Dewpoint(), s.RelativeHumidity(), s.Pressure())
+		int(s.WindDirection()), int(s.WindSpeed()+0.5), s.Temperature().Celsius(), s.Dewpoint().Celsius(), s.RelativeHumidity(), s.Pressure())
 }
 
 func (s Sample) RelativeHumidity() float32 {
 	// Magnus formula constants
 	// Use dewpoint to determine if we're dealing with ice or water
-	dewpoint := s.Dewpoint()
-	temperature := s.Temperature()
+	dewpoint := s.Dewpoint().Celsius()
+	temperature := s.Temperature().Celsius()
 
 	a := util.Select(dewpoint > 0, float32(17.625), float32(21.875))
 	b := util.Select(dewpoint > 0, float32(243.04), float32(265.5))
@@ -640,8 +641,8 @@ func (s Sample) RelativeHumidity() float32 {
 
 func LerpSample(x float32, s0, s1 Sample) Sample {
 	windVec := math.Lerp2f(x, s0.WindVec(), s1.WindVec())
-	temperature := math.Lerp(x, s0.Temperature(), s1.Temperature())
-	dewpoint := math.Lerp(x, s0.Dewpoint(), s1.Dewpoint())
+	temperature := math.Lerp(x, s0.Temperature().Celsius(), s1.Temperature().Celsius())
+	dewpoint := math.Lerp(x, s0.Dewpoint().Celsius(), s1.Dewpoint().Celsius())
 	pressure := math.Lerp(x, s0.Pressure(), s1.Pressure())
 	return MakeSample(windVec, temperature, dewpoint, pressure)
 }
@@ -776,9 +777,8 @@ func MakeAtmosGrid(sampleStacks map[math.Point2LL]*AtmosSampleStack) *AtmosGrid 
 			gidx := ipg[0] + ipg[1]*g.Res[0] + z*g.Res[0]*g.Res[1]
 			sumWindVec[gidx] = math.Add2f(sumWindVec[gidx], math.Lerp2f(t, v0, v1))
 
-			const kelvinToCelsius = -273.15
-			sumTemperature[gidx] += math.Lerp(t, s0.Temperature, s1.Temperature) + kelvinToCelsius
-			sumDewpoint[gidx] += math.Lerp(t, s0.Dewpoint, s1.Dewpoint) + kelvinToCelsius
+			sumTemperature[gidx] += math.Lerp(t, s0.Temperature.Celsius(), s1.Temperature.Celsius())
+			sumDewpoint[gidx] += math.Lerp(t, s0.Dewpoint.Celsius(), s1.Dewpoint.Celsius())
 
 			p0, p1 := PressureFromLevelIndex(idx), PressureFromLevelIndex(idx+1)
 			sumPressure[gidx] += math.Lerp(t, p0, p1)
@@ -917,17 +917,18 @@ func (ap *AtmosByPoint) Average() (math.Point2LL, *AtmosSampleStack) {
 			sample := stack.Levels[level]
 			avgUComponent += sample.UComponent
 			avgVComponent += sample.VComponent
-			avgTemperature += sample.Temperature
-			avgDewpoint += sample.Dewpoint
+			avgTemperature += sample.Temperature.Kelvin()
+			avgDewpoint += sample.Dewpoint.Kelvin()
 			avgHeight += sample.Height
 		}
 
+		n := float32(len(ap.SampleStacks))
 		avgStack.Levels[level] = AtmosSample{
-			UComponent:  avgUComponent / float32(len(ap.SampleStacks)),
-			VComponent:  avgVComponent / float32(len(ap.SampleStacks)),
-			Temperature: avgTemperature / float32(len(ap.SampleStacks)),
-			Dewpoint:    avgDewpoint / float32(len(ap.SampleStacks)),
-			Height:      avgHeight / float32(len(ap.SampleStacks)),
+			UComponent:  avgUComponent / n,
+			VComponent:  avgVComponent / n,
+			Temperature: av.MakeTemperatureFromKelvin(avgTemperature / n),
+			Dewpoint:    av.MakeTemperatureFromKelvin(avgDewpoint / n),
+			Height:      avgHeight / n,
 		}
 	}
 
@@ -952,9 +953,9 @@ func MakeFallbackAtmosFromMETAR(metar METAR, location math.Point2LL) (*AtmosByPo
 	// Convert wind direction and speed to U/V components
 	u, v := dirSpeedToUV(windDir, windSpeed)
 
-	// Use METAR temperature and dewpoint (convert to Kelvin)
-	tempK := metar.Temperature + 273.15
-	dewpointK := metar.Dewpoint + 273.15
+	// Use METAR temperature and dewpoint
+	tempK := metar.Temperature.Kelvin()
+	dewpointK := metar.Dewpoint.Kelvin()
 
 	// Create a sample stack with uniform wind at all levels
 	stack := &AtmosSampleStack{}
@@ -974,8 +975,8 @@ func MakeFallbackAtmosFromMETAR(metar METAR, location math.Point2LL) (*AtmosByPo
 		stack.Levels[i] = AtmosSample{
 			UComponent:  u,
 			VComponent:  v,
-			Temperature: adjustedTempK,
-			Dewpoint:    adjustedDewpointK,
+			Temperature: av.MakeTemperatureFromKelvin(adjustedTempK),
+			Dewpoint:    av.MakeTemperatureFromKelvin(adjustedDewpointK),
 			Height:      height,
 		}
 	}

@@ -337,10 +337,10 @@ func (wf *WeatherFilter) Matches(metar METAR, magVar float32) bool {
 	}
 
 	// Check temperature
-	if wf.TemperatureMin != nil && metar.Temperature < float32(*wf.TemperatureMin) {
+	if wf.TemperatureMin != nil && metar.Temperature.Celsius() < float32(*wf.TemperatureMin) {
 		return false
 	}
-	if wf.TemperatureMax != nil && metar.Temperature > float32(*wf.TemperatureMax) {
+	if wf.TemperatureMax != nil && metar.Temperature.Celsius() > float32(*wf.TemperatureMax) {
 		return false
 	}
 

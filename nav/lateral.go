@@ -63,7 +63,7 @@ func (nav *Nav) updateHeading(callsign string, wxs wx.Sample, simTime time.Time)
 func (nav *Nav) updatePositionAndGS(wxs wx.Sample) {
 	// Calculate offset vector based on heading and current TAS.
 	hdg := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
-	TAS := nav.TAS(wxs.Temperature()+273.15) / 3600
+	TAS := nav.TAS(wxs.Temperature()) / 3600
 	flightVector := math.Scale2f(math.SinCos(math.Radians(hdg)), TAS)
 
 	// Further offset based on the wind
@@ -261,7 +261,7 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 	// Note that turnRate is signed.
 	maxBankAngle := nav.Perf.Turn.MaxBankAngle
 	maxRollRate := nav.Perf.Turn.MaxBankRate
-	tasMS := nav.TAS(wxs.Temperature()+273.15) * 0.514444
+	tasMS := nav.TAS(wxs.Temperature()) * 0.514444
 	turnRate := func(bankAngle float32) float32 {
 		if bankAngle == 0 {
 			return 0
@@ -516,8 +516,8 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 // turnRateAndRadius calculates the steady-state turn rate and radius
 // based on aircraft performance and current state.
 // Returns turnRate in deg/s and radius in nm.
-func (nav *Nav) turnRateAndRadius(tempKelvin float32) (turnRate, radius float32) {
-	TAS_ms := nav.TAS(tempKelvin) * 0.514444
+func (nav *Nav) turnRateAndRadius(temp av.Temperature) (turnRate, radius float32) {
+	TAS_ms := nav.TAS(temp) * 0.514444
 	bankRad := math.Radians(nav.Perf.Turn.MaxBankAngle)
 	turnRate = min(math.Degrees(9.81*math.Tan(bankRad)/TAS_ms), 3.0)
 	// R = V / ω where V is in nm/s and ω is in rad/s
@@ -695,7 +695,7 @@ func (nav *Nav) shouldTurnForOutboundAnalytical(p math.Point2LL, hdg math.Magnet
 		return false
 	}
 
-	_, radius := nav.turnRateAndRadius(240) // standard atmosphere approximation
+	_, radius := nav.turnRateAndRadius(av.MakeTemperatureFromKelvin(240)) // standard atmosphere approximation
 	if radius == 0 {
 		return false
 	}
@@ -738,7 +738,7 @@ func (nav *Nav) shouldTurnToInterceptAnalytical(p0 math.Point2LL, hdg math.Magne
 		return false
 	}
 
-	_, radius := nav.turnRateAndRadius(240) // standard atmosphere approximation
+	_, radius := nav.turnRateAndRadius(av.MakeTemperatureFromKelvin(240)) // standard atmosphere approximation
 	if radius == 0 {
 		return false
 	}
