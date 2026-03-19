@@ -218,6 +218,9 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 			}
 
 			pTarget = nav.Waypoints[0].Location
+			if t := nav.Waypoints[0].Turn(); t != av.TurnClosest {
+				turn = t
+			}
 		}
 
 		// No magnetic correction yet, just the raw geometric heading vector
@@ -366,12 +369,8 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		// We treat all wps as flyover during the prespawn phase to avoid the expense of
 		// shouldTurnForOutbound.
 		passedWaypoint = nav.ETA(wp.Location) < 2
-	} else if pt := wp.ProcedureTurn(); pt != nil && pt.Type == av.PTStandard45 {
-		// Also, waypoints with standard 45 degree procedure turns are implicitly "fly over";
-		// we don't want aircraft to start the turn early.
-		passedWaypoint = nav.ETA(wp.Location) < 2
 	} else {
-		passedWaypoint = nav.shouldTurnForOutbound(wp.Location, hdg, av.TurnClosest, wxs)
+		passedWaypoint = nav.shouldTurnForOutbound(wp.Location, hdg, wp.Turn(), wxs)
 	}
 
 	if passedWaypoint {
