@@ -637,13 +637,19 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 			ExitAltitude: alt0,
 		}
 
-		if r.routeDistance[0] == 'T' { // it's a time
-			pt.MinuteLimit = float32(parseInt(r.routeDistance[1:])) / 10
-		} else {
-			pt.NmLimit = float32(parseInt(r.routeDistance)) / 10
+		// For HF (racetrack), the route distance is the outbound leg
+		// length. For PI (standard 45 PT), it's the "remain within"
+		// distance from the fix, not the leg length; use defaults instead.
+		if r.pathAndTermination == "HF" {
+			if r.routeDistance[0] == 'T' { // it's a time
+				pt.MinuteLimit = float32(parseInt(r.routeDistance[1:])) / 10
+			} else {
+				pt.NmLimit = float32(parseInt(r.routeDistance)) / 10
+			}
 		}
 
 		wp.InitExtra().ProcedureTurn = pt
+		wp.SetFlyOver(true)
 	}
 	return
 }
@@ -683,13 +689,13 @@ func parseTransitions(recs []ssaRecord, log func(r ssaRecord) bool, skip func(r 
 					Type:       PTStandard45,
 					RightTurns: rec.turnDirection != 'L',
 				}
-				if dist, ok := lastFCDistance[rec.transition]; ok && !empty(dist) {
-					pt.NmLimit = float32(parseInt(dist)) / 10
-				}
+				// FC distance is the "remain within" distance, not the
+				// outbound leg length; use defaults for standard 45 PTs.
 				if !empty(rec.alt0) {
 					pt.ExitAltitude = parseAltitude(rec.alt0)
 				}
 				transitions[rec.transition][n-1].InitExtra().ProcedureTurn = pt
+				transitions[rec.transition][n-1].SetFlyOver(true)
 			}
 		} else {
 			wp, arc, ok := rec.GetWaypoint()
@@ -702,9 +708,31 @@ func parseTransitions(recs []ssaRecord, log func(r ssaRecord) bool, skip func(r 
 				}
 			}
 			if ok {
-				if n := len(transitions[rec.transition]); n > 0 && wp.Fix == transitions[rec.transition][n-1].Fix &&
-					wp.ProcedureTurn() != nil {
-					transitions[rec.transition][n-1] = wp
+				if n := len(transitions[rec.transition]); n > 0 && wp.Fix == transitions[rec.transition][n-1].Fix {
+					prev := &transitions[rec.transition][n-1]
+					if wp.ProcedureTurn() != nil {
+						// New waypoint has PT and same fix as previous: replace.
+						transitions[rec.transition][n-1] = wp
+					} else if prev.ProcedureTurn() != nil {
+						// Previous has PT; new record for the same fix is the
+						// inbound crossing (e.g., the FAF after a procedure
+						// turn). Merge its flags into the previous waypoint
+						// rather than creating a duplicate.
+						if wp.FAF() {
+							prev.SetFAF(true)
+						}
+						if wp.IAF() {
+							prev.SetIAF(true)
+						}
+						if wp.IF() {
+							prev.SetIF(true)
+						}
+						if ar := wp.AltitudeRestriction(); ar != nil && ar.Range[0] != 0 {
+							prev.ProcedureTurn().ExitAltitude = int(ar.Range[0])
+						}
+					} else {
+						transitions[rec.transition] = append(transitions[rec.transition], wp)
+					}
 				} else {
 					transitions[rec.transition] = append(transitions[rec.transition], wp)
 				}

@@ -131,7 +131,6 @@ func (wp Waypoint) TransferComms() bool { return wp.Flags&WaypointFlagTransferCo
 func (wp Waypoint) SequenceVFRLanding() bool {
 	return wp.Flags&WaypointFlagSequenceVFRLanding != 0
 }
-
 func (wp Waypoint) Turn() TurnDirection {
 	if wp.Flags&WaypointFlagTurnLeft != 0 {
 		return TurnLeft
@@ -174,7 +173,6 @@ func (wp *Waypoint) SetTransferComms(v bool) { wp.setFlag(WaypointFlagTransferCo
 func (wp *Waypoint) SetSequenceVFRLanding(v bool) {
 	wp.setFlag(WaypointFlagSequenceVFRLanding, v)
 }
-
 func (wp *Waypoint) SetTurn(t TurnDirection) {
 	wp.Flags &^= WaypointFlagTurnLeft | WaypointFlagTurnRight
 	switch t {
@@ -417,7 +415,7 @@ func (wa WaypointArray) Encode() string {
 			}
 			if pt.MinuteLimit != 0 {
 				s += fmt.Sprintf("%.1fmin", pt.MinuteLimit)
-			} else {
+			} else if pt.NmLimit != 0 {
 				s += fmt.Sprintf("%.1fnm", pt.NmLimit)
 			}
 			if pt.Entry180NoPT {
@@ -998,6 +996,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					}
 					pt.ProcedureTurn.Type = PTStandard45
 					pt.ProcedureTurn.RightTurns = f[0] == 'p'
+					wp.SetFlyOver(true)
 
 					extent := f[4:]
 					if !pt.ProcedureTurn.RightTurns {
@@ -1013,6 +1012,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					}
 					pt.ProcedureTurn.Type = PTRacetrack
 					pt.ProcedureTurn.RightTurns = f[0] == 'h'
+					wp.SetFlyOver(true)
 
 					extent := f[5:]
 					if !pt.ProcedureTurn.RightTurns {
@@ -1463,7 +1463,7 @@ func (e *RacetrackPTEntry) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading float32, aircraftFixHeading float32) RacetrackPTEntry {
+func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading math.MagneticHeading, aircraftFixHeading math.MagneticHeading) RacetrackPTEntry {
 	// Rotate so we can treat inboundHeading as 0.
 	hdg := aircraftFixHeading - inboundHeading
 	if hdg < 0 {

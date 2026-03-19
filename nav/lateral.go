@@ -145,8 +145,8 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 		nav.Airwork = nil // Done.
 	}
 
-	if nav.Airwork == nil && nav.Heading.Assigned == nil && nav.Heading.Hold == nil &&
-		nav.Heading.Standard45PT == nil && nav.Heading.RacetrackPT == nil {
+	if nav.Airwork == nil && nav.Heading.Assigned == nil &&
+		nav.Heading.Hold == nil && len(nav.Heading.Maneuvers) == 0 {
 		return nav.updateWaypoints(callsign, wxs, fp, simTime)
 	}
 
@@ -173,12 +173,8 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 	if (nav.Approach.InterceptState == InitialHeading ||
 		nav.Approach.InterceptState == TurningToJoin) && nav.Heading.Assigned != nil {
 		heading, turn = nav.ApproachHeading(callsign, wxs, simTime)
-	} else if nav.Heading.RacetrackPT != nil {
-		nav.FlightState.BankAngle = 0
-		return nav.Heading.RacetrackPT.GetHeading(nav, wxs)
-	} else if nav.Heading.Standard45PT != nil {
-		nav.FlightState.BankAngle = 0
-		return nav.Heading.Standard45PT.GetHeading(nav, wxs)
+	} else if len(nav.Heading.Maneuvers) > 0 {
+		return nav.maneuverGetHeading(wxs, simTime)
 	} else if nav.Heading.Hold != nil {
 		nav.FlightState.BankAngle = 0
 		return nav.Heading.Hold.GetHeading(callsign, nav, wxs, simTime)
@@ -217,6 +213,9 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 			}
 
 			pTarget = nav.Waypoints[0].Location
+			if t := nav.Waypoints[0].Turn(); t != av.TurnClosest {
+				turn = t
+			}
 		}
 
 		// No magnetic correction yet, just the raw geometric heading vector
@@ -360,12 +359,8 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		// We treat all wps as flyover during the prespawn phase to avoid the expense of
 		// shouldTurnForOutbound.
 		passedWaypoint = nav.ETA(wp.Location) < 2
-	} else if pt := wp.ProcedureTurn(); pt != nil && pt.Type == av.PTStandard45 {
-		// Also, waypoints with standard 45 degree procedure turns are implicitly "fly over";
-		// we don't want aircraft to start the turn early.
-		passedWaypoint = nav.ETA(wp.Location) < 2
 	} else {
-		passedWaypoint = nav.shouldTurnForOutbound(wp.Location, hdg, av.TurnClosest, wxs)
+		passedWaypoint = nav.shouldTurnForOutbound(wp.Location, hdg, wp.Turn(), wxs)
 	}
 
 	if passedWaypoint {

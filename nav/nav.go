@@ -178,13 +178,12 @@ type NavSpeed struct {
 const MaxIAS = 290
 
 type NavHeading struct {
-	Assigned     *math.MagneticHeading
-	Turn         *av.TurnDirection
-	Arc          *av.DMEArc
-	JoiningArc   bool
-	RacetrackPT  *FlyRacetrackPT
-	Standard45PT *FlyStandard45PT
-	Hold         *FlyHold
+	Assigned   *math.MagneticHeading
+	Turn       *av.TurnDirection
+	Arc        *av.DMEArc
+	JoiningArc bool
+	Maneuvers  []LateralManeuver
+	Hold       *FlyHold
 }
 
 type NavApproach struct {
@@ -597,7 +596,7 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		exped := util.Select(nav.Altitude.ExpediteAfterSpeed, ", expediting", "")
 		lines = append(lines, fmt.Sprintf("At %.0f kts, %s to %s"+exped,
 			*nav.Altitude.AfterSpeedSpeed, dir, av.FormatAltitude(*nav.Altitude.AfterSpeed)))
-	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok && !nav.flyingPT() {
+	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok {
 		dir := util.Select(c.Altitude > nav.FlightState.Altitude, "Climbing", "Descending")
 		alt := c.Altitude
 		if nav.Altitude.Cleared != nil {
@@ -724,18 +723,9 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		}
 		lines = append(lines, line)
 
-		if pt := nav.Heading.RacetrackPT; pt != nil {
-			lines = append(lines,
-				fmt.Sprintf("Fly the %s procedure turn at %s, %s entry", pt.ProcedureTurn.Type,
-					pt.Fix, pt.Entry.String()))
-			if pt.ProcedureTurn.ExitAltitude != 0 &&
-				nav.FlightState.Altitude > float32(pt.ProcedureTurn.ExitAltitude) {
-				lines = append(lines, fmt.Sprintf("Descend to %d in the procedure turn",
-					int(pt.ProcedureTurn.ExitAltitude)))
-			}
-		}
-		if pt := nav.Heading.Standard45PT; pt != nil {
-			lines = append(lines, fmt.Sprintf("Fly the standard 45/180 procedure turn at %s", pt.Fix))
+		if len(nav.Heading.Maneuvers) > 0 {
+			lines = append(lines, fmt.Sprintf("Flying procedure turn (step %d/%d: %s)",
+				1, len(nav.Heading.Maneuvers), nav.Heading.Maneuvers[0].String()))
 		}
 	}
 
@@ -918,7 +908,7 @@ func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, fixNam
 		rt.Add("[leaving|out of] {alt} [to cross|crossing] {fix} at {alt}", cur, fixName, fixAlt)
 	} else if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != cur {
 		nav.addAltitudePhrasing(rt, *nav.Altitude.Assigned)
-	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok && !nav.flyingPT() {
+	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok {
 		alt := c.Altitude
 		if nav.Altitude.Cleared != nil {
 			alt = min(alt, *nav.Altitude.Cleared)
