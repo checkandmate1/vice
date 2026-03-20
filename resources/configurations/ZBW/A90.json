@@ -325,6 +325,43 @@
           "1F": ["1I"]
         }
       },
+      "78X": {
+        "inbound_assignments": {
+          "FV.27.JFUND.27/22": "1F",
+          "FV.27.OOSHN.27/22": "1F",
+          "FV.27.ROBUC3.27/22": "1F",
+          "FV.22L.RD.27/22": "1I",
+          "FV.22L.JFUND.27/22": "1I",
+          "FV.22L.LWRNC.27/22": "1I",
+          "FV.27.FREDO.27/22": "1F",
+          "FV.22L.FL.JFUND2.27/22": "1I"
+        },
+        "departure_assignments": {
+          "KBOS": "1F"
+        },
+        "default_consolidation": {
+          "1F": ["1I"]
+        }
+      },
+      "22Y": {
+        "inbound_assignments": {
+          "FV.JFUND.22Y": "1F",
+          "FV.OOSHN.22Y": "1F",
+          "FV.LWRNC.22Y": "1F",
+          "FV.ROBUC.22Y": "1F",
+          "FV.FREDO.22Y": "1F",
+          "FV.WOONS.22Y": "1F",
+          "FV.ILS.JFUND.22Y": "1F",
+          "FV.ILS.OOSHN.22Y": "1F",
+          "FV.ILS.LWRNC.22Y": "1F"
+        },
+        "departure_assignments": {
+          "KBOS": "1F"
+        },
+        "default_consolidation": {
+          "1F": ["1I"]
+        }
+      },
       "KMH": {
         "inbound_assignments": {
           "CON": "1W",
