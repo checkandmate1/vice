@@ -15,7 +15,7 @@
   "processor": "GPU: NVIDIA GeForce RTX 4060 (7956MB)",
   "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
   "callsign": "QFA859",
-  "command": "DHAUPT",
+  "command": "LDHAUPT",
   "stt_aircraft": {
     "Cathay seven 30 heavy": {
       "Callsign": "CPA730",

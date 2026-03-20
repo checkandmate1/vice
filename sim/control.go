@@ -1467,13 +1467,13 @@ func (s *Sim) ExpediteClimb(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent
 		})
 }
 
-func (s *Sim) DirectFix(tcw TCW, callsign av.ADSBCallsign, fix string) (av.CommandIntent, error) {
+func (s *Sim) DirectFix(tcw TCW, callsign av.ADSBCallsign, fix string, turn av.TurnDirection) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.DirectFix(fix, s.State.SimTime)
+			return ac.DirectFix(fix, turn, s.State.SimTime)
 		})
 }
 
@@ -2923,7 +2923,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				return nil, ErrInvalidCommandSyntax
 			}
 		} else if len(command) >= 4 && len(command) <= 6 {
-			return s.DirectFix(tcw, callsign, command[1:])
+			return s.DirectFix(tcw, callsign, command[1:], av.TurnClosest)
 		} else {
 			return nil, ErrInvalidCommandSyntax
 		}
@@ -3010,7 +3010,9 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		}
 
 	case 'L':
-		if l := len(command); l > 2 && command[l-1] == 'D' {
+		if len(command) >= 5 && command[1] == 'D' {
+			return s.DirectFix(tcw, callsign, command[2:], av.TurnLeft)
+		} else if l := len(command); l > 2 && command[l-1] == 'D' {
 			deg, err := strconv.Atoi(command[1 : l-1])
 			if err != nil {
 				return nil, err
@@ -3053,6 +3055,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			return s.ResumeOwnNavigation(tcw, callsign)
 		} else if command == "RST" {
 			return s.RadarServicesTerminated(tcw, callsign)
+		} else if len(command) >= 5 && command[1] == 'D' {
+			return s.DirectFix(tcw, callsign, command[2:], av.TurnRight)
 		} else if l := len(command); l > 2 && command[l-1] == 'D' {
 			deg, err := strconv.Atoi(command[1 : l-1])
 			if err != nil {

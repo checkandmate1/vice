@@ -331,6 +331,10 @@ func filterIncompatibleCommands(commands []string) ([]string, []string) {
 			hasDirectFix = true
 			break
 		}
+		if len(cmd) > 2 && (cmd[0] == 'L' || cmd[0] == 'R') && cmd[1] == 'D' && !IsNumber(cmd[2:]) {
+			hasDirectFix = true
+			break
+		}
 	}
 
 	// Check if there's a cleared approach command (C{approach} but not CVS or CAC)

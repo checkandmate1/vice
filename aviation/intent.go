@@ -466,6 +466,7 @@ type NavigationIntent struct {
 	Fix            string
 	SecondFix      string               // for DepartFixDirect
 	Heading        math.MagneticHeading // for DepartFixHeading
+	Turn           TurnDirection        // for NavDirectFix / NavDirectFixFromHold
 	HoldDirection  string               // "left" or "right" for holds
 	HoldLegLength  string               // e.g., "2 mile" or "1 minute"
 	AltRestriction *AltitudeRestriction // for CrossFixAt
@@ -476,7 +477,14 @@ type NavigationIntent struct {
 func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	switch n.Type {
 	case NavDirectFix:
-		rt.Add("direct {fix}", n.Fix)
+		switch n.Turn {
+		case TurnLeft:
+			rt.Add("[turn] left direct {fix}", n.Fix)
+		case TurnRight:
+			rt.Add("[turn] right direct {fix}", n.Fix)
+		default:
+			rt.Add("direct {fix}", n.Fix)
+		}
 	case NavDirectFixFromHold:
 		rt.Add("cancel [the|] hold[ and|,] depart {fix} direct {fix}", n.Fix, n.SecondFix)
 	case NavHold:

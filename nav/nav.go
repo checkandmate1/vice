@@ -212,6 +212,7 @@ type NavFixAssignment struct {
 	Depart struct {
 		Fix     *av.Waypoint
 		Heading *math.MagneticHeading
+		Turn    *av.TurnDirection
 	}
 	Hold *av.Hold
 }
@@ -508,7 +509,7 @@ func (nav *Nav) AssignedWaypoints() []av.Waypoint {
 	return nav.Waypoints
 }
 
-func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, simTime time.Time) {
+func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTime time.Time) {
 	var delay float32
 	if nav.Heading.Assigned == nil && nav.DeferredNavHeading == nil {
 		// Already in LNAV mode; have less of a delay
@@ -518,10 +519,14 @@ func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, simTime time.Time) {
 		delay = 8 + 5*nav.Rand.Float32()
 	}
 
-	nav.DeferredNavHeading = &DeferredNavHeading{
+	dh := &DeferredNavHeading{
 		Time:      simTime.Add(time.Duration(delay * float32(time.Second))),
 		Waypoints: wps,
 	}
+	if turn != av.TurnClosest {
+		dh.Turn = &turn
+	}
+	nav.DeferredNavHeading = dh
 }
 
 func (nav *Nav) EnqueueOnCourse(simTime time.Time) {

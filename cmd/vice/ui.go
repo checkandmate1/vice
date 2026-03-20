@@ -452,6 +452,8 @@ var primaryAcCommands = [][3]string{
 	{"*H_hdg", `"Fly heading _hdg_." If no heading is given, "fly present heading".`,
 		"*H050*, *H*"},
 	{"*D_fix", `"Proceed direct _fix_".`, "*DWAVEY*"},
+	{"*LD_fix", `"Proceed left direct _fix_".`, "*LDHAYES*"},
+	{"*RD_fix", `"Proceed right direct _fix_".`, "*RDHAYES*"},
 	{"*C_alt", `"Climb and maintain _alt_".`, "*C170*"},
 	{"*TC_alt", `"After reaching speed _kts_, climb and maintain _alt_", where _kts_ is a previously-assigned speed.`, "*TC170*"},
 	{"*D_alt", `"Descend and maintain _alt_".`, "*D20*"},

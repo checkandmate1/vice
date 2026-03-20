@@ -497,13 +497,16 @@ func (nav *Nav) directFixWaypoints(fix string) ([]av.Waypoint, waypointSource, e
 	return nil, waypointSourceOther, ErrInvalidFix
 }
 
-func (nav *Nav) DirectFix(fix string, simTime time.Time) av.CommandIntent {
+func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
 	if wps, source, err := nav.directFixWaypoints(fix); err == nil {
 		if hold := nav.Heading.Hold; hold != nil {
 			// We'll finish our lap and then depart the holding fix direct to the fix
 			hold.Cancel = true
 			nfa := NavFixAssignment{}
 			nfa.Depart.Fix = &wps[0]
+			if turn != av.TurnClosest {
+				nfa.Depart.Turn = &turn
+			}
 			nav.FixAssignments[hold.Hold.Fix] = nfa
 			if source == waypointSourceApproach && !nav.Approach.Cleared {
 				nav.Approach.InterceptState = OnApproachCourse
@@ -512,9 +515,10 @@ func (nav *Nav) DirectFix(fix string, simTime time.Time) av.CommandIntent {
 				Type:      av.NavDirectFixFromHold,
 				Fix:       hold.Hold.Fix,
 				SecondFix: fix,
+				Turn:      turn,
 			}
 		} else {
-			nav.EnqueueDirectFix(wps, simTime)
+			nav.EnqueueDirectFix(wps, turn, simTime)
 			nav.Approach.NoPT = false
 			if source == waypointSourceApproach && !nav.Approach.Cleared {
 				// The waypoints came from the approach but the aircraft
@@ -527,6 +531,7 @@ func (nav *Nav) DirectFix(fix string, simTime time.Time) av.CommandIntent {
 			return av.NavigationIntent{
 				Type: av.NavDirectFix,
 				Fix:  fix,
+				Turn: turn,
 			}
 		}
 	} else if err == ErrFixIsTooFarAway {

@@ -221,7 +221,9 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 			}
 
 			pTarget = nav.Waypoints[0].Location
-			if t := nav.Waypoints[0].Turn(); t != av.TurnClosest {
+			if nav.Heading.Turn != nil {
+				turn = *nav.Heading.Turn
+			} else if t := nav.Waypoints[0].Turn(); t != av.TurnClosest {
 				turn = t
 			}
 		}
@@ -372,6 +374,7 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 	}
 
 	if passedWaypoint {
+		nav.Heading.Turn = nil
 		NavLog(callsign, simTime, NavLogWaypoint, "passed fix=%s hdg=%.0f->%.0f alt=%.0f", wp.Fix, nav.FlightState.Heading, hdg, nav.FlightState.Altitude)
 
 		clearedAtFix := nav.Approach.AtFixClearedRoute != nil && nav.Approach.AtFixClearedRoute[0].Fix == wp.Fix
@@ -462,6 +465,7 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 				// Hacky: below we peel off the current waypoint, so re-add
 				// it here so everything works out.
 				nav.Waypoints = append([]av.Waypoint{*wp}, wps...)
+				nav.Heading.Turn = nfa.Depart.Turn // may be nil (TurnClosest)
 			}
 		} else if wp.Heading != 0 && !clearedAtFix {
 			// We have an outbound heading

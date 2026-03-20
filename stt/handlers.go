@@ -536,6 +536,18 @@ func registerAllCommands() {
 
 	// === NAVIGATION COMMANDS ===
 	registerSTTCommand(
+		"[proceed] left [turn] direct [to] [at] {fix}",
+		func(fix string) string { return fmt.Sprintf("LD%s", fix) },
+		WithName("left_direct_fix"),
+		WithPriority(11),
+	)
+	registerSTTCommand(
+		"[proceed] right [turn] direct [to] [at] {fix}",
+		func(fix string) string { return fmt.Sprintf("RD%s", fix) },
+		WithName("right_direct_fix"),
+		WithPriority(11),
+	)
+	registerSTTCommand(
 		"direct|proceed [direct] [to] [at] {fix}",
 		func(fix string) string { return fmt.Sprintf("D%s", fix) },
 		WithName("direct_fix"),
