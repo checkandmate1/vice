@@ -1,5 +1,5 @@
 - New scenario: LBB (Gecko)
-- Scenario updates: MIA (Gecko), ZNY A/C, PHL (Ryan G), BOS (radarcontacto)
+- Scenario updates: MIA (Gecko), ZNY A/C, PHL (Ryan G), BOS (radarcontacto), I90 (Ketan K)
 - There are now VFR aircraft doing pattern work at airports with VFR traffic
 - Adjusted radio noise simulation to reduce muffling of pilot responses
 - Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)
