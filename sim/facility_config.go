@@ -6,6 +6,7 @@ package sim
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -61,10 +62,13 @@ type FixPairAssignment struct {
 }
 
 // PostDeserialize validates the facility config right after JSON
-// deserialization. The facility name is the base filename without
-// extension (e.g. "N90", "ZDC"). Errors are accumulated in e.
-func (fc *FacilityConfig) PostDeserialize(facility string, e *util.ErrorLogger) {
+// deserialization. configPath is the relative path to the config file
+// (e.g. "configurations/ZBW/A90.json"). Errors are accumulated in e.
+func (fc *FacilityConfig) PostDeserialize(configPath string, e *util.ErrorLogger) {
 	defer e.CheckDepth(e.CurrentDepth())
+
+	// Derive the facility name from the config path.
+	facility := strings.TrimSuffix(filepath.Base(configPath), ".json")
 
 	// Determine whether this facility is an ARTCC.
 	_, isARTCC := av.DB.ARTCCs[facility]
@@ -85,7 +89,7 @@ func (fc *FacilityConfig) PostDeserialize(facility string, e *util.ErrorLogger) 
 		}
 	}
 
-	e.Push("facility " + facility)
+	e.Push(configPath)
 	defer e.Pop()
 
 	// Validate control positions (before auto-deriving Area, so
@@ -280,6 +284,46 @@ func (fc *FacilityConfig) validateAdaptation(isARTCC bool, e *util.ErrorLogger) 
 			}
 		}
 
+		// Check for exactly one root position.
+		if _, err := config.DefaultConsolidation.RootPosition(); err != nil {
+			e.Error(err)
+		}
+
+		// Check for cycles (a position can't be its own ancestor).
+		getConsolidatedInto := func(tcp TCP) TCP {
+			for parent, children := range config.DefaultConsolidation {
+				if slices.Contains(children, tcp) {
+					return parent
+				}
+			}
+			return ""
+		}
+		for tcp := range config.DefaultConsolidation {
+			visited := make(map[TCP]bool)
+			current := tcp
+			for current != "" {
+				if visited[current] {
+					e.ErrorString("cycle detected in consolidation hierarchy involving %q", tcp)
+					break
+				}
+				visited[current] = true
+				current = getConsolidatedInto(current)
+			}
+		}
+
+		// Check that no position appears as a child of multiple parents.
+		childParent := make(map[TCP]TCP)
+		for parent, children := range config.DefaultConsolidation {
+			for _, child := range children {
+				if existingParent, ok := childParent[child]; ok {
+					e.ErrorString(`position %q appears as a child of both %q and %q in "default_consolidation"`,
+						child, existingParent, parent)
+				} else {
+					childParent[child] = parent
+				}
+			}
+		}
+
 		// Resolve scratchpad leader line direction strings to native directions.
 		if len(config.ScratchpadLeaderLineDirectionStrings) > 0 {
 			config.ScratchpadLeaderLineDirections = make(map[string]math.CardinalOrdinalDirection,
@@ -313,6 +357,15 @@ func (fc *FacilityConfig) validateAdaptation(isARTCC bool, e *util.ErrorLogger) 
 				fa.MonitoredBeaconCodeBlocks = append(fa.MonitoredBeaconCodeBlocks, code)
 			}
 		}
+	}
+
+	switch fa.Monitor {
+	// Ugly: we need to keep this in sync with colorSets in stars/stars.go
+	case "":
+		fa.Monitor = "legacy" // default
+	case "legacy", "mdm3", "mdm4":
+	default:
+		e.ErrorString(`%s: invalid value for "monitor": must be "legacy", "mdm3", or "mdm4"`, fa.Monitor)
 	}
 
 	if isARTCC {
@@ -352,8 +405,6 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 		if err != nil {
 			e.Error(err)
 		}
-	} else if len(allAreaVideoMaps) == 0 {
-		e.ErrorString(`must specify either "controllers" or "video_maps" in "areas"`)
 	}
 
 	if fa.Range == 0 {
@@ -487,6 +538,99 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 		}
 	}
 	e.Pop()
+
+	// Scratchpad validity.
+	for _, sp := range fa.Scratchpads {
+		if !fa.CheckScratchpad(sp) {
+			e.ErrorString(`%s: invalid scratchpad in "scratchpads"`, sp)
+		}
+	}
+
+	// Scratchpads + display_exit_fix mutual exclusion.
+	if len(fa.Scratchpads) > 0 {
+		sp1 := fa.Datablocks.Scratchpad1
+		if sp1.DisplayExitFix || sp1.DisplayExitFix1 || sp1.DisplayExitGate || sp1.DisplayAltExitGate {
+			e.ErrorString(`cannot both specify "scratchpads" and "display_exit_fix"/"display_exit_fix_1"/"display_exit_gate"/"display_alternate_exit_gate"`)
+		}
+	}
+
+	// Area scratchpad validity and beacon code block parsing.
+	for areaNum, ac := range fa.Areas {
+		e.Push(fmt.Sprintf("areas[%s]", areaNum))
+
+		for _, sp := range ac.Scratchpads {
+			if !fa.CheckScratchpad(sp) {
+				e.ErrorString(`%s: invalid scratchpad in area "scratchpads"`, sp)
+			}
+		}
+
+		// Auto-generate flight following airspace IDs/descriptions.
+		for i := range ac.FlightFollowingAirspace {
+			if ac.FlightFollowingAirspace[i].Id == "" {
+				ac.FlightFollowingAirspace[i].Id = fmt.Sprintf("FFA%s-%d", areaNum, i+1)
+			}
+			if ac.FlightFollowingAirspace[i].Description == "" {
+				ac.FlightFollowingAirspace[i].Description = fmt.Sprintf("FLIGHT FOLLOWING AREA %s %d", areaNum, i+1)
+			}
+		}
+
+		// Parse area beacon code blocks.
+		if ac.MonitoredBeaconCodeBlocksString != nil {
+			for s := range strings.SplitSeq(*ac.MonitoredBeaconCodeBlocksString, ",") {
+				s = strings.TrimSpace(s)
+				if code, err := av.ParseSquawkOrBlock(s); err != nil {
+					e.ErrorString(`invalid beacon code %q in "beacon_code_blocks": %v`, s, err)
+				} else {
+					ac.MonitoredBeaconCodeBlocks = append(ac.MonitoredBeaconCodeBlocks, code)
+				}
+			}
+		}
+
+		e.Pop()
+	}
+
+	// Controller beacon code blocks and flight following auto-generation.
+	if len(fa.Controllers) > 0 {
+		for tcp, config := range fa.Controllers {
+			// Auto-generate flight following airspace IDs/descriptions.
+			for i := range config.FlightFollowingAirspace {
+				if config.FlightFollowingAirspace[i].Id == "" {
+					config.FlightFollowingAirspace[i].Id = "FF" + string(tcp) + strconv.Itoa(i+1)
+				}
+				if config.FlightFollowingAirspace[i].Description == "" {
+					config.FlightFollowingAirspace[i].Description = "FLIGHT FOLLOWING " + string(tcp) + " " + strconv.Itoa(i+1)
+				}
+			}
+
+			// Parse controller beacon code blocks.
+			config.MonitoredBeaconCodeBlocks = nil
+			if config.MonitoredBeaconCodeBlocksString == nil {
+				config.MonitoredBeaconCodeBlocks = append(config.MonitoredBeaconCodeBlocks, 0o12)
+			} else {
+				for s := range strings.SplitSeq(*config.MonitoredBeaconCodeBlocksString, ",") {
+					s = strings.TrimSpace(s)
+					if code, err := av.ParseSquawkOrBlock(s); err != nil {
+						e.ErrorString(`invalid beacon code %q in "beacon_code_blocks": %v`, s, err)
+					} else {
+						config.MonitoredBeaconCodeBlocks = append(config.MonitoredBeaconCodeBlocks, code)
+					}
+				}
+			}
+		}
+	}
+
+	// Validate TCP references in Quicklook and FDAM filter regions
+	// against this facility's ControlPositions.
+	for i, filt := range fa.Filters.Quicklook {
+		e.Push(filt.Description)
+		fa.Filters.Quicklook[i].ValidateTCPs(fc.ControlPositions, e)
+		e.Pop()
+	}
+	for i, filt := range fa.Filters.FDAM {
+		e.Push(filt.Description)
+		fa.Filters.FDAM[i].ValidateTCPs(fc.ControlPositions, e)
+		e.Pop()
+	}
 }
 
 func (fc *FacilityConfig) validateERAMAdaptation(e *util.ErrorLogger) {

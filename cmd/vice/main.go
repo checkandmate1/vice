@@ -59,7 +59,7 @@ var (
 	broadcastPassword = flag.String("password", "", "`password` to authenticate with server for broadcast message")
 	resetSim          = flag.Bool("resetsim", false, "discard the saved simulation and do not try to resume it")
 	showRoutes        = flag.String("routes", "", "display the STARS, SIDs, and approaches known for the given `airport`")
-	listMaps          = flag.String("listmaps", "", "`path` to a video map file to list maps of (e.g., resources/videomaps/ZNY-videomaps.gob.zst)")
+	listMaps          = flag.String("listmaps", "", "`path` to a video map file to list maps of (e.g., videomaps/ZNY-videomaps.gob.zst)")
 	listScenarios     = flag.Bool("listscenarios", false, "list all available scenarios in ARTCC/TRACON/scenario format")
 	runSim            = flag.String("runsim", "", "run specified `scenario` for 3600 update steps (format: ARTCC/TRACON/scenario)")
 	navLog            = flag.Bool("navlog", false, "enable navigation logging")
@@ -169,8 +169,8 @@ func runLint(lg *log.Logger) error {
 	videoMaps := make(map[string]any)
 	for _, sgs := range scenarioGroups {
 		for _, sg := range sgs {
-			if sg.FacilityAdaptation.VideoMapFile != "" {
-				videoMaps[sg.FacilityAdaptation.VideoMapFile] = nil
+			if sg.FacilityConfig.FacilityAdaptation.VideoMapFile != "" {
+				videoMaps[sg.FacilityConfig.FacilityAdaptation.VideoMapFile] = nil
 			}
 		}
 	}
@@ -266,7 +266,7 @@ func runSimulation(lg *log.Logger) error {
 	}
 
 	newSimConfig.Emergencies = emergencies
-	s := sim.NewSim(*newSimConfig, nil /*manifest*/, lg)
+	s := sim.NewSim(*newSimConfig, lg)
 
 	// Sign on as instructor if waypoint commands are specified
 	instructor := *waypointCommands != ""
@@ -691,6 +691,9 @@ func runGUI(config *Config, configErr error, lg *log.Logger) error {
 		stats.redraws++
 
 		plat.NewFrame()
+		if imgui.CurrentPlatformIO().Monitors().Size == 0 {
+			continue
+		}
 		imgui.NewFrame()
 
 		// Generate and render vice draw lists

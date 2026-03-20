@@ -325,7 +325,27 @@ func SyncResources(plat platform.Platform, r renderer.Renderer, lg *log.Logger) 
 		return fmt.Errorf("failed to get user config dir: %v", err)
 	}
 
-	resourcesDir := filepath.Join(configDir, "vice", "resources")
+	// Migrate from lowercase "vice" to "Vice" for case-sensitive filesystems.
+	oldDir := filepath.Join(configDir, "vice")
+	newDir := filepath.Join(configDir, "Vice")
+	if info, err := os.Stat(oldDir); err == nil && info.IsDir() {
+		if _, err := os.Stat(newDir); os.IsNotExist(err) {
+			// Only the old lowercase directory exists; rename it.
+			os.Rename(oldDir, newDir)
+		} else if err == nil {
+			// Both exist (unusual). Move resources if needed, then remove the old dir.
+			oldRes := filepath.Join(oldDir, "resources")
+			newRes := filepath.Join(newDir, "resources")
+			if _, err := os.Stat(oldRes); err == nil {
+				if _, err := os.Stat(newRes); os.IsNotExist(err) {
+					os.Rename(oldRes, newRes)
+				}
+			}
+			os.RemoveAll(oldDir)
+		}
+	}
+
+	resourcesDir := filepath.Join(configDir, "Vice", "resources")
 	manifestPath := filepath.Join(resourcesDir, "manifest.json")
 
 	var manifest map[string]manifestEntry

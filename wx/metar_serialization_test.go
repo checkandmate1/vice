@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	av "github.com/mmp/vice/aviation"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -16,8 +17,8 @@ func TestCompressedMETARMsgpackSerialization(t *testing.T) {
 		{
 			ICAO:        "KJFK",
 			Time:        testTime,
-			Temperature: 15.5,
-			Dewpoint:    10.2,
+			Temperature: av.MakeTemperatureFromCelsius(15.5),
+			Dewpoint:    av.MakeTemperatureFromCelsius(10.2),
 			Altimeter:   1013.2,
 			WindSpeed:   10,
 			Raw:         "KJFK 151200Z 10010KT",
@@ -67,8 +68,8 @@ func TestCompressedMETARMsgpackSerialization(t *testing.T) {
 
 	// Note: ICAO field is not preserved in METARSOA encoding - it's stored as the map key
 	// Verify other fields are preserved
-	if metars[0].Temperature != 15.5 {
-		t.Errorf("Expected Temperature 15.5, got %f", metars[0].Temperature)
+	if metars[0].Temperature.Celsius() != 15.5 {
+		t.Errorf("Expected Temperature 15.5, got %f", metars[0].Temperature.Celsius())
 	}
 	if metars[0].Raw != "KJFK 151200Z 10010KT" {
 		t.Errorf("Expected Raw 'KJFK 151200Z 10010KT', got '%s'", metars[0].Raw)
@@ -82,8 +83,8 @@ func TestCompressedMETARSaveLoad(t *testing.T) {
 		{
 			ICAO:        "KORD",
 			Time:        testTime,
-			Temperature: 5.0,
-			Dewpoint:    2.0,
+			Temperature: av.MakeTemperatureFromCelsius(5.0),
+			Dewpoint:    av.MakeTemperatureFromCelsius(2.0),
 			Altimeter:   1015.0,
 			WindSpeed:   15,
 			Raw:         "KORD 151200Z 15015KT",
@@ -133,8 +134,8 @@ func TestCompressedMETARSaveLoad(t *testing.T) {
 
 	// Note: ICAO field is not preserved in METARSOA encoding - it's stored as the map key
 	// Verify other fields are preserved
-	if metars[0].Temperature != 5.0 {
-		t.Errorf("Expected Temperature 5.0, got %f", metars[0].Temperature)
+	if metars[0].Temperature.Celsius() != 5.0 {
+		t.Errorf("Expected Temperature 5.0, got %f", metars[0].Temperature.Celsius())
 	}
 	if metars[0].Raw != "KORD 151200Z 15015KT" {
 		t.Errorf("Expected Raw 'KORD 151200Z 15015KT', got '%s'", metars[0].Raw)

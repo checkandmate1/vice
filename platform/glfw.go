@@ -454,6 +454,26 @@ func (g *glfwPlatform) InitViewportBackends() {
 
 }
 
+// SetViewportFloating sets the GLFW_FLOATING attribute on a secondary
+// viewport window identified by its raw GLFWwindow* handle. The GLFW
+// backend only sets this at window creation; this function allows dynamic
+// toggling for pin/unpin behavior.
+func SetViewportFloating(handle uintptr, floating bool) {
+	if handle == 0 {
+		return
+	}
+	// Wrap the raw GLFWwindow* as a go-gl/glfw Window.
+	// glfw.Window's first field is data *C.GLFWwindow.
+	var win glfw.Window
+	*(*unsafe.Pointer)(unsafe.Pointer(&win)) = unsafe.Add(nil, handle)
+
+	val := 0
+	if floating {
+		val = 1
+	}
+	win.SetAttrib(glfw.Floating, val)
+}
+
 func (g *glfwPlatform) installCallbacks() {
 	g.window.SetMouseButtonCallback(g.mouseButtonChange)
 	g.window.SetScrollCallback(g.mouseScrollChange)
@@ -932,6 +952,10 @@ func (g *glfwPlatform) IsAudioRecording() bool {
 
 func (g *glfwPlatform) GetAudioInputDevices() []string {
 	return GetAudioInputDevices()
+}
+
+func (g *glfwPlatform) AppendSpeechPCM(pcm []int16) {
+	g.audioEngine.AppendSpeechPCM(pcm)
 }
 
 func (g *glfwPlatform) SetAudioStreamCallback(cb func([]int16)) {

@@ -54,7 +54,6 @@ func registerAllCallsignPatterns() {
 	RegisterCallsignPattern("{skip:2} {ga_november}",
 		WithCallsignName("ga_november"),
 		WithCallsignPriority(55),
-		WithCallsignConfidence(0.75),
 		WithCallsignRequire(func(ac Aircraft) bool {
 			return strings.HasPrefix(string(ac.Callsign), "N")
 		}),
@@ -88,8 +87,7 @@ func airlineOnlyScoring(result *callsignMatchResult) float64 {
 // flightOnlyScoring scores flight-number-only matches.
 // Sets a nominal airline score since no airline was matched.
 func flightOnlyScoring(result *callsignMatchResult) float64 {
-	// Set nominal airline score
 	result.AirlineScore = 0.5
-	// Lower confidence for flight-only matches
-	return 0.7
+	combinedScore := (result.AirlineScore + result.FlightScore) / 2.0
+	return 0.6 + 0.4*combinedScore
 }

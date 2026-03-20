@@ -69,7 +69,7 @@ type Nav struct {
 // before pilots start to follow assignments.
 type DeferredNavHeading struct {
 	Time    time.Time
-	Heading *float32
+	Heading *math.MagneticHeading
 	Turn    *av.TurnDirection
 	Hold    *FlyHold
 	// For direct fix, this will be the updated set of waypoints.
@@ -126,7 +126,7 @@ type FlightState struct {
 	NmPerLongitude    float32
 
 	Position     math.Point2LL
-	Heading      float32
+	Heading      math.MagneticHeading
 	Altitude     float32
 	PrevAltitude float32
 	IAS, GS      float32 // speeds...
@@ -178,13 +178,12 @@ type NavSpeed struct {
 const MaxIAS = 290
 
 type NavHeading struct {
-	Assigned     *float32
-	Turn         *av.TurnDirection
-	Arc          *av.DMEArc
-	JoiningArc   bool
-	RacetrackPT  *FlyRacetrackPT
-	Standard45PT *FlyStandard45PT
-	Hold         *FlyHold
+	Assigned   *math.MagneticHeading
+	Turn       *av.TurnDirection
+	Arc        *av.DMEArc
+	JoiningArc bool
+	Maneuvers  []LateralManeuver
+	Hold       *FlyHold
 }
 
 type NavApproach struct {
@@ -211,7 +210,7 @@ type NavFixAssignment struct {
 	}
 	Depart struct {
 		Fix     *av.Waypoint
-		Heading *float32
+		Heading *math.MagneticHeading
 	}
 	Hold *av.Hold
 }
@@ -223,7 +222,7 @@ type NavAirwork struct {
 
 	RemainingSteps  int
 	NextMoveCounter int
-	Heading         float32
+	Heading         math.MagneticHeading
 	TurnRate        float32
 	TurnDirection   av.TurnDirection
 	IAS             float32
@@ -245,7 +244,7 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
 	randomizeAltitudeRange := fp.Rules == av.FlightRulesVFR
 	if nav := makeNav(callsign, fp, perf, arr.Waypoints, randomizeAltitudeRange, nmPerLongitude,
-		magneticVariation, model, simTime, lg); nav != nil {
+		magneticVariation, lg); nav != nil {
 		spd := arr.SpeedRestriction
 		nav.Speed.Restriction = util.Select(spd != 0, &spd, nil)
 		if arr.AssignedAltitude > 0 {
@@ -276,7 +275,7 @@ func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.Aircra
 	assignedAlt, clearedAlt, speedRestriction int, wp []av.Waypoint, randomizeAltitudeRange bool,
 	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
 	if nav := makeNav(callsign, fp, perf, wp, randomizeAltitudeRange, nmPerLongitude, magneticVariation,
-		model, simTime, lg); nav != nil {
+		lg); nav != nil {
 		if assignedAlt != 0 {
 			alt := float32(min(assignedAlt, fp.Altitude))
 			nav.Altitude.Assigned = &alt
@@ -299,7 +298,7 @@ func MakeOverflightNav(callsign av.ADSBCallsign, of *av.Overflight, fp av.Flight
 	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
 	randomizeAltitudeRange := fp.Rules == av.FlightRulesVFR
 	if nav := makeNav(callsign, fp, perf, of.Waypoints, randomizeAltitudeRange, nmPerLongitude,
-		magneticVariation, model, simTime, lg); nav != nil {
+		magneticVariation, lg); nav != nil {
 		spd := of.SpeedRestriction
 		nav.Speed.Restriction = util.Select(spd != 0, &spd, nil)
 		if of.AssignedAltitude > 0 {
@@ -324,8 +323,8 @@ func MakeOverflightNav(callsign av.ADSBCallsign, of *av.Overflight, fp av.Flight
 }
 
 func makeNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerformance, wp []av.Waypoint,
-	randomizeAltitudeRange bool, nmPerLongitude float32, magneticVariation float32, model *wx.Model,
-	simTime time.Time, lg *log.Logger) *Nav {
+	randomizeAltitudeRange bool, nmPerLongitude float32, magneticVariation float32,
+	lg *log.Logger) *Nav {
 	nav := &Nav{
 		Perf:           perf,
 		FinalAltitude:  float32(fp.Altitude),
@@ -334,33 +333,25 @@ func makeNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerform
 	}
 
 	// Copy the provided waypoints so that any local modifications we make don't pollute the
-	// waypoints stored for the scenario. Try to size the allocation so that reallocation
-	// isn't necessary: for IFR we just have the destination airport to add but for VFR we may
-	// need a number of extra ones to join the pattern and land.
-	nav.Waypoints = make([]av.Waypoint, len(wp)+util.Select(fp.Rules == av.FlightRulesIFR, 1, 12))
+	// waypoints stored for the scenario. Add a small buffer for the destination airport waypoint.
+	nav.Waypoints = make([]av.Waypoint, len(wp)+1)
 	copy(nav.Waypoints, wp)
 
 	av.RandomizeRoute(nav.Waypoints, nav.Rand, randomizeAltitudeRange, nav.Perf, nmPerLongitude,
 		magneticVariation, fp.ArrivalAirport, lg)
 
-	landIdx := slices.IndexFunc(nav.Waypoints, func(wp av.Waypoint) bool { return wp.Land() })
-	if landIdx != -1 {
-		if fp.Rules == av.FlightRulesIFR {
-			lg.Warn("IFR aircraft has /land in route", slog.Any("waypoints", nav.Waypoints),
-				slog.Any("flightplan", fp))
-		} else {
-			ap := av.DB.Airports[fp.ArrivalAirport]
-			as := model.Lookup(ap.Location, float32(ap.Elevation), simTime)
-			nav.Waypoints = av.AppendVFRLanding(nav.Waypoints[:landIdx+1], nav.Perf, fp.ArrivalAirport,
-				as.WindDirection(), nmPerLongitude, magneticVariation, lg)
-		}
+	// VFR routes end at their SequenceVFRLanding waypoint; truncate any
+	// trailing slots (including the +1 buffer allocated above).
+	seqIdx := slices.IndexFunc(nav.Waypoints, func(wp av.Waypoint) bool { return wp.SequenceVFRLanding() })
+	if seqIdx != -1 {
+		nav.Waypoints = nav.Waypoints[:seqIdx+1]
 	}
 
 	nav.FlightState = FlightState{
 		MagneticVariation: magneticVariation,
 		NmPerLongitude:    nmPerLongitude,
 		Position:          nav.Waypoints[0].Location,
-		Heading:           float32(nav.Waypoints[0].Heading),
+		Heading:           nav.Waypoints[0].MagneticHeading(),
 	}
 
 	if nav.FlightState.Position.IsZero() {
@@ -369,8 +360,8 @@ func makeNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerform
 	}
 
 	if nav.FlightState.Heading == 0 { // unassigned, so get the heading using the next fix
-		nav.FlightState.Heading = math.Heading2LL(nav.FlightState.Position,
-			nav.Waypoints[1].Location, nav.FlightState.NmPerLongitude,
+		nav.FlightState.Heading = math.TrueToMagnetic(
+			math.Heading2LL(nav.FlightState.Position, nav.Waypoints[1].Location, nav.FlightState.NmPerLongitude),
 			nav.FlightState.MagneticVariation)
 	}
 
@@ -392,19 +383,22 @@ func makeNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerform
 		nav.FlightState.ArrivalAirportLocation = ap.Location
 		nav.FlightState.ArrivalAirportElevation = float32(ap.Elevation)
 
-		// Squirrel away the arrival airport as a fix and add it to the end
-		// of the waypoints.
 		nav.FlightState.ArrivalAirport = av.Waypoint{
 			Fix:      fp.ArrivalAirport,
 			Location: ap.Location,
 		}
-		nav.Waypoints = append(nav.Waypoints, nav.FlightState.ArrivalAirport)
+		// VFR routes with SequenceVFRLanding get dynamic landing
+		// waypoints when they reach the sequencing point; don't
+		// append the arrival airport after it.
+		if seqIdx == -1 {
+			nav.Waypoints = append(nav.Waypoints, nav.FlightState.ArrivalAirport)
+		}
 	}
 
 	return nav
 }
 
-func (nav *Nav) TAS(temp float32) float32 {
+func (nav *Nav) TAS(temp av.Temperature) float32 {
 	tas := av.IASToTAS(nav.FlightState.IAS, nav.FlightState.Altitude)
 	if nav.machTransition() {
 		tas = min(tas, av.MachToTAS(nav.Perf.Speed.MaxMach, temp))
@@ -414,7 +408,7 @@ func (nav *Nav) TAS(temp float32) float32 {
 	return tas
 }
 
-func (nav *Nav) Mach(temp float32) float32 {
+func (nav *Nav) Mach(temp av.Temperature) float32 {
 	tas := nav.TAS(temp)
 	return av.TASToMach(tas, temp)
 }
@@ -437,7 +431,7 @@ func (nav *Nav) IsAirborne() bool {
 
 // AssignedHeading returns the aircraft's current heading assignment, if
 // any, regardless of whether the pilot has yet started following it.
-func (nav *Nav) AssignedHeading() (float32, bool) {
+func (nav *Nav) AssignedHeading() (math.MagneticHeading, bool) {
 	if dh := nav.DeferredNavHeading; dh != nil {
 		if dh.Heading != nil {
 			return *dh.Heading, true
@@ -481,7 +475,7 @@ func (nav *Nav) DepartureHeading() (int, DepartureHeadingState) {
 // few seconds in the future. It should only be called for heading changes
 // due to controller instructions to the pilot and never in cases where the
 // autopilot is changing the heading assignment.
-func (nav *Nav) EnqueueHeading(hdg float32, turn av.TurnDirection, approachCleared bool, simTime time.Time) {
+func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, approachCleared bool, simTime time.Time) {
 	var delay float32
 	if approachCleared {
 		// Minimal delay if the aircraft has been cleared for an approach.
@@ -606,7 +600,7 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		exped := util.Select(nav.Altitude.ExpediteAfterSpeed, ", expediting", "")
 		lines = append(lines, fmt.Sprintf("At %.0f kts, %s to %s"+exped,
 			*nav.Altitude.AfterSpeedSpeed, dir, av.FormatAltitude(*nav.Altitude.AfterSpeed)))
-	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok && !nav.flyingPT() {
+	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok {
 		dir := util.Select(c.Altitude > nav.FlightState.Altitude, "Climbing", "Descending")
 		alt := c.Altitude
 		if nav.Altitude.Cleared != nil {
@@ -680,7 +674,7 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 	// Speed; don't be as exhaustive as we are for altitude
 	targetAltitude, _ := nav.TargetAltitude()
 	lines = append(lines, fmt.Sprintf("IAS %d GS %d TAS %d", int(nav.FlightState.IAS),
-		int(nav.FlightState.GS), int(nav.TAS(wxs.Temperature()+273.15))))
+		int(nav.FlightState.GS), int(nav.TAS(wxs.Temperature()))))
 	ias, _ := nav.TargetSpeed(targetAltitude, &fp, wxs, nil)
 	if nav.Speed.MaintainSlowestPractical {
 		lines = append(lines, fmt.Sprintf("Maintain slowest practical speed: %.0f kts", ias))
@@ -733,18 +727,9 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		}
 		lines = append(lines, line)
 
-		if pt := nav.Heading.RacetrackPT; pt != nil {
-			lines = append(lines,
-				fmt.Sprintf("Fly the %s procedure turn at %s, %s entry", pt.ProcedureTurn.Type,
-					pt.Fix, pt.Entry.String()))
-			if pt.ProcedureTurn.ExitAltitude != 0 &&
-				nav.FlightState.Altitude > float32(pt.ProcedureTurn.ExitAltitude) {
-				lines = append(lines, fmt.Sprintf("Descend to %d in the procedure turn",
-					int(pt.ProcedureTurn.ExitAltitude)))
-			}
-		}
-		if pt := nav.Heading.Standard45PT; pt != nil {
-			lines = append(lines, fmt.Sprintf("Fly the standard 45/180 procedure turn at %s", pt.Fix))
+		if len(nav.Heading.Maneuvers) > 0 {
+			lines = append(lines, fmt.Sprintf("Flying procedure turn (step %d/%d: %s)",
+				1, len(nav.Heading.Maneuvers), nav.Heading.Maneuvers[0].String()))
 		}
 	}
 
@@ -756,16 +741,70 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 	return strings.Join(lines, "\n")
 }
 
-func (nav *Nav) DepartureMessage(reportHeading bool) *av.RadioTransmission {
+// procedureHasAltRestrictions returns whether any remaining waypoints on the
+// SID (if checkSID) or STAR (otherwise) have altitude restrictions.
+func (nav *Nav) procedureHasAltRestrictions(checkSID bool) bool {
+	for i := range nav.Waypoints {
+		onProc := util.Select(checkSID, nav.Waypoints[i].OnSID(), nav.Waypoints[i].OnSTAR())
+		if onProc && nav.Waypoints[i].AltitudeRestriction() != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// addAltitudePhrasing appends realistic altitude reporting to the
+// transmission based on the aircraft's current flight state.
+func (nav *Nav) addAltitudePhrasing(rt *av.RadioTransmission, targetAlt float32) {
+	cur := nav.FlightState.Altitude
+	diff := targetAlt - cur
+
+	if diff > 200 {
+		// Climbing, not near target
+		rt.Add("[leaving|out of] {alt} [climbing|for] {alt}", cur, targetAlt)
+	} else if diff < -200 {
+		// Descending, not near target
+		rt.Add("[leaving|out of] {alt} [descending to|for] {alt}", cur, targetAlt)
+	} else if math.Abs(diff) > 10 {
+		// Leveling near target
+		rt.Add("[leveling|at] {alt}", targetAlt)
+	} else {
+		// At altitude
+		rt.Add("[at|] {alt}", cur)
+	}
+}
+
+func (nav *Nav) DepartureMessage(sid string, reportHeading bool) *av.RadioTransmission {
 	rt := &av.RadioTransmission{Type: av.RadioTransmissionContact}
 
-	// Altitude information
 	target := util.Select(nav.Altitude.Assigned != nil, nav.Altitude.Assigned, nav.Altitude.Cleared)
-	if target != nil && *target-nav.FlightState.Altitude > 100 {
-		// one of the two should be set, but just in case...
-		rt.Add("[at|] {alt} climbing {alt}", nav.FlightState.Altitude, *target)
+	climbing := target != nil && *target-nav.FlightState.Altitude > 200
+
+	if sid != "" && climbing {
+		if nav.Altitude.Assigned != nil && nav.procedureHasAltRestrictions(true) {
+			// SID with climbing via + controller override: "except maintaining {alt}"
+			rt.Add("[leaving|out of] {alt} climbing via the {sid} [departure|] except maintaining {alt}",
+				nav.FlightState.Altitude, sid, *nav.Altitude.Assigned)
+		} else if nav.procedureHasAltRestrictions(true) {
+			// SID with altitude restrictions, climbing via
+			rt.Add("[leaving|out of] {alt} climbing via the {sid} [departure|]",
+				nav.FlightState.Altitude, sid)
+		} else {
+			// SID without altitude restrictions
+			rt.Add("[leaving|out of] {alt} [for|climbing] {alt} [on the {sid} departure|]",
+				nav.FlightState.Altitude, *target, sid)
+		}
+	} else if climbing {
+		// No SID, just climbing
+		rt.Add("[leaving|out of] {alt} [for|climbing] {alt}",
+			nav.FlightState.Altitude, *target)
 	} else {
-		rt.Add("[at|] {alt}", nav.FlightState.Altitude)
+		// At altitude or leveling
+		if target != nil {
+			nav.addAltitudePhrasing(rt, *target)
+		} else {
+			rt.Add("[at|] {alt}", nav.FlightState.Altitude)
+		}
 	}
 
 	// Heading information for departures with varied exit headings
@@ -782,8 +821,12 @@ func (nav *Nav) DepartureMessage(reportHeading bool) *av.RadioTransmission {
 	return rt
 }
 
-func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string, reportHeading bool, isDeparture bool) *av.RadioTransmission {
+func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string, runway string,
+	reportHeading bool, isDeparture bool) *av.RadioTransmission {
 	var resp av.RadioTransmission
+
+	// Find the first applicable fix assignment for reporting
+	fixName, fixAlt := nav.firstFixAssignment()
 
 	if isDeparture && reportHeading {
 		// Departure with varied headings
@@ -794,38 +837,94 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 		case TurningToHeading:
 			resp.Add("[turning to|about to turn to] [heading|] {hdg}", hdg)
 		}
+		// Add altitude after heading for departures
+		nav.addContactAltitude(&resp, star, fixName, fixAlt)
 	} else if hdg, ok := nav.AssignedHeading(); ok && reportHeading {
-		// Arrival being vectored
+		// Being vectored - heading + altitude
 		resp.Add("[heading {hdg}|on a {hdg} heading]", hdg)
+		nav.addContactAltitude(&resp, "", fixName, fixAlt)
 	} else if star != "" {
-		if nav.Altitude.Assigned == nil {
-			resp.Add("descending on the {star}", star)
-		} else {
-			resp.Add("on the {star}", star)
-		}
+		// On a STAR
+		nav.addStarAltitude(&resp, star, fixName, fixAlt)
+	} else {
+		// Simple altitude
+		nav.addContactAltitude(&resp, "", fixName, fixAlt)
 	}
 
-	if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != nav.FlightState.Altitude {
-		resp.Add("[at|] {alt} for {alt} [assigned|]", nav.FlightState.Altitude, *nav.Altitude.Assigned)
-	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok && !nav.flyingPT() {
+	// Runway assignment
+	if runway != "" {
+		resp.Add("[runway {rwy}|for runway {rwy}]", runway)
+	}
+
+	// Speed assignment
+	if nav.Speed.Assigned != nil {
+		resp.Add("[assigned {spd}|{spd} knots]", *nav.Speed.Assigned)
+	}
+
+	return &resp
+}
+
+// firstFixAssignment finds the first controller-assigned crossing restriction
+// in the remaining waypoints. Returns the fix name and altitude, or empty/0
+// if none.
+func (nav *Nav) firstFixAssignment() (string, float32) {
+	for _, wp := range nav.Waypoints {
+		if fa, ok := nav.FixAssignments[wp.Fix]; ok && fa.Arrive.Altitude != nil {
+			// Use the floor; upgrade to the ceiling if one is set.
+			alt := fa.Arrive.Altitude.Range[0]
+			if fa.Arrive.Altitude.Range[1] != 0 {
+				alt = fa.Arrive.Altitude.Range[1]
+			}
+			return wp.Fix, alt
+		}
+	}
+	return "", 0
+}
+
+// addStarAltitude adds combined STAR + altitude phraseology.
+func (nav *Nav) addStarAltitude(rt *av.RadioTransmission, star string, fixName string, fixAlt float32) {
+	hasAltRestrictions := nav.procedureHasAltRestrictions(false)
+	cur := nav.FlightState.Altitude
+	descending := nav.Altitude.Assigned == nil && hasAltRestrictions
+
+	if descending && fixName != "" {
+		// Descending via STAR with a controller fix assignment exception
+		rt.Add("[leaving|out of] {alt} descending via [the|] {star} [arrival|] except [to cross|crossing] {fix} at {alt}",
+			cur, star, fixName, fixAlt)
+	} else if descending {
+		// Descending via STAR, no override
+		rt.Add("[leaving|out of] {alt} descending via the {star} [arrival|]", cur, star)
+	} else if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != cur {
+		// On STAR with controller-assigned altitude
+		rt.Add("on the {star} [at|] {alt} for {alt} [assigned|]", star, cur, *nav.Altitude.Assigned)
+	} else {
+		// On STAR at altitude
+		rt.Add("on the {star} [at|] {alt}", star, cur)
+	}
+}
+
+// addContactAltitude adds altitude phraseology for non-STAR contexts (vectored, departures, etc.).
+func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, fixName string, fixAlt float32) {
+	cur := nav.FlightState.Altitude
+
+	if fixName != "" && star == "" {
+		// Fix crossing restriction without a STAR
+		rt.Add("[leaving|out of] {alt} [to cross|crossing] {fix} at {alt}", cur, fixName, fixAlt)
+	} else if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != cur {
+		nav.addAltitudePhrasing(rt, *nav.Altitude.Assigned)
+	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok {
 		alt := c.Altitude
 		if nav.Altitude.Cleared != nil {
 			alt = min(alt, *nav.Altitude.Cleared)
 		}
-		if nav.FlightState.Altitude != alt {
-			resp.Add("[at|] {alt} for {alt}", nav.FlightState.Altitude, alt)
+		if cur != alt {
+			nav.addAltitudePhrasing(rt, alt)
 		} else {
-			resp.Add("[at|] {alt}", nav.FlightState.Altitude)
+			rt.Add("[at|] {alt}", cur)
 		}
 	} else {
-		resp.Add("[at|] {alt}", nav.FlightState.Altitude)
+		rt.Add("[at|] {alt}", cur)
 	}
-
-	if nav.Speed.Assigned != nil {
-		resp.Add("assigned {spd}", *nav.Speed.Assigned)
-	}
-
-	return &resp
 }
 
 func (nav *Nav) DivertToAirport(airport string) {

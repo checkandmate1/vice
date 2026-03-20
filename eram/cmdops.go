@@ -377,14 +377,17 @@ func handleMapRequestLoad(ep *ERAMPane, ctx *panes.Context, groupName string) (C
 func formatRangeBearing(from, to math.Point2LL, nmPerLon, magVar float32, trueBrg bool, speed float32) string {
 	dist := math.NMDistance2LL(from, to)
 
-	var magCorr float32
 	brgLabel := "MAG"
 	if trueBrg {
 		brgLabel = "TRUE"
-	} else {
-		magCorr = magVar
 	}
-	brg := math.Heading2LL(from, to, nmPerLon, magCorr)
+	trueBearing := math.Heading2LL(from, to, nmPerLon)
+	var brg float32
+	if trueBrg {
+		brg = float32(trueBearing)
+	} else {
+		brg = float32(math.TrueToMagnetic(trueBearing, magVar))
+	}
 
 	s := fmt.Sprintf("RANGE * %.1f NM\nBEARING * %03.0f DEG %s", dist, brg, brgLabel)
 	if speed > 0 {

@@ -90,7 +90,8 @@ type Aircraft struct {
 
 	// Departure related state
 	DepartureContactAltitude float32 // 0 = waiting for /tc point, -1 = already contacted departure
-	ReportDepartureHeading   bool    // true if runway has multiple exit heading
+	ReportDepartureHeading   bool    // true if runway has multiple exit headings
+	ReportDepartureSID       bool    // true if runway has multiple SIDs
 
 	// The controller who gave approach clearance
 	ApproachTCP TCP
@@ -119,6 +120,8 @@ type Aircraft struct {
 	TrafficInSight      bool      // True if aircraft has reported traffic in sight
 	TrafficInSightTime  time.Time // When traffic was reported in sight
 	TrafficLookingUntil time.Time // If non-zero, aircraft may report traffic in sight before this time
+
+	TouchAndGosRemaining int // >0 means pattern aircraft; decremented each lap
 }
 
 func (ac *Aircraft) GetRadarTrack(now time.Time) av.RadarTrack {
@@ -185,7 +188,7 @@ func (ac *Aircraft) InitializeFlightPlan(r av.FlightRules, acType, dep, arr stri
 	}
 }
 
-func (ac *Aircraft) TAS(temp float32) float32 {
+func (ac *Aircraft) TAS(temp av.Temperature) float32 {
 	return ac.Nav.TAS(temp)
 }
 
@@ -222,7 +225,7 @@ func (ac *Aircraft) AssignAltitude(altitude int, afterSpeed bool) av.CommandInte
 	return ac.Nav.AssignAltitude(float32(altitude), afterSpeed)
 }
 
-func (ac *Aircraft) AssignMach(mach float32, afterAltitude bool, temp float32) av.CommandIntent {
+func (ac *Aircraft) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {
 	return ac.Nav.AssignMach(mach, afterAltitude, temp)
 }
 
@@ -246,16 +249,16 @@ func (ac *Aircraft) MaintainPresentSpeed() av.CommandIntent {
 	return ac.Nav.MaintainPresentSpeed()
 }
 
-func (ac *Aircraft) SaySpeed(tempKelvin float32) av.CommandIntent {
-	return ac.Nav.SaySpeed(tempKelvin)
+func (ac *Aircraft) SaySpeed(temp av.Temperature) av.CommandIntent {
+	return ac.Nav.SaySpeed(temp)
 }
 
 func (ac *Aircraft) SayIndicatedSpeed() av.CommandIntent {
 	return ac.Nav.SayIndicatedSpeed()
 }
 
-func (ac *Aircraft) SayMach(tempKelvin float32) av.CommandIntent {
-	return ac.Nav.SayMach(tempKelvin)
+func (ac *Aircraft) SayMach(temp av.Temperature) av.CommandIntent {
+	return ac.Nav.SayMach(temp)
 }
 
 func (ac *Aircraft) SayHeading() av.CommandIntent {
@@ -275,11 +278,11 @@ func (ac *Aircraft) ExpediteClimb() av.CommandIntent {
 }
 
 func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
-	return ac.Nav.AssignHeading(float32(heading), turn, simTime)
+	return ac.Nav.AssignHeading(math.MagneticHeading(heading), turn, simTime)
 }
 
 func (ac *Aircraft) TurnLeft(deg int, simTime time.Time) av.CommandIntent {
-	hdg := math.NormalizeHeading(ac.Nav.FlightState.Heading - float32(deg))
+	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(-deg))
 	ac.Nav.AssignHeading(hdg, av.TurnLeft, simTime)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnLeft,
@@ -289,7 +292,7 @@ func (ac *Aircraft) TurnLeft(deg int, simTime time.Time) av.CommandIntent {
 }
 
 func (ac *Aircraft) TurnRight(deg int, simTime time.Time) av.CommandIntent {
-	hdg := math.NormalizeHeading(ac.Nav.FlightState.Heading + float32(deg))
+	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(deg))
 	ac.Nav.AssignHeading(hdg, av.TurnRight, simTime)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnRight,
@@ -311,7 +314,7 @@ func (ac *Aircraft) HoldAtFix(fix string, hold *av.Hold) av.CommandIntent {
 }
 
 func (ac *Aircraft) DepartFixHeading(fix string, hdg int) av.CommandIntent {
-	return ac.Nav.DepartFixHeading(strings.ToUpper(fix), float32(hdg))
+	return ac.Nav.DepartFixHeading(strings.ToUpper(fix), math.MagneticHeading(hdg))
 }
 
 func (ac *Aircraft) DepartFixDirect(fixa, fixb string) av.CommandIntent {
@@ -374,6 +377,11 @@ func (ac *Aircraft) ContactTower(lg *log.Logger) (av.CommandIntent, bool) {
 	if ac.GotContactTower {
 		// No response; they're not on our frequency any more.
 		return nil, false
+	} else if ac.FlightPlan.Rules == av.FlightRulesVFR {
+		// VFR aircraft on flight following can be told to contact tower
+		// without needing an approach assignment.
+		ac.GotContactTower = true
+		return av.ContactTowerIntent{}, true
 	} else if ac.Nav.Approach.Assigned == nil {
 		return av.MakeUnableIntent("unable. We haven't been given an approach."), false
 	} else if !ac.Nav.Approach.Cleared {
@@ -538,7 +546,11 @@ func (ac *Aircraft) ContactMessage(reportingPoints []av.ReportingPoint) *av.Radi
 	// For departures, only report heading if the runway has varied exit headings.
 	// For arrivals (and others), always report heading if assigned.
 	reportHeading := !ac.IsDeparture() || ac.ReportDepartureHeading
-	return ac.Nav.ContactMessage(reportingPoints, ac.STAR, reportHeading, ac.IsDeparture())
+	var runway string
+	if ac.Nav.Approach.Assigned != nil {
+		runway = ac.Nav.Approach.Assigned.Runway
+	}
+	return ac.Nav.ContactMessage(reportingPoints, ac.STAR, runway, reportHeading, ac.IsDeparture())
 }
 
 func (ac *Aircraft) DepartOnCourse(simTime time.Time, lg *log.Logger) {
@@ -560,7 +572,7 @@ func (ac *Aircraft) Altitude() float32 {
 	return ac.Nav.FlightState.Altitude
 }
 
-func (ac *Aircraft) Heading() float32 {
+func (ac *Aircraft) Heading() math.MagneticHeading {
 	return ac.Nav.FlightState.Heading
 }
 
@@ -706,7 +718,7 @@ func PlausibleFinalAltitude(fp av.FlightPlan, perf av.AircraftPerformance, nmPer
 		alt = min(alt, 17) // VFRs stay out of class A airspace
 	}
 
-	if math.Heading2LL(pDep, pArr, nmPerLongitude, magneticVariation) > 180 {
+	if math.TrueToMagnetic(math.Heading2LL(pDep, pArr, nmPerLongitude), magneticVariation) > 180 {
 		// Decrease rather than increasing so that we don't potentially go
 		// above the aircraft's ceiling.
 		alt--

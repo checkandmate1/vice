@@ -192,15 +192,15 @@ func targetGenAircraftCommand(sp *STARSPane, ctx *panes.Context, input string) (
 }
 
 // targetGenClickCommand runs commands on clicked aircraft in target gen mode.
-func targetGenClickCommand(sp *STARSPane, ctx *panes.Context, cmd string, trk *sim.Track) error {
+func targetGenClickCommand(sp *STARSPane, ctx *panes.Context, cmd string, trk *sim.Track) (CommandStatus, error) {
 	if ctx.Client.RadioIsActive() && !ctx.TCWIsPrivileged(ctx.UserTCW) && cmd != "X" {
 		// Don't allow issuing commands during pilot transmissions unless
 		// it's an instructor/RPO or the command is "X" to delete an aircraft.
-		return nil
+		return CommandStatus{Clear: ClearNone}, nil
 	}
 
 	if len(cmd) > 0 {
 		sp.runAircraftCommands(ctx, trk.ADSBCallsign, cmd, false, true)
 	}
-	return nil
+	return CommandStatus{}, nil
 }

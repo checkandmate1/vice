@@ -59,6 +59,22 @@ func registerAllCommands() {
 		WithPriority(1), // Very low priority - only matches if nothing else does
 	)
 
+	// "{altitude} until established [on] [the] [localizer|glide|slope|glideslope]"
+	registerSTTCommand(
+		"{standalone_altitude} until established|establishing [on] [the] [localizer|glide|slope|glideslope]",
+		func(alt int) string { return fmt.Sprintf("A%d", alt) },
+		WithName("altitude_until_established"),
+		WithPriority(12),
+	)
+
+	// Absorb "expect further clearance" so it doesn't trigger "expect approach"
+	registerSTTCommand(
+		"expect further clearance",
+		func() string { return "" },
+		WithName("expect_further_clearance"),
+		WithPriority(25),
+	)
+
 	registerSTTCommand(
 		"expedite descent|descend|your",
 		func() string { return "ED" },
@@ -344,6 +360,56 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
+		"[maintain] {speed} [knots] or less {speed_until}",
+		func(spd int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d-/U%s", spd, until.suffix)
+		},
+		WithName("speed_or_less_until"),
+		WithPriority(15),
+	)
+
+	registerSTTCommand(
+		"[maintain] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("speed_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
+		"speed [to] {speed} [knots] or less {speed_until}",
+		func(spd int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d-/U%s", spd, until.suffix)
+		},
+		WithName("speed_keyword_or_less_until"),
+		WithPriority(15),
+	)
+
+	registerSTTCommand(
+		"speed [to] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("speed_keyword_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("reduce_speed_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
+		"increase [speed] [to] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("increase_speed_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
 		"do not exceed {speed}",
 		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
 		WithName("do_not_exceed"),
@@ -373,7 +439,7 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
-		"reduce [to] final|minimum approach speed",
+		"reduce|slow [to] final|minimum [approach] [speed]",
 		func() string { return "SMIN" },
 		WithName("final_approach_speed"),
 		WithPriority(15),
@@ -476,12 +542,12 @@ func registerAllCommands() {
 		WithPriority(10),
 	)
 
-	// "cleared direct [fix]" - high priority pattern with SAYAGAIN when fix is garbled
+	// "cleared direct [fix]" - SAYAGAIN when fix is garbled.
 	registerSTTCommand(
 		"cleared direct {fix}",
 		func(fix string) string { return fmt.Sprintf("D%s", fix) },
 		WithName("cleared_direct_fix_explicit"),
-		WithPriority(12), // Higher than cleared_approach so "cleared direct [garbled]" becomes SAYAGAIN/FIX
+		WithPriority(12),
 		WithSayAgainOnFail(),
 	)
 
@@ -556,6 +622,8 @@ func registerAllCommands() {
 		func(fix, appr string) string { return fmt.Sprintf("A%s/C%s", fix, appr) },
 		WithName("at_fix_cleared_approach"),
 		WithPriority(15),
+		WithSayAgainOnFail(),
+		WithSayAgainMinTokens(3),
 	)
 
 	// These templates handle "at FIX intercept the localizer" with varying runway info
@@ -581,17 +649,11 @@ func registerAllCommands() {
 		WithSayAgainOnFail(), // "expect [approach]" should ask for clarification if approach unrecognized
 	)
 
+	// "standby for the approach" is informational — swallow it silently.
 	registerSTTCommand(
 		"standby [for] [the] approach",
-		func() string { return "E" },
+		func() string { return "" },
 		WithName("standby_approach"),
-		WithPriority(14),
-	)
-
-	registerSTTCommand(
-		"expect [the] approach",
-		func() string { return "E" },
-		WithName("expect_the_approach"),
 		WithPriority(14),
 	)
 
@@ -608,8 +670,9 @@ func registerAllCommands() {
 		"cleared [approach] [for] {approach}",
 		func(appr string) string { return fmt.Sprintf("C%s", appr) },
 		WithName("cleared_approach"),
-		WithPriority(8),
-		WithSayAgainOnFail(), // Garbled approach clearances should ask for clarification
+		WithPriority(13),
+		WithSayAgainOnFail(),     // Garbled approach clearances should ask for clarification
+		WithSayAgainMinTokens(2), // Require approach type keyword, not just "cleared"
 	)
 
 	registerSTTCommand(
@@ -680,6 +743,15 @@ func registerAllCommands() {
 		func() string { return "I" },
 		WithName("intercept_localizer"),
 		WithPriority(10),
+	)
+	// Pattern: "intercept the final approach course" - ATC equivalent of
+	// "intercept the localizer". Controllers sometimes say "final approach course"
+	// instead of "localizer" to mean the same thing.
+	registerSTTCommand(
+		"intercept|join|set [the] final approach [course]",
+		func() string { return "I" },
+		WithName("intercept_final_approach_course"),
+		WithPriority(11),
 	)
 	// Pattern: standalone "localizer" without "intercept" keyword.
 	// When "localizer" appears alone (e.g., after a heading command), it means

@@ -201,6 +201,13 @@ func (s *Sim) deleteAircraft(ac *Aircraft) {
 	s.STARSComputer.HoldForRelease = slices.DeleteFunc(s.STARSComputer.HoldForRelease,
 		func(a *Aircraft) bool { return ac.ADSBCallsign == a.ADSBCallsign })
 
+	// Clean up pattern state
+	for _, ps := range s.PatternState {
+		ps.Aircraft = slices.DeleteFunc(ps.Aircraft, func(pa PatternAircraft) bool {
+			return pa.ADSBCallsign == ac.ADSBCallsign
+		})
+	}
+
 	fp := ac.NASFlightPlan
 	if fp == nil {
 		fp = s.STARSComputer.takeFlightPlanByACID(ACID(ac.ADSBCallsign))
@@ -679,6 +686,14 @@ func (s *Sim) HandoffTrack(tcw TCW, acid ACID, toTCP TCP) error {
 					return ErrBeaconMismatch
 				}
 			}
+
+			// Can't hand off a local flight plan to an external facility.
+			toCtrl := s.State.Controllers[resolvedTCP]
+			if toCtrl.IsExternal() &&
+				(fp.PlanType == LocalNonEnroute || fp.PlanType == RemoteNonEnroute) {
+				return ErrIllegalTrackLocalFP
+			}
+
 			return nil
 		},
 		func(tcw TCW, fp *NASFlightPlan, ac *Aircraft) {
@@ -986,12 +1001,11 @@ func (s *Sim) PointOut(fromTCW TCW, acid ACID, toTCP TCP) error {
 
 	return s.dispatchTrackedFlightPlanCommand(fromTCW, acid,
 		func(tcw TCW, fp *NASFlightPlan, ac *Aircraft) error {
-			fromTCP := s.State.PrimaryPositionForTCW(fromTCW)
 			if octrl, ok := s.State.Controllers[toTCP]; !ok {
 				return av.ErrNoController
-			} else if octrl.Facility != s.State.Controllers[fromTCP].Facility {
-				// Can't point out to another STARS facility.
-				return av.ErrInvalidController
+			} else if octrl.IsExternal() && (fp.PlanType == LocalNonEnroute || fp.PlanType == RemoteNonEnroute) {
+				// Can't point out a local flight plan to an external facility.
+				return ErrIllegalTrackLocalFP
 			} else if s.State.TCWControlsPosition(fromTCW, toTCP) {
 				// Can't point out to ourself (including consolidated positions)
 				return av.ErrInvalidController
@@ -1145,7 +1159,6 @@ func (s *Sim) SendRouteCoordinates(tcw TCW, acid ACID, minutes int) error {
 	// Build the path starting from the aircraft's current position
 	currentPos := ac.Nav.FlightState.Position
 	nmPerLongitude := ac.Nav.FlightState.NmPerLongitude
-	magVar := ac.Nav.FlightState.MagneticVariation
 	const nmPerLatitude float32 = 60
 
 	var distance float32
@@ -1157,7 +1170,7 @@ func (s *Sim) SendRouteCoordinates(tcw TCW, acid ACID, minutes int) error {
 		if distance+legDistance >= requiredDistance {
 			// The endpoint is somewhere along this leg
 			remainingDistance := requiredDistance - distance
-			bearing := math.Heading2LL(currentPos, wp, nmPerLongitude, magVar)
+			bearing := math.Heading2LL(currentPos, wp, nmPerLongitude)
 
 			// Create a new waypoint at the calculated position
 			location := math.Point2LL{
@@ -1327,7 +1340,7 @@ func (s *Sim) AssignMach(tcw TCW, callsign av.ADSBCallsign, mach float32, afterA
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature() + 273.15
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
 			return ac.AssignMach(mach, afterAltitude, temp)
 		})
 }
@@ -1388,8 +1401,8 @@ func (s *Sim) SaySpeed(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, err
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			tempK := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature() + 273.15
-			return ac.SaySpeed(tempK)
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			return ac.SaySpeed(temp)
 		})
 }
 
@@ -1409,8 +1422,8 @@ func (s *Sim) SayMach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, erro
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			tempK := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature() + 273.15
-			return ac.SayMach(tempK)
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			return ac.SayMach(temp)
 		})
 }
 
@@ -1700,13 +1713,13 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 
 	// Convert o'clock to heading offset from aircraft heading
 	// 12 o'clock = 0 degrees, 3 o'clock = 90 degrees, etc.
-	oclockHeading := float32((oclock % 12) * 30) // 0, 30, 60, 90... 330
+	oclockHeading := math.MagneticHeading((oclock % 12) * 30) // 0, 30, 60, 90... 330
 	trafficHeading := math.NormalizeHeading(ac.Heading() + oclockHeading)
 
 	// Calculate the approximate position of the reported traffic
 	nmPerLong := ac.NmPerLongitude()
 	magVar := ac.MagneticVariation()
-	trafficPos := math.Offset2LL(ac.Position(), trafficHeading, float32(miles), nmPerLong, magVar)
+	trafficPos := math.Offset2LL(ac.Position(), math.MagneticToTrue(trafficHeading, magVar), float32(miles), nmPerLong)
 
 	// Search for actual traffic near the reported position
 	// Tolerance: +/- 2 miles horizontal, +/- 1000 feet vertical
@@ -2240,7 +2253,11 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 		if !ac.IsAssociated() {
 			return "", ""
 		}
-		rt = ac.Nav.DepartureMessage(pc.ReportDepartureHeading)
+		sid := ""
+		if ac.ReportDepartureSID {
+			sid = ac.SID
+		}
+		rt = ac.Nav.DepartureMessage(sid, pc.ReportDepartureHeading)
 
 		// Handle emergency activation for departures
 		humanAllocated := !s.isVirtualController(ac.ControllerFrequency)
@@ -2484,15 +2501,35 @@ func (s *Sim) RunAircraftControlCommands(tcw TCW, callsign av.ADSBCallsign, comm
 		ac.LastAddressingForm = addressingForm
 	}
 
-	// Handle ROLLBACK command first (may have other commands following)
-	// ROLLBACK undoes the last command sent to a wrong aircraft due to STT callsign error
-	if len(commands) > 0 && commands[0] == "ROLLBACK" {
+	// Handle ROLLBACK as callsign: STT outputs "ROLLBACK {callsign} {commands}" or "ROLLBACK {commands}".
+	// The client splits on first space, so callsign="ROLLBACK" and commands contain the rest.
+	if callsign == "ROLLBACK" {
+		// Save last command's callsign before rollback clears it
+		var lastCallsign av.ADSBCallsign
+		if s.LastSTTCommand != nil {
+			lastCallsign = s.LastSTTCommand.Callsign
+		}
+
 		if err := s.rollbackLastCommand(); err != nil {
-			// Log but don't return error - ROLLBACK is generated by STT, not the user,
-			// so a failure indicates a bug in STT (not a user concern)
 			s.lg.Warnf("ROLLBACK failed: %v", err)
 		}
-		commands = commands[1:]
+		if len(commands) == 0 {
+			return ControlCommandsResult{}
+		}
+
+		// Check if first element is a callsign (for "negative that was for {cs}")
+		// or a command (for "negative, {commands}" without callsign)
+		potentialCallsign := av.ADSBCallsign(commands[0])
+		lookupCS := av.ADSBCallsign(strings.TrimSuffix(string(potentialCallsign), "/T"))
+		if _, ok := s.Aircraft[lookupCS]; ok {
+			callsign = potentialCallsign
+			commands = commands[1:]
+		} else if lastCallsign != "" {
+			callsign = lastCallsign
+		} else {
+			s.lg.Warn("ROLLBACK: no target callsign available")
+			return ControlCommandsResult{}
+		}
 		if len(commands) == 0 {
 			return ControlCommandsResult{}
 		}
@@ -2735,7 +2772,7 @@ func parseHold(command string) (string, *av.Hold, bool) {
 			if err != nil || radial <= 0 || radial > 360 {
 				return "", nil, false
 			}
-			hold.InboundCourse = float32(radial)
+			hold.InboundCourse = math.MagneticHeading(radial)
 
 		default:
 			return "", nil, false

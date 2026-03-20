@@ -170,10 +170,10 @@ type CRDARegion struct {
 	HeadingTolerance float32 `json:"heading_tolerance"`
 
 	// Straight-line reference (mutually exclusive with ReferenceRoute)
-	ReferenceLineHeading   float32       `json:"reference_heading"`
-	ReferenceLineLength    float32       `json:"reference_length"`
-	ReferencePointAltitude float32       `json:"reference_altitude"`
-	ReferencePoint         math.Point2LL `json:"reference_point"`
+	ReferenceLineHeading   math.MagneticHeading `json:"reference_heading"`
+	ReferenceLineLength    float32              `json:"reference_length"`
+	ReferencePointAltitude float32              `json:"reference_altitude"`
+	ReferencePoint         math.Point2LL        `json:"reference_point"`
 
 	// Route-based reference (mutually exclusive with straight-line fields)
 	ReferenceRoute string `json:"reference_route"`
@@ -331,17 +331,17 @@ type ATPAVolume struct {
 	Id                  string `json:"id"`
 	ThresholdString     string `json:"runway_threshold"`
 	Threshold           math.Point2LL
-	Heading             float32  `json:"heading"`
-	MaxHeadingDeviation float32  `json:"max_heading_deviation"`
-	Floor               float32  `json:"floor"`
-	Ceiling             float32  `json:"ceiling"`
-	Length              float32  `json:"length"`
-	LeftWidth           float32  `json:"left_width"`
-	RightWidth          float32  `json:"right_width"`
-	FilteredScratchpads []string `json:"filtered_scratchpads"`
-	ExcludedScratchpads []string `json:"excluded_scratchpads"`
-	Enable25nmApproach  bool     `json:"enable_2.5nm"`
-	Dist25nmApproach    float32  `json:"2.5nm_distance"`
+	Heading             math.MagneticHeading `json:"heading"`
+	MaxHeadingDeviation float32              `json:"max_heading_deviation"`
+	Floor               float32              `json:"floor"`
+	Ceiling             float32              `json:"ceiling"`
+	Length              float32              `json:"length"`
+	LeftWidth           float32              `json:"left_width"`
+	RightWidth          float32              `json:"right_width"`
+	FilteredScratchpads []string             `json:"filtered_scratchpads"`
+	ExcludedScratchpads []string             `json:"excluded_scratchpads"`
+	Enable25nmApproach  bool                 `json:"enable_2.5nm"`
+	Dist25nmApproach    float32              `json:"2.5nm_distance"`
 }
 
 // CourseLine returns a polyline for drawing the course line of this CRDA region.

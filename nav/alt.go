@@ -91,7 +91,7 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 	}
 
 	NavLog(callsign, simTime, NavLogAltitude, "atmosFactor=%.3f climb=%.0f descent=%.0f pressure=%.1f temp=%.1f",
-		atmosFactor, climb, descent, wxs.Pressure(), wxs.Temperature())
+		atmosFactor, climb, descent, wxs.Pressure(), wxs.Temperature().Celsius())
 
 	const rateFadeAltDifference = 500
 	const rateMaxDeltaPercent = 0.075
@@ -193,7 +193,7 @@ func (nav *Nav) atmosClimbFactor(wxs wx.Sample) float32 {
 	pressureAltitude := mbToPressureAltitude(wxs.Pressure())
 	isaTemp := 15 - (2 * pressureAltitude / 1000)
 	tempFactor := float32(1)
-	tempDeviation := wxs.Temperature() - isaTemp
+	tempDeviation := wxs.Temperature().Celsius() - isaTemp
 	if tempDeviation > 0 {
 		tempFactor = 1 + (tempCorrection * tempDeviation)
 	}
@@ -247,19 +247,12 @@ func (nav *Nav) TargetAltitude() (float32, float32) {
 		rate = 0 // still return the desired altitude, just no oomph to get there.
 	}
 
-	// Ugly to be digging into heading here, but anyway...
-	if nav.Heading.RacetrackPT != nil {
-		if alt, ok := nav.Heading.RacetrackPT.GetAltitude(nav); ok {
-			return alt, rate
-		}
-	}
-
 	// Controller-assigned altitude overrides everything else
 	if nav.Altitude.Assigned != nil {
 		return *nav.Altitude.Assigned, rate
 	}
 
-	if c, ok := nav.getWaypointAltitudeConstraint(); ok && !nav.flyingPT() {
+	if c, ok := nav.getWaypointAltitudeConstraint(); ok {
 		if c.ETA < 5 || nav.FlightState.Altitude < c.Altitude {
 			// Always climb as soon as we can
 			alt := c.Altitude
@@ -314,11 +307,6 @@ func (nav *Nav) TargetAltitude() (float32, float32) {
 
 	// Baseline: stay where we are
 	return nav.FlightState.Altitude, 0
-}
-
-func (nav *Nav) flyingPT() bool {
-	return (nav.Heading.RacetrackPT != nil && nav.Heading.RacetrackPT.State != PTStateApproaching) ||
-		(nav.Heading.Standard45PT != nil && nav.Heading.Standard45PT.State != PT45StateApproaching)
 }
 
 type WaypointCrossingConstraint struct {

@@ -173,6 +173,8 @@ type SimState struct {
 	ControllerVideoMaps                 []string
 	ControllerDefaultVideoMaps          []string
 	ControllerMonitoredBeaconCodeBlocks []av.Squawk
+	ControllerVideoMapFile              string
+	ControllerVideoMapLibraryHash       []byte
 
 	UserIsPrivileged bool // Whether this user has elevated privileges (can control any aircraft)
 
@@ -191,8 +193,7 @@ func (sm *SimManager) NewSim(req *NewSimRequest, result *NewSimResult) error {
 	lg := sm.lg.With(slog.String("sim_name", req.NewSimName))
 
 	if nsc := sm.makeSimConfiguration(req, lg); nsc != nil {
-		manifest := sm.mapManifests[nsc.FacilityAdaptation.VideoMapFile]
-		s := sim.NewSim(*nsc, manifest, lg)
+		s := sim.NewSim(*nsc, lg)
 		session := makeSimSession(req.NewSimName, req.GroupName, req.ScenarioName, req.Password, s, sm.lg)
 		pos := s.ScenarioRootPosition()
 		return sm.Add(session, result, pos, req.Initials, req.Privileged, true)
@@ -226,7 +227,7 @@ func (sm *SimManager) makeSimConfiguration(req *NewSimRequest, lg *log.Logger) *
 		TFRs:                        req.TFRs,
 		Facility:                    req.Facility,
 		LaunchConfig:                req.ScenarioSpec.LaunchConfig,
-		FacilityAdaptation:          deep.MustCopy(sg.FacilityAdaptation),
+		FacilityAdaptation:          deep.MustCopy(sg.FacilityConfig.FacilityAdaptation),
 		EnforceUniqueCallsignSuffix: req.EnforceUniqueCallsignSuffix,
 		PilotErrorInterval:          req.PilotErrorInterval,
 		DepartureRunways:            sc.DepartureRunways,
@@ -240,22 +241,22 @@ func (sm *SimManager) makeSimConfiguration(req *NewSimRequest, lg *log.Logger) *
 		Airports:                    sg.Airports,
 		Fixes:                       sg.Fixes,
 		PrimaryAirport:              sg.PrimaryAirport,
-		Center:                      util.Select(sc.Center.IsZero(), sg.FacilityAdaptation.Center, sc.Center),
-		Range:                       util.Select(sc.Range == 0, sg.FacilityAdaptation.Range, sc.Range),
+		Center:                      util.Select(sc.Center.IsZero(), sg.FacilityConfig.FacilityAdaptation.Center, sc.Center),
+		Range:                       util.Select(sc.Range == 0, sg.FacilityConfig.FacilityAdaptation.Range, sc.Range),
 		DefaultMaps:                 sc.DefaultMaps,
 		DefaultMapGroup:             sc.DefaultMapGroup,
 		InboundFlows:                sg.InboundFlows,
 		Airspace:                    sg.Airspace,
 		ControllerAirspace:          sc.Airspace,
-		ControlPositions:            sg.ControlPositions,
+		ControlPositions:            sg.FacilityConfig.ControlPositions,
 		VirtualControllers:          sc.VirtualControllers,
 		ControllerConfiguration:     &sc.ControllerConfiguration,
 		ConfigurationId:             sc.ConfigurationString,
 		WXProvider:                  wxp,
 		Emergencies:                 req.Emergencies,
 		StartTime:                   req.StartTime,
-		HandoffIDs:                  sg.HandoffIDs,
-		FixPairs:                    sg.FixPairs,
+		HandoffIDs:                  sg.FacilityConfig.HandoffIDs,
+		FixPairs:                    sg.FacilityConfig.FixPairs,
 	}
 
 	return &nsc
@@ -347,6 +348,12 @@ func (sm *SimManager) checkTCWAvailable(ss *simSession, tcw sim.TCW) error {
 func (sm *SimManager) buildNewSimResult(session *simSession, tcw sim.TCW, token string) *NewSimResult {
 	videoMaps, defaultMaps, beaconCodes := session.sim.GetControllerVideoMaps(tcw)
 
+	vmFile := session.sim.GetControllerVideoMapFile(tcw)
+	var vmHash []byte
+	if manifest, ok := sm.mapManifests[vmFile]; ok {
+		vmHash, _ = manifest.Hash()
+	}
+
 	return &NewSimResult{
 		SimState: &SimState{
 			UserState:                           *session.sim.GetUserState(),
@@ -355,6 +362,8 @@ func (sm *SimManager) buildNewSimResult(session *simSession, tcw sim.TCW, token 
 			ControllerVideoMaps:                 videoMaps,
 			ControllerDefaultVideoMaps:          defaultMaps,
 			ControllerMonitoredBeaconCodeBlocks: beaconCodes,
+			ControllerVideoMapFile:              vmFile,
+			ControllerVideoMapLibraryHash:       vmHash,
 			UserIsPrivileged:                    session.sim.TCWIsPrivileged(tcw),
 		},
 		ControllerToken: token,

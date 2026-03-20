@@ -1,0 +1,21 @@
+- New scenario: LBB (Gecko)
+- Scenario updates: MIA (Gecko), ZNY A/C, PHL (Ryan G)
+- There are now VFR aircraft doing pattern work at airports with VFR traffic.
+- Adjusted radio noise simulation to reduce muffling of pilot responses
+- Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)
+- Improved pilot initial contact messages to include SIDs/STARs, altitude/speed restrictions, assigned headings, etc.
+- Bugfixes:
+  - You can now tell VFR aircraft to "contact tower" without them complaining that they weren't assigned an approach.
+  - Fixed a few crashes under unusual circumstances.
+- STT fixes:
+  - "Negative, ..." actually causes the aircraft that misheard the instruction to ignore it.
+  - "Negative, (updated instructions)" is allowed when an aircraft reads back the wrong instructions (i.e., the callsign isn't required).
+  - If a VFR calls in with a request, replying "(callsign), XYZ approach" is treated as "go ahead"
+  - Fixed some issues with "at (fix), cleared (approach)"
+  - Many other improvements to interpreting ambiguous instructions
+- STARS:
+  - Fixed a bug with datablock formatting when aircraft are squawking the wrong code.
+  - Trying to hand off or point out a track with a local flight plan now gives an ILL TRK - LCL FP error
+- Facility engineering
+  - Added support for per-area and per-controller "altimeters" lists
+  - Added "cleared_altitude" for arrivals/overflights: this is like "cleared_altitude" for departures--aircraft try to get to that altitude when able, but obey altitude restrictions in their route while doing so.

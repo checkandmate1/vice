@@ -50,6 +50,27 @@ func exitRoutesHaveVariedHeadings(exitRoutes map[av.ExitID]*av.ExitRoute) bool {
 	return false
 }
 
+// exitRoutesHaveVariedSIDs returns true if the given exit routes have
+// different SID names. This is used to determine whether departures
+// should report their SID when checking in with departure control.
+func exitRoutesHaveVariedSIDs(exitRoutes map[av.ExitID]*av.ExitRoute) bool {
+	var firstSID string
+	first := true
+	for _, route := range exitRoutes {
+		sid := route.SID
+		if sid == "" {
+			continue
+		}
+		if first {
+			firstSID = sid
+			first = false
+		} else if sid != firstSID {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Sim) spawnDepartures() {
 	now := s.State.SimTime
 
@@ -183,7 +204,7 @@ func (s *Sim) launchSequencedDeparture(depState *RunwayLaunchState, airport stri
 	}
 
 	considerExit := len(depState.Sequenced) == 1
-	if !s.canLaunch(depState, depState.Sequenced[0], considerExit, depRunway) {
+	if !s.canLaunch(depState, depState.Sequenced[0], considerExit, airport, depRunway) {
 		return
 	}
 
@@ -256,7 +277,7 @@ func (s *Sim) sameGroupRunways(airport string, depRwy av.RunwayID) iter.Seq2[av.
 }
 
 // canLaunch checks whether we can go ahead and launch dep.
-func (s *Sim) canLaunch(depState *RunwayLaunchState, dep DepartureAircraft, considerExit bool, runway av.RunwayID) bool {
+func (s *Sim) canLaunch(depState *RunwayLaunchState, dep DepartureAircraft, considerExit bool, airport string, runway av.RunwayID) bool {
 	// Check if departures are held due to a go-around
 	if s.State.SimTime.Before(depState.GoAroundHoldUntil) {
 		return false
@@ -296,6 +317,11 @@ func (s *Sim) canLaunch(depState *RunwayLaunchState, dep DepartureAircraft, cons
 				return false
 			}
 		}
+	}
+
+	// Don't launch yet if a pattern aircraft is about to land or just departed.
+	if s.patternConflictsWithLaunch(airport) {
+		return false
 	}
 
 	return true
@@ -581,22 +607,26 @@ func (s *Sim) createIFRDepartureNoLock(departureAirport string, runway av.Runway
 	}
 	dep := &ap.Departures[idx]
 
-	airline := rand.SampleSlice(s.Rand, dep.Airlines)
-	ac, acType := s.sampleAircraft(airline.AirlineSpecifier, departureAirport, dep.Destination, s.lg)
-	if ac == nil {
-		return nil, fmt.Errorf("unable to sample a valid aircraft for airline %+v at %q", airline,
-			departureAirport)
+	if len(dep.Airlines) == 0 {
+		return nil, fmt.Errorf("no airlines for departure at %q", departureAirport)
 	}
 
-	ac.InitializeFlightPlan(av.FlightRulesIFR, acType, departureAirport, dep.Destination)
+	ac, err := filterAndSampleAircraft(s, dep.Airlines,
+		func(al av.DepartureAirline) av.AirlineSpecifier { return al.AirlineSpecifier },
+		func(al av.DepartureAirline) (string, string) { return departureAirport, dep.Destination },
+		fmt.Sprintf("departures at %q", departureAirport))
+	if err != nil {
+		return nil, err
+	}
 
 	exitRoute := exitRoutes[dep.Exit]
-	err := ac.InitializeDeparture(ap, departureAirport, dep, string(runway), *exitRoute, s.State.NmPerLongitude,
+	err = ac.InitializeDeparture(ap, departureAirport, dep, string(runway), *exitRoute, s.State.NmPerLongitude,
 		s.State.MagneticVariation, s.wxModel, s.State.SimTime, s.lg)
 	if err != nil {
 		return nil, err
 	}
 	ac.ReportDepartureHeading = exitRoutesHaveVariedHeadings(exitRoutes)
+	ac.ReportDepartureSID = exitRoutesHaveVariedSIDs(exitRoutes)
 
 	shortExit := dep.Exit.Base()
 	isTRACON := av.DB.IsTRACON(s.State.Facility)
@@ -605,7 +635,16 @@ func (s *Sim) createIFRDepartureNoLock(departureAirport string, runway av.Runway
 	nasFp.EntryFix = util.Select(len(ac.FlightPlan.DepartureAirport) == 4, ac.FlightPlan.DepartureAirport[1:],
 		ac.FlightPlan.DepartureAirport)
 	nasFp.ExitFix = shortExit
-	nasFp.Scratchpad = util.Select(dep.Scratchpad != "", dep.Scratchpad, s.State.FacilityAdaptation.Scratchpads[shortExit])
+	if dep.Scratchpad != "" { // this has top priority
+		nasFp.Scratchpad = dep.Scratchpad
+	} else if sp1 := s.State.FacilityAdaptation.Datablocks.Scratchpad1; sp1.DisplayExitFix ||
+		sp1.DisplayExitFix1 || sp1.DisplayExitGate || sp1.DisplayAltExitGate {
+		// Don't set the scratchpad; it will be set automatically.
+	} else if sp, ok := s.State.FacilityAdaptation.Scratchpads[string(dep.Exit)]; ok {
+		nasFp.Scratchpad = sp
+	} else {
+		nasFp.Scratchpad = s.State.FacilityAdaptation.Scratchpads[shortExit]
+	}
 	nasFp.SecondaryScratchpad = dep.SecondaryScratchpad
 	nasFp.RequestedAltitude = ac.FlightPlan.Altitude
 	nasFp.AssignedAltitude = util.Select(!isTRACON, ac.FlightPlan.Altitude, 0)
@@ -687,7 +726,10 @@ func makeDepartureAircraft(ac *Aircraft, simTime time.Time, model *wx.Model, r *
 
 func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, routeWps []av.Waypoint, simTime time.Time) (*Aircraft, string, error) {
 	depap, arrap := av.DB.Airports[depart], av.DB.Airports[arrive]
-	rwy := s.State.VFRRunways[depart]
+	rwy, _, ok := s.currentVFRRunway(depart)
+	if !ok {
+		return nil, "", fmt.Errorf("%s: unable to find current VFR runway", depart)
+	}
 
 	ac, acType := s.sampleAircraft(av.AirlineSpecifier{ICAO: "N", Fleet: fleet}, depart, arrive, s.lg)
 	if ac == nil {
@@ -716,7 +758,10 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 	mid := math.Mid2f(depap.Location, arrap.Location)
 	if arrive == depart {
 		dist := float32(10 + s.Rand.Intn(20))
-		hdg := float32(1 + s.Rand.Intn(360))
+		// Bias heading to within ±90° of the departure runway heading so
+		// the aircraft flies away from the airport before sightseeing,
+		// rather than immediately looping back over the field.
+		hdg := rwy.Heading + math.MagneticHeading(-90+s.Rand.Intn(181))
 		v := [2]float32{dist * math.Sin(math.Radians(hdg)), dist * math.Cos(math.Radians(hdg))}
 		dnm := math.LL2NM(depap.Location, s.State.NmPerLongitude)
 		midnm := math.Add2f(dnm, v)
@@ -727,8 +772,7 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 	wps := make([]av.Waypoint, 0, 20)
 
 	wps = append(wps, av.Waypoint{Fix: "_dep_threshold", Location: rwy.Threshold})
-	opp := math.Offset2LL(rwy.Threshold, rwy.Heading, 1 /* nm */, s.State.NmPerLongitude,
-		s.State.MagneticVariation)
+	opp := math.Offset2LL(rwy.Threshold, math.MagneticToTrue(rwy.Heading, s.State.MagneticVariation), 1 /* nm */, s.State.NmPerLongitude)
 	wps = append(wps, av.Waypoint{Fix: "_opp", Location: opp})
 
 	rg := av.MakeRouteGenerator(rwy.Threshold, opp, s.State.NmPerLongitude)
@@ -736,13 +780,13 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 	wps = append(wps, wp0)
 
 	// Fly a downwind if needed
-	var hdg float32
+	var hdg math.TrueHeading
 	if len(routeWps) > 0 {
-		hdg = math.Heading2LL(opp, routeWps[0].Location, s.State.NmPerLongitude, s.State.MagneticVariation)
+		hdg = math.Heading2LL(opp, routeWps[0].Location, s.State.NmPerLongitude)
 	} else {
-		hdg = math.Heading2LL(opp, mid, s.State.NmPerLongitude, s.State.MagneticVariation)
+		hdg = math.Heading2LL(opp, mid, s.State.NmPerLongitude)
 	}
-	turn := math.HeadingSignedTurn(rwy.Heading, hdg)
+	turn := math.HeadingSignedTurn(math.MagneticToTrue(rwy.Heading, s.State.MagneticVariation), hdg)
 	if turn < -120 {
 		// left downwind
 		wps = append(wps, rg.Waypoint("_dep_downwind1", 1, 1.5))
@@ -827,7 +871,7 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 	// Adjust route for MVA requirements
 	wps = s.adjustRouteForMVA(string(ac.ADSBCallsign), wps)
 
-	wps[len(wps)-1].SetLand(true)
+	wps[len(wps)-1].SetSequenceVFRLanding(true)
 
 	if err := ac.InitializeVFRDeparture(s.State.Airports[depart], wps, randomizeAltitudeRange,
 		s.State.NmPerLongitude, s.State.MagneticVariation, s.wxModel, simTime, s.lg); err != nil {
@@ -843,7 +887,7 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 		simNav.FlightState.Altitude, simTime)
 	for i := range 3 * 60 * 60 { // limit to 3 hours of sim time, just in case
 		if wp := simNav.UpdateWithWeather("", prespawnWxs, &simFP,
-			simTime, nil); wp != nil && wp.Delete() {
+			simTime, nil); wp != nil && (wp.Delete() || wp.SequenceVFRLanding()) {
 			return ac, rwy.Id, nil
 		}
 

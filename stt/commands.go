@@ -19,224 +19,92 @@ type CommandMatch struct {
 	IsSayAgain bool    // True if this is a partial match that needs say-again
 }
 
+// categoryRule maps a command pattern to its category. First match wins.
+type categoryRule struct {
+	match    func(cmd string) bool
+	category string
+}
+
+// categoryRules defines command-to-category mappings, tried in order.
+// Categories prevent duplicate commands of the same type in a single transmission.
+var categoryRules = []categoryRule{
+	// T-prefix: turn commands (TL, TR) → heading
+	{match: func(cmd string) bool {
+		return len(cmd) > 1 && cmd[0] == 'T' && (cmd[1] == 'L' || cmd[1] == 'R')
+	}, category: "heading"},
+	// T-prefix: then-descend/climb (TD, TC) → altitude
+	{match: func(cmd string) bool {
+		return len(cmd) > 1 && cmd[0] == 'T' && (cmd[1] == 'D' || cmd[1] == 'C')
+	}, category: "altitude"},
+	// T-prefix: then-speed (TS) → speed
+	{match: func(cmd string) bool {
+		return len(cmd) > 1 && cmd[0] == 'T' && cmd[1] == 'S'
+	}, category: "speed"},
+	// T-prefix: then-heading (TH) → heading
+	{match: func(cmd string) bool {
+		return len(cmd) > 1 && cmd[0] == 'T' && cmd[1] == 'H'
+	}, category: "heading"},
+	// D/C/A + digit → altitude (D40, C40, A40)
+	{match: func(cmd string) bool {
+		return len(cmd) > 1 && (cmd[0] == 'D' || cmd[0] == 'C' || cmd[0] == 'A') && cmd[1] >= '0' && cmd[1] <= '9'
+	}, category: "altitude"},
+	// D with /H → depart_heading
+	{match: func(cmd string) bool {
+		return cmd[0] == 'D' && strings.Contains(cmd, "/H")
+	}, category: "depart_heading"},
+	// D + letter → navigation (direct-to-fix)
+	{match: func(cmd string) bool { return cmd[0] == 'D' }, category: "navigation"},
+	// A with / → cleared_approach (at fix cleared approach: AHOLID/CI0L, AHOLID/I)
+	{match: func(cmd string) bool {
+		return cmd[0] == 'A' && strings.Contains(cmd, "/")
+	}, category: "cleared_approach"},
+	// A + letter → navigation
+	{match: func(cmd string) bool { return cmd[0] == 'A' }, category: "navigation"},
+	// C with / → crossing (cross fix at altitude/speed/mach: CFIX/A40, CFIX/S250, CFIX/M80)
+	{match: func(cmd string) bool {
+		return cmd[0] == 'C' && strings.Contains(cmd, "/")
+	}, category: "crossing"},
+	// C + letter without / → cleared_approach (CI9L)
+	{match: func(cmd string) bool { return cmd[0] == 'C' }, category: "cleared_approach"},
+	// SAYAGAIN → no category
+	{match: func(cmd string) bool { return strings.HasPrefix(cmd, "SAYAGAIN") }, category: ""},
+	// S → speed
+	{match: func(cmd string) bool { return cmd[0] == 'S' }, category: "speed"},
+	// H → heading
+	{match: func(cmd string) bool { return cmd[0] == 'H' }, category: "heading"},
+	// E → expect_approach
+	{match: func(cmd string) bool { return cmd[0] == 'E' }, category: "expect_approach"},
+}
+
 // getCommandCategory returns the category of a command based on its prefix.
 // Categories are used to prevent duplicate commands of the same type in a single transmission.
-// For example, once an altitude command is matched, we shouldn't match another altitude command.
 func getCommandCategory(cmd string) string {
 	if cmd == "" {
 		return ""
 	}
-
-	// Handle "then" variants by stripping T prefix
-	if len(cmd) > 1 && cmd[0] == 'T' {
-		// Check if second char indicates a turn (TL, TR) vs then-command (TD, TC, TS, TH)
-		switch cmd[1] {
-		case 'L', 'R':
-			// TL20, TR20 are turn commands (heading category)
-			return "heading"
-		case 'D', 'C':
-			// TD40, TC40 are then-descend/climb (altitude category)
-			return "altitude"
-		case 'S':
-			// TS180 is then-speed (speed category)
-			return "speed"
-		case 'H':
-			// TH270 is then-heading (heading category)
-			return "heading"
+	for _, rule := range categoryRules {
+		if rule.match(cmd) {
+			return rule.category
 		}
 	}
-
-	switch cmd[0] {
-	case 'D', 'C', 'A':
-		// D40 (descend), C40 (climb), A40 (altitude assignment)
-		// But D can also be direct-to-fix like DFORPE, and C can be approach clearance like CI9L
-		// Check if followed by digit to determine if it's altitude vs navigation/approach
-		if len(cmd) > 1 && cmd[1] >= '0' && cmd[1] <= '9' {
-			return "altitude"
-		}
-		// D followed by letter is direct-to-fix or depart-fix-heading
-		if cmd[0] == 'D' {
-			if strings.Contains(cmd, "/H") {
-				return "depart_heading"
-			}
-			return "navigation"
-		}
-		// A followed by letter could be approach-related (AFIX/C for "at fix cleared approach")
-		if cmd[0] == 'A' {
-			return "navigation"
-		}
-		// C followed by letter could be:
-		// - Crossing restriction: CNOLEY/A40 (contains '/') - categorize by suffix
-		// - Approach clearance: CI9L (no '/')
-		if strings.Contains(cmd, "/") {
-			// Crossing restriction - categorize by what follows the '/'
-			if strings.Contains(cmd, "/A") {
-				return "altitude"
-			}
-			if strings.Contains(cmd, "/S") {
-				return "speed"
-			}
-			if strings.Contains(cmd, "/M") {
-				return "speed"
-			}
-			return "navigation" // default for other crossing restrictions
-		}
-		// C followed by letter without '/' is approach clearance (CI9L)
-		return "cleared_approach"
-	case 'S':
-		// S180 (speed), but SAYAGAIN is not a speed command
-		if strings.HasPrefix(cmd, "SAYAGAIN") {
-			return ""
-		}
-		return "speed"
-	case 'H':
-		// H270 (heading)
-		return "heading"
-	case 'E':
-		// EI9L (expect approach)
-		// Use different category from cleared_approach so both can appear in same transmission
-		return "expect_approach"
-	}
-
 	return ""
 }
 
-// extractAltitude extracts an altitude value from tokens.
-func extractAltitude(tokens []Token) (int, int) {
-	if len(tokens) == 0 {
-		return 0, 0
+// looksLikeAltitude returns true if a token looks like an altitude value.
+// Used for the "at {altitude}" implicit-then pattern in ParseCommands.
+func looksLikeAltitude(t Token) bool {
+	if t.Type == TokenAltitude {
+		return true
 	}
-
-	// Check for altitude token
-	for i, t := range tokens {
-		if i > 3 { // Don't look too far
-			break
+	if t.Type == TokenNumber {
+		if t.Value >= 100 && t.Value <= 600 {
+			return true
 		}
-
-		// Skip numbers followed by "mile" or "miles" - those are distances, not altitudes
-		if i+1 < len(tokens) {
-			nextText := strings.ToLower(tokens[i+1].Text)
-			if nextText == "mile" || nextText == "miles" {
-				continue
-			}
-		}
-
-		if t.Type == TokenAltitude {
-			return t.Value, i + 1
-		}
-		if t.Type == TokenNumber {
-			// Heuristic: if it looks like altitude encoding (2-3 digits, reasonable value).
-			// Exclude the speed range (100-400) since those are ambiguous and more likely
-			// to be speeds. Flight levels in that range are handled by the allowFlightLevel
-			// variant called from climb/descend templates.
-			if t.Value >= 10 && t.Value <= 600 && (t.Value < 100 || t.Value > 400) {
-				return t.Value, i + 1
-			}
-			// Large number might be raw feet
-			if t.Value >= 1000 && t.Value <= 60000 && t.Value%100 == 0 {
-				return t.Value / 100, i + 1
-			}
-			// Handle 3-digit values that are likely thousands with decimal artifacts
-			// e.g., "9.00" → 900 means 9000 feet, "5.00" → 500 means 5000 feet
-			// These are outside the ambiguous speed range (100-400)
-			if t.Value >= 500 && t.Value <= 900 && t.Value%100 == 0 {
-				encoded := t.Value / 10
-				logLocalStt("  extractAltitude: interpreted %d as %d000 ft (encoded %d)", t.Value, t.Value/100, encoded)
-				return encoded, i + 1
-			}
-			// Single digit 1-9 in altitude context means thousands
-			// e.g., "descend and maintain niner" -> 9 means 9000 feet = 90 encoded
-			if t.Value >= 1 && t.Value <= 9 {
-				logLocalStt("  extractAltitude: single digit %d interpreted as %d000 ft (encoded %d)",
-					t.Value, t.Value, t.Value*10)
-				return t.Value * 10, i + 1
-			}
+		if t.Value >= 1000 && t.Value <= 60000 && t.Value%100 == 0 {
+			return true
 		}
 	}
-
-	return 0, 0
-}
-
-// extractHeading extracts a heading value (1-360) from tokens.
-// Only called after command context has determined a heading is expected.
-func extractHeading(tokens []Token) (int, int) {
-	if len(tokens) == 0 {
-		return 0, 0
-	}
-
-	for i, t := range tokens {
-		if i > 3 {
-			break
-		}
-
-		// Skip numbers that follow "speed" keyword - those are speed values, not headings.
-		// This prevents "left approach speed 180" from matching as heading 180.
-		if i > 0 && strings.ToLower(tokens[i-1].Text) == "speed" {
-			continue
-		}
-
-		if t.Type == TokenNumber && t.Value >= 1 && t.Value <= 360 {
-			hdg := t.Value
-
-			// Headings are always spoken as 3 digits and almost always multiples of 10.
-			// Use Token.Text to determine if user said leading zero:
-			// - "020" (Text starts with 0) = unambiguous heading 020
-			// - "36" (2 digits, doesn't end in 0) = trailing zero dropped, heading 360
-			// - "10" (2 digits, ends in 0) = ambiguous, could be 010 or 100, be conservative
-			text := t.Text
-			hasLeadingZero := len(text) > 0 && text[0] == '0'
-
-			if hasLeadingZero {
-				// User said "zero two zero" - unambiguous, use value as-is
-				// For single digit after leading zero (e.g., "08"), multiply by 10 for heading 080
-				if hdg < 10 {
-					hdg *= 10
-				}
-				logLocalStt("  extractHeading: %d from %q (has leading zero, unambiguous)", hdg, text)
-			} else if len(text) == 2 && hdg >= 10 && hdg <= 36 && hdg%10 != 0 {
-				// 2-digit number not ending in 0 (like 36, 27, 14): trailing zero was likely dropped
-				// Headings are almost always multiples of 10, so "two seven" is much more likely
-				// to be 270 than 027. If they meant 027, they would say "zero two seven".
-				expanded := hdg * 10
-				logLocalStt("  extractHeading: expanded %d -> %d (2-digit %q, trailing zero dropped)", hdg, expanded, text)
-				hdg = expanded
-			} else if hdg < 10 {
-				// Single digit without leading zero context - assume "zero X" = 0X0
-				hdg *= 10
-			}
-			// For 2-digit numbers ending in 0 (10, 20, 30): ambiguous, use as-is (conservative)
-			return hdg, i + 1
-		}
-	}
-
-	return 0, 0
-}
-
-// extractSpeed extracts a speed value from tokens.
-// Only called after command context has determined a speed is expected.
-func extractSpeed(tokens []Token) (int, int) {
-	if len(tokens) == 0 {
-		return 0, 0
-	}
-
-	for i, t := range tokens {
-		if i > 3 {
-			break
-		}
-		if t.Type == TokenNumber {
-			// Normal speed range (100-400 knots)
-			// Round down to nearest 10 - ATC speeds are always multiples of 10.
-			if t.Value >= 100 && t.Value <= 400 {
-				rounded := (t.Value / 10) * 10
-				if rounded != t.Value {
-					logLocalStt("  extractSpeed: rounded %d -> %d (to nearest 10)", t.Value, rounded)
-				}
-				return rounded, i + 1
-			}
-		}
-	}
-
-	return 0, 0
+	return false
 }
 
 // extractFix extracts a fix name from tokens by matching against known fixes.
@@ -311,6 +179,35 @@ func extractFix(tokens []Token, fixes map[string]string) (string, float64, int) 
 					bestLength = length
 				}
 			}
+			// Try consonant cluster normalization for sound-alike patterns
+			// (e.g., "sachs" should match "socks" — "ch" and "ck" sound the same)
+			consPhrase := normalizeConsonantClusters(phrase)
+			consSpoken := normalizeConsonantClusters(spokenName)
+			if consPhrase != phrase || consSpoken != spokenName {
+				consScore := JaroWinkler(consPhrase, consSpoken)
+				adjustedScore := consScore * 0.95
+				if consScore >= 0.78 && (adjustedScore > bestScore || (adjustedScore == bestScore && fixID < bestFix)) {
+					bestFix = fixID
+					bestScore = adjustedScore
+					bestLength = length
+				}
+			}
+			// Try C/K equivalence normalization for initial hard/soft C
+			// confusion (e.g., "kelse" should match "celtic" — STT may
+			// use K for a hard C sound). Only apply when one word starts
+			// with 'c' and the other with 'k', to avoid false positives
+			// from incidental mid-word c→k changes.
+			if hasInitialCKSwap(phrase, spokenName) {
+				ckPhrase := normalizeCK(phrase)
+				ckSpoken := normalizeCK(spokenName)
+				ckScore := JaroWinkler(ckPhrase, ckSpoken)
+				adjustedScore := ckScore * 0.95
+				if ckScore >= 0.78 && (adjustedScore > bestScore || (adjustedScore == bestScore && fixID < bestFix)) {
+					bestFix = fixID
+					bestScore = adjustedScore
+					bestLength = length
+				}
+			}
 			// Try consonant-only matching for fix names with vowel STT errors
 			// (e.g., "zizou" should match "zzooo" since both have consonants "zz")
 			if len(phrase) >= 3 && len(spokenName) >= 3 {
@@ -322,14 +219,20 @@ func extractFix(tokens []Token, fixes map[string]string) (string, float64, int) 
 					bestLength = length
 				}
 			}
-			// Try phonetic matching against the fix identifier itself.
+			// Try matching against the fix identifier itself.
 			// STT may transcribe the identifier pronunciation rather than the
-			// spoken form (e.g., "bacal" for fix BAKEL, spoken as "bake").
+			// spoken form (e.g., "betel" for fix BAKEL, spoken as "bake").
 			fixIDLower := strings.ToLower(fixID)
 			if fixIDLower != strings.ToLower(spokenName) {
 				if PhoneticMatch(phrase, fixIDLower) && (bestScore < 0.78 || (bestScore == 0.78 && fixID < bestFix)) {
 					bestFix = fixID
 					bestScore = 0.78
+					bestLength = length
+				}
+				idScore := JaroWinkler(phrase, fixIDLower)
+				if idScore >= 0.75 && (idScore > bestScore || (idScore == bestScore && fixID < bestFix)) {
+					bestFix = fixID
+					bestScore = idScore
 					bestLength = length
 				}
 			}
@@ -362,6 +265,19 @@ checkSpelling:
 			// Spelling contradicts match - prefer spelling (more explicit)
 			logLocalStt("  extractFix: spelling %q overrides spoken match %q", spelledFix, bestFix)
 			return spelledFix, spellingConf, totalConsumed
+		}
+	}
+
+	// Try NATO spelling from the very start of tokens. This handles cases
+	// where the controller spells out the entire fix name and the first NATO
+	// letter word coincidentally fuzzy-matches a different fix (e.g.,
+	// "sierra sierra oscar xray sierra" = SSOXS, where the first "sierra"
+	// might fuzzy-match fix "SEY").
+	if bestScore < 1.0 {
+		spelledFix, spellingConf, spellingConsumed := extractSpelledFix(tokens, fixes)
+		if spelledFix != "" {
+			logLocalStt("  extractFix: full NATO spelling from start %q overrides fuzzy match %q", spelledFix, bestFix)
+			return spelledFix, spellingConf, spellingConsumed
 		}
 	}
 
@@ -453,8 +369,14 @@ func extractApproach(tokens []Token, approaches map[string]string, assignedAppro
 	// This helps prefer approaches matching the spoken direction.
 	spokenDir := extractSpokenDirection(tokens)
 
+	// Skip fuzzy loop when the first token is "runway" — there's no approach type
+	// info to match against, so JW scores against full candidate names are misleading
+	// (e.g., "runway" gets a Winkler prefix boost against "r-nav"). The runway
+	// fallback below handles this correctly.
+	skipFuzzyLoop := len(tokens) > 0 && strings.ToLower(tokens[0].Text) == "runway"
+
 	// Build candidate phrases (1-7 words for approach names, since spoken numbers expand)
-	for length := min(7, len(tokens)); length >= 1; length-- {
+	for length := min(7, len(tokens)); length >= 1 && !skipFuzzyLoop; length-- {
 		var parts []string
 		for i := range length {
 			// Expand numeric tokens to spoken form to match telephony
@@ -606,7 +528,7 @@ func extractApproach(tokens []Token, approaches map[string]string, assignedAppro
 
 			// When disambiguating between multiple runway matches, pick the best match.
 			// When the prefix is garbled, prefer the assigned approach when available.
-			if bestMatch != "" && bestMatchScore >= 0.30 {
+			if bestMatch != "" && (bestMatchScore >= 0.30 || prefixPhrase == "") {
 				// If we have an assigned approach, check if one of the matching
 				// approaches matches the assigned approach's type. This handles
 				// garbled prefixes like "off" for "ILS".
@@ -967,6 +889,23 @@ func matchApproachByTypeAndNumberWithFallback(tokens []Token, approaches map[str
 
 	// Look for runway number anywhere in the remaining tokens
 	runwayNum, runwayDir, numPos := extractRunwayNumber(remainingTokens)
+
+	// If we found a runway number but no explicit direction, try phonetic inference
+	// on the next token. STT often garbles "left"/"right" into short words like "at".
+	// Compare the metaphone encoding of the next token against direction words and
+	// pick the best match if it's clearly better than the alternatives.
+	if runwayNum != "" && runwayDir == "" && numPos+1 < len(remainingTokens) {
+		nextText := strings.ToLower(remainingTokens[numPos+1].Text)
+		// Don't try phonetic inference on command keywords — "direct", "cleared",
+		// etc. are real words, not garbled direction words.
+		if !IsCommandKeyword(nextText) {
+			if dir := inferRunwayDirectionPhonetic(nextText); dir != "" {
+				logLocalStt("  matchApproachByTypeAndNumber: inferred direction %q from garbled %q", dir, nextText)
+				runwayDir = dir
+			}
+		}
+	}
+
 	if runwayNum == "" {
 		// No valid runway number found, but if we have an assigned approach with matching
 		// type and direction, use it. This handles cases like "ils turn 918 right" where
@@ -1027,6 +966,40 @@ func matchApproachByTypeAndNumberWithFallback(tokens []Token, approaches map[str
 				}
 			}
 		}
+		// No assigned approach fallback worked. If we have a type+variant and
+		// exactly one candidate approach matches, use it. This handles garbled
+		// runway numbers (e.g., "rnav zulu approach from ITN" where "from ITN"
+		// is a garbled "twenty seven" but there's only one RNAV Zulu approach).
+		if allowFallback && approachVariant != "" {
+			var matches []string
+			for spokenName, apprID := range approaches {
+				spokenLower := strings.ToLower(spokenName)
+				if approachTypeMatches(spokenLower, approachType) && approachVariantMatches(apprID, approachVariant) {
+					matches = append(matches, apprID)
+				}
+			}
+			if len(matches) == 1 {
+				// Consume the garbled runway tokens that follow the variant.
+				// Scan forward past "approach", "runway", filler, and non-keyword
+				// words that are part of the garbled runway reference.
+				consumed := typeConsumed + variantConsumed
+				for j := 0; j < len(remainingTokens); j++ {
+					w := strings.ToLower(remainingTokens[j].Text)
+					if w == "approach" || w == "runway" || IsFillerWord(w) {
+						consumed++
+						continue
+					}
+					if IsCommandKeyword(w) {
+						break
+					}
+					consumed++ // garbled runway token
+				}
+				logLocalStt("  matchApproachByTypeAndNumber: garbled runway, unique type+variant match %q (type=%q variant=%q)",
+					matches[0], approachType, approachVariant)
+				return matches[0], 0.85, consumed
+			}
+		}
+
 		return "", 0, 0
 	}
 
@@ -1289,6 +1262,44 @@ func extractRunwayNumber(tokens []Token) (string, string, int) {
 		}
 	}
 	return "", "", -1
+}
+
+// inferRunwayDirectionPhonetic tries to infer a runway direction ("left", "right", "center")
+// from a garbled word by comparing metaphone encodings. Returns the best direction if one
+// is clearly better than the others, or "" if no confident inference can be made.
+func inferRunwayDirectionPhonetic(word string) string {
+	wordPrimary, _ := DoubleMetaphone(word)
+	if wordPrimary == "" {
+		return ""
+	}
+
+	type dirScore struct {
+		dir   string
+		score float64
+	}
+
+	dirs := []dirScore{
+		{"left", JaroWinkler(wordPrimary, func() string { p, _ := DoubleMetaphone("left"); return p }())},
+		{"right", JaroWinkler(wordPrimary, func() string { p, _ := DoubleMetaphone("right"); return p }())},
+		{"center", JaroWinkler(wordPrimary, func() string { p, _ := DoubleMetaphone("center"); return p }())},
+	}
+
+	// Find best and second-best
+	var best, secondBest dirScore
+	for _, d := range dirs {
+		if d.score > best.score {
+			secondBest = best
+			best = d
+		} else if d.score > secondBest.score {
+			secondBest = d
+		}
+	}
+
+	// Require a minimum score and clear margin over the runner-up
+	if best.score >= 0.5 && best.score > secondBest.score+0.05 {
+		return best.dir
+	}
+	return ""
 }
 
 // approachTypeMatches checks if a spoken approach name contains the given approach type.
@@ -1971,6 +1982,20 @@ func extractTraffic(tokens []Token) (int, int, int, int) {
 			}
 			alt = t.Value
 			consumed++
+
+			// Check if a nearby token refines this altitude (adds hundreds).
+			// e.g., "5 thousand [noise] 5 thousand 9 hundred" → tokens 50, [8], 59.
+			// Pick 59 over 50 since it's a more precise reading of the same altitude.
+			for j := consumed; j < len(tokens) && j < consumed+3; j++ {
+				if tokens[j].Type == TokenAltitude && tokens[j].Value > alt &&
+					tokens[j].Value <= 600 && tokens[j].Value/10 == alt/10 {
+					logLocalStt("  extractTraffic: refined altitude %d -> %d", alt, tokens[j].Value)
+					alt = tokens[j].Value
+					consumed = j + 1
+					break
+				}
+			}
+
 			break
 		}
 
@@ -2227,50 +2252,6 @@ func skipExpectFurtherClearance(tokens []Token, start int) int {
 	return consumed
 }
 
-// isAltitudeToken returns true if the token represents an altitude value.
-func isAltitudeToken(t Token) bool {
-	if t.Type == TokenAltitude {
-		return true
-	}
-	if t.Type == TokenNumber {
-		// Encoded altitude (10-600 means 1000-60000 ft)
-		// But exclude speed range (100-400) to avoid ambiguity
-		if t.Value >= 10 && t.Value <= 600 && (t.Value < 100 || t.Value > 400) {
-			return true
-		}
-		// Raw feet value
-		if t.Value >= 1000 && t.Value <= 60000 && t.Value%100 == 0 {
-			return true
-		}
-	}
-	return false
-}
-
-// extractAltitudeValue extracts the encoded altitude from a token.
-// Returns the altitude in hundreds of feet (e.g., 40 for 4000 ft).
-func extractAltitudeValue(t Token) int {
-	if t.Type == TokenAltitude {
-		return t.Value
-	}
-	if t.Type == TokenNumber {
-		// Already encoded (10-600), excluding speed range (100-400)
-		if t.Value >= 10 && t.Value <= 600 && (t.Value < 100 || t.Value > 400) {
-			return t.Value
-		}
-		// Raw feet - convert to encoded
-		if t.Value >= 1000 && t.Value <= 60000 && t.Value%100 == 0 {
-			return t.Value / 100
-		}
-		// Handle 3-digit values that are likely thousands with decimal artifacts
-		// e.g., "9.00" → 900 means 9000 feet, "5.00" → 500 means 5000 feet
-		// These are outside the ambiguous speed range (100-400)
-		if t.Value >= 500 && t.Value <= 900 && t.Value%100 == 0 {
-			return t.Value / 10
-		}
-	}
-	return 0
-}
-
 // speedUntilResult represents the result of extracting a speed "until" specification.
 type speedUntilResult struct {
 	suffix string // e.g., "ROSLY", "5DME", "6"
@@ -2358,7 +2339,7 @@ func isUntilKeyword(text string) bool {
 // For example: "maintain 180 knots or greater until 5 mile final" - skip "knots", "or", "greater".
 func isSpeedFillerWord(text string) bool {
 	switch text {
-	case "knots", "kts", "knot", "or", "greater", "better":
+	case "knots", "kts", "knot", "or", "greater", "better", "less":
 		return true
 	}
 	return false
@@ -2406,11 +2387,24 @@ func extractMileFinal(tokens []Token) (int, int) {
 		return 0, 0
 	}
 
-	// First token should be a number
-	if tokens[0].Type != TokenNumber || tokens[0].Value < 1 || tokens[0].Value > 20 {
+	// First token should be a number. If it's a word, try fuzzy matching
+	// against digit words — in the structural pattern [word] mile final,
+	// the first position must be a number semantically.
+	var num int
+	if tokens[0].Type == TokenNumber && tokens[0].Value >= 1 && tokens[0].Value <= 20 {
+		num = tokens[0].Value
+	} else if tokens[0].Type == TokenWord && len(tokens) >= 3 {
+		next1 := strings.ToLower(tokens[1].Text)
+		next2 := strings.ToLower(tokens[2].Text)
+		if (next1 == "mile" || next1 == "miles") && next2 == "final" {
+			if v := fuzzyMatchDigitWord(tokens[0].Text); v > 0 {
+				num = v
+			}
+		}
+	}
+	if num == 0 {
 		return 0, 0
 	}
-	num := tokens[0].Value
 	consumed := 1
 
 	if consumed >= len(tokens) {
@@ -2434,6 +2428,30 @@ func extractMileFinal(tokens []Token) (int, int) {
 	}
 
 	return 0, 0
+}
+
+// fuzzyMatchDigitWord tries to fuzzy-match a garbled word against digit words
+// 1-10. Returns the digit value on match, or 0 if no match exceeds the threshold.
+func fuzzyMatchDigitWord(word string) int {
+	word = strings.ToLower(word)
+	targets := []struct {
+		word  string
+		value int
+	}{
+		{"one", 1}, {"two", 2}, {"three", 3}, {"four", 4}, {"five", 5},
+		{"six", 6}, {"seven", 7}, {"eight", 8}, {"nine", 9}, {"ten", 10},
+	}
+
+	bestVal := 0
+	bestScore := 0.65 // minimum threshold
+	for _, t := range targets {
+		score := JaroWinkler(word, t.word)
+		if score > bestScore {
+			bestScore = score
+			bestVal = t.value
+		}
+	}
+	return bestVal
 }
 
 // isAircraftTypeNumber returns true if the number matches a common aircraft type.

@@ -1053,7 +1053,8 @@ func parseRALocation(sp *STARSPane, ctx *panes.Context, text string) (math.Point
 			return math.Point2LL{}, text, true, ErrSTARSCommandFormat
 		}
 
-		p = math.Offset2LL(p, float32(bearing), float32(dist), ctx.NmPerLongitude, ctx.MagneticVariation)
+		p = math.Offset2LL(p, math.MagneticToTrue(math.MagneticHeading(bearing), ctx.MagneticVariation),
+			float32(dist), ctx.NmPerLongitude)
 	}
 
 	// TODO: ILL GEO LOC if lat/long or fix-offset location is "not on the system plane"(?)

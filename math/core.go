@@ -55,9 +55,9 @@ func Degrees(r float32) float32 {
 	return r * 180 / Pi
 }
 
-// Radians converts an angle expressed in radians to degrees
-func Radians(d float32) float32 {
-	return d / 180 * Pi
+// Radians converts an angle expressed in degrees to radians
+func Radians[T ~float32](d T) float32 {
+	return float32(d) / 180 * Pi
 }
 
 func Sqrt(a float32) float32 {

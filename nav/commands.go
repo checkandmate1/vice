@@ -45,18 +45,31 @@ func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 	}
 
 	if afterSpeed && nav.Speed.Assigned != nil && *nav.Speed.Assigned != nav.FlightState.IAS {
-		nav.Altitude.AfterSpeed = &alt
 		spd := *nav.Speed.Assigned
-		nav.Altitude.AfterSpeedSpeed = &spd
+		nav.Altitude = NavAltitude{
+			AfterSpeed:      &alt,
+			AfterSpeedSpeed: &spd,
+		}
 		intent.AfterSpeed = &spd
 	} else {
+		// If there's a significant speed change in progress (>=20kt remaining or any Mach change),
+		// defer the speed assignment until after the altitude change completes.
+		if nav.Speed.Assigned != nil &&
+			(nav.Speed.Mach || math.Abs(*nav.Speed.Assigned-nav.FlightState.IAS) >= 20) {
+			spd := *nav.Speed.Assigned
+			nav.Speed = NavSpeed{
+				AfterAltitude:         &spd,
+				AfterAltitudeAltitude: &alt,
+				Mach:                  nav.Speed.Mach,
+			}
+		}
 		nav.Altitude = NavAltitude{Assigned: &alt}
 	}
 
 	return intent
 }
 
-func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp float32) av.CommandIntent {
+func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {
 	if mach == 0 {
 		nav.Speed = NavSpeed{}
 		return av.SpeedIntent{Type: av.SpeedCancel}
@@ -68,12 +81,28 @@ func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp float32) av.Co
 		return av.MakeUnableIntent("unable. we haven't reached mach transition altitude")
 	} else if afterAltitude && nav.Altitude.Assigned != nil &&
 		*nav.Altitude.Assigned != nav.FlightState.Altitude {
-		nav.Speed.AfterAltitude = &mach
 		alt := *nav.Altitude.Assigned
-		nav.Speed.AfterAltitudeAltitude = &alt
+		nav.Speed = NavSpeed{
+			AfterAltitude:         &mach,
+			AfterAltitudeAltitude: &alt,
+			Mach:                  true,
+		}
 		return av.SpeedIntent{Speed: mach, AfterAltitude: &alt, Type: av.SpeedAssign, Mach: true}
 	} else {
 		nav.Speed = NavSpeed{Assigned: &mach, Mach: true}
+		// If there's an active altitude change and this is a significant speed change, defer the
+		// altitude until after the Mach speed change completes.
+		tas := av.MachToTAS(mach, temp)
+		targetIAS := av.TASToIAS(tas, nav.FlightState.Altitude)
+		if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != nav.FlightState.Altitude &&
+			math.Abs(targetIAS-nav.FlightState.IAS) >= 20 {
+			alt := *nav.Altitude.Assigned
+			nav.Altitude = NavAltitude{
+				AfterSpeed:         &alt,
+				AfterSpeedSpeed:    &targetIAS,
+				ExpediteAfterSpeed: nav.Altitude.Expedite,
+			}
+		}
 		if mach < nav.Mach(temp) {
 			return av.SpeedIntent{Speed: mach, Type: av.SpeedReduce, Mach: true}
 		} else if mach > nav.Mach(temp) {
@@ -101,11 +130,25 @@ func (nav *Nav) AssignSpeed(speed float32, afterAltitude bool) av.CommandIntent 
 		return av.SpeedIntent{Speed: speed, Type: av.SpeedUntilFinal}
 	} else if afterAltitude && nav.Altitude.Assigned != nil &&
 		*nav.Altitude.Assigned != nav.FlightState.Altitude {
-		nav.Speed.AfterAltitude = &speed
 		alt := *nav.Altitude.Assigned
-		nav.Speed.AfterAltitudeAltitude = &alt
+		nav.Speed = NavSpeed{
+			AfterAltitude:         &speed,
+			AfterAltitudeAltitude: &alt,
+		}
 		return av.SpeedIntent{Speed: speed, AfterAltitude: &alt, Type: av.SpeedAssign}
 	} else {
+		// If there's an active altitude change and the speed change is significant (>20kt), defer
+		// the altitude until after the speed change completes.
+		speedDelta := math.Abs(speed - nav.FlightState.IAS)
+		if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != nav.FlightState.Altitude &&
+			speedDelta > 20 {
+			alt := *nav.Altitude.Assigned
+			nav.Altitude = NavAltitude{
+				AfterSpeed:         &alt,
+				AfterSpeedSpeed:    &speed,
+				ExpediteAfterSpeed: nav.Altitude.Expedite,
+			}
+		}
 		nav.Speed = NavSpeed{Assigned: &speed}
 		if speed < nav.FlightState.IAS {
 			return av.SpeedIntent{Speed: speed, Type: av.SpeedReduce}
@@ -149,7 +192,7 @@ func (nav *Nav) MaintainPresentSpeed() av.CommandIntent {
 	return av.SpeedIntent{Speed: speed, Type: av.SpeedPresentSpeed}
 }
 
-func (nav *Nav) SaySpeed(temp float32) av.CommandIntent {
+func (nav *Nav) SaySpeed(temp av.Temperature) av.CommandIntent {
 	if nav.machTransition() {
 		return nav.SayMach(temp)
 	}
@@ -165,11 +208,11 @@ func (nav *Nav) SayIndicatedSpeed() av.CommandIntent {
 	return intent
 }
 
-func (nav *Nav) SayMach(tempKelvin float32) av.CommandIntent {
+func (nav *Nav) SayMach(temp av.Temperature) av.CommandIntent {
 	if !nav.machTransition() {
 		return av.MakeUnableIntent("unable. we haven't reached mach transition altitude")
 	}
-	currentMach := nav.Mach(tempKelvin)
+	currentMach := nav.Mach(temp)
 	intent := av.ReportMachIntent{Current: currentMach}
 	if nav.Speed.Assigned != nil && nav.Speed.Mach {
 		intent.Assigned = nav.Speed.Assigned
@@ -260,7 +303,7 @@ func (nav *Nav) ExpediteClimb() av.CommandIntent {
 	}
 }
 
-func (nav *Nav) AssignHeading(hdg float32, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
+func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. {hdg} isn't a valid heading", hdg)
 	}
@@ -288,7 +331,7 @@ func (nav *Nav) AssignHeading(hdg float32, turn av.TurnDirection, simTime time.T
 	return intent
 }
 
-func (nav *Nav) assignHeading(hdg float32, turn av.TurnDirection, simTime time.Time) {
+func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime time.Time) {
 	approachCleared := nav.Approach.Cleared
 
 	if _, ok := nav.AssignedHeading(); !ok {
@@ -549,7 +592,8 @@ func (nav *Nav) HoldAtFix(callsign string, fix string, hold *av.Hold) av.Command
 func (nav *Nav) makeFlyHold(callsign string, hold av.Hold) *FlyHold {
 	// Calculate heading from aircraft's current position to fix
 	pHold, _ := av.DB.LookupWaypoint(hold.Fix)
-	hdg := math.Heading2LL(nav.FlightState.Position, pHold, nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+	hdg := math.TrueToMagnetic(math.Heading2LL(nav.FlightState.Position, pHold, nav.FlightState.NmPerLongitude),
+		nav.FlightState.MagneticVariation)
 
 	NavLog(callsign, time.Time{}, NavLogHold, "makeFlyHold: headingToFix=%.1f hold_inbound=%.1f turn=%s -> %s",
 		hdg, hold.InboundCourse, hold.TurnDirection, hold.Entry(hdg).String())
@@ -582,7 +626,7 @@ func (nav *Nav) DepartFixDirect(fixa string, fixb string) av.CommandIntent {
 	}
 }
 
-func (nav *Nav) DepartFixHeading(fix string, hdg float32) av.CommandIntent {
+func (nav *Nav) DepartFixHeading(fix string, hdg math.MagneticHeading) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. Heading {hdg} is invalid", hdg)
 	}
@@ -591,7 +635,7 @@ func (nav *Nav) DepartFixHeading(fix string, hdg float32) av.CommandIntent {
 	}
 
 	nfa := nav.FixAssignments[fix]
-	h := float32(hdg)
+	h := hdg
 	nfa.Depart.Heading = &h
 	nav.FixAssignments[fix] = nfa
 

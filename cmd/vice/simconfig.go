@@ -239,18 +239,21 @@ func (c *NewSimConfiguration) initDefaultWindDirection() {
 			if slices.ContainsFunc(c.ScenarioSpec.DepartureRunways, func(r sim.DepartureRunway) bool {
 				return r.Airport == ap && r.Runway.Base() == rwy.Id
 			}) {
-				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(rwy.Heading))
+				// HeadingVector expects TrueHeading; we pass magnetic headings here,
+				// but the constant magnetic variation cancels in the vector average.
+				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(math.TrueHeading(rwy.Heading)))
 			}
 			if slices.ContainsFunc(c.ScenarioSpec.ArrivalRunways, func(r sim.ArrivalRunway) bool {
 				return r.Airport == ap && r.Runway.Base() == rwy.Id
 			}) {
-				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(rwy.Heading))
+				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(math.TrueHeading(rwy.Heading)))
 			}
 		}
 	}
 
-	avgRwyHeading := math.VectorHeading(sumRunwayVecs)
-	avgRwyMagneticHeading := avgRwyHeading + c.ScenarioSpec.MagneticVariation
+	// Runway headings from the database are already magnetic, so the
+	// average is magnetic as well; no further conversion needed.
+	avgRwyMagneticHeading := float32(math.VectorHeading(sumRunwayVecs))
 
 	// Set default wind direction range to ±30 degrees from average runway heading
 	windDirMin := int(math.NormalizeHeading(avgRwyMagneticHeading - 30))
@@ -464,7 +467,7 @@ func formatFacilityLabel(facility string) string {
 // getAreaKey returns the area identifier for grouping scenarios.
 // For TRACONs, returns the groupName; for ARTCCs, returns the trimmed Area field.
 func getAreaKey(facility, groupName string, catalog *server.ScenarioCatalog) string {
-	if av.DB.IsTRACON(facility) || av.DB.IsARTCC(facility) {
+	if av.DB.IsTRACON(facility) {
 		return groupName
 	}
 	return trimFacilityName(catalog.Area, "Area")
@@ -1748,7 +1751,9 @@ func drawScenarioInfoWindow(config *Config, c *client.ControlClient, activeRadar
 	imgui.SetNextWindowSizeConstraints(imgui.Vec2{sz.X + 50, 0}, imgui.Vec2{100000, 100000})
 
 	show := true
+	applyPinWindowClass("ScenarioInfo", config)
 	imgui.BeginV(c.State.SimDescription+"###ScenarioInfo", &show, imgui.WindowFlagsAlwaysAutoResize)
+	drawPinButton("ScenarioInfo", config)
 
 	if imgui.CollapsingHeaderBoolPtr("Controllers", nil) {
 		// Make big(ish) tables somewhat more legible

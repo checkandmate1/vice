@@ -74,6 +74,7 @@ var errorStringToError = map[string]error{
 	sim.ErrIllegalACType.Error():                   sim.ErrIllegalACType,
 	sim.ErrIllegalBeaconCode.Error():               sim.ErrIllegalBeaconCode,
 	sim.ErrIllegalFunction.Error():                 sim.ErrIllegalFunction,
+	sim.ErrIllegalTrackLocalFP.Error():             sim.ErrIllegalTrackLocalFP,
 	sim.ErrIllegalScratchpad.Error():               sim.ErrIllegalScratchpad,
 	sim.ErrInvalidAbbreviatedFP.Error():            sim.ErrInvalidAbbreviatedFP,
 	sim.ErrInvalidDepartureController.Error():      sim.ErrInvalidDepartureController,

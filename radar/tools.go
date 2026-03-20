@@ -174,11 +174,11 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 	// Draw an arrow at the point p (in nm coordinates) pointing in the
 	// direction given by the angle a.
 	drawArrow := func(p [2]float32, a float32) {
-		aa := a + math.Radians(180+30)
+		aa := a + math.Radians(float32(180+30))
 		pa := math.Add2f(p, math.Scale2f(math.SinCos(aa), 0.5))
 		ld.AddLine(math.NM2LL(p, ctx.NmPerLongitude), math.NM2LL(pa, ctx.NmPerLongitude), color)
 
-		ba := a - math.Radians(180+30)
+		ba := a - math.Radians(float32(180+30))
 		pb := math.Add2f(p, math.Scale2f(math.SinCos(ba), 0.5))
 		ld.AddLine(math.NM2LL(p, ctx.NmPerLongitude), math.NM2LL(pb, ctx.NmPerLongitude), color)
 	}
@@ -187,7 +187,7 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 		if wp.Heading != 0 {
 			// Don't draw a segment to the next waypoint (if there is one)
 			// but instead draw an arrow showing the heading.
-			a := math.Radians(float32(wp.Heading) - ctx.MagneticVariation)
+			a := math.Radians(math.MagneticToTrue(wp.MagneticHeading(), ctx.MagneticVariation))
 			v := math.SinCos(a)
 			v = math.Scale2f(v, 2)
 			pend := math.LL2NM(waypoints[i].Location, ctx.NmPerLongitude)
@@ -212,12 +212,12 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 				p0 := math.LL2NM(waypoints[i].Location, ctx.NmPerLongitude)
 				r0 := math.Distance2f(p0, pc)
 				v0 := math.Normalize2f(math.Sub2f(p0, pc))
-				a0 := math.VectorHeading(v0) // angle w.r.t. the arc center
+				a0 := float32(math.VectorHeading(v0)) // angle w.r.t. the arc center
 
 				p1 := math.LL2NM(waypoints[i+1].Location, ctx.NmPerLongitude)
 				r1 := math.Distance2f(p1, pc)
 				v1 := math.Normalize2f(math.Sub2f(p1, pc))
-				a1 := math.VectorHeading(v1)
+				a1 := float32(math.VectorHeading(v1))
 
 				// Draw a segment every degree
 				n := int(math.HeadingDifference(a0, a1))
@@ -323,27 +323,27 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 					drawarc([2]float32{1, -len}, 90, 270)
 
 					drawArrow(toNM.TransformPoint([2]float32{0, -len / 2}), hdg)
-					drawArrow(toNM.TransformPoint([2]float32{2, -len / 2}), hdg+math.Radians(180))
+					drawArrow(toNM.TransformPoint([2]float32{2, -len / 2}), hdg+math.Radians(float32(180)))
 				} else if pt.Type == av.PTStandard45 {
-					// Line outbound to the next fix
-					addseg([2]float32{0, 0}, [2]float32{0, len / 2})
+					// Line outbound from the fix (away from next fix)
+					addseg([2]float32{0, 0}, [2]float32{0, -len / 2})
 
-					// 45 degrees off from that for 4nm
+					// 45 degrees off from outbound for 4nm
 					const sqrt2over2 = 0.70710678
-					pe := [2]float32{4 * sqrt2over2, len/2 + 4*sqrt2over2}
-					addseg([2]float32{0, len / 2}, pe)
+					pe := [2]float32{4 * sqrt2over2, -(len/2 + 4*sqrt2over2)}
+					addseg([2]float32{0, -len / 2}, pe)
 
 					// Draw an arc from the previous leg around to the inbound course.
-					pae := drawarc(math.Add2f(pe, [2]float32{-sqrt2over2, sqrt2over2}), 135, -45)
+					pae := drawarc(math.Add2f(pe, [2]float32{-sqrt2over2, -sqrt2over2}), 45, 225)
 					// Intercept of the 45 degree line from the end of the
 					// arc back to the y axis.
-					pint := [2]float32{0, pae[1] - pae[0]}
+					pint := [2]float32{0, pae[1] + pae[0]}
 					addseg(pae, pint)
 
 					// inbound course + arrow
-					pinb := math.Add2f(pint, [2]float32{0, -1})
+					pinb := math.Add2f(pint, [2]float32{0, 1})
 					addseg(pint, pinb)
-					drawArrow(toNM.TransformPoint(pinb), hdg+math.Radians(180))
+					drawArrow(toNM.TransformPoint(pinb), hdg)
 				} else {
 					ctx.Lg.Errorf("unhandled PT type in drawWaypoints")
 				}

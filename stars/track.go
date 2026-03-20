@@ -158,7 +158,7 @@ const (
 )
 
 const (
-	FPMThreshold = 8400 / 100
+	FPMThreshold = 8400
 )
 
 func (ts *TrackState) TrackDeltaAltitude() int {
@@ -191,11 +191,11 @@ func (ts *TrackState) HeadingVector(nmPerLongitude, magneticVariation float32) m
 	return math.NM2LL(v, nmPerLongitude)
 }
 
-func (ts *TrackState) TrackHeading(nmPerLongitude float32) float32 {
+func (ts *TrackState) TrackHeading(nmPerLongitude float32) math.TrueHeading {
 	if !ts.HaveHeading() {
 		return 0
 	}
-	return math.Heading2LL(ts.previousTrack.Location, ts.track.Location, nmPerLongitude, 0)
+	return math.Heading2LL(ts.previousTrack.Location, ts.track.Location, nmPerLongitude)
 }
 
 func (sp *STARSPane) trackStateForACID(ctx *panes.Context, acid sim.ACID) (*TrackState, bool) {
@@ -564,17 +564,15 @@ func (sp *STARSPane) checkUnreasonableModeC(state *TrackState) {
 		return
 	}
 
-	changeInAltitude := float64(state.previousTrack.TransponderAltitude - state.track.TransponderAltitude)
-	changeInTime := state.previousTrackTime.Sub(state.trackTime)
-	changeInTimeSeconds := changeInTime.Seconds()
+	deltaAlt := state.previousTrack.TransponderAltitude - state.track.TransponderAltitude
+	deltaMinutes := state.previousTrackTime.Sub(state.trackTime).Minutes()
 
-	var change float64
-
-	if changeInTimeSeconds != 0 {
-		change = changeInAltitude / changeInTimeSeconds
+	if deltaMinutes == 0 {
+		return
 	}
 
-	if change > FPMThreshold || change < -FPMThreshold {
+	rate := math.Abs(deltaAlt / float32(deltaMinutes))
+	if rate > FPMThreshold {
 		state.UnreasonableModeC = true
 		state.ConsecutiveNormalTracks = 0
 	} else if state.UnreasonableModeC {
@@ -729,7 +727,9 @@ func (sp *STARSPane) getGhostTracks(ctx *panes.Context) []*av.GhostTrack {
 				// Create a ghost track if appropriate, add it to the
 				// ghosts slice, and draw its radar track.
 				force := state.Ghost.State == GhostStateForced || ps.CRDA.ForceAllGhosts
-				heading := util.Select(state.HaveHeading(), state.TrackHeading(nmPerLongitude), trk.Heading)
+				heading := util.Select(state.HaveHeading(),
+					float32(math.TrueToMagnetic(state.TrackHeading(nmPerLongitude), ctx.MagneticVariation)),
+					float32(trk.Heading))
 
 				ghost := region.TryMakeGhost(trk.RadarTrack, heading, trk.FlightPlan.Scratchpad, force, offset,
 					leaderDirection, nmPerLongitude, otherRegion)
@@ -805,7 +805,7 @@ func (sp *STARSPane) drawTrack(trk sim.Track, state *TrackState, ctx *panes.Cont
 			primary, secondary, dist := site.CheckVisibility(pos, int(trk.TrueAltitude))
 
 			// Orient the box toward the radar
-			h := math.Heading2LL(site.Position, pos, ctx.NmPerLongitude, ctx.MagneticVariation)
+			h := float32(math.TrueToMagnetic(math.Heading2LL(site.Position, pos, ctx.NmPerLongitude), ctx.MagneticVariation))
 			rot := math.Rotator2f(h)
 
 			// blue box: x +/-9 pixels, y +/-3 pixels
@@ -844,7 +844,7 @@ func (sp *STARSPane) drawTrack(trk sim.Track, state *TrackState, ctx *panes.Cont
 			// heading with; this makes things look better when we first see a track or when
 			// restarting a simulation...
 			heading := util.Select(state.HaveHeading(),
-				state.TrackHeading(ctx.NmPerLongitude)+ctx.MagneticVariation, trk.Heading)
+				float32(math.TrueToMagnetic(state.TrackHeading(ctx.NmPerLongitude), ctx.MagneticVariation)), float32(trk.Heading))
 
 			rot := math.Rotator2f(heading)
 
@@ -1221,7 +1221,7 @@ func (sp *STARSPane) updateInTrailDistance(ctx *panes.Context) {
 
 				state := sp.TrackState[trk.ADSBCallsign]
 				return vol.Inside(state.track.Location, state.track.TransponderAltitude,
-					state.TrackHeading(nmPerLongitude)+magneticVariation,
+					math.TrueToMagnetic(state.TrackHeading(nmPerLongitude), magneticVariation),
 					nmPerLongitude, magneticVariation)
 			})
 

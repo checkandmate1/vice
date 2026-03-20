@@ -63,6 +63,8 @@ type Sim struct {
 
 	// Airport -> runway -> state
 	DepartureState map[string]map[av.RunwayID]*RunwayLaunchState
+	// Airport -> pattern state
+	PatternState map[string]*PatternState
 	// Key is inbound flow group name
 	NextInboundSpawn map[string]time.Time
 	NextVFFRequest   time.Time
@@ -100,6 +102,7 @@ type Sim struct {
 
 	prespawn                 bool
 	prespawnUncontrolledOnly bool
+	prespawnPatternEligible  bool
 
 	NextPushStart time.Time // both w.r.t. sim time
 	PushEnd       time.Time
@@ -255,11 +258,12 @@ type NewSimConfiguration struct {
 	FixPairAssignments []FixPairAssignment
 }
 
-func NewSim(config NewSimConfiguration, manifest *VideoMapManifest, lg *log.Logger) *Sim {
+func NewSim(config NewSimConfiguration, lg *log.Logger) *Sim {
 	s := &Sim{
 		Aircraft: make(map[av.ADSBCallsign]*Aircraft),
 
 		DepartureState:   make(map[string]map[av.RunwayID]*RunwayLaunchState),
+		PatternState:     make(map[string]*PatternState),
 		NextInboundSpawn: make(map[string]time.Time),
 
 		ControlPositions:     config.ControlPositions,
@@ -385,7 +389,7 @@ func NewSim(config NewSimConfiguration, manifest *VideoMapManifest, lg *log.Logg
 	}
 	s.ERAMComputer = makeERAMComputer(facilityARTCC, s.LocalCodePool)
 
-	s.State = newCommonState(config, config.StartTime.UTC(), manifest, s.wxModel, s.METAR, s.Rand, lg)
+	s.State = newCommonState(config, config.StartTime.UTC(), s.wxModel, s.METAR, s.Rand, lg)
 	s.ScenarioDefaultConsolidation = config.ControllerConfiguration.DefaultConsolidation
 
 	return s
@@ -941,6 +945,26 @@ func (s *Sim) GetControllerVideoMaps(tcw TCW) (videoMaps, defaultMaps []string, 
 	return nil, s.State.ScenarioDefaultVideoMaps, fa.MonitoredBeaconCodeBlocks
 }
 
+// GetControllerVideoMapFile returns the effective video map file for
+// the given TCW by resolving controller > area > facility priority.
+func (s *Sim) GetControllerVideoMapFile(tcw TCW) string {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	fa := &s.State.FacilityAdaptation
+	tcp := s.State.PrimaryPositionForTCW(tcw)
+
+	// Check controller-specific video_map_file first.
+	if config, ok := fa.Controllers[tcp]; ok && config.VideoMapFile != "" {
+		return config.VideoMapFile
+	}
+
+	if ctrl, ok := s.ControlPositions[tcp]; ok {
+		return fa.VideoMapFileForArea(ctrl.Area)
+	}
+	return fa.VideoMapFile
+}
+
 // GetDepartureController returns the TCP responsible for a departure given the
 // airport, runway, and SID. Checks in order: airport/SID, airport/runway, airport only.
 func (s *Sim) GetDepartureController(airport, runway, sid string) TCP {
@@ -1176,12 +1200,21 @@ func (s *Sim) step(elapsed time.Duration) bool {
 		s.lg.Warn("unexpected hitch in update rate", slog.Duration("elapsed", elapsed),
 			slog.Int("steps", ns), slog.Duration("slop", s.updateTimeSlop))
 	}
+
+	// Cap steps to prevent runaway when sim rate is high and updates are slow.
+	const maxSteps = 10
+	ns = min(ns, maxSteps)
+
 	for range ns {
 		s.State.SimTime = s.State.SimTime.Add(time.Second)
 		s.updateState()
 	}
 
-	s.updateTimeSlop = elapsed - elapsed.Truncate(time.Second)
+	// If we were capped, discard excess time to prevent accumulation.
+	s.updateTimeSlop = elapsed - time.Duration(ns)*time.Second
+	if s.updateTimeSlop > time.Second {
+		s.updateTimeSlop = 0
+	}
 
 	if ns > 0 {
 		// Don't bother with this if we didn't change any aircraft state
@@ -1442,10 +1475,32 @@ func (s *Sim) updateState() {
 				}
 
 				if passedWaypoint.Delete() {
-					nav.NavLog(string(callsign), s.State.SimTime, nav.NavLogCommand,
-						"aircraft=%s DELETING at waypoint=%s", callsign, passedWaypoint.Fix)
-					s.lg.Debug("deleting aircraft at waypoint", slog.Any("waypoint", passedWaypoint))
-					s.deleteAircraft(ac)
+					if ac.TouchAndGosRemaining > 0 {
+						// Pattern aircraft: touch-and-go instead of deleting.
+						ac.TouchAndGosRemaining--
+
+						runway := s.bestRunwayForWind(ac.FlightPlan.ArrivalAirport)
+						s.recordPatternTouchAndGo(ac, ac.FlightPlan.ArrivalAirport, runway)
+						s.resetPatternLap(ac)
+						s.lg.Debug("pattern touch-and-go",
+							slog.String("callsign", string(ac.ADSBCallsign)),
+							slog.Int("remaining", ac.TouchAndGosRemaining))
+					} else {
+						if passedWaypoint.VFRPhase != av.VFRPhaseNone {
+							airport := ac.FlightPlan.ArrivalAirport
+							runway := s.bestRunwayForWind(airport)
+							if depState, ok := s.DepartureState[airport]; ok {
+								for rwyID, rwyState := range depState {
+									if rwyID.Base() == runway {
+										rwyState.LastArrivalLandingTime = s.State.SimTime
+										rwyState.LastArrivalFlightRules = ac.FlightPlan.Rules
+									}
+								}
+							}
+						}
+						s.lg.Debug("deleting aircraft at waypoint", slog.Any("waypoint", passedWaypoint))
+						s.deleteAircraft(ac)
+					}
 				}
 
 				if passedWaypoint.Land() {
@@ -1455,23 +1510,18 @@ func (s *Sim) updateState() {
 					// If we're more than 200 feet AGL, go around.
 					lowEnough := alt == nil || ac.Altitude() <= alt.TargetAltitude(ac.Altitude())+200
 					if lowEnough {
-						s.lg.Debug("deleting landing at waypoint", slog.Any("waypoint", passedWaypoint))
+						// Determine the runway for sequencing records.
+						var runway string
+						if ac.Nav.Approach.Assigned != nil {
+							runway = ac.Nav.Approach.Assigned.Runway
+						} else {
+							runway = s.bestRunwayForWind(ac.FlightPlan.ArrivalAirport)
+						}
 
-						// Record the landing if necessary for scheduling departures.
+						s.lg.Debug("landing at waypoint", slog.Any("waypoint", passedWaypoint))
+
+						// Record the landing for scheduling departures.
 						if depState, ok := s.DepartureState[ac.FlightPlan.ArrivalAirport]; ok {
-							var runway string
-							if ac.Nav.Approach.Assigned != nil {
-								// IFR aircraft with assigned approach
-								runway = ac.Nav.Approach.Assigned.Runway
-							} else {
-								// VFR aircraft - select best runway based on wind
-								ap := av.DB.Airports[ac.FlightPlan.ArrivalAirport]
-								as := s.wxModel.Lookup(ap.Location, float32(ap.Elevation), s.State.SimTime)
-								if rwy, _ := ap.SelectBestRunway(as.WindDirection(), s.State.MagneticVariation); rwy != nil {
-									runway = rwy.Id
-								}
-							}
-
 							for rwyID, rwyState := range depState {
 								if rwyID.Base() == runway {
 									rwyState.LastArrivalLandingTime = s.State.SimTime
@@ -1484,6 +1534,10 @@ func (s *Sim) updateState() {
 					} else {
 						s.goAround(ac)
 					}
+				}
+
+				if passedWaypoint.SequenceVFRLanding() {
+					s.sequenceVFRLanding(ac)
 				}
 			}
 
@@ -1562,6 +1616,7 @@ func (s *Sim) updateState() {
 		// Check for spacing violations on final approach
 		s.checkFinalApproachSpacing()
 
+		s.updatePatternPhases()
 		s.spawnAircraft()
 
 		s.ERAMComputer.Update(s)
@@ -1629,6 +1684,9 @@ func (s *Sim) requestRandomFlightFollowing() error {
 			// Aircraft doing airwork won't call in for flight following.
 			continue
 		}
+		if ac.TouchAndGosRemaining > 0 {
+			continue
+		}
 
 		for tcpStr, cc := range s.State.FacilityAdaptation.Controllers {
 			tcp := s.State.ResolveController(TCP(tcpStr))
@@ -1648,7 +1706,10 @@ func (s *Sim) requestRandomFlightFollowing() error {
 		return ErrNoVFRAircraftForFlightFollowing
 	}
 
-	ac, _ := rand.SampleSeq(s.Rand, maps.Keys(candidates))
+	ac, ok := rand.SampleSeq(s.Rand, maps.Keys(candidates))
+	if !ok {
+		return ErrNoVFRAircraftForFlightFollowing
+	}
 
 	s.requestFlightFollowing(ac, candidates[ac])
 
@@ -1705,11 +1766,10 @@ func (s *Sim) generateFlightFollowingMessage(ac *Aircraft) *av.RadioTransmission
 			// departure airport as a candidate as it may be well outside
 			// the TRACON.
 			if d := math.NMDistance2LL(ac.Position(), ac.DepartureAirportLocation()); d < dist {
-				hdg := math.Heading2LL(ac.DepartureAirportLocation(), ac.Position(), s.State.NmPerLongitude,
-					s.State.MagneticVariation)
+				hdg := math.Heading2LL(ac.DepartureAirportLocation(), ac.Position(), s.State.NmPerLongitude)
 				return ac.FlightPlan.DepartureAirport, math.Compass(hdg), d, true
 			} else {
-				hdg := math.Heading2LL(center, ac.Position(), s.State.NmPerLongitude, s.State.MagneticVariation)
+				hdg := math.Heading2LL(center, ac.Position(), s.State.NmPerLongitude)
 				return closest.Description, math.Compass(hdg), dist, false
 			}
 		}
@@ -1910,7 +1970,7 @@ func (s *Sim) getGoAroundProcedureForAircraft(ac *Aircraft) *GoAroundProcedure {
 
 	approach := ac.Nav.Approach.Assigned
 	return &GoAroundProcedure{
-		Heading:           int(approach.RunwayHeading(s.State.NmPerLongitude, s.State.MagneticVariation) + 0.5),
+		Heading:           int(math.TrueToMagnetic(approach.RunwayHeading(s.State.NmPerLongitude), s.State.MagneticVariation) + 0.5),
 		IsRunwayHeading:   true,
 		Altitude:          1000 * int((ac.Nav.FlightState.ArrivalAirportElevation+2500)/1000),
 		HandoffController: s.getGoAroundController(ac),

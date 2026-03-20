@@ -123,83 +123,14 @@ func (p *Transcriber) decodeInternal(
 		}
 		logLocalStt("found aircraft context for callsign %q", callsign)
 	} else {
-		// Check for "negative, that was for {callsign}" correction pattern BEFORE callsign matching
-		// e.g., "Negative that was for Delta 456. Delta 456, turn left heading 270"
-		// This triggers a ROLLBACK of the last command, then processes the rest for the correct aircraft
-		// The wrong aircraft's callsign should NOT be in the transcript (to avoid confusing them)
-		if tokensAfterNegative, found := detectNegativeThatWasFor(tokens); found {
-			logLocalStt("detected 'negative that was for' correction pattern at start")
-			// Match the correct callsign from the tokens after the correction phrase
-			correctMatch, correctRemaining := MatchCallsign(tokensAfterNegative, aircraft)
-			if correctMatch.Callsign != "" {
-				logLocalStt("correct callsign match: Callsign=%q SpokenKey=%q Conf=%.2f",
-					correctMatch.Callsign, correctMatch.SpokenKey, correctMatch.Confidence)
-
-				// Get aircraft context for the correct callsign
-				var correctAc Aircraft
-				if correctMatch.SpokenKey != "" {
-					correctAc = aircraft[correctMatch.SpokenKey]
-				}
-
-				// Parse and validate commands for the correct callsign
-				commands, cmdConf := ParseCommands(correctRemaining, correctAc)
-				logLocalStt("parsed commands for correct callsign: %v (conf=%.2f)", commands, cmdConf)
-				validation := ValidateCommands(commands, correctAc)
-				logLocalStt("validated commands: %v", validation.ValidCommands)
-
-				// Build output: ROLLBACK + commands for correct callsign
-				var output string
-				if len(validation.ValidCommands) > 0 {
-					output = "ROLLBACK " + correctMatch.Callsign + " " + strings.Join(validation.ValidCommands, " ")
-				} else {
-					// Just ROLLBACK if no valid commands were parsed
-					output = "ROLLBACK"
-				}
-
-				elapsed := time.Since(start)
-				logLocalStt("=== DecodeTranscript END: %q (negative correction, time=%s) ===", output, elapsed)
-				p.logInfo("local STT: %q -> %q (negative correction, time=%s)", transcript, output, elapsed)
-				return strings.TrimSpace(output), nil
-			}
-			// Couldn't match correct callsign, just return ROLLBACK
-			logLocalStt("couldn't match correct callsign after 'negative that was for', returning just ROLLBACK")
-			elapsed := time.Since(start)
-			p.logInfo("local STT: %q -> ROLLBACK (negative correction, no new callsign, time=%s)", transcript, elapsed)
-			return "ROLLBACK", nil
+		var earlyResult string
+		callsign, ac, commandTokens, callsignConfidence, earlyResult =
+			p.resolveCallsign(tokens, aircraft, transcript, start)
+		if earlyResult != "" {
+			return earlyResult, nil
 		}
-
-		// Layer 3: Callsign matching
-		callsignMatch, remainingTokens := MatchCallsign(tokens, aircraft)
-		logLocalStt("callsign match: Callsign=%q SpokenKey=%q Conf=%.2f Consumed=%d",
-			callsignMatch.Callsign, callsignMatch.SpokenKey, callsignMatch.Confidence, callsignMatch.Consumed)
-
-		if callsignMatch.Callsign == "" {
-			// No callsign identified - just ignore the transmission
-			logLocalStt("no callsign match for %q, ignoring", transcript)
+		if callsign == "" {
 			return "", nil
-		}
-
-		// Check for "not for you" correction pattern
-		// e.g., "479, that was not for you, Virgin 47 Foxtrot, expect..."
-		// If found, re-match callsign from the tokens after the correction phrase
-		if tokensAfterCorrection, found := detectNotForYouCorrection(remainingTokens); found {
-			logLocalStt("detected 'not for you' correction, re-matching callsign")
-			newMatch, newRemaining := MatchCallsign(tokensAfterCorrection, aircraft)
-			if newMatch.Callsign != "" {
-				logLocalStt("new callsign match: Callsign=%q SpokenKey=%q Conf=%.2f Consumed=%d",
-					newMatch.Callsign, newMatch.SpokenKey, newMatch.Confidence, newMatch.Consumed)
-				callsignMatch = newMatch
-				remainingTokens = newRemaining
-			}
-		}
-
-		callsign = callsignMatch.Callsign
-		callsignConfidence = callsignMatch.Confidence
-		commandTokens = remainingTokens
-
-		// Get aircraft context for the matched callsign
-		if callsignMatch.SpokenKey != "" {
-			ac = aircraft[callsignMatch.SpokenKey]
 		}
 	}
 
@@ -212,16 +143,6 @@ func (p *Transcriber) decodeInternal(
 		logLocalStt("  approach: %q -> %q", spokenName, apprID)
 	}
 
-	// Check if "disregard" is the only command (meaning "ignore this transmission")
-	// e.g., "Blue Streak 4193, disregard." should return empty, not AGAIN
-	if isDisregardOnly(commandTokens) {
-		logLocalStt("detected disregard-only command, returning empty")
-		elapsed := time.Since(start)
-		logLocalStt(`=== DecodeTranscript END: "" (disregard, time=%s) ===`, elapsed)
-		p.logInfo(`local STT: %q -> "" (disregard, time=%s)`, transcript, elapsed)
-		return "", nil
-	}
-
 	// Handle "disregard" or "correction" in remaining tokens
 	// This discards previous command attempts but preserves callsign
 	commandTokens = applyDisregard(commandTokens)
@@ -230,28 +151,30 @@ func (p *Transcriber) decodeInternal(
 		logLocalStt("  token[%d]: Text=%q Type=%d Value=%d", i, t.Text, t.Type, t.Value)
 	}
 
-	// Check if remaining tokens are just acknowledgment filler words (roger, wilco, copy)
-	// These need no response - return empty
-	if isAcknowledgmentOnly(commandTokens) {
-		logLocalStt("detected acknowledgment only (roger/wilco/copy), returning empty")
+	// Classify and early-return for non-command transmissions
+	if kind := classifyTransmission(commandTokens); kind != transmissionCommand {
+		logLocalStt("classified as %s, returning empty", kind)
 		elapsed := time.Since(start)
-		logLocalStt(`=== DecodeTranscript END: "" (acknowledgment, time=%s) ===`, elapsed)
-		p.logInfo(`local STT: %q -> "" (acknowledgment, time=%s)`, transcript, elapsed)
+		logLocalStt(`=== DecodeTranscript END: "" (%s, time=%s) ===`, kind, elapsed)
+		p.logInfo(`local STT: %q -> "" (%s, time=%s)`, transcript, kind, elapsed)
 		return "", nil
 	}
 
-	// Strip position identification prefix if present (e.g., "New York departure")
-	// This appears right after callsign when controller identifies themselves
-	commandTokens = stripPositionIDPrefix(commandTokens)
+	// Strip informational phrases (position ID prefix, radar contact, altimeter setting)
+	commandTokens = stripInformational(commandTokens)
 
-	// Strip "radar contact" prefix if present (informational, not a command)
-	commandTokens = stripRadarContactPrefix(commandTokens)
-
-	// Strip altimeter setting suffix if present (informational, not a command)
-	commandTokens = stripAltimeterSuffix(commandTokens)
-
-	// If no tokens remain after stripping, controller just identified themselves
+	// If no tokens remain after stripping, controller just identified themselves.
+	// For VFR aircraft, treat this as an implicit "go ahead" — the pilot is
+	// checking in on frequency with just their callsign + facility name.
 	if len(commandTokens) == 0 {
+		if ac.State == "vfr flight following" {
+			output := callsign + " GA"
+			elapsed := time.Since(start)
+			logLocalStt("VFR aircraft with position ID only, treating as implicit go ahead")
+			logLocalStt(`=== DecodeTranscript END: %q (implicit GA, time=%s) ===`, output, elapsed)
+			p.logInfo(`local STT: %q -> %q (implicit GA, time=%s)`, transcript, output, elapsed)
+			return output, nil
+		}
 		logLocalStt("no tokens after stripping prefixes, returning empty")
 		elapsed := time.Since(start)
 		logLocalStt(`=== DecodeTranscript END: "" (position ID only, time=%s) ===`, elapsed)
@@ -259,23 +182,13 @@ func (p *Transcriber) decodeInternal(
 		return "", nil
 	}
 
-	// Check if command tokens are just "radar contact" with noise around it
-	// e.g., "in radar contact" — the "in" prevented prefix stripping
-	if isRadarContactOnly(commandTokens) {
-		logLocalStt("detected radar contact only, returning empty")
+	// Re-classify after stripping — position ID removal may reveal an
+	// acknowledgment-only or radar-contact-only transmission.
+	if kind := classifyTransmission(commandTokens); kind != transmissionCommand {
+		logLocalStt("classified as %s after stripping, returning empty", kind)
 		elapsed := time.Since(start)
-		logLocalStt(`=== DecodeTranscript END: "" (radar contact, time=%s) ===`, elapsed)
-		p.logInfo(`local STT: %q -> "" (radar contact, time=%s)`, transcript, elapsed)
-		return "", nil
-	}
-
-	// Check again for acknowledgment-only after stripping position ID and radar contact
-	// e.g., "Callsign Lone Star Approach roger" -> after stripping, just "roger" remains
-	if isAcknowledgmentOnly(commandTokens) {
-		logLocalStt("detected acknowledgment only after stripping prefixes, returning empty")
-		elapsed := time.Since(start)
-		logLocalStt(`=== DecodeTranscript END: "" (acknowledgment, time=%s) ===`, elapsed)
-		p.logInfo(`local STT: %q -> "" (acknowledgment, time=%s)`, transcript, elapsed)
+		logLocalStt(`=== DecodeTranscript END: "" (%s, time=%s) ===`, kind, elapsed)
+		p.logInfo(`local STT: %q -> "" (%s, time=%s)`, transcript, kind, elapsed)
 		return "", nil
 	}
 
@@ -309,17 +222,27 @@ func (p *Transcriber) decodeInternal(
 
 	// Generate output
 	var output string
+	// cmdConf > 0 with no commands means a pattern matched but intentionally
+	// produced no output (e.g., "standby for the approach"). Treat as
+	// understood — return just the callsign, not AGAIN.
+	noCommands := len(validation.ValidCommands) == 0 && cmdConf == 0
 	if isFallback {
-		// For fallback mode, return just the commands (caller will prepend callsign)
-		if len(validation.ValidCommands) == 0 {
+		if noCommands {
 			output = "AGAIN"
 		} else {
 			output = strings.Join(validation.ValidCommands, " ")
 		}
 	} else {
-		if len(validation.ValidCommands) == 0 {
-			// Callsign matched but couldn't parse commands - ask for say again
-			output = callsign + " AGAIN"
+		if noCommands {
+			// Only emit AGAIN when the callsign match is confident enough.
+			// A weak airline match combined with a coincidental flight
+			// number can produce a false callsign; requesting a repeat
+			// from the wrong aircraft is worse than silence.
+			if callsignConfidence >= 0.93 {
+				output = callsign + " AGAIN"
+			}
+		} else if len(validation.ValidCommands) == 0 {
+			output = callsign
 		} else {
 			output = callsign + " " + strings.Join(validation.ValidCommands, " ")
 		}
@@ -334,6 +257,102 @@ func (p *Transcriber) decodeInternal(
 	}
 
 	return strings.TrimSpace(output), nil
+}
+
+// resolveCallsign handles callsign identification for the non-fallback path.
+// It detects "negative that was for" corrections, performs callsign matching,
+// and handles "not for you" corrections.
+// Returns earlyResult non-empty when the function should return immediately (e.g., ROLLBACK).
+// Returns callsign="" when no callsign could be matched.
+func (p *Transcriber) resolveCallsign(
+	tokens []Token, aircraft map[string]Aircraft, transcript string, start time.Time,
+) (callsign string, ac Aircraft, cmdTokens []Token, confidence float64, earlyResult string) {
+	confidence = 1.0
+
+	// Check for "negative, that was for {callsign}" correction pattern BEFORE callsign matching.
+	// e.g., "Negative that was for Delta 456. Delta 456, turn left heading 270"
+	// This triggers a ROLLBACK of the last command, then processes the rest for the correct aircraft.
+	if tokensAfterNegative, found := detectNegativeThatWasFor(tokens); found {
+		logLocalStt("detected 'negative that was for' correction pattern at start")
+		correctMatch, correctRemaining := MatchCallsign(tokensAfterNegative, aircraft)
+		if correctMatch.Callsign != "" {
+			logLocalStt("correct callsign match: Callsign=%q SpokenKey=%q Conf=%.2f",
+				correctMatch.Callsign, correctMatch.SpokenKey, correctMatch.Confidence)
+
+			var correctAc Aircraft
+			if correctMatch.SpokenKey != "" {
+				correctAc = aircraft[correctMatch.SpokenKey]
+			}
+
+			commands, cmdConf := ParseCommands(correctRemaining, correctAc)
+			logLocalStt("parsed commands for correct callsign: %v (conf=%.2f)", commands, cmdConf)
+			validation := ValidateCommands(commands, correctAc)
+			logLocalStt("validated commands: %v", validation.ValidCommands)
+
+			var output string
+			if len(validation.ValidCommands) > 0 {
+				output = "ROLLBACK " + correctMatch.Callsign + " " + strings.Join(validation.ValidCommands, " ")
+			} else {
+				output = "ROLLBACK"
+			}
+
+			elapsed := time.Since(start)
+			logLocalStt("=== DecodeTranscript END: %q (negative correction, time=%s) ===", output, elapsed)
+			p.logInfo("local STT: %q -> %q (negative correction, time=%s)", transcript, output, elapsed)
+			earlyResult = strings.TrimSpace(output)
+			return
+		}
+		logLocalStt("couldn't match correct callsign after 'negative that was for', returning just ROLLBACK")
+		elapsed := time.Since(start)
+		p.logInfo("local STT: %q -> ROLLBACK (negative correction, no new callsign, time=%s)", transcript, elapsed)
+		earlyResult = "ROLLBACK"
+		return
+	}
+
+	// Layer 3: Callsign matching
+	callsignMatch, remainingTokens := MatchCallsign(tokens, aircraft)
+	logLocalStt("callsign match: Callsign=%q SpokenKey=%q Conf=%.2f Consumed=%d",
+		callsignMatch.Callsign, callsignMatch.SpokenKey, callsignMatch.Confidence, callsignMatch.Consumed)
+
+	if callsignMatch.Callsign == "" {
+		// Check for "negative, {commands}" without callsign.
+		// Skip validation since we don't know the target aircraft context.
+		if remaining, found := detectNegativePrefix(tokens); found {
+			commands, _ := ParseCommands(remaining, Aircraft{})
+			if len(commands) > 0 {
+				output := "ROLLBACK " + strings.Join(commands, " ")
+				elapsed := time.Since(start)
+				logLocalStt("=== DecodeTranscript END: %q (negative without callsign, time=%s) ===", output, elapsed)
+				p.logInfo("local STT: %q -> %q (negative without callsign, time=%s)", transcript, output, elapsed)
+				earlyResult = output
+				return
+			}
+		}
+		logLocalStt("no callsign match for %q, ignoring", transcript)
+		return // callsign is "", earlyResult is ""
+	}
+
+	// Check for "not for you" correction pattern
+	// e.g., "479, that was not for you, Virgin 47 Foxtrot, expect..."
+	if tokensAfterCorrection, found := detectNotForYouCorrection(remainingTokens); found {
+		logLocalStt("detected 'not for you' correction, re-matching callsign")
+		newMatch, newRemaining := MatchCallsign(tokensAfterCorrection, aircraft)
+		if newMatch.Callsign != "" {
+			logLocalStt("new callsign match: Callsign=%q SpokenKey=%q Conf=%.2f Consumed=%d",
+				newMatch.Callsign, newMatch.SpokenKey, newMatch.Confidence, newMatch.Consumed)
+			callsignMatch = newMatch
+			remainingTokens = newRemaining
+		}
+	}
+
+	callsign = callsignMatch.Callsign
+	confidence = callsignMatch.Confidence
+	cmdTokens = remainingTokens
+
+	if callsignMatch.SpokenKey != "" {
+		ac = aircraft[callsignMatch.SpokenKey]
+	}
+	return
 }
 
 // DecodeFromState decodes a transcript using the simulation state directly.
@@ -405,6 +424,7 @@ func (p *Transcriber) BuildAircraftContext(
 		if trk.IsDeparture() {
 			sttAc.State = "departure"
 			sttAc.SID = trk.SID
+			sttAc.STAR = trk.STAR // Local departures may have a STAR
 		} else if trk.IsArrival() {
 			if trk.ClearedForApproach {
 				sttAc.State = "cleared approach"
@@ -416,8 +436,10 @@ func (p *Transcriber) BuildAircraftContext(
 			sttAc.State = "overflight"
 		}
 
-		// Build candidate approaches for arrivals
-		if trk.IsArrival() && trk.ArrivalAirport != "" {
+		// Build candidate approaches for arrivals and local departures
+		// (departures arriving at a TRACON airport need approach commands too)
+		_, arrivingLocally := state.ArrivalAirports[trk.ArrivalAirport]
+		if trk.ArrivalAirport != "" && (trk.IsArrival() || arrivingLocally) {
 			sttAc.CandidateApproaches = make(map[string]string)
 			sttAc.ApproachFixes = make(map[string]map[string]string)
 			if trk.Approach != "" {
@@ -461,15 +483,21 @@ func (p *Transcriber) BuildAircraftContext(
 			}
 
 			// If there's an assigned approach, merge its fixes into the main Fixes map
-			// so they're available for matching "proceed direct" commands
+			// so they're available for matching "proceed direct" commands.
+			// AssignedApproach is a full name (e.g., "ILS Runway 22L") but
+			// ApproachFixes is keyed by short code (e.g., "I2L"). Convert
+			// via GetApproachTelephony + CandidateApproaches.
 			if sttAc.AssignedApproach != "" {
-				if approachFixes, ok := sttAc.ApproachFixes[sttAc.AssignedApproach]; ok {
-					if sttAc.Fixes == nil {
-						sttAc.Fixes = make(map[string]string)
-					}
-					for spoken, fix := range approachFixes {
-						if _, exists := sttAc.Fixes[spoken]; !exists {
-							sttAc.Fixes[spoken] = fix
+				telephony := av.GetApproachTelephony(sttAc.AssignedApproach)
+				if code, ok := sttAc.CandidateApproaches[telephony]; ok {
+					if approachFixes, ok := sttAc.ApproachFixes[code]; ok {
+						if sttAc.Fixes == nil {
+							sttAc.Fixes = make(map[string]string)
+						}
+						for spoken, fix := range approachFixes {
+							if _, exists := sttAc.Fixes[spoken]; !exists {
+								sttAc.Fixes[spoken] = fix
+							}
 						}
 					}
 				}
@@ -599,9 +627,26 @@ func detectNotForYouCorrection(tokens []Token) ([]Token, bool) {
 			}
 		}
 
-		// Check for bare "correction" keyword
+		// Check for bare "correction" keyword, but only when the next
+		// meaningful token is NOT a command keyword. When a command keyword
+		// follows (e.g., "correction descend and maintain..."), this is a
+		// command self-correction handled by applyDisregard, not a callsign
+		// re-addressing.
 		if strings.ToLower(tokens[i].Text) == "correction" {
-			return tokens[i+1:], true
+			followedByCommand := false
+			for j := i + 1; j < len(tokens); j++ {
+				w := strings.ToLower(tokens[j].Text)
+				if IsFillerWord(w) {
+					continue
+				}
+				if IsCommandKeyword(w) {
+					followedByCommand = true
+				}
+				break
+			}
+			if !followedByCommand {
+				return tokens[i+1:], true
+			}
 		}
 	}
 	return tokens, false
@@ -655,6 +700,20 @@ func detectNegativeThatWasFor(tokens []Token) ([]Token, bool) {
 	return tokens, false
 }
 
+// detectNegativePrefix checks if tokens start with "negative" or "no" (without
+// "that was for" / "was for" following). Returns the remaining tokens after the
+// negative word. This is used for "negative, {commands}" without callsign.
+func detectNegativePrefix(tokens []Token) ([]Token, bool) {
+	if len(tokens) < 2 {
+		return nil, false
+	}
+	w := strings.ToLower(tokens[0].Text)
+	if w != "negative" && w != "no" {
+		return nil, false
+	}
+	return tokens[1:], true
+}
+
 // applyDisregard handles "disregard" or "correction" in tokens.
 // For "disregard": discards everything before it.
 // For "correction": if what follows is a complete command (contains command keywords),
@@ -697,22 +756,64 @@ func applyDisregard(tokens []Token) []Token {
 						return append([]Token{keywordToken}, afterCorrection...)
 					}
 				}
+				// Check for partial correction: afterCorrection starts with a command
+				// keyword (e.g., "maintain 3000") and there are commands of a different
+				// category before "correction" (e.g., "turn left heading 150 maintain
+				// 5000 correction maintain 3000"). In this case only the same-category
+				// command is corrected; earlier different-category commands are kept.
+				if len(afterCorrection) > 0 {
+					firstWord := strings.ToLower(afterCorrection[0].Text)
+					if cat := correctionKeywordCategory(firstWord); cat != "" {
+						// Scan backward from "correction" to find the nearest
+						// same-category keyword and check for different-category ones.
+						sameCatIdx := -1
+						hasDifferentCat := false
+						for j := i - 1; j >= 0; j-- {
+							w := strings.ToLower(tokens[j].Text)
+							if c := correctionKeywordCategory(w); c != "" {
+								if c == cat && sameCatIdx < 0 {
+									sameCatIdx = j
+								} else if c != cat {
+									hasDifferentCat = true
+								}
+							}
+						}
+						if sameCatIdx >= 0 && hasDifferentCat {
+							logLocalStt("  correction: partial correction — keeping tokens before index %d, replacing %s command", sameCatIdx, cat)
+							return append(tokens[:sameCatIdx], afterCorrection...)
+						}
+					}
+				}
 				// Full command correction - discard everything before
 				return afterCorrection
 			}
 
-			// Just numbers after correction (e.g., frequency) - only discard preceding numbers
-			// e.g., "contact departure 12, correction 126.8"
-			numStart := i
+			// No command keywords after correction - this is a value correction.
+			// Scan backward to find and replace the corrected value.
+			// Handle both numeric values (e.g., "contact departure 12, correction 126.8")
+			// and plain words like fix names (e.g., "direct lever correction haupt").
+			valStart := i
 			for j := i - 1; j >= 0; j-- {
-				if tokens[j].Type == TokenNumber || strings.ToLower(tokens[j].Text) == "point" {
-					numStart = j
+				w := strings.ToLower(tokens[j].Text)
+				if tokens[j].Type == TokenNumber || w == "point" ||
+					w == "miles" || w == "knots" || w == "degrees" {
+					valStart = j
 				} else {
 					break
 				}
 			}
-			// Keep tokens before the corrected numbers, add tokens after "correction"
-			return append(tokens[:numStart], afterCorrection...)
+			// If no numbers were stripped and the token directly before "correction"
+			// is a plain word (not a command keyword), strip that single word.
+			// This handles fix name corrections like "direct lever correction haupt"
+			// where "lever" (the mis-spoken fix) should be replaced by "haupt".
+			if valStart == i && i > 0 {
+				prev := strings.ToLower(tokens[i-1].Text)
+				if tokens[i-1].Type == TokenWord && !IsCommandKeyword(prev) {
+					valStart = i - 1
+				}
+			}
+			// Keep tokens before the corrected value, add tokens after "correction"
+			return append(tokens[:valStart], afterCorrection...)
 		}
 	}
 	return tokens
@@ -791,21 +892,114 @@ func findCommandTypeKeyword(tokens []Token) string {
 	return altitudeKeyword
 }
 
-// isDisregardOnly returns true if the tokens consist only of "disregard"
-// (possibly with filler words). This indicates the controller is telling
-// the pilot to ignore the previous transmission, and no command should be sent.
-func isDisregardOnly(tokens []Token) bool {
+// correctionKeywordCategory returns the command category for a keyword used in
+// partial-correction detection: "altitude", "heading", or "speed". Returns ""
+// if the word is not a category-relevant keyword.
+func correctionKeywordCategory(word string) string {
+	switch word {
+	case "maintain", "descend", "climb", "altitude":
+		return "altitude"
+	case "heading", "turn", "fly":
+		return "heading"
+	case "speed", "reduce", "slow", "increase":
+		return "speed"
+	default:
+		return ""
+	}
+}
+
+// transmissionKind categorizes a transmission for early-return decisions.
+type transmissionKind int
+
+const (
+	transmissionCommand        transmissionKind = iota // Contains actionable commands
+	transmissionDisregard                              // "disregard" only
+	transmissionAcknowledgment                         // roger, wilco, copy, etc.
+	transmissionRadarContact                           // "radar contact" with no real commands
+)
+
+func (k transmissionKind) String() string {
+	switch k {
+	case transmissionDisregard:
+		return "disregard"
+	case transmissionAcknowledgment:
+		return "acknowledgment"
+	case transmissionRadarContact:
+		return "radar contact"
+	default:
+		return "command"
+	}
+}
+
+// classifyTransmission returns the kind of transmission represented by tokens.
+// Non-command transmissions (disregard, acknowledgment, radar contact) should
+// be returned as empty strings without parsing commands.
+func classifyTransmission(tokens []Token) transmissionKind {
+	if len(tokens) == 0 {
+		return transmissionCommand
+	}
+
+	acknowledgmentWords := map[string]bool{
+		"roger": true, "wilco": true, "copy": true, "affirm": true, "affirmative": true,
+		"hello": true, "hey": true, "hi": true, "howdy": true,
+	}
+
 	hasDisregard := false
-	for _, t := range tokens {
+	hasAcknowledgment := false
+	hasRadarContact := false
+	allFillerOrSpecial := true
+
+	for i, t := range tokens {
 		text := strings.ToLower(t.Text)
-		if text == "disregard" {
+		switch {
+		case text == "disregard":
 			hasDisregard = true
-		} else if !IsFillerWord(text) {
-			// Found a non-filler, non-disregard token
-			return false
+		case acknowledgmentWords[text]:
+			hasAcknowledgment = true
+		case text == "radar" && i+1 < len(tokens) && strings.ToLower(tokens[i+1].Text) == "contact":
+			hasRadarContact = true
+		case text == "contact" && i > 0 && strings.ToLower(tokens[i-1].Text) == "radar":
+			// Already counted as part of "radar contact" pair
+		case IsFillerWord(text):
+			// Filler words don't affect classification
+		default:
+			allFillerOrSpecial = false
 		}
 	}
-	return hasDisregard
+
+	if !allFillerOrSpecial {
+		// If there's a radar contact phrase but also other non-filler,
+		// non-special tokens, check if any are command keywords.
+		if hasRadarContact {
+			hasCommandKeyword := false
+			for _, t := range tokens {
+				text := strings.ToLower(t.Text)
+				if text == "radar" || text == "contact" {
+					continue
+				}
+				if IsCommandKeyword(text) {
+					hasCommandKeyword = true
+					break
+				}
+			}
+			if !hasCommandKeyword {
+				return transmissionRadarContact
+			}
+		}
+		return transmissionCommand
+	}
+
+	// All tokens are filler/special — classify by what special words we found
+	if hasDisregard {
+		return transmissionDisregard
+	}
+	if hasAcknowledgment {
+		return transmissionAcknowledgment
+	}
+	if hasRadarContact {
+		return transmissionRadarContact
+	}
+	return transmissionCommand
 }
 
 // containsGreeting returns true if any token is a greeting word.
@@ -820,81 +1014,28 @@ func containsGreeting(tokens []Token) bool {
 	return false
 }
 
-// isAcknowledgmentOnly returns true if the tokens contain only acknowledgment
-// words (roger, wilco, copy) and filler words. These are pilot readbacks that
-// need no further action from the controller.
-func isAcknowledgmentOnly(tokens []Token) bool {
-	if len(tokens) == 0 {
-		return false
-	}
-
-	acknowledgmentWords := map[string]bool{
-		"roger": true, "wilco": true, "copy": true, "affirm": true, "affirmative": true,
-		"hello": true, "hey": true, "hi": true, "howdy": true,
-	}
-
-	hasAcknowledgment := false
-	for _, t := range tokens {
-		text := strings.ToLower(t.Text)
-		if acknowledgmentWords[text] {
-			hasAcknowledgment = true
-		} else if !IsFillerWord(text) {
-			// Non-acknowledgment, non-filler word found
-			return false
-		}
-	}
-
-	return hasAcknowledgment
-}
-
-// isRadarContactOnly returns true if the tokens contain "radar contact"
-// and no command keywords besides "radar" and "contact" themselves. This
-// handles cases where noise words (e.g., callsign fragments) appear
-// before "radar contact".
-func isRadarContactOnly(tokens []Token) bool {
-	hasRadarContact := false
-	for i, t := range tokens {
-		text := strings.ToLower(t.Text)
-		if text == "radar" && i+1 < len(tokens) &&
-			strings.ToLower(tokens[i+1].Text) == "contact" {
-			hasRadarContact = true
-			break
-		}
-	}
-	if !hasRadarContact {
-		return false
-	}
-
-	// Reject if any other token is a command keyword, which would
-	// indicate real commands mixed in with radar contact.
-	for _, t := range tokens {
-		text := strings.ToLower(t.Text)
-		if text == "radar" || text == "contact" {
-			continue
-		}
-		if IsCommandKeyword(text) {
-			return false
-		}
-	}
-	return true
+// stripInformational applies all informational prefix/suffix strippers in sequence:
+// position ID prefix, radar contact prefix, and altimeter setting suffix.
+func stripInformational(tokens []Token) []Token {
+	tokens = stripPositionIDPrefix(tokens)
+	tokens = stripRadarContactPrefix(tokens)
+	tokens = stripAltimeterSuffix(tokens)
+	return tokens
 }
 
 // stripPositionIDPrefix removes a controller position identification prefix
 // from the tokens (e.g., "New York departure", "Boston approach").
 // This appears right after the callsign when the controller identifies themselves.
 // Only strips if no command keyword appears before the position suffix.
-// Returns the remaining tokens after stripping the prefix.
 func stripPositionIDPrefix(tokens []Token) []Token {
 	if len(tokens) == 0 {
 		return tokens
 	}
 
-	// Position suffixes that indicate controller identification
 	positionSuffixes := map[string]bool{
 		"departure": true, "approach": true, "center": true,
 	}
 
-	// Command keywords that indicate actual commands (not position ID)
 	commandKeywords := map[string]bool{
 		"climb": true, "climbing": true, "descend": true, "descending": true,
 		"maintain": true, "turn": true, "heading": true, "speed": true,
@@ -905,25 +1046,18 @@ func stripPositionIDPrefix(tokens []Token) []Token {
 		"resume": true, "vectors": true, "go": true, "standby": true,
 	}
 
-	// Find position suffix in the first few tokens (position ID is at the start)
 	for i, t := range tokens {
 		text := strings.ToLower(t.Text)
-
-		// If we hit a command keyword, this isn't a position ID prefix
 		if commandKeywords[text] {
 			return tokens
 		}
-
 		if positionSuffixes[text] {
-			// Found position suffix with no command keyword before it - strip
 			remaining := tokens[i+1:]
 			if len(remaining) < len(tokens) {
 				logLocalStt("stripped position ID prefix: %d tokens", i+1)
 			}
 			return remaining
 		}
-
-		// Stop searching after a few tokens - position ID should be at the start
 		if i >= 4 {
 			break
 		}
@@ -933,7 +1067,6 @@ func stripPositionIDPrefix(tokens []Token) []Token {
 }
 
 // stripRadarContactPrefix removes "radar contact" from the start of tokens.
-// This is informational and not a command.
 func stripRadarContactPrefix(tokens []Token) []Token {
 	if len(tokens) >= 2 &&
 		strings.ToLower(tokens[0].Text) == "radar" &&
@@ -952,25 +1085,17 @@ func stripAltimeterSuffix(tokens []Token) []Token {
 		if strings.ToLower(t.Text) != "altimeter" {
 			continue
 		}
-
-		// "altimeter" must be followed by a number (the setting).
 		if i+1 >= len(tokens) || tokens[i+1].Type != TokenNumber {
 			continue
 		}
-
-		// Nothing actionable should follow the setting.
 		if i+2 < len(tokens) {
 			continue
 		}
-
-		// The word before "altimeter" is typically an airport name
-		// (e.g., "kennedy"); strip it too if it's a plain word.
 		start := i
 		if start > 0 && tokens[start-1].Type == TokenWord &&
 			!IsCommandKeyword(strings.ToLower(tokens[start-1].Text)) {
 			start--
 		}
-
 		logLocalStt("stripped altimeter suffix: %d tokens", len(tokens)-start)
 		return tokens[:start]
 	}

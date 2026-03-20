@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	av "github.com/mmp/vice/aviation"
+	"github.com/mmp/vice/math"
 )
 
 func TestParseHold(t *testing.T) {
@@ -23,7 +24,7 @@ func TestParseHold(t *testing.T) {
 		wantLegLength float32
 		wantLegTime   float32
 		checkRadial   bool
-		wantRadial    float32
+		wantRadial    math.MagneticHeading
 	}{
 		{
 			name:     "Published hold - no options",

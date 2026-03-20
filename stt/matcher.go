@@ -63,6 +63,10 @@ func (m *literalMatcher) match(tokens []Token, pos int, ac Aircraft, skipWords [
 	}
 
 	for _, kw := range m.keywords {
+		// Skip fuzzy matching when lengths are too different
+		if len(text) > 2*len(kw) || len(kw) > 2*len(text) {
+			continue
+		}
 		if FuzzyMatch(text, kw, threshold) {
 			return matchResult{consumed: pos + 1}
 		}
@@ -147,10 +151,16 @@ func (m *typedMatcher) match(tokens []Token, pos int, ac Aircraft, skipWords []s
 		return matchResult{sayAgain: sayAgain}
 	}
 
-	// Skip only filler words (not skipWords - those are for optional sections)
+	// Skip filler words, but preserve "to"/"too"/"tu" before a number since
+	// parsers may interpret those as the digit "two" (e.g., "heading to niner
+	// zero" -> heading 290).
 	for pos < len(tokens) {
 		text := strings.ToLower(tokens[pos].Text)
 		if IsFillerWord(text) {
+			if (text == "to" || text == "too" || text == "tu") &&
+				pos+1 < len(tokens) && tokens[pos+1].Type == TokenNumber {
+				break
+			}
 			pos++
 			continue
 		}

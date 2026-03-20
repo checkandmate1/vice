@@ -45,6 +45,7 @@ const (
 	WaypointFlagTurnLeft
 	WaypointFlagTurnRight
 	WaypointFlagHasAltRestriction
+	WaypointFlagSequenceVFRLanding
 )
 
 // Waypoint is the core waypoint struct. Most waypoints only use Fix,
@@ -59,7 +60,21 @@ type Waypoint struct {
 	Flags          WaypointFlags
 	Heading        int16 // 0 = unset
 	Speed          int16 // 0 = unset
+	VFRPhase       uint8 // VFRPhaseNone for non-VFR-pattern waypoints
 }
+
+// VFRPhase constants identify which leg of the VFR traffic pattern a waypoint belongs to.
+const (
+	VFRPhaseNone       uint8 = 0
+	VFRPhaseRollout    uint8 = 1
+	VFRPhaseUpwind     uint8 = 2
+	VFRPhaseCrosswind  uint8 = 3
+	VFRPhaseDownwind   uint8 = 4
+	VFRPhaseBase       uint8 = 5
+	VFRPhaseFinal      uint8 = 6
+	VFRPhaseStraightIn uint8 = 7
+	VFRPhaseOrbit      uint8 = 8
+)
 
 // WaypointExtra holds the rarely-used fields, heap-allocated only when needed.
 type WaypointExtra struct {
@@ -87,6 +102,11 @@ func (wp *Waypoint) InitExtra() *WaypointExtra {
 	return wp.Extra
 }
 
+// MagneticHeading returns the waypoint's heading as MagneticHeading.
+func (wp Waypoint) MagneticHeading() math.MagneticHeading {
+	return math.MagneticHeading(wp.Heading)
+}
+
 // Flag readers (value receiver)
 func (wp Waypoint) PresentHeading() bool { return wp.Flags&WaypointFlagPresentHeading != 0 }
 func (wp Waypoint) NoPT() bool           { return wp.Flags&WaypointFlagNoPT != 0 }
@@ -108,7 +128,9 @@ func (wp Waypoint) ClearSecondaryScratchpad() bool {
 	return wp.Flags&WaypointFlagClearSecondaryScratchpad != 0
 }
 func (wp Waypoint) TransferComms() bool { return wp.Flags&WaypointFlagTransferComms != 0 }
-
+func (wp Waypoint) SequenceVFRLanding() bool {
+	return wp.Flags&WaypointFlagSequenceVFRLanding != 0
+}
 func (wp Waypoint) Turn() TurnDirection {
 	if wp.Flags&WaypointFlagTurnLeft != 0 {
 		return TurnLeft
@@ -148,7 +170,9 @@ func (wp *Waypoint) SetClearSecondaryScratchpad(v bool) {
 	wp.setFlag(WaypointFlagClearSecondaryScratchpad, v)
 }
 func (wp *Waypoint) SetTransferComms(v bool) { wp.setFlag(WaypointFlagTransferComms, v) }
-
+func (wp *Waypoint) SetSequenceVFRLanding(v bool) {
+	wp.setFlag(WaypointFlagSequenceVFRLanding, v)
+}
 func (wp *Waypoint) SetTurn(t TurnDirection) {
 	wp.Flags &^= WaypointFlagTurnLeft | WaypointFlagTurnRight
 	switch t {
@@ -391,7 +415,7 @@ func (wa WaypointArray) Encode() string {
 			}
 			if pt.MinuteLimit != 0 {
 				s += fmt.Sprintf("%.1fmin", pt.MinuteLimit)
-			} else {
+			} else if pt.NmLimit != 0 {
 				s += fmt.Sprintf("%.1fnm", pt.NmLimit)
 			}
 			if pt.Entry180NoPT {
@@ -800,93 +824,6 @@ func RandomizeRoute(w []Waypoint, r *rand.Rand, randomizeAltitudeRange bool, per
 	}
 }
 
-// Takes waypoints up to the one with the Land specifier. Rewrite that one and then append the landing route.
-func AppendVFRLanding(wps []Waypoint, perf AircraftPerformance, airport string, windDir float32, nmPerLongitude float32,
-	magneticVariation float32, lg *log.Logger) []Waypoint {
-	wp := &wps[len(wps)-1]
-	wp.SetLand(false)
-	wp.SetDelete(false)
-
-	ap, ok := DB.Airports[airport]
-	if !ok {
-		lg.Errorf("%s: couldn't find arrival airport", airport)
-		wp.SetDelete(true)
-		return wps // best we can do
-	}
-
-	rwy, opp := ap.SelectBestRunway(windDir, magneticVariation)
-	if rwy == nil || opp == nil {
-		lg.Error("couldn't find a runway to land on", slog.String("airport", airport), slog.Any("runways", ap.Runways))
-		wp.SetDelete(true)
-		return wps // best we can do
-	}
-
-	rg := MakeRouteGenerator(rwy.Threshold, opp.Threshold, nmPerLongitude)
-
-	// Calculate aircraft heading from current position to runway threshold
-	aircraftHeading := math.Heading2LL(wp.Location, rwy.Threshold, nmPerLongitude, magneticVariation)
-
-	// Check if aircraft is aligned with runway (within +/- 90 degrees)
-	headingDiff := math.HeadingDifference(aircraftHeading, rwy.Heading)
-
-	addpt := func(n string, dx, dy, dalt float32, fo bool, slow bool) {
-		wp := rg.Waypoint("_"+n, dx, dy)
-		alt := float32(ap.Elevation) + dalt
-		wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{alt, alt}})
-		wp.SetFlyOver(fo)
-		if slow {
-			wp.Speed = 70
-		}
-
-		wps = append(wps, wp)
-	}
-
-	if headingDiff <= 60 {
-		// Aircraft is aligned with runway - create straight-in approach
-
-		// Waypoint 1 mile out at 300' AGL on extended centerline
-		addpt("lineup", -2, 0, 300, false, true)
-		addpt("threshold", -1, 0, 0, true, true)
-		addpt("end", 1, 0, 0, true, true)
-	} else {
-		// Aircraft not aligned - use standard traffic pattern
-		// Scale the points according to min speed so that if they have to be
-		// fast, they're given more space to work with.
-		sc := perf.Speed.Min / 80
-		pdist := sc // pattern offset from runway
-
-		// Slightly sketchy to do in lat-long but works in this case.
-		sd := math.SignedPointLineDistance(wp.Location, rwy.Threshold, opp.Threshold)
-		if sd < 0 {
-			// coming from the left side of the extended runway centerline; just
-			// add a point so that they enter the pattern at 45 degrees.
-			addpt("enter45", 1, 1+pdist, 1000, false, true)
-		} else {
-			// coming from the right side; cross perpendicularly midfield, make
-			// a descending right 270 and join the pattern.
-			addpt("crossmidfield1", 0, -pdist, 1500, false, false)
-			addpt("crossmidfield2", 0, pdist, 1500, true, false)
-			addpt("crossmidfield3", 0, 1.5*pdist, 1500, true, true) // make some space to turn
-			addpt("right270-1", sc, 2.5*pdist, 1250, false, true)
-			addpt("right270-2", sc*2, 2*pdist, 1150, false, true)
-			addpt("right270-2", sc*1.5, 1.5*pdist, 1000, false, true)
-		}
-		// both sides are the same from here.
-		addpt("joindownwind", 0, pdist, 1000, false, true)
-		addpt("base1", -1.5, pdist, 500, false, true)
-		addpt("base2", -3, pdist/2, 250, false, true)
-		addpt("base2", -1.5, 0, 150, false, true)
-		addpt("threshold", -1, 0, 0, false, true)
-		// Last point is at the far end of the runway just to give plenty of
-		// slop to make sure we hit it so the aircraft is deleted.
-		addpt("fin", 1, 0, 0, false, true)
-	}
-
-	wps[len(wps)-1].SetDelete(true)
-
-	return wps
-}
-
 func parsePTExtent(pt *ProcedureTurn, extent string) error {
 	if len(extent) == 0 {
 		// Unspecified; we will use the default of 1min for ILS, 4nm for RNAV
@@ -1059,6 +996,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					}
 					pt.ProcedureTurn.Type = PTStandard45
 					pt.ProcedureTurn.RightTurns = f[0] == 'p'
+					wp.SetFlyOver(true)
 
 					extent := f[4:]
 					if !pt.ProcedureTurn.RightTurns {
@@ -1074,6 +1012,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					}
 					pt.ProcedureTurn.Type = PTRacetrack
 					pt.ProcedureTurn.RightTurns = f[0] == 'h'
+					wp.SetFlyOver(true)
 
 					extent := f[5:]
 					if !pt.ProcedureTurn.RightTurns {
@@ -1524,7 +1463,7 @@ func (e *RacetrackPTEntry) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading float32, aircraftFixHeading float32) RacetrackPTEntry {
+func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading math.MagneticHeading, aircraftFixHeading math.MagneticHeading) RacetrackPTEntry {
 	// Rotate so we can treat inboundHeading as 0.
 	hdg := aircraftFixHeading - inboundHeading
 	if hdg < 0 {
@@ -1660,7 +1599,7 @@ type DMEArc struct {
 	Center         math.Point2LL
 	Radius         float32
 	Length         float32
-	InitialHeading float32
+	InitialHeading math.MagneticHeading
 	Direction      DMEArcDirection
 }
 
@@ -1741,11 +1680,12 @@ func (arc *DMEArc) Initialize(loc Locator, startLoc, endLoc math.Point2LL, nmPer
 		}
 	}
 
-	// Heading from the center of the arc to the start fix
-	hfix := math.Heading2LL(arc.Center, startLoc, nmPerLongitude, magneticVariation)
-
-	// Then perpendicular to that, depending on the arc's direction
-	arc.InitialHeading = math.NormalizeHeading(hfix + float32(util.Select(arc.Direction.IsClockwise(), 90, -90)))
+	// Heading from the center of the arc to the start fix (true), then
+	// convert to magnetic; perpendicular depending on the arc's direction.
+	hfix := math.Heading2LL(arc.Center, startLoc, nmPerLongitude)
+	arc.InitialHeading = math.TrueToMagnetic(
+		math.OffsetHeading(hfix, float32(util.Select(arc.Direction.IsClockwise(), 90, -90))),
+		magneticVariation)
 
 	return true
 }
@@ -1768,8 +1708,8 @@ func (t TurnDirection) String() string {
 
 // Hold represents a charted holding pattern from CIFP or HPF
 type Hold struct {
-	Fix             string  // Fix identifier where hold is located
-	InboundCourse   float32 // Inbound magnetic course to the fix
+	Fix             string               // Fix identifier where hold is located
+	InboundCourse   math.MagneticHeading // Inbound magnetic course to the fix
 	TurnDirection   TurnDirection
 	LegLengthNM     float32 // Distance-based leg length (nautical miles), 0 if time-based
 	LegMinutes      float32 // Time-based leg duration (minutes), 0 if distance-based
@@ -1817,7 +1757,7 @@ func (e HoldEntry) String() string {
 	return []string{"Direct", "Parallel", "Teardrop"}[int(e)]
 }
 
-func (h Hold) Entry(headingToFix float32) HoldEntry {
+func (h Hold) Entry(headingToFix math.MagneticHeading) HoldEntry {
 	outboundCourse := math.OppositeHeading(h.InboundCourse)
 
 	// Dividing line is 70° from outbound on holding side This creates
