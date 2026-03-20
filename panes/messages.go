@@ -135,7 +135,7 @@ func (mp *MessagesPane) DrawWindow(show *bool, c *client.ControlClient, p platfo
 		mp.font.ImguiPush()
 	}
 	imgui.BeginV("Messages", show, 0)
-	DrawPinButton("Messages", unpinnedWindows)
+	DrawPinButton("Messages", unpinnedWindows, p)
 	if imgui.BeginChildStrV("##messages_scroll", imgui.Vec2{}, 0, 0) {
 		for _, msg := range mp.messages {
 			color := msg.ImguiColor()

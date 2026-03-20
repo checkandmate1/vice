@@ -455,70 +455,54 @@
         }
       ]
     },
+    "scratchpads": {},
     "significant_points": {
-      "ACK": {},
-      "BAF": {},
-      "BLZZR": {
-        "short_name": "BLZ",
-        "abbreviation": "X"
-      },
-      "BOGEY": {
-        "short_name": "BOG"
-      },
       "BOSOX": {
         "short_name": "BOX",
         "abbreviation": "B"
       },
-      "BRUWN": {
-        "short_name": "BRU",
-        "abbreviation": "T"
+      "BLZZR": {
+        "short_name": "BLZ",
+        "abbreviation": "X"
       },
       "BURDY": {
         "short_name": "BUR",
         "abbreviation": "K"
       },
-      "CAM": {},
-      "CCC": {},
+      "BRUWN": {
+        "short_name": "BRU",
+        "abbreviation": "T"
+      },
       "CELTK": {
         "short_name": "CEL",
         "abbreviation": "C"
       },
-      "CLOWW": {},
-      "CON": {},
-      "DOLIE": {},
-      "DUNKK": {},
-      "ENE": {},
-      "FREDO": {},
       "GLYDE": {
         "short_name": "GLY",
         "abbreviation": "G"
-      },
-      "HANNA": {},
-      "HYA": {
-        "location": "KHYA"
       },
       "HYLND": {
         "short_name": "HYL",
         "abbreviation": "M"
       },
-      "KEWB": {
-        "short_name": "KEW"
-      },
       "LBSTA": {
         "short_name": "LBS",
         "abbreviation": "P"
       },
-      "LFV": {},
       "LURCH": {
         "short_name": "LUR",
         "abbreviation": "M"
       },
       "MANCH": {
-        "short_name": "MHT"
+        "abbreviation": "M"
       },
-      "MVY": {},
-      "NELIE": {
-        "short_name": "PRT"
+      "REVSS": {
+        "short_name": "REV",
+        "abbreviation": "W"
+      },
+      "SSOXS": {
+        "short_name": "SSO",
+        "abbreviation": "S"
       },
       "PATSS": {
         "short_name": "PAT",
@@ -528,25 +512,9 @@
         "short_name": "PSM",
         "abbreviation": "P"
       },
-      "POMPY": {
-        "short_name": "PMP"
-      },
       "PUT": {
         "abbreviation": "Z"
-      },
-      "PVC": {},
-      "PVD": {},
-      "REVSS": {
-        "short_name": "REV",
-        "abbreviation": "W"
-      },
-      "SSOXS": {
-        "short_name": "SSO",
-        "abbreviation": "S"
-      },
-      "STEVO": {},
-      "SWANN": {},
-      "WEEZE": {}
+      }
     },
     "video_map_file": "videomaps/A90-videomaps.gob.zst",
     "ssr_codes": {
@@ -569,6 +537,7 @@
     },
     "controllers": {
       "1B": {
+        "center": "N042.20.54.899,W071.00.21.011",
         "flight_following_airspace": [
           {
             "type": "polygon",
@@ -577,7 +546,26 @@
           }
         ]
       },
+      "1D": {
+        "center": "N042.20.54.899,W071.00.21.011"
+      },
+      "1F": {
+        "center": "N042.20.54.899,W071.00.21.011"
+      },
+      "1I": {
+        "center": "N042.20.54.899,W071.00.21.011"
+      },
+      "1M": {
+        "center": "N042.20.54.899,W071.00.21.011"
+      },
+      "1R": {
+        "center": "N042.20.54.899,W071.00.21.011"
+      },
+      "1U": {
+        "center": "N042.20.54.899,W071.00.21.011"
+      },
       "1L": {
+        "center": "N042.20.54.899,W071.00.21.011",
         "flight_following_airspace": [
           {
             "type": "polygon",
@@ -864,6 +852,8 @@
     "areas": {
       "1": {
         "default_airport": "KBOS",
+        "center": "N042.20.54.899,W071.00.21.011",
+        "beacon_code_blocks": "12",
         "video_maps": [
           "RWY 15R",
           "RWY 33L",

@@ -62,6 +62,9 @@ type Platform interface {
 	// IsFullScreen() returns true if the application is in full-screen mode.
 	IsFullScreen() bool
 
+	// IsAppFocused returns true if the application has OS focus.
+	IsAppFocused() bool
+
 	// GetAllMonitorNames() returns an array of all available monitors' names.
 	GetAllMonitorNames() []string
 

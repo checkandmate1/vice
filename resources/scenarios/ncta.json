@@ -4764,7 +4764,7 @@
         {
           "waypoints": "ENI PYE FATHM/ho2B BRINY/ho OSI",
           "cruise_altitude": 23000,
-          "route": "ENI PYE FATHM BRINY/ho OSI",
+          "route": "OSI",
           "initial_controller": "C41",
           "initial_altitude": 14000,
           "initial_speed": 250,
@@ -4786,7 +4786,7 @@
         {
           "waypoints": "CHBLI/a28000+ GRIJO/a22000+/s280 ZINNN CORKK/a14000/ho2B BRIXX/a12000/s250 N037.27.43.783,W122.17.28.178/ho LUYTA/a7000/h140",
           "cruise_altitude": 29000,
-          "route": "CHBLI/a28000+ GRIJO/a22000+/s280 ZINNN CORKK/a14000 BRIXX/a12000/s250 N037.27.43.783,W122.17.28.178/ho LUYTA/a7000/h140",
+          "route": "BRIXX LUYTA",
           "initial_controller": "C41",
           "initial_altitude": 28000,
           "initial_speed": 300,
@@ -5518,7 +5518,7 @@
         {
           "waypoints": "N037.32.19.540,W119.36.15.210 N037.22.37.058,W119.50.05.749/ho PXN SNS",
           "cruise_altitude": 32000,
-          "route": "N037.32.19.540,W119.36.15.210 PXN SNS",
+          "route": "PXN SNS",
           "initial_controller": "C22",
           "initial_altitude": 24000,
           "assigned_altitude": 20000,
@@ -5549,7 +5549,7 @@
         {
           "waypoints": "N037.31.02.635,W120.02.31.281/ho MOD",
           "cruise_altitude": 32000,
-          "route": "N037.31.02.635,W120.02.31.281 MOD",
+          "route": "MOD",
           "initial_controller": "C22",
           "initial_altitude": 10000,
           "initial_speed": 250,
@@ -5574,7 +5574,7 @@
         {
           "waypoints": "N037.18.02.963,W119.47.11.918/ho MOD",
           "cruise_altitude": 32000,
-          "route": "N037.18.02.963,W119.47.11.918 N037.19.45.026,W120.00.59.957/ho",
+          "route": "MOD",
           "initial_controller": "C22",
           "initial_altitude": 10000,
           "initial_speed": 250,
@@ -5599,7 +5599,7 @@
         {
           "waypoints": "N036.53.10.951,W119.49.22.683 N037.04.12.410,W120.04.06.395/ho SIMMS",
           "cruise_altitude": 32000,
-          "route": "N036.53.10.951,W119.49.22.683 N037.04.12.410,W120.04.06.395 SIMMS",
+          "route": "SIMMS",
           "initial_controller": "C22",
           "initial_altitude": 12000,
           "initial_speed": 280,
@@ -5624,7 +5624,7 @@
         {
           "waypoints": "N036.53.10.951,W119.49.22.683 N037.04.12.410,W120.04.06.395/ho TURLO LIN",
           "cruise_altitude": 32000,
-          "route": "N036.53.10.951,W119.49.22.683 N037.04.12.410,W120.04.06.395 TURLO LIN",
+          "route": "TURLO LIN",
           "initial_controller": "C22",
           "initial_altitude": 12000,
           "initial_speed": 300,
@@ -5649,7 +5649,7 @@
         {
           "waypoints": "N037.53.53.935,W120.06.19.632 N037.04.12.410,W120.04.06.395/ho MOD UHHUT",
           "cruise_altitude": 32000,
-          "route": "N037.53.53.935,W120.06.19.632 N037.04.12.410,W120.04.06.395 MOD UHHUT",
+          "route": "MOD UHHUT",
           "initial_controller": "C22",
           "initial_altitude": 16000,
           "initial_speed": 280,
@@ -5677,7 +5677,7 @@
       "arrivals": [
         {
           "waypoints": "N036.00.47.653,W121.21.16.309/ho WIGGL/a10000",
-          "route": "N036.00.47.653,W121.21.16.309 WIGGL",
+          "route": "WIGGL",
           "initial_controller": "C10",
           "initial_altitude": 15000,
           "assigned_altitude": 10000,

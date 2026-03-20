@@ -177,7 +177,7 @@ func (fsp *FlightStripPane) DrawWindow(show *bool, c *client.ControlClient,
 
 	imgui.SetNextWindowSizeConstraints(imgui.Vec2{X: 400, Y: 200}, imgui.Vec2{X: 4096, Y: 4096})
 	imgui.BeginV("Flight Strips", show, 0)
-	DrawPinButton("Flight Strips", unpinnedWindows)
+	DrawPinButton("Flight Strips", unpinnedWindows, p)
 	if fsp.font != nil {
 		fsp.font.ImguiPush()
 	}

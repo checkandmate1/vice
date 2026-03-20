@@ -119,76 +119,76 @@ func (s *scenario) PostDeserialize(sg *scenarioGroup, e *util.ErrorLogger, manif
 		s.ControllerConfiguration.DepartureAssignments = maps.Clone(config.DepartureAssignments)
 		s.ControllerConfiguration.GoAroundAssignments = maps.Clone(config.GoAroundAssignments)
 		s.ControllerConfiguration.DefaultConsolidation = deep.MustCopy(config.DefaultConsolidation)
-	}
 
-	// Auto-add airspace controllers to consolidation if they're valid
-	// control positions but missing from the consolidation tree.
-	if len(s.ControllerConfiguration.DefaultConsolidation) > 0 {
-		allPos := s.ControllerConfiguration.AllPositions()
-		root, rootErr := s.ControllerConfiguration.DefaultConsolidation.RootPosition()
-		if rootErr == nil {
-			for ctrl := range s.Airspace {
-				if !slices.Contains(allPos, ctrl) {
-					if _, inFacility := sg.FacilityConfig.ControlPositions[sg.resolveController(ctrl)]; inFacility {
-						s.ControllerConfiguration.DefaultConsolidation[root] = append(
-							s.ControllerConfiguration.DefaultConsolidation[root], ctrl)
+		// Auto-add airspace controllers to consolidation if they're valid
+		// control positions but missing from the consolidation tree.
+		if len(s.ControllerConfiguration.DefaultConsolidation) > 0 {
+			allPos := s.ControllerConfiguration.AllPositions()
+			root, rootErr := s.ControllerConfiguration.DefaultConsolidation.RootPosition()
+			if rootErr == nil {
+				for ctrl := range s.Airspace {
+					if !slices.Contains(allPos, ctrl) {
+						if _, inFacility := sg.FacilityConfig.ControlPositions[sg.resolveController(ctrl)]; inFacility {
+							s.ControllerConfiguration.DefaultConsolidation[root] = append(
+								s.ControllerConfiguration.DefaultConsolidation[root], ctrl)
+						}
 					}
 				}
 			}
 		}
-	}
 
-	// Filter assignments to only include entries targeting positions that
-	// exist as known controllers. The facility config's full assignments
-	// cover all positions in the TRACON, but some may reference
-	// positions that don't exist in the loaded controller set.
-	for flow, tcp := range s.ControllerConfiguration.InboundAssignments {
-		if resolved := sg.resolveController(tcp); resolved != tcp {
-			s.ControllerConfiguration.InboundAssignments[flow] = resolved
-		} else if _, ok := sg.FacilityConfig.ControlPositions[tcp]; !ok {
-			delete(s.ControllerConfiguration.InboundAssignments, flow)
-		}
-	}
-	for spec, tcp := range s.ControllerConfiguration.DepartureAssignments {
-		if resolved := sg.resolveController(tcp); resolved != tcp {
-			s.ControllerConfiguration.DepartureAssignments[spec] = resolved
-		} else if _, ok := sg.FacilityConfig.ControlPositions[tcp]; !ok {
-			delete(s.ControllerConfiguration.DepartureAssignments, spec)
-		}
-	}
-
-	s.ControllerConfiguration.Validate(sg.FacilityConfig.ControlPositions, e)
-
-	// Validate inbound flow assignments.
-	// A flow only needs an inbound_assignment if it has a generic /ho
-	// handoff (which doesn't specify a sector). Flows with no /ho at
-	// all, or only specific handoffs like /ho1F, are exempt.
-	flowNeedsHumanAssignment := func(flow *av.InboundFlow) bool {
-		return flow.HasHumanHandoff()
-	}
-
-	// Check that every flow with generic /ho handoffs has an assignment.
-	// Note: It is NOT an error if the configuration has excess assignments that the scenario doesn't use.
-	for flowName := range s.InboundFlowDefaultRates {
-		if flow, ok := sg.InboundFlows[flowName]; ok && flowNeedsHumanAssignment(flow) {
-			if _, ok := s.ControllerConfiguration.InboundAssignments[flowName]; !ok {
-				e.ErrorString(`inbound flow %q needs human controller but has no assignment in "inbound_assignments"`, flowName)
+		// Filter assignments to only include entries targeting positions that
+		// exist as known controllers. The facility config's full assignments
+		// cover all positions in the TRACON, but some may reference
+		// positions that don't exist in the loaded controller set.
+		for flow, tcp := range s.ControllerConfiguration.InboundAssignments {
+			if resolved := sg.resolveController(tcp); resolved != tcp {
+				s.ControllerConfiguration.InboundAssignments[flow] = resolved
+			} else if _, ok := sg.FacilityConfig.ControlPositions[tcp]; !ok {
+				delete(s.ControllerConfiguration.InboundAssignments, flow)
 			}
 		}
-	}
-	// departure_assignments validation is done below, after activeAirportSIDs/Runways maps are built
-
-	// Validate go_around_assignments
-	for spec, tcp := range s.ControllerConfiguration.GoAroundAssignments {
-		if !slices.Contains(s.ControllerConfiguration.AllPositions(), tcp) {
-			e.ErrorString(`go_around_assignments: %q assigns to %q which is not a human position in "default_consolidation"`, spec, tcp)
+		for spec, tcp := range s.ControllerConfiguration.DepartureAssignments {
+			if resolved := sg.resolveController(tcp); resolved != tcp {
+				s.ControllerConfiguration.DepartureAssignments[spec] = resolved
+			} else if _, ok := sg.FacilityConfig.ControlPositions[tcp]; !ok {
+				delete(s.ControllerConfiguration.DepartureAssignments, spec)
+			}
 		}
-		// Validate airport/runway
-		airport, runway, hasRunway := strings.Cut(spec, "/")
-		if _, ok := sg.Airports[airport]; !ok {
-			e.ErrorString("go_around_assignments: airport %q not in scenario", airport)
-		} else if hasRunway && !av.AirportHasRunway(airport, av.RunwayID(runway)) {
-			e.ErrorString("go_around_assignments: runway %q not a valid runway at %q", runway, airport)
+
+		s.ControllerConfiguration.Validate(sg.FacilityConfig.ControlPositions, e)
+
+		// Validate inbound flow assignments.
+		// A flow only needs an inbound_assignment if it has a generic /ho
+		// handoff (which doesn't specify a sector). Flows with no /ho at
+		// all, or only specific handoffs like /ho1F, are exempt.
+		flowNeedsHumanAssignment := func(flow *av.InboundFlow) bool {
+			return flow.HasHumanHandoff()
+		}
+
+		// Check that every flow with generic /ho handoffs has an assignment.
+		// Note: It is NOT an error if the configuration has excess assignments that the scenario doesn't use.
+		for flowName := range s.InboundFlowDefaultRates {
+			if flow, ok := sg.InboundFlows[flowName]; ok && flowNeedsHumanAssignment(flow) {
+				if _, ok := s.ControllerConfiguration.InboundAssignments[flowName]; !ok {
+					e.ErrorString(`inbound flow %q needs human controller but has no assignment in "inbound_assignments"`, flowName)
+				}
+			}
+		}
+		// departure_assignments validation is done below, after activeAirportSIDs/Runways maps are built
+
+		// Validate go_around_assignments
+		for spec, tcp := range s.ControllerConfiguration.GoAroundAssignments {
+			if !slices.Contains(s.ControllerConfiguration.AllPositions(), tcp) {
+				e.ErrorString(`go_around_assignments: %q assigns to %q which is not a human position in "default_consolidation"`, spec, tcp)
+			}
+			// Validate airport/runway
+			airport, runway, hasRunway := strings.Cut(spec, "/")
+			if _, ok := sg.Airports[airport]; !ok {
+				e.ErrorString("go_around_assignments: airport %q not in scenario", airport)
+			} else if hasRunway && !av.AirportHasRunway(airport, av.RunwayID(runway)) {
+				e.ErrorString("go_around_assignments: runway %q not a valid runway at %q", runway, airport)
+			}
 		}
 	}
 

@@ -1,8 +1,23 @@
 {
   "control_positions": {
     "1M": {
-      "callsign": "I90_DEP",
+      "callsign": "I90_M_DEP",
       "frequency": 132250,
+      "radio_name": "Houston Departure"
+    },
+    "1L": {
+      "callsign": "I90_L_DEP",
+      "frequency": 127125,
+      "radio_name": "Houston Departure"
+    },
+    "1W": {
+      "callsign": "I90_W_DEP",
+      "frequency": 126675,
+      "radio_name": "Houston Departure"
+    },
+    "1E": {
+      "callsign": "I90_E_DEP",
+      "frequency": 133600,
       "radio_name": "Houston Departure"
     },
     "1R": {
@@ -126,45 +141,75 @@
       "STD": {
         "inbound_assignments": {
           "BAYYY5": "1G",
-          "BELLR5": "1X",
+          "BELLR6": "1X",
           "CESAN4": "1D",
-          "DOOBI2": "1D",
+          "DOOBI3": "1D",
+          "ZEEKK3": "1D",
           "DRLLR5": "1N",
-          "GESNR1": "1D",
+          "GESNR2": "1D",
           "GUSHR3": "1N",
           "HTOWN3": "1X",
-          "KIDDZ4": "1X",
+          "KIDDZ5": "1X",
           "LINKK1": "1G",
           "MSCOT4": "1N",
           "NNCEE2": "1G",
-          "SKNRD4": "1D",
+          "PUCKS4": "1G",
+          "SKNRD5": "1D",
+          "SNDAY1": "1X",
           "TEJAS5": "1X",
           "TKNIQ3": "1X",
+          "TSHRT2": "1X",
           "TTORO3": "1N",
-          "WAPPL6": "1D"
+          "WAPPL7": "1D"
         },
         "departure_assignments": {
           "KGLS": "1B",
-          "KHOU": "1M",
-          "KIAH": "1M",
+          "KHOU/BLTWY7": "1M",
+          "KHOU/INDIE8": "1M",
+          "KHOU/LURIC8": "1M",
+          "KHOU/WYLSN8": "1M",
+          "KHOU/STRYA8": "1M",
+          "KHOU/STYCK8": "1M",
+          "KHOU/RETYR8": "1W",
+          "KHOU/PTRON9": "1L",
+          "KHOU/PEECE6": "1L",
+          "KHOU/ELOCO6": "1L",
+          "KIAH/BLTWY7": "1M",
+          "KIAH/INDIE8": "1M",
+          "KIAH/LURIC8": "1M",
+          "KIAH/STRYA8": "1M",
+          "KIAH/STYCK8": "1M",
+          "KIAH/WYLSN8": "1M",
+          "KIAH/BNDTO6": "1W",
+          "KIAH/PITZZ5": "1W",
+          "KIAH/MMUGS4": "1L",
+          "KIAH/GUMBY3": "1L",
+          "KIAH/RITAA7": "1L",
+          "KIAH/FLYZA5": "1L",
           "KSGR": "1P"
         },
         "default_consolidation": {
-          "1A": ["1I"],
-          "1M": ["1B", "1P"],
-          "1D": ["1A", "1M", "1N"],
-          "1I": ["1O"],
+          "1D": ["1M", "1G", "1N", "1A"],
           "1N": ["1X"],
-          "1O": ["1H"],
-          "1X": ["1G"]
+          "1M": ["1W", "1R"],
+          "1W": ["1P", "1L"],
+          "1L": ["1E", "1B"],
+          "1A": ["1I"],
+          "1I": ["1O"],
+          "1X": ["1H"]
         }
       },
       "IAH": {
         "inbound_assignments": {
-          "FINALSNE": "1I",
-          "FINALSNW": "1A",
-          "FINALSSE": "1O",
-          "FINALSSW": "1O"
+          "FINALS_WNE": "1I",
+          "FINALS_WNN": "1A",
+          "FINALS_WNW": "1A",
+          "FINALS_WSE": "1O",
+          "FINALS_WSW": "1O",
+          "FINALS_ENE": "1I",
+          "FINALS_ENW": "1A",
+          "FINALS_ESE": "1O",
+          "FINALS_ESW": "1O"
         },
         "default_consolidation": {
           "1A": ["1I"],
@@ -214,33 +259,45 @@
             "N029.50.28.000,W095.20.32.000"
           ]
         }
+      ],
+      "auto_acquisition": [
+        {
+          "id": "ACQ",
+          "description": "I90 AUTO-ACQUISITION",
+          "type": "polygon",
+          "vertices": "N028.13.38.886,W093.42.47.724 N028.12.37.033,W095.23.57.066 N028.16.38.423,W095.59.51.622 N028.53.09.385,W097.02.34.248 N029.46.00.685,W097.38.59.840 N029.46.00.685,W097.38.59.840 N031.31.35.203,W097.20.41.015 N031.49.23.616,W096.09.10.524 N031.27.23.389,W095.45.18.676 N031.17.43.449,W094.20.04.925 N031.16.27.464,W093.26.40.076 N030.58.04.080,W093.03.42.555 N030.03.11.759,W092.52.13.218",
+          "floor": 0,
+          "ceiling": 25000
+        }
       ]
     },
     "scratchpads": {
-      "CRP": "FRE",
-      "CRGER": "PRA",
-      "PSTUR": "PRA",
-      "WWREN": "AGG",
-      "GUSTI": "TRI",
-      "SPINY": "TRI",
-      "TPAKK": "CLE",
-      "NGP": "AGG",
-      "LLA": "TRI",
-      "SBI": "TRI",
-      "WAILN": "PRA",
-      "WEEED": "PRA",
-      "LCH": "TRI",
-      "BLING": "TRI",
-      "HAWES": "CLE",
-      "DPATY": "CLE",
-      "DOLEY": "GOM",
-      "CRIED": "GOM",
-      "SAT": "PRA",
-      "MNURE": "PRA",
-      "MUSYL": "BOL",
-      "HRV": "BOL",
-      "MAJKK": "GOM",
-      "JCT": "PRA"
+      "CRIED": "BLT",
+      "MAJKK": "MON",
+      "GIFFA": "MON",
+      "DOLEY": "WLL",
+      "WTSON": "WLL",
+      "TPAKK": "SUS",
+      "HAWES": "MUS",
+      "ORRTH": "MUS",
+      "DPATY": "MUS",
+      "JBULL": "MUS",
+      "LCH": "HRN",
+      "GUSTI": "JAY",
+      "LLA": "YOK",
+      "ANKRR": "VUH",
+      "MUSYL": "VUH",
+      "KELPP": "VUH",
+      "WWREN": "RIG",
+      "NGP": "RIG",
+      "CRP": "SKU",
+      "PSX": "SKU",
+      "YOMOM": "SKU",
+      "CRGER": "ZUU",
+      "JCT": "BOC",
+      "SAT": "BOC",
+      "MNURE": "BOC",
+      "WAILN": "WEE"
     },
     "significant_points": {
       "BLING": {},
@@ -394,7 +451,11 @@
       "1": {
         "video_maps": [
           "I90 BASE MAP",
+          "EAST FLOW SECTOR MARKINGS",
           "I90 MVA FUS 3",
+          "I90 CLEAN BASE MAP",
+          "WEST FLOW SECTOR MARKINGS",
+          "I90 ROADS",
           "I90 CLASS B",
           "I90 MVA FUS 3",
           "IAH FINAL EAST FLOW",

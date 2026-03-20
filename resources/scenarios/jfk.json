@@ -10710,7 +10710,7 @@
     "PARCH4.Finals4": {
       "arrivals": [
         {
-          "waypoints": "CCC/a9000 ROBER/a5000 N040.30.07.731,W073.24.25.383/a3000/ho/h250",
+          "waypoints": "CCC/a12000/d90 ROBER/a5000 N040.30.07.731,W073.24.25.383/a3000/ho/h250",
           "cruise_altitude": 36000,
           "star": "PARCH4",
           "initial_controller": "2K",

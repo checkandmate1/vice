@@ -277,7 +277,7 @@
       "arrivals": [
         {
           "waypoints": "SYR CASIL/ho",
-          "route": "SYR CASIL/ho",
+          "route": "./ SYR CASIL",
           "initial_controller": "C22",
           "initial_altitude": 11000,
           "initial_speed": 270,
@@ -333,7 +333,7 @@
       "arrivals": [
         {
           "waypoints": "BOWAN/ho CANAN ALB",
-          "route": "BOWAN/ho CANAN ALB",
+          "route": "./ BOWAN CANAN ALB",
           "initial_controller": "C22",
           "initial_altitude": 11000,
           "initial_speed": 270,
@@ -429,7 +429,7 @@
       "arrivals": [
         {
           "waypoints": "BOWAN CANAN/a4000 N42.29.46.3,W73.30.42.1/ho CIRRU",
-          "route": "BOWAN CANAN/a4000 N42.29.46.3,W73.30.42.1/ho CIRRU",
+          "route": "./ BOWAN CANAN CIRRU",
           "initial_controller": "1E",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -525,7 +525,7 @@
       "arrivals": [
         {
           "waypoints": "SYR CASIL SHAHE/ho/h190/a4000",
-          "route": "SYR CASIL SHAHE/ho/h190",
+          "route": "./ SYR CASIL SHAHE",
           "initial_controller": "1W",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -581,7 +581,7 @@
       "arrivals": [
         {
           "waypoints": "BOWAN CANAN/a4000 CIRRU/ho/h010",
-          "route": "BOWAN CANAN/a4000 CIRRU/ho/h010",
+          "route": "./ BOWAN CANAN CIRRU",
           "initial_controller": "1E",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -677,7 +677,7 @@
       "arrivals": [
         {
           "waypoints": "SYR CASIL SHAHE/ho/h010/a4000",
-          "route": "SYR CASIL SHAHE/ho/h010",
+          "route": "./ SYR CASIL SHAHE",
           "initial_controller": "1W",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -733,7 +733,7 @@
       "arrivals": [
         {
           "waypoints": "BOWAN CANAN/a4000 CIRRU/ho/h280",
-          "route": "BOWAN CANAN/a4000 CIRRU/ho/h280",
+          "route": "./ BOWAN CANAN CIRRU",
           "initial_controller": "1E",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -829,7 +829,7 @@
       "arrivals": [
         {
           "waypoints": "SYR CASIL/ho/a4000",
-          "route": "SYR CASIL/ho/a4000",
+          "route": "./ SYR CASIL",
           "initial_controller": "1W",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -885,7 +885,7 @@
       "arrivals": [
         {
           "waypoints": "BOWAN CANAN/a4000 CIRRU GROUP/ho/h100",
-          "route": "BOWAN CANAN/a4000 CIRRU GROUP/ho/h100",
+          "route": "./ BOWAN CANAN CIRRU GROUP",
           "initial_controller": "1E",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -981,7 +981,7 @@
       "arrivals": [
         {
           "waypoints": "SYR CASIL OTOLE/ho/h100/a4000",
-          "route": "SYR CASIL OTOLE/ho/h100/a4000",
+          "route": "./ SYR CASIL OTOLE",
           "initial_controller": "1W",
           "initial_altitude": 11000,
           "initial_speed": 250,
@@ -1037,7 +1037,7 @@
       "arrivals": [
         {
           "waypoints": "GFALS HANAA/ho",
-          "route": "GFALS HANAA/ho",
+          "route": "./ GFALS HANAA",
           "initial_controller": "C22",
           "initial_altitude": 11000,
           "initial_speed": 250,
