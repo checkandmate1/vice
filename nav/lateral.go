@@ -137,6 +137,13 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 		nav.FlightState.IAS, nav.FlightState.GS,
 		nav.FlightState.BankAngle, nav.FlightState.AltitudeRate)
 
+	// Clear carried altitude restrictions that the aircraft has already
+	// satisfied so that TargetAltitude (a query) stays side-effect-free.
+	if ar := nav.Altitude.Restriction; ar != nil &&
+		ar.TargetAltitude(nav.FlightState.Altitude) == nav.FlightState.Altitude {
+		nav.Altitude.Restriction = nil
+	}
+
 	targetAltitude, altitudeRate, geometricDescent := nav.TargetAltitude()
 	deltaKts, slowingTo250 := nav.updateAirspeed(callsign, targetAltitude, geometricDescent, fp, wxs, simTime, bravo)
 	nav.updateAltitude(callsign, targetAltitude, altitudeRate, geometricDescent, deltaKts, slowingTo250, wxs, simTime)

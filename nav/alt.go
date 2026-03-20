@@ -309,6 +309,10 @@ func (nav *Nav) TargetAltitude() (float32, float32, bool) {
 		return ar.TargetAltitude(nav.FlightState.Altitude), rate, false
 	}
 
+	if alt, descentRate, ok := nav.defaultDescentTarget(); ok {
+		return alt, descentRate, true
+	}
+
 	// Baseline: stay where we are
 	return nav.FlightState.Altitude, 0, false
 }
@@ -332,6 +336,54 @@ func (nav *Nav) routeDistanceToFix(fix string) (float32, bool) {
 		}
 	}
 	return 0, false
+}
+
+// defaultDescentTarget computes a default descent altitude and rate for
+// arrivals that have passed all STAR waypoint altitude restrictions. Without
+// this, arrivals level off after the last restriction and never descend
+// again unless a controller assigns an altitude.
+//
+// Target altitude is ceil((airportElevation + 4000) / 1000) * 1000, timed
+// to arrive at that altitude by 12nm from the airport using geometric
+// descent.
+func (nav *Nav) defaultDescentTarget() (float32, float32, bool) {
+	if !nav.FlightState.IsArrival || nav.Approach.Cleared {
+		return 0, 0, false
+	}
+
+	targetAlt := math.Ceil((nav.FlightState.ArrivalAirportElevation+4000)/1000) * 1000
+	if nav.FlightState.Altitude <= targetAlt {
+		return 0, 0, false
+	}
+
+	const descentDistanceNM = 12
+	dist := math.NMDistance2LLFast(nav.FlightState.Position,
+		nav.FlightState.ArrivalAirportLocation, nav.FlightState.NmPerLongitude)
+
+	descent := nav.Perf.Rate.Descent
+
+	if dist <= descentDistanceNM {
+		return targetAlt, descent, true
+	}
+
+	// Geometric rate to reach targetAlt at 12nm from airport.
+	etaToDescentEnd := (dist - descentDistanceNM) / nav.FlightState.GS * 3600
+	if etaToDescentEnd <= 0 {
+		return targetAlt, descent, true
+	}
+	geometricRate := (nav.FlightState.Altitude - targetAlt) / etaToDescentEnd * 60
+
+	// Ramp-up safety factor (same pattern as findAltitudeTarget descent).
+	altDiff := nav.FlightState.Altitude - targetAlt
+	rampUpSec := float32(1) / rateMaxDeltaPercent
+	rampUpDeficit := descent * rampUpSec / (2 * 60)
+	safetyFactor := min(float32(1)+rampUpDeficit/max(altDiff, 100), 1.5)
+
+	if geometricRate > descent/2 || nav.FlightState.AltitudeRate < -50 {
+		return targetAlt, min(geometricRate*safetyFactor, descent), true
+	}
+
+	return 0, 0, false
 }
 
 // altitudeTarget holds the result of scanning waypoints for an altitude target.

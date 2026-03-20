@@ -115,6 +115,7 @@ func (nav *Nav) RestoreSnapshot(snap NavSnapshot) {
 }
 
 type FlightState struct {
+	IsArrival                 bool
 	InitialDepartureClimb     bool
 	DepartureAirportLocation  math.Point2LL
 	DepartureAirportElevation float32
@@ -245,6 +246,7 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 	randomizeAltitudeRange := fp.Rules == av.FlightRulesVFR
 	if nav := makeNav(callsign, fp, perf, arr.Waypoints, randomizeAltitudeRange, nmPerLongitude,
 		magneticVariation, lg); nav != nil {
+		nav.FlightState.IsArrival = true
 		spd := arr.SpeedRestriction
 		nav.Speed.Restriction = util.Select(spd != 0, &spd, nil)
 		if arr.AssignedAltitude > 0 {
@@ -630,6 +632,9 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 			lines = append(lines, "Climbing "+av.FormatAltitude(nav.FlightState.Altitude)+
 				" to "+av.FormatAltitude(tgt)+" from previous crossing restriction")
 		}
+	} else if alt, _, ok := nav.defaultDescentTarget(); ok {
+		lines = append(lines, "Descending "+av.FormatAltitude(nav.FlightState.Altitude)+
+			" to "+av.FormatAltitude(alt)+" (default arrival descent)")
 	}
 	if nav.FlightState.Altitude < nav.FlightState.PrevAltitude {
 		lines = append(lines, fmt.Sprintf("Descent rate %.0f ft/minute", 60*(nav.FlightState.PrevAltitude-nav.FlightState.Altitude)))

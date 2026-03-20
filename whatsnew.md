@@ -4,6 +4,7 @@
 - Adjusted radio noise simulation to reduce muffling of pilot responses
 - Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)
 - Improved pilot initial contact messages to include SIDs/STARs, altitude/speed restrictions, assigned headings, etc.
+- Aircraft will continue to descend after reaching the end of a STAR
 - Bugfixes:
   - You can now tell VFR aircraft to "contact tower" without them complaining that they weren't assigned an approach.
   - Fixed a few crashes under unusual circumstances.
