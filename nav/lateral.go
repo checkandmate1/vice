@@ -137,9 +137,9 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 		nav.FlightState.IAS, nav.FlightState.GS,
 		nav.FlightState.BankAngle, nav.FlightState.AltitudeRate)
 
-	targetAltitude, altitudeRate := nav.TargetAltitude()
-	deltaKts, slowingTo250 := nav.updateAirspeed(callsign, targetAltitude, fp, wxs, simTime, bravo)
-	nav.updateAltitude(callsign, targetAltitude, altitudeRate, deltaKts, slowingTo250, wxs, simTime)
+	targetAltitude, altitudeRate, geometricDescent := nav.TargetAltitude()
+	deltaKts, slowingTo250 := nav.updateAirspeed(callsign, targetAltitude, geometricDescent, fp, wxs, simTime, bravo)
+	nav.updateAltitude(callsign, targetAltitude, altitudeRate, geometricDescent, deltaKts, slowingTo250, wxs, simTime)
 	nav.updateHeading(callsign, wxs, simTime)
 	nav.updatePositionAndGS(wxs)
 	if nav.Airwork != nil && !nav.Airwork.Update(nav) {

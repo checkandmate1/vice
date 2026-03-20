@@ -2321,7 +2321,7 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 
 	case PendingTransmissionGoAround:
 		rt = av.MakeContactTransmission("[going around|on the go]")
-		targetAlt, _ := ac.Nav.TargetAltitude()
+		targetAlt, _, _ := ac.Nav.TargetAltitude()
 		currentAlt := ac.Altitude()
 		if currentAlt < targetAlt {
 			rt.Add("[at|] {alt} [climbing|for] {alt}", currentAlt, targetAlt)

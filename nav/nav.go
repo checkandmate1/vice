@@ -600,13 +600,13 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		exped := util.Select(nav.Altitude.ExpediteAfterSpeed, ", expediting", "")
 		lines = append(lines, fmt.Sprintf("At %.0f kts, %s to %s"+exped,
 			*nav.Altitude.AfterSpeedSpeed, dir, av.FormatAltitude(*nav.Altitude.AfterSpeed)))
-	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok {
-		dir := util.Select(c.Altitude > nav.FlightState.Altitude, "Climbing", "Descending")
-		alt := c.Altitude
+	} else if target, ok := nav.findAltitudeTarget(); ok {
+		dir := util.Select(target.altitude > nav.FlightState.Altitude, "Climbing", "Descending")
+		alt := target.altitude
 		if nav.Altitude.Cleared != nil {
 			alt = min(alt, *nav.Altitude.Cleared)
 		}
-		lines = append(lines, dir+" to "+av.FormatAltitude(alt)+" for alt. restriction at "+c.Fix)
+		lines = append(lines, dir+" to "+av.FormatAltitude(alt)+" for alt. restriction at "+target.fix)
 	} else if nav.Altitude.Cleared != nil {
 		if math.Abs(nav.FlightState.Altitude-*nav.Altitude.Cleared) < 100 {
 			lines = append(lines, "At cleared altitude "+
@@ -672,7 +672,7 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 	}
 
 	// Speed; don't be as exhaustive as we are for altitude
-	targetAltitude, _ := nav.TargetAltitude()
+	targetAltitude, _, _ := nav.TargetAltitude()
 	lines = append(lines, fmt.Sprintf("IAS %d GS %d TAS %d", int(nav.FlightState.IAS),
 		int(nav.FlightState.GS), int(nav.TAS(wxs.Temperature()))))
 	ias, _ := nav.TargetSpeed(targetAltitude, &fp, wxs, nil)
@@ -912,8 +912,8 @@ func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, fixNam
 		rt.Add("[leaving|out of] {alt} [to cross|crossing] {fix} at {alt}", cur, fixName, fixAlt)
 	} else if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != cur {
 		nav.addAltitudePhrasing(rt, *nav.Altitude.Assigned)
-	} else if c, ok := nav.getWaypointAltitudeConstraint(); ok {
-		alt := c.Altitude
+	} else if target, ok := nav.findAltitudeTarget(); ok {
+		alt := target.altitude
 		if nav.Altitude.Cleared != nil {
 			alt = min(alt, *nav.Altitude.Cleared)
 		}

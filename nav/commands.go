@@ -246,7 +246,7 @@ func (nav *Nav) SayAltitude() av.CommandIntent {
 }
 
 func (nav *Nav) ExpediteDescent() av.CommandIntent {
-	alt, _ := nav.TargetAltitude()
+	alt, _, _ := nav.TargetAltitude()
 	if alt >= nav.FlightState.Altitude {
 		if nav.Altitude.AfterSpeed != nil {
 			nav.Altitude.ExpediteAfterSpeed = true
@@ -275,7 +275,7 @@ func (nav *Nav) ExpediteDescent() av.CommandIntent {
 }
 
 func (nav *Nav) ExpediteClimb() av.CommandIntent {
-	alt, _ := nav.TargetAltitude()
+	alt, _, _ := nav.TargetAltitude()
 	if alt <= nav.FlightState.Altitude {
 		if nav.Altitude.AfterSpeed != nil {
 			nav.Altitude.ExpediteAfterSpeed = true
@@ -346,7 +346,7 @@ func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, s
 		// constraints, set its cleared altitude to its current altitude
 		// for now.
 		if len(nav.Waypoints) > 0 && (nav.Waypoints[0].OnSTAR() || nav.Waypoints[0].OnApproach()) && nav.Altitude.Assigned == nil {
-			if _, ok := nav.getWaypointAltitudeConstraint(); ok {
+			if _, ok := nav.findAltitudeTarget(); ok {
 				// Don't take a direct pointer to nav.FlightState.Altitude!
 				alt := nav.FlightState.Altitude
 				nav.Altitude.Cleared = &alt
@@ -720,18 +720,17 @@ func (nav *Nav) DistanceAlongRoute(fix string) (float32, error) {
 	}
 	if len(nav.Waypoints) == 0 {
 		return 0, nil
-	} else {
-		index := slices.IndexFunc(nav.Waypoints, func(wp av.Waypoint) bool { return wp.Fix == fix })
-		if index == -1 {
-			return 0, ErrFixNotInRoute
-		}
-		wp := nav.Waypoints[:index+1]
-		distance := math.NMDistance2LL(nav.FlightState.Position, wp[0].Location)
-		for i := 0; i < len(wp)-1; i++ {
-			distance += math.NMDistance2LL(wp[i].Location, wp[i+1].Location)
-		}
-		return distance, nil
 	}
+	index := slices.IndexFunc(nav.Waypoints, func(wp av.Waypoint) bool { return wp.Fix == fix })
+	if index == -1 {
+		return 0, ErrFixNotInRoute
+	}
+	wp := nav.Waypoints[:index+1]
+	distance := math.NMDistance2LL(nav.FlightState.Position, wp[0].Location)
+	for i := 0; i < len(wp)-1; i++ {
+		distance += math.NMDistance2LL(wp[i].Location, wp[i+1].Location)
+	}
+	return distance, nil
 }
 
 func (nav *Nav) ResumeOwnNavigation() av.CommandIntent {

@@ -1804,7 +1804,7 @@ func (s *Sim) generateFlightFollowingMessage(ac *Aircraft) *av.RadioTransmission
 
 	var alt *av.RadioTransmission
 	// Get the aircraft's target altitude from the navigation system
-	targetAlt, _ := ac.Nav.TargetAltitude()
+	targetAlt, _, _ := ac.Nav.TargetAltitude()
 	currentAlt := ac.Altitude()
 
 	// Check if we're in a climb or descent (more than 100 feet difference)

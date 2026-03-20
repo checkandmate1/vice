@@ -415,7 +415,7 @@ func (s *Sim) runEmergencyStage(ac *Aircraft) {
 	// Handle stop_climb option
 	if ac.IsDeparture() && stage.StopClimb {
 		currentAlt := int(ac.Altitude())
-		targetAlt, _ := ac.Nav.TargetAltitude()
+		targetAlt, _, _ := ac.Nav.TargetAltitude()
 		assignedAlt := int(targetAlt)
 		if currentAlt+500 < assignedAlt {
 			// Find next 1000-foot altitude above current

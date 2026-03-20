@@ -14,8 +14,9 @@ import (
 )
 
 const MaximumRate = 100000
+const rateMaxDeltaPercent = 0.075
 
-func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float32, deltaKts float32, slowingTo250 bool, wxs wx.Sample, simTime time.Time) {
+func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float32, geometricDescent bool, deltaKts float32, slowingTo250 bool, wxs wx.Sample, simTime time.Time) {
 	nav.FlightState.PrevAltitude = nav.FlightState.Altitude
 
 	NavLog(callsign, simTime, NavLogAltitude, "target=%.0f current=%.0f rate=%.0f targetRate=%.0f expedite=%v slowingTo250=%v",
@@ -94,7 +95,6 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 		atmosFactor, climb, descent, wxs.Pressure(), wxs.Temperature().Celsius())
 
 	const rateFadeAltDifference = 500
-	const rateMaxDeltaPercent = 0.075
 	if nav.FlightState.Altitude < targetAltitude {
 		if deltaKts > 0 {
 			// accelerating in the climb, so reduce climb rate; the scale
@@ -130,17 +130,19 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 
 		setAltitude(min(targetAltitude, nav.FlightState.Altitude+nav.FlightState.AltitudeRate/60))
 	} else if nav.FlightState.Altitude > targetAltitude {
-		if deltaKts < 0 {
-			// Reduce rate due to concurrent deceleration
+		if deltaKts < 0 && !geometricDescent {
+			// Reduce rate due to concurrent deceleration, but only for
+			// controller-assigned altitudes. Geometric descents need the
+			// full computed rate to meet the restriction at the fix.
 			max := nav.Perf.Rate.Decelerate / 2
 			s := math.Clamp(max - -deltaKts, .25, 1)
 			descent *= s
 		}
 
 		// Reduce descent rate as we approach target altitude
-		// BUT: Don't do this on final approach! Aircraft need to maintain glidepath to runway
+		// BUT: Don't do this on geometric descents on arrivals or on final approach.
 		altitudeRemaining := nav.FlightState.Altitude - targetAltitude
-		if altitudeRemaining < rateFadeAltDifference && !nav.Approach.PassedFAF {
+		if altitudeRemaining < rateFadeAltDifference && !geometricDescent {
 			descent *= max(altitudeRemaining/rateFadeAltDifference, 0.25)
 		}
 
@@ -236,7 +238,9 @@ func mbToPressureAltitude(mb float32) float32 {
 	}
 }
 
-func (nav *Nav) TargetAltitude() (float32, float32) {
+// TargetAltitude returns the target altitude, the rate to use (ft/min),
+// and whether the descent is geometric (following a computed glidepath to a fix).
+func (nav *Nav) TargetAltitude() (float32, float32, bool) {
 	if nav.Airwork != nil {
 		return nav.Airwork.TargetAltitude()
 	}
@@ -249,121 +253,122 @@ func (nav *Nav) TargetAltitude() (float32, float32) {
 
 	// Controller-assigned altitude overrides everything else
 	if nav.Altitude.Assigned != nil {
-		return *nav.Altitude.Assigned, rate
+		return *nav.Altitude.Assigned, rate, false
 	}
 
-	if c, ok := nav.getWaypointAltitudeConstraint(); ok {
-		if c.ETA < 5 || nav.FlightState.Altitude < c.Altitude {
-			// Always climb as soon as we can
-			alt := c.Altitude
+	if target, ok := nav.findAltitudeTarget(); ok {
+		if nav.FlightState.Altitude < target.altitude {
+			// Climbing: start immediately
+			alt := target.altitude
 			if nav.Altitude.Cleared != nil {
 				alt = min(alt, *nav.Altitude.Cleared)
 			}
-			return alt, rate
+			return alt, rate, false
 		} else {
-			// Descending
-			rate = (nav.FlightState.Altitude - c.Altitude) / c.ETA
-			rate *= 60 // feet per minute
+			// Descending: compute geometric descent rate
+			dist, ok := nav.routeDistanceToFix(target.fix)
+			eta := dist / nav.FlightState.GS * 3600
+			if ok && eta > 0 {
+				geometricRate := (nav.FlightState.Altitude - target.altitude) / eta * 60
 
-			descent := nav.Perf.Rate.Descent
-			if nav.FlightState.Altitude < 10000 && !nav.Altitude.Expedite {
-				// And reduce it based on airspeed as well
-				descent *= min(nav.FlightState.IAS/250, 1)
-				if descent > 2000 {
-					// Reduce descent rate on approach
-					descent = 2000
+				if nav.Approach.PassedFAF {
+					return target.altitude, geometricRate, true // exact glideslope
+				}
+
+				descent := nav.Perf.Rate.Descent
+
+				// Dynamic safety factor: accounts for ramp-up deficit where
+				// updateAltitude takes ~13 ticks to reach full rate, causing
+				// ~descent/9 ft of lost altitude change. Scale the factor
+				// inversely with descent size so small descents get more margin.
+				altDiff := nav.FlightState.Altitude - target.altitude
+				rampUpSec := float32(1) / rateMaxDeltaPercent
+				rampUpDeficit := descent * rampUpSec / (2 * 60)
+				safetyFactor := min(float32(1)+rampUpDeficit/max(altDiff, 100), 1.5)
+
+				// The AltitudeRate check fixes a case where we enter an oscillatory state of "start
+				// descent" / "no not yet" and end up descending too late to meet the restriction.
+				if geometricRate > descent/2 || nav.FlightState.AltitudeRate < -50 {
+					// Start continuous descent with safety margin
+					return target.altitude, min(geometricRate*safetyFactor, descent), true
 				}
 			}
-
-			if nav.Approach.PassedFAF {
-				// After the FAF, try to go down linearly
-				return c.Altitude, rate
-			} else if rate > descent/2 {
-				// Don't start the descent until (more or less) it's
-				// necessary. (But then go a little faster than we think we
-				// need to, to be safe.)
-				return c.Altitude, rate * 1.5
-			} else if ar := nav.Altitude.Restriction; ar != nil {
-				// We haven't reached the point where we'd normally
-				// start descending for the next fix, but we have a
-				// carried restriction from a previously-passed fix
-				// that wasn't met. Continue descending toward it
-				// immediately rather than leveling off.
-				return ar.TargetAltitude(nav.FlightState.Altitude), MaximumRate
-			} else {
-				// Stay where we are for now.
-				return nav.FlightState.Altitude, 0
+			// Not time yet
+			if ar := nav.Altitude.Restriction; ar != nil {
+				return ar.TargetAltitude(nav.FlightState.Altitude), MaximumRate, false
 			}
+			return nav.FlightState.Altitude, 0, false
 		}
 	}
 
 	if nav.Altitude.Cleared != nil {
-		return min(*nav.Altitude.Cleared, nav.FinalAltitude), rate
+		return min(*nav.Altitude.Cleared, nav.FinalAltitude), rate, false
 	}
 
 	if ar := nav.Altitude.Restriction; ar != nil {
-		return ar.TargetAltitude(nav.FlightState.Altitude), rate
+		return ar.TargetAltitude(nav.FlightState.Altitude), rate, false
 	}
 
 	// Baseline: stay where we are
-	return nav.FlightState.Altitude, 0
+	return nav.FlightState.Altitude, 0, false
 }
 
-type WaypointCrossingConstraint struct {
-	Altitude float32
-	Fix      string  // where we're trying to readh Altitude
-	ETA      float32 // seconds
+// routeDistanceToFix computes the distance in nm along the waypoint route
+// from the aircraft's current position to the named fix. Returns ok=false
+// if the fix is not found in the waypoints.
+func (nav *Nav) routeDistanceToFix(fix string) (float32, bool) {
+	if len(nav.Waypoints) == 0 {
+		return 0, false
+	}
+	d := math.NMDistance2LLFast(nav.FlightState.Position, nav.Waypoints[0].Location,
+		nav.FlightState.NmPerLongitude)
+	for i := range nav.Waypoints {
+		if nav.Waypoints[i].Fix == fix {
+			return d, true
+		}
+		if i+1 < len(nav.Waypoints) {
+			d += math.NMDistance2LLFast(nav.Waypoints[i].Location, nav.Waypoints[i+1].Location,
+				nav.FlightState.NmPerLongitude)
+		}
+	}
+	return 0, false
 }
 
-// getWaypointAltitudeConstraint looks at the waypoint altitude
-// restrictions in the aircraft's upcoming route and determines the
-// altitude at which it will cross the next waypoint with a crossing
-// restriction. It balances the general principle of preferring to be at
-// higher altitudes (speed, efficiency) with the aircraft's performance and
-// subsequent altitude restrictions--e.g., sometimes it needs to be lower
-// than it would otherwise at one waypoint in order to make a restriction
-// at a subsequent waypoint.
-func (nav *Nav) getWaypointAltitudeConstraint() (WaypointCrossingConstraint, bool) {
+// altitudeTarget holds the result of scanning waypoints for an altitude target.
+type altitudeTarget struct {
+	altitude float32
+	fix      string
+}
+
+// findAltitudeTarget scans waypoints to determine the target altitude and
+// fix, using the reverse-walk logic to satisfy all downstream altitude
+// constraints. Returns the target and true if found.
+func (nav *Nav) findAltitudeTarget() (altitudeTarget, bool) {
 	if nav.Heading.Assigned != nil {
 		// ignore what's going on with the fixes
-		return WaypointCrossingConstraint{}, false
+		return altitudeTarget{}, false
 	}
 
 	if nav.InterceptedButNotCleared() {
 		// Assuming this must be an altitude constraint on the approach,
 		// we'll ignore it until the aircraft has been cleared for the
 		// approach.
-		return WaypointCrossingConstraint{}, false
+		return altitudeTarget{}, false
 	}
 
 	if nav.Prespawn {
-		// Simplified altitude constraint for prespawn: find the first
-		// upcoming waypoint with a restriction that needs action and
-		// target it directly. Skips the full backwards walk with
-		// ClampRange/NMDistance2LLFast for intermediate waypoints.
-		var d float32
+		// Simplified forward scan for prespawn: find the first waypoint
+		// with an actionable restriction. Skips FixAssignment lookups
+		// and the reverse walk with ClampRange for intermediate waypoints.
 		for i := range nav.Waypoints {
-			if i == 0 {
-				d = math.NMDistance2LLFast(nav.FlightState.Position, nav.Waypoints[0].Location,
-					nav.FlightState.NmPerLongitude)
-			} else {
-				d += math.NMDistance2LLFast(nav.Waypoints[i-1].Location, nav.Waypoints[i].Location,
-					nav.FlightState.NmPerLongitude)
-			}
 			ar := nav.Waypoints[i].AltitudeRestriction()
 			if ar == nil || ar.TargetAltitude(nav.FlightState.Altitude) == nav.FlightState.Altitude {
 				continue
 			}
-			// Same altitude selection as the full algorithm: prefer
-			// upper bound if set, otherwise use FinalAltitude (cruise).
 			alt := util.Select(ar.Range[1] != 0, ar.Range[1], nav.FinalAltitude)
-			return WaypointCrossingConstraint{
-				Altitude: alt,
-				ETA:      d / nav.FlightState.GS * 3600,
-				Fix:      nav.Waypoints[i].Fix,
-			}, true
+			return altitudeTarget{altitude: alt, fix: nav.Waypoints[i].Fix}, true
 		}
-		return WaypointCrossingConstraint{}, false
+		return altitudeTarget{}, false
 	}
 
 	haveFixAssignments := len(nav.FixAssignments) > 0
@@ -410,34 +415,14 @@ func (nav *Nav) getWaypointAltitudeConstraint() (WaypointCrossingConstraint, boo
 	}
 	if lastWp == -1 {
 		// No applicable altitude restrictions found, so nothing to do here.
-		return WaypointCrossingConstraint{}, false
+		return altitudeTarget{}, false
 	}
 
-	// Figure out what climb/descent rate we will use for modeling the
-	// flight path.
-	var altRate float32
 	descending := nav.FlightState.Altitude > getRestriction(lastWp).TargetAltitude(nav.FlightState.Altitude)
-	if descending {
-		altRate = nav.Perf.Rate.Descent
-		// This unfortunately mirrors logic in the updateAltitude() method.
-		// It would be nice to unify the nav modeling and the aircraft's
-		// flight modeling to eliminate this...
-		if nav.FlightState.Altitude < 10000 {
-			altRate = min(altRate, 2000)
-			altRate *= min(nav.FlightState.IAS/250, 1)
-		}
-		// Reduce the expected rate by a fudge factor to try to account for
-		// slowing down at lower altitudes, speed reductions on approach,
-		// and the fact that aircraft cut corners at turns rather than
-		// going the longer way and overflying fixes.
-		altRate *= 0.7
-	} else {
-		// This also mirrors logic in updateAltitude() and has its own
-		// fudge factor, though a smaller one. Note that it doesn't include
-		// a model for pausing the climb at 10k feet to accelerate, though
-		// at that point we're likely leaving the TRACON airspace anyway...
-		altRate = 0.9 * util.Select(nav.Perf.Rate.Climb > 2500, nav.Perf.Rate.Climb-500, nav.Perf.Rate.Climb)
-	}
+
+	// Use a large rate estimate for the reverse walk to compute feasible
+	// altitude ranges.
+	altRate := util.Select(descending, nav.Perf.Rate.Descent, nav.Perf.Rate.Climb)
 
 	// altRange is the range of altitudes that the aircraft may be in and
 	// successfully meet all of the restrictions. It will be updated
@@ -474,8 +459,12 @@ func (nav *Nav) getWaypointAltitudeConstraint() (WaypointCrossingConstraint, boo
 		eta := sumDist / nav.FlightState.GS * 3600 // seconds
 
 		// Maximum change in altitude possible before reaching this
-		// waypoint.
+		// waypoint. Subtract the ramp-up deficit: the first ~13s to reach
+		// full rate achieve roughly half the altitude change vs full rate.
 		dalt := altRate * eta / 60
+		rampUpSec := float32(1) / rateMaxDeltaPercent
+		rampUpDeficit := altRate * min(rampUpSec, eta) / (2 * 60)
+		dalt = max(0, dalt-rampUpDeficit)
 
 		// possibleRange is altitude range the aircraft could have at this
 		// waypoint, given its performance characteristics and assuming it
@@ -496,19 +485,18 @@ func (nav *Nav) getWaypointAltitudeConstraint() (WaypointCrossingConstraint, boo
 
 		// Limit the possible range according to the restriction at the
 		// current waypoint.
-		altRange, _ = restr.ClampRange(possibleRange)
+		var feasible bool
+		altRange, feasible = restr.ClampRange(possibleRange)
+		if !feasible {
+			// Can't satisfy all constraints; target the earliest
+			// unsatisfiable one (altRange and fix were already updated).
+			break
+		}
 
 		// Reset this so we compute the right eta next time we have a
 		// waypoint with an altitude restriction.
 		sumDist = 0
 	}
-
-	// Add the distance to the first waypoint to get the total distance
-	// (and then the ETA) between the aircraft and the first waypoint with
-	// an altitude restriction.
-	d := sumDist + math.NMDistance2LLFast(nav.FlightState.Position, nav.Waypoints[0].Location,
-		nav.FlightState.NmPerLongitude)
-	eta := d / nav.FlightState.GS * 3600 // seconds
 
 	// Prefer to be higher rather than low; deal with "at or above" here as well.
 	alt := util.Select(altRange[1] != 0, altRange[1], nav.FinalAltitude)
@@ -528,9 +516,5 @@ func (nav *Nav) getWaypointAltitudeConstraint() (WaypointCrossingConstraint, boo
 		}
 	}
 
-	return WaypointCrossingConstraint{
-		Altitude: alt,
-		ETA:      eta,
-		Fix:      fix,
-	}, true
+	return altitudeTarget{altitude: alt, fix: fix}, true
 }

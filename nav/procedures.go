@@ -654,8 +654,8 @@ func (aw *NavAirwork) TargetHeading() (math.MagneticHeading, av.TurnDirection, f
 	return aw.Heading, aw.TurnDirection, aw.TurnRate
 }
 
-func (aw *NavAirwork) TargetAltitude() (float32, float32) {
-	return aw.Altitude, float32(util.Select(aw.Dive, 3000, 500))
+func (aw *NavAirwork) TargetAltitude() (float32, float32, bool) {
+	return aw.Altitude, float32(util.Select(aw.Dive, 3000, 500)), false
 }
 
 func (aw *NavAirwork) TargetSpeed() (float32, float32, bool) {
