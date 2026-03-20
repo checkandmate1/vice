@@ -858,6 +858,7 @@ func parsePTExtent(pt *ProcedureTurn, extent string) error {
 
 func parseWaypoints(str string) (WaypointArray, error) {
 	var waypoints WaypointArray
+	var nextWaypointTurn TurnDirection
 	entries := strings.Fields(str)
 	for ei, field := range entries {
 		if len(field) == 0 {
@@ -908,6 +909,10 @@ func parseWaypoints(str string) (WaypointArray, error) {
 		}
 
 		wp := Waypoint{}
+		if nextWaypointTurn != TurnClosest {
+			wp.SetTurn(nextWaypointTurn)
+			nextWaypointTurn = TurnClosest
+		}
 		for i, f := range components {
 			if i == 0 {
 				wp.Fix = f
@@ -1124,6 +1129,10 @@ func parseWaypoints(str string) (WaypointArray, error) {
 						wp.Flags |= WaypointFlagHeadingIsTrack
 						wp.SetTurn(TurnRight)
 					}
+				} else if f == "ld" {
+					nextWaypointTurn = TurnLeft
+				} else if f == "rd" {
+					nextWaypointTurn = TurnRight
 				} else if f[0] == 'l' {
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
@@ -1176,6 +1185,10 @@ func parseWaypoints(str string) (WaypointArray, error) {
 		}
 
 		waypoints = append(waypoints, wp)
+	}
+
+	if nextWaypointTurn != TurnClosest {
+		return nil, fmt.Errorf("/ld or /rd on the last waypoint has no next waypoint to apply to")
 	}
 
 	return waypoints, nil
