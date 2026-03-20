@@ -260,7 +260,7 @@
           "waypoints": "FARLE Q75 JERSY/ho Q75 MXE NUGGY TROYZ/delete",
           "cruise_altitude": 35000,
           "star": "CLIPR3",
-          "route": "/. FARLE Q75 MXE NUGGY TROYZ",
+          "route": "/. FARLE Q75 JERSY Q75 MXE NUGGY TROYZ",
           "initial_controller": "42",
           "initial_altitude": 28000,
           "assigned_altitude": 28000,
@@ -501,7 +501,7 @@
           "waypoints": "GANDE/ho KEAVR BOTLS JETTZ SARAA LRP JOANE DELRO LIRCH/delete",
           "cruise_altitude": 36000,
           "star": "HYPER9",
-          "route": "/. KEAVR BOTLS JETTZ SARAA LRP JOANE DELRO LIRCH",
+          "route": "/. GANDE KEAVR BOTLS JETTZ SARAA LRP JOANE DELRO LIRCH",
           "initial_controller": "B20",
           "initial_altitude": 36000,
           "assigned_altitude": 36000,
@@ -633,52 +633,6 @@
           "initial_controller": "W59",
           "initial_altitude": 19000,
           "assigned_altitude": 19000,
-          "initial_speed": 300,
-          "airlines": {
-            "KJFK": [
-              {
-                "icao": "JBU",
-                "airport": "KMCO"
-              },
-              {
-                "icao": "JBU",
-                "airport": "KCHS"
-              },
-              {
-                "icao": "DAL",
-                "airport": "KPBI"
-              },
-              {
-                "icao": "AMX",
-                "airport": "MMMX"
-              },
-              {
-                "icao": "RPA",
-                "airport": "KCHS"
-              },
-              {
-                "icao": "EDV",
-                "airport": "KSAV"
-              },
-              {
-                "icao": "FFT",
-                "airport": "KMCO"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "OWENZ": {
-      "arrivals": [
-        {
-          "waypoints": "OWENZ CAMRN N040.16.17.069,W073.34.12.108/delete",
-          "cruise_altitude": 32000,
-          "star": null,
-          "route": "/. OWENZ CAMRN",
-          "initial_controller": "68",
-          "initial_altitude": 14000,
-          "assigned_altitude": 14000,
           "initial_speed": 300,
           "airlines": {
             "KJFK": [
@@ -953,9 +907,6 @@
       "inbound_rates": {
         "CAMRN5": {
           "KJFK": 25
-        },
-        "OWENZ": {
-          "KJFK": 17
         }
       },
       "wind": {
@@ -1038,9 +989,6 @@
         "CAMRN5": {
           "KJFK": 25
         },
-        "OWENZ": {
-          "KJFK": 17
-        },
         "ROBUC3 (RBV)": {
           "KBOS": 25
         },
@@ -1094,9 +1042,6 @@
       "inbound_rates": {
         "CAMRN5": {
           "KJFK": 25
-        },
-        "OWENZ": {
-          "KJFK": 17
         },
         "ROBUC3 (RBV)": {
           "KBOS": 25

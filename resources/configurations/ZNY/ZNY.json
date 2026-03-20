@@ -271,8 +271,7 @@
       },
       "N68": {
         "inbound_assignments": {
-          "CAMRN5": "68",
-          "OWENZ": "68"
+          "CAMRN5": "68"
         },
         "default_consolidation": {
           "68": []
@@ -314,7 +313,6 @@
           "DPK3 (Q419)": "56",
           "DPK3 (Q481)": "56",
           "CAMRN5": "68",
-          "OWENZ": "68",
           "TRISH4 (42)": "42",
           "CLIPR3 (BIGGY)": "55",
           "CLIPR3 (NELIE 42)": "42",
@@ -561,7 +559,8 @@
           "FQM3": "72"
         },
         "departure_assignments": {
-          "KJFK": "36"
+          "KJFK": "36",
+          "KPHL": "25"
         },
         "default_consolidation": {
           "34": [
@@ -584,6 +583,14 @@
             "92",
             "93"
           ]
+        }
+      },
+      "N66": {
+        "inbound_assignments": {
+          "OWENZ (66)": "66"
+        },
+        "default_consolidation": {
+          "66": []
         }
       }
     },
