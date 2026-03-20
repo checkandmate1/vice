@@ -468,10 +468,19 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 				nav.Heading.Turn = nfa.Depart.Turn // may be nil (TurnClosest)
 			}
 		} else if wp.Heading != 0 && !clearedAtFix {
-			// We have an outbound heading
 			hdg := wp.MagneticHeading()
 			turn := wp.Turn()
-			nav.Heading = NavHeading{Assigned: &hdg, Turn: &turn}
+			if wp.HeadingIsTrack() {
+				nav.Heading = NavHeading{
+					Maneuvers: []LateralManeuver{{
+						Track: hdg,
+						Turn:  turn,
+						Until: ManeuverComplete{Type: UntilControllerIntervention},
+					}},
+				}
+			} else {
+				nav.Heading = NavHeading{Assigned: &hdg, Turn: &turn}
+			}
 		} else if wp.PresentHeading() && !clearedAtFix {
 			// Round to nearest 5 degrees
 			hdg := math.MagneticHeading(5 * int((float32(nav.FlightState.Heading)+2.5)/5))

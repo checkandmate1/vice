@@ -24,3 +24,5 @@
 - Facility engineering
   - Added support for per-area and per-controller "altimeters" lists
   - Added "cleared_altitude" for arrivals/overflights: this is like "cleared_altitude" for departures--aircraft try to get to that altitude when able, but obey altitude restrictions in their route while doing so.
+  - When specifying routes, you can now use "/t" to specify departing a fix on a track heading, and "/lt" and "/rt" with a heading to specify a left/right turn to the given track heading.
+

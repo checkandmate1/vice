@@ -484,8 +484,12 @@
                 </li>
                 <li> <code>/delete</code>: the aircraft will be deleted when it reaches the fix</li>
                 <li> <code>/h</code><i>heading</i>: depart the fix at specified heading</li>
+                <li> <code>/t</code><i>heading</i>: depart the fix on the specified track heading. Unlike <code>/h</code>,
+                  a track heading corrects for wind so the aircraft maintains the desired ground track.</li>
                 <li> <code>/l</code><i>heading</i>: turn left to the specified heading at the fix</li>
                 <li> <code>/r</code><i>heading</i>: turn right to the specified heading at the fix</li>
+                <li> <code>/lt</code><i>heading</i>: turn left to the specified track heading at the fix (wind-corrected, like <code>/t</code>)</li>
+                <li> <code>/rt</code><i>heading</i>: turn right to the specified track heading at the fix (wind-corrected, like <code>/t</code>)</li>
                 <li> <code>/iaf</code>: indicates that the fix is an IAF (initial approach fix)</li>
                 <li> <code>/if</code>: indicates that the fix is the IF (intermediate fix)</li>
                 <li> <code>/faf</code>: indicates that the fix is the FAF (final approach fix). This must be specified for one fix in each approach.</li>

@@ -46,6 +46,7 @@ const (
 	WaypointFlagTurnRight
 	WaypointFlagHasAltRestriction
 	WaypointFlagSequenceVFRLanding
+	WaypointFlagHeadingIsTrack
 )
 
 // Waypoint is the core waypoint struct. Most waypoints only use Fix,
@@ -127,7 +128,8 @@ func (wp Waypoint) ClearPrimaryScratchpad() bool {
 func (wp Waypoint) ClearSecondaryScratchpad() bool {
 	return wp.Flags&WaypointFlagClearSecondaryScratchpad != 0
 }
-func (wp Waypoint) TransferComms() bool { return wp.Flags&WaypointFlagTransferComms != 0 }
+func (wp Waypoint) TransferComms() bool  { return wp.Flags&WaypointFlagTransferComms != 0 }
+func (wp Waypoint) HeadingIsTrack() bool { return wp.Flags&WaypointFlagHeadingIsTrack != 0 }
 func (wp Waypoint) SequenceVFRLanding() bool {
 	return wp.Flags&WaypointFlagSequenceVFRLanding != 0
 }
@@ -1089,15 +1091,44 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
 					} else if hdg < 0 || hdg > 360 {
-						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360", f[1:])
 					} else {
 						wp.Heading = int16(hdg)
+					}
+				} else if f[0] == 't' { // after "tc" check...
+					if hdg, err := strconv.Atoi(f[1:]); err != nil {
+						return nil, fmt.Errorf("%s: invalid waypoint outbound track heading: %v", f[1:], err)
+					} else if hdg < 0 || hdg > 360 {
+						return nil, fmt.Errorf("%s: waypoint outbound track heading must be between 0-360", f[1:])
+					} else {
+						wp.Heading = int16(hdg)
+						wp.Flags |= WaypointFlagHeadingIsTrack
+					}
+				} else if len(f) >= 3 && f[:2] == "lt" {
+					if hdg, err := strconv.Atoi(f[2:]); err != nil {
+						return nil, fmt.Errorf("%s: invalid waypoint outbound track heading: %v", f[2:], err)
+					} else if hdg < 0 || hdg > 360 {
+						return nil, fmt.Errorf("%s: waypoint outbound track heading must be between 0-360", f[2:])
+					} else {
+						wp.Heading = int16(hdg)
+						wp.Flags |= WaypointFlagHeadingIsTrack
+						wp.SetTurn(TurnLeft)
+					}
+				} else if len(f) >= 3 && f[:2] == "rt" {
+					if hdg, err := strconv.Atoi(f[2:]); err != nil {
+						return nil, fmt.Errorf("%s: invalid waypoint outbound track heading: %v", f[2:], err)
+					} else if hdg < 0 || hdg > 360 {
+						return nil, fmt.Errorf("%s: waypoint outbound track heading must be between 0-360", f[2:])
+					} else {
+						wp.Heading = int16(hdg)
+						wp.Flags |= WaypointFlagHeadingIsTrack
+						wp.SetTurn(TurnRight)
 					}
 				} else if f[0] == 'l' {
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
 					} else if hdg < 0 || hdg > 360 {
-						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360", f[1:])
 					} else {
 						wp.Heading = int16(hdg)
 						wp.SetTurn(TurnLeft)
@@ -1106,7 +1137,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
 					} else if hdg < 0 || hdg > 360 {
-						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360", f[1:])
 					} else {
 						wp.Heading = int16(hdg)
 						wp.SetTurn(TurnRight)

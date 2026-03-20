@@ -21,11 +21,12 @@ import (
 type ManeuverCompleteType int
 
 const (
-	UntilHeading   ManeuverCompleteType = iota // done when aircraft heading ≈ Until.Heading
-	UntilTime                                  // done after Until.Seconds elapsed (lazy start)
-	UntilDist                                  // done after Until.Dist nm flown (lazy start)
-	UntilFix                                   // done when ETA to Until.Fix < 2s
-	UntilIntercept                             // done when shouldTurnToIntercept fires for course through Fix
+	UntilHeading                ManeuverCompleteType = iota // done when aircraft heading ≈ Until.Heading
+	UntilTime                                               // done after Until.Seconds elapsed (lazy start)
+	UntilDist                                               // done after Until.Dist nm flown (lazy start)
+	UntilFix                                                // done when ETA to Until.Fix < 2s
+	UntilIntercept                                          // done when shouldTurnToIntercept fires for course through Fix
+	UntilControllerIntervention                             // never completes; lasts until controller issues a new instruction
 )
 
 // ManeuverComplete encapsulates the completion condition for a lateral
@@ -66,6 +67,8 @@ func (mc *ManeuverComplete) Done(nav *Nav, simTime time.Time, wxs wx.Sample, tar
 		return nav.ETA(mc.Fix) < 2
 	case UntilIntercept:
 		return nav.shouldTurnToIntercept(mc.Fix, mc.InterceptCourse, mc.InterceptTurn, wxs)
+	case UntilControllerIntervention:
+		return false
 	default:
 		panic(fmt.Sprintf("unhandled ManeuverCompleteType: %d", mc.Type))
 	}
@@ -105,9 +108,14 @@ func (m *LateralManeuver) String() string {
 		until = "until fix"
 	case UntilIntercept:
 		until = fmt.Sprintf("until intercept %03d", int(m.Until.InterceptCourse))
+	case UntilControllerIntervention:
+		until = "until controller intervention"
 	}
 
-	return action + " " + until
+	if until != "" {
+		return action + " " + until
+	}
+	return action
 }
 
 // maneuverHeading computes the heading for a lateral maneuver, considering
