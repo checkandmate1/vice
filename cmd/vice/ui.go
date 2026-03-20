@@ -343,11 +343,11 @@ func uiDraw(mgr *client.ConnectionManager, config *Config, p platform.Platform, 
 		}
 
 		if ui.showMessages {
-			applyPinWindowClass("Messages", config)
+			applyPinWindowClass("Messages", config, p)
 			config.MessagesPane.DrawWindow(&ui.showMessages, controlClient, p, config.UnpinnedWindows, lg)
 		}
 		if ui.showFlightStrips {
-			applyPinWindowClass("Flight Strips", config)
+			applyPinWindowClass("Flight Strips", config, p)
 			config.FlightStripPane.DrawWindow(&ui.showFlightStrips, controlClient, p, config.UnpinnedWindows, lg)
 		}
 	}
@@ -541,9 +541,9 @@ func uiDrawKeyboardWindow(c *client.ControlClient, config *Config, platform plat
 	}
 
 	imgui.SetNextWindowSizeConstraints(imgui.Vec2{300, 300}, imgui.Vec2{-1, float32(platform.WindowSize()[1]) * 19 / 20})
-	applyPinWindowClass("Keyboard Command Reference", config)
+	applyPinWindowClass("Keyboard Command Reference", config, platform)
 	imgui.BeginV("Keyboard Command Reference", &keyboardWindowVisible, imgui.WindowFlagsAlwaysAutoResize)
-	drawPinButton("Keyboard Command Reference", config)
+	drawPinButton("Keyboard Command Reference", config, platform)
 
 	style := imgui.CurrentStyle()
 
@@ -788,15 +788,16 @@ func uiDrawMarkedupText(regularFont *renderer.Font, fixedFont *renderer.Font, it
 // applyPinWindowClass sets the imgui WindowClass for the next window so
 // that its viewport is always-on-top when pinned. Must be called before
 // imgui.BeginV().
-func applyPinWindowClass(windowTitle string, config *Config) {
+func applyPinWindowClass(windowTitle string, config *Config, p platform.Platform) {
 	_, unpinned := config.UnpinnedWindows[windowTitle]
+	appFocused := p.IsAppFocused()
 
 	wc := imgui.NewWindowClass()
 	// Always keep child windows as separate OS windows, even when they
 	// overlap the main viewport.
 	setFlags := imgui.ViewportFlagsNoAutoMerge
 	clearFlags := imgui.ViewportFlags(0)
-	if !unpinned {
+	if !unpinned && appFocused {
 		setFlags |= imgui.ViewportFlagsTopMost
 	} else {
 		clearFlags |= imgui.ViewportFlagsTopMost
@@ -808,8 +809,8 @@ func applyPinWindowClass(windowTitle string, config *Config) {
 
 // drawPinButton draws a thumbtack toggle in the title bar of the current
 // window. Call immediately after imgui.BeginV().
-func drawPinButton(windowTitle string, config *Config) {
-	panes.DrawPinButton(windowTitle, config.UnpinnedWindows)
+func drawPinButton(windowTitle string, config *Config, p platform.Platform) {
+	panes.DrawPinButton(windowTitle, config.UnpinnedWindows, p)
 }
 
 func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPane panes.Pane, p platform.Platform, lg *log.Logger) {
@@ -817,9 +818,9 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 		return
 	}
 
-	applyPinWindowClass("Settings", config)
+	applyPinWindowClass("Settings", config, p)
 	imgui.BeginV("Settings", &ui.showSettings, imgui.WindowFlagsAlwaysAutoResize)
-	drawPinButton("Settings", config)
+	drawPinButton("Settings", config, p)
 
 	if imgui.SliderFloatV("Simulation speed", &c.State.SimRate, 1, 20, "%.1f", 0) {
 		c.SetSimRate(c.State.SimRate)

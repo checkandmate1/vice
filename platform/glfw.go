@@ -56,6 +56,7 @@ type glfwPlatform struct {
 	mouseDelta             [2]float32
 
 	audioRecorder *AudioRecorder
+	appFocused    bool
 }
 
 type Config struct {
@@ -148,6 +149,7 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 		multisample:   config.EnableMSAA,
 		heldFKeys:     make(map[imgui.Key]any),
 		audioRecorder: NewAudioRecorder(lg),
+		appFocused:    true,
 	}
 	platform.installCallbacks()
 	platform.createMouseCursors()
@@ -474,11 +476,21 @@ func SetViewportFloating(handle uintptr, floating bool) {
 	win.SetAttrib(glfw.Floating, val)
 }
 
+func (g *glfwPlatform) IsAppFocused() bool {
+	return g.appFocused
+}
+
 func (g *glfwPlatform) installCallbacks() {
 	g.window.SetMouseButtonCallback(g.mouseButtonChange)
 	g.window.SetScrollCallback(g.mouseScrollChange)
 	g.window.SetKeyCallback(g.keyChange)
 	g.window.SetCharCallback(g.charChange)
+	g.window.SetFocusCallback(g.focusChange)
+}
+
+func (g *glfwPlatform) focusChange(window *glfw.Window, focused bool) {
+	g.appFocused = focused
+	g.anyEvents = true
 }
 
 var glfwButtonIndexByID = map[glfw.MouseButton]imgui.MouseButton{

@@ -61,7 +61,7 @@ var UIErrorColor renderer.RGB = renderer.RGBFromHex(0xE94242)
 // DrawPinButton draws a thumbtack toggle in the title bar of the current
 // imgui window. Uses the draw list so it doesn't affect auto-resize layout.
 // Call immediately after imgui.BeginV().
-func DrawPinButton(windowTitle string, unpinnedWindows map[string]struct{}) {
+func DrawPinButton(windowTitle string, unpinnedWindows map[string]struct{}, p platform.Platform) {
 	_, unpinned := unpinnedWindows[windowTitle]
 	pinned := !unpinned
 
@@ -110,7 +110,8 @@ func DrawPinButton(windowTitle string, unpinnedWindows map[string]struct{}) {
 	vp := imgui.WindowViewport()
 	mainVP := imgui.MainViewport()
 	if vp != nil && vp.ID() != mainVP.ID() {
-		platform.SetViewportFloating(vp.PlatformHandle(), pinned)
+		appFocused := p.IsAppFocused()
+		platform.SetViewportFloating(vp.PlatformHandle(), pinned && appFocused)
 	}
 }
 

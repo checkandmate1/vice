@@ -282,9 +282,9 @@ func (lc *LaunchControlWindow) cleanupAllAircraft() {
 func (lc *LaunchControlWindow) Draw(eventStream *sim.EventStream, p platform.Platform, config *Config) {
 	showLaunchControls := true
 	imgui.SetNextWindowSizeConstraints(imgui.Vec2{300, 100}, imgui.Vec2{-1, float32(p.WindowSize()[1]) * 19 / 20})
-	applyPinWindowClass("Launch Control", config)
+	applyPinWindowClass("Launch Control", config, p)
 	imgui.BeginV("Launch Control", &showLaunchControls, imgui.WindowFlagsAlwaysAutoResize)
-	drawPinButton("Launch Control", config)
+	drawPinButton("Launch Control", config, p)
 
 	ctrl := lc.client.State.LaunchConfig.Controller
 
