@@ -992,6 +992,15 @@ func (ar *Arrival) PostDeserialize(loc Locator, nmPerLongitude float32, magnetic
 	}
 
 	if ar.Route != "" {
+		r := strings.TrimPrefix(strings.TrimPrefix(ar.Route, "/."), "./")
+		for word := range strings.FieldsSeq(r) {
+			if strings.Contains(word, "/") {
+				e.ErrorString(`"route" word %q contains a slash; did you mean "waypoints"? (confusingly, "waypoints" specifies the route flown, "route" is only used for flight strips)`, word)
+			}
+		}
+	}
+
+	if ar.Route != "" {
 		e.Push("Route " + ar.Route)
 	} else {
 		e.Push("Route " + ar.STAR)

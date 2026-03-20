@@ -3867,7 +3867,7 @@
         {
           "waypoints": "WNDSR/a16000-20000 AANET/a13000+/ho RAIDR/a5000",
           "cruise_altitude": 28000,
-          "route": "WNDSR/a16000 AANET/a13000/ho RAIDR/a5000",
+          "route": "/. RAIDR",
           "initial_controller": "C41",
           "initial_altitude": 17000,
           "initial_speed": 280,
@@ -5425,7 +5425,7 @@
         {
           "waypoints": "ENI PYE STINS/a7000/ho HADLY OSI",
           "cruise_altitude": 23000,
-          "route": "ENI PYE STINS HADLY OSI/ho",
+          "route": "/. HADLY OSI",
           "initial_controller": "C41",
           "initial_altitude": 10000,
           "initial_speed": 250,
@@ -5467,7 +5467,7 @@
         {
           "waypoints": "ENI PYE STINS/a7000/ho HADLY OSI",
           "cruise_altitude": 16000,
-          "route": "ENI PYE STINS HADLY OSI/ho",
+          "route": "/. HADLY OSI",
           "initial_controller": "C41",
           "initial_altitude": 10000,
           "initial_speed": 250,
@@ -5490,7 +5490,7 @@
         {
           "waypoints": "ENI PYE STINS/a7000 HADLY N037.23.43.786,W122.22.17.091/ho OSI",
           "cruise_altitude": 16000,
-          "route": "ENI PYE STINS HADLY OSI/ho",
+          "route": "/. OSI",
           "initial_controller": "C41",
           "initial_altitude": 10000,
           "initial_speed": 250,
@@ -5517,7 +5517,7 @@
         {
           "waypoints": "ENI PYE/a9000 STINS/ho HADLY OSI",
           "cruise_altitude": 23000,
-          "route": "ENI PYE/a5000 STINS HADLY OSI",
+          "route": "/. HADLY OSI",
           "initial_controller": "C41",
           "initial_altitude": 12000,
           "initial_speed": 250,
@@ -5535,7 +5535,7 @@
         {
           "waypoints": "ENI PYE/a9000 STINS HADLY N037.23.43.786,W122.22.17.091/ho OSI",
           "cruise_altitude": 23000,
-          "route": "ENI PYE STINS HADLY OSI/ho",
+          "route": "/. OSI",
           "initial_controller": "2B",
           "initial_altitude": 16000,
           "initial_speed": 250,
@@ -5553,7 +5553,7 @@
         {
           "waypoints": "ENI PYE/a9000 STINS/ho HADLY OSI",
           "cruise_altitude": 16000,
-          "route": "ENI PYE STINS HADLY OSI/ho",
+          "route": "/. HADLY OSI",
           "initial_controller": "C41",
           "initial_altitude": 14000,
           "initial_speed": 250,
@@ -5576,7 +5576,7 @@
         {
           "waypoints": "ENI PYE/a9000 STINS HADLY N037.23.43.786,W122.22.17.091/ho OSI",
           "cruise_altitude": 16000,
-          "route": "ENI PYE STINS HADLY OSI/ho",
+          "route": "/. OSI",
           "initial_controller": "C41",
           "initial_altitude": 14000,
           "initial_speed": 250,
@@ -5603,7 +5603,7 @@
         {
           "waypoints": "ORRCA HAIRE BYRON TRACY/ho MOVDD RISTI CEDES/a9000/h220",
           "cruise_altitude": 23000,
-          "route": "ORRCA HAIRE BYRON TRACY/ho MOVDD RISTI CEDES/a9000/h220",
+          "route": "/. MOVDD RISTI CEDES",
           "initial_controller": "3S",
           "initial_altitude": 10000,
           "initial_speed": 250,
@@ -5629,7 +5629,7 @@
         {
           "waypoints": "TIPRE OOWEN MOVDD RISTI/ho CEDES/a9000/h220",
           "cruise_altitude": 15000,
-          "route": "TIPRE OOWEN MOVDD RISTI/ho CEDES/a9000/h220",
+          "route": "/. CEDES",
           "initial_controller": "3S",
           "initial_altitude": 10000,
           "initial_speed": 250,
@@ -5948,7 +5948,7 @@
             }
           },
           "cruise_altitude": 32000,
-          "route": "BGGLO/a15000/s280 N037.58.11.825,W122.41.38.483/ho LOZIT/a11000/s230 STLER/a8000 WESLA MVRKK/a7000/s210",
+          "route": "/. LOZIT STLER WESLA MVRKK",
           "initial_controller": "C41",
           "initial_altitude": 17000,
           "initial_speed": 280,
@@ -6174,7 +6174,7 @@
         {
           "waypoints": "YOSEM SNORA N037.34.14.937,W120.25.15.536/ho ZOMER/a27000+/s280 FRIGG/a19000- SOOIE/a11000-13000/s250 FAITH/a8000",
           "cruise_altitude": 34000,
-          "route": "YOSEM SNORA N037.34.14.937,W120.25.15.536/ho ZOMER/a27000+/s280 FRIGG/a19000- SOOIE/a11000-13000/s250 FAITH/a8000",
+          "route": "/. ZOMER FRIGG SOOIE FAITH",
           "initial_controller": "C34",
           "initial_altitude": 27000,
           "initial_speed": 300,

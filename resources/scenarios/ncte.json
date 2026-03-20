@@ -1522,7 +1522,7 @@
         {
           "waypoints": "N040.06.07.561,W119.20.03.140/ho ANAHO/h240",
           "cruise_altitude": 20000,
-          "route": "N040.06.07.561,W119.20.03.140/ho ANAHO/h240",
+          "route": "/. ANAHO",
           "initial_controller": "C45",
           "initial_altitude": 14000,
           "initial_speed": 300,
@@ -1598,7 +1598,7 @@
         {
           "waypoints": "HARTT JAGOM KLUBS/ho EELZA BEETH/a16000+ HIWAA/a12000+ BACRT/a11000+ FMG/a10000/h167",
           "cruise_altitude": 20000,
-          "route": "HARTT JAGOM KLUBS/ho EELZA BEETH/a16000+ HIWAA/a12000+ BACRT/a11000+ FMG/a10000/h167",
+          "route": "/. EELZA BEETH HIWAA BACRT FMG",
           "initial_controller": "C45",
           "initial_altitude": 20000,
           "initial_speed": 300,
@@ -1640,7 +1640,7 @@
         {
           "waypoints": "HARTT JAGOM KLUBS/ho EELZA/a13000+/s250 LIBGE/a12000/s230/h167",
           "cruise_altitude": 20000,
-          "route": "HARTT JAGOM KLUBS/ho EELZA/a13000+/s250 LIBGE/a12000/s230/h167",
+          "route": "/. EELZA LIBGE",
           "initial_controller": "C45",
           "initial_altitude": 20000,
           "initial_speed": 300,

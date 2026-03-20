@@ -11252,7 +11252,7 @@
         {
           "waypoints": "MOMAR/a24000-26000 DSURT/a19000-23000 TRIXI/a12000-14000/s270/ho HSKER/a8700+ BARET/a8000+ HNAHH/a6100+ LUCKI/a6000 LYNDI/a5000+/s210",
           "cruise_altitude": 36000,
-          "route": "LUCKI/a6000 LYNDI/a5000+/s210",
+          "route": "/. LUCKI LYNDI",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 280,
@@ -11341,7 +11341,7 @@
         {
           "waypoints": "CMPOE/a19000-23000 HEELX/a12000-15000/s270/ho JACKK/a10000-11000/s250 AZTEK/a8000+ JEEVS/a6100+ LUCKI/a6000 LYNDI/a5000+/s210",
           "cruise_altitude": 36000,
-          "route": "LUCKI/a6000 LYNDI/a5000+/s210",
+          "route": "/. LUCKI LYNDI",
           "initial_controller": "C09",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -12911,7 +12911,7 @@
         {
           "waypoints": "MOMAR/a24000+ DSURT/a19000+ TRIXI/a12000+/s270/ho TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
           "cruise_altitude": 36000,
-          "route": "TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
+          "route": "/. TOPGN ISEMN ZIPPP TMCAT",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 270,
@@ -13000,7 +13000,7 @@
         {
           "waypoints": "IPL/a24000+ BLUZE/a17000+/ho GUUSE/a12000+/s270 TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
           "cruise_altitude": 36000,
-          "route": "TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
+          "route": "/. TOPGN ISEMN ZIPPP TMCAT",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 270,

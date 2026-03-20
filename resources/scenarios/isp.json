@@ -1801,7 +1801,7 @@
           "spawn": "ANTMN",
           "cruise_altitude": 29000,
           "star": "BOUNO5",
-          "route": "ANTMN BOUNO/a17000/ho DPK/a15000/tc SOUND/a13000 GWENY/a11000 ZAHNN EILEN WESTO/a6000 BDR ALIXX RYMES/a4000 KHPN/delete",
+          "route": "/. BOUNO5",
           "initial_controller": "B46",
           "initial_altitude": 17000,
           "assigned_altitude": null,

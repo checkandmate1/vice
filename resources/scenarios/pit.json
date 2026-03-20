@@ -1047,7 +1047,7 @@
         {
           "waypoints": "AIR/ho WISKE",
           "cruise_altitude": 27000,
-          "route": "IR/ho WISKE",
+          "route": "/. AIR WISKE",
           "initial_controller": "C55",
           "initial_altitude": 17000,
           "assigned_altitude": 15000,

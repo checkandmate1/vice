@@ -1030,7 +1030,7 @@
         {
           "waypoints": "CLL TOAMY/a4000/ho/h265",
           "cruise_altitude": 4000,
-          "route": "/.TOAMY",
+          "route": "/. TOAMY",
           "initial_controller": "31U",
           "initial_altitude": 4000,
           "initial_speed": 280,

@@ -151,7 +151,7 @@
       "arrivals": [
         {
           "waypoints": "LBNON CEVIB/ho BTV",
-          "route": "LBNON CEVIB/ho BTV",
+          "route": "./ CEVIB BTV",
           "initial_controller": "C37",
           "initial_altitude": 9000,
           "initial_speed": 270,
@@ -179,7 +179,7 @@
       "arrivals": [
         {
           "waypoints": "LBNON CEVIB/ho BTV",
-          "route": "LBNON CEVIB/ho BTV",
+          "route": "./ CEVIB BTV",
           "initial_controller": "C37",
           "initial_altitude": 9000,
           "initial_speed": 270,
@@ -207,7 +207,7 @@
       "arrivals": [
         {
           "waypoints": "RUT ENSON/ho WEIGH WINLA BTV",
-          "route": "RUT ENSON/ho WEIGH WINLA BTV",
+          "route": "./ WEIGH WINLA BTV",
           "initial_controller": "C37",
           "initial_altitude": 9000,
           "initial_speed": 270,
@@ -235,7 +235,7 @@
       "arrivals": [
         {
           "waypoints": "RUT ENSON/ho WEIGH WINLA BTV",
-          "route": "RUT ENSON/ho WEIGH WINLA BTV",
+          "route": "./ WEIGH WINLA BTV",
           "initial_controller": "C37",
           "initial_altitude": 9000,
           "initial_speed": 270,
