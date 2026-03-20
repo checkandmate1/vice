@@ -2432,7 +2432,7 @@ func lintArrival(tracon, flowName string, arr av.Arrival, e *util.ErrorLogger) {
 
 		// Only care about "at or below" constraints that require descent.
 		upperBound := restr.Range[1]
-		if upperBound == 0 || spawnAlt <= upperBound {
+		if upperBound == av.MaxAltitude || spawnAlt <= upperBound {
 			continue
 		}
 

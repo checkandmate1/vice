@@ -1542,12 +1542,12 @@ func (AltRestrictionSnippetFormatter) Written(arg any) string {
 	if ar.Range[0] != 0 {
 		if ar.Range[1] == ar.Range[0] {
 			return "at " + FormatAltitude(ar.Range[0])
-		} else if ar.Range[1] != 0 {
+		} else if ar.Range[1] != MaxAltitude {
 			return "between " + FormatAltitude(ar.Range[0]) + " and " + FormatAltitude(ar.Range[1])
 		} else {
 			return "at or above " + FormatAltitude(ar.Range[0])
 		}
-	} else if ar.Range[1] != 0 {
+	} else if ar.Range[1] != 0 && ar.Range[1] != MaxAltitude {
 		return "at or below " + FormatAltitude(ar.Range[1])
 	} else {
 		return ""
@@ -1563,12 +1563,12 @@ func (AltRestrictionSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
 	if ar.Range[0] != 0 {
 		if ar.Range[1] == ar.Range[0] {
 			return "at " + sayAltitude(int(ar.Range[0]), r)
-		} else if ar.Range[1] != 0 {
+		} else if ar.Range[1] != MaxAltitude {
 			return "between " + sayAltitude(int(ar.Range[0]), r) + " and " + sayAltitude(int(ar.Range[1]), r)
 		} else {
 			return "at or above " + sayAltitude(int(ar.Range[0]), r)
 		}
-	} else if ar.Range[1] != 0 {
+	} else if ar.Range[1] != 0 && ar.Range[1] != MaxAltitude {
 		return "at or below " + sayAltitude(int(ar.Range[1]), r)
 	} else {
 		return ""

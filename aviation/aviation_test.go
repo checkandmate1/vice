@@ -61,10 +61,10 @@ func TestParseAltitudeRestriction(t *testing.T) {
 		ar AltitudeRestriction
 	}
 	for _, test := range []testcase{
-		{s: "1000", ar: AltitudeRestriction{Range: [2]float32{1000, 1000}}},
-		{s: "3000-5000", ar: AltitudeRestriction{Range: [2]float32{3000, 5000}}},
-		{s: "7000+", ar: AltitudeRestriction{Range: [2]float32{7000, 0}}},
-		{s: "9000-", ar: AltitudeRestriction{Range: [2]float32{0, 9000}}},
+		{s: "1000", ar: MakeAtAltitudeRestriction(1000)},
+		{s: "3000-5000", ar: MakeRangeAltitudeRestriction(3000, 5000)},
+		{s: "7000+", ar: MakeAtOrAboveAltitudeRestriction(7000)},
+		{s: "9000-", ar: MakeAtOrBelowAltitudeRestriction(9000)},
 	} {
 		ar, err := ParseAltitudeRestriction(test.s)
 		if err != nil {

@@ -1880,7 +1880,7 @@ func (s *Sim) goAround(ac *Aircraft) {
 		Location:       approach.OppositeThreshold,
 		Flags:          av.WaypointFlagFlyOver | av.WaypointFlagHasAltRestriction,
 		Heading:        int16(proc.Heading),
-		AltRestriction: av.AltitudeRestriction{Range: [2]float32{altitude, altitude}},
+		AltRestriction: av.MakeAtAltitudeRestriction(altitude),
 		Extra: &av.WaypointExtra{
 			GoAroundContactController: proc.HandoffController,
 		},

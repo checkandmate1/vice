@@ -99,7 +99,7 @@ func (b patternBuilder) waypoint(name string, along, lateral, deltaAlt float32, 
 		Location: p,
 		VFRPhase: phase,
 	}
-	wp.SetAltitudeRestriction(av.AltitudeRestriction{Range: [2]float32{alt, alt}})
+	wp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(alt))
 	wp.Speed = speed
 	return wp
 }
@@ -536,7 +536,7 @@ func (s *Sim) generateOrbitWaypoints(airport string) []av.Waypoint {
 			Location: p,
 			VFRPhase: av.VFRPhaseOrbit,
 		}
-		wp.SetAltitudeRestriction(av.AltitudeRestriction{Range: [2]float32{tpa, tpa}})
+		wp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(tpa))
 		wp.Speed = 70
 		wps[i] = wp
 	}

@@ -575,7 +575,8 @@ func (wa WaypointArray) CheckDeparture(e *util.ErrorLogger, controllers map[Cont
 		}
 		if war := wp.AltitudeRestriction(); war != nil {
 			// Make sure it's generally reasonable
-			if war.Range[0] < 0 || war.Range[0] >= 50000 || war.Range[1] < 0 || war.Range[1] >= 50000 {
+			if war.Range[0] < 0 || war.Range[0] >= 50000 ||
+				war.Range[1] < 0 || (war.Range[1] != MaxAltitude && war.Range[1] >= 50000) {
 				e.ErrorString("Invalid altitude range: should be between 0 and FL500: %s-%s",
 					FormatAltitude(war.Range[0]), FormatAltitude(war.Range[1]))
 			}
@@ -606,7 +607,7 @@ func (wa WaypointArray) checkBasics(e *util.ErrorLogger, controllers map[Control
 		if wp.AirworkMinutes() > 0 {
 			if ar := wp.AltitudeRestriction(); ar == nil {
 				e.ErrorString(`Must provide altitude range via "/aXXX-YYY" with /airwork`)
-			} else if ar.Range[0] == 0 || ar.Range[1] == 0 {
+			} else if ar.Range[0] == 0 || ar.Range[1] == MaxAltitude {
 				e.ErrorString(`Must provide top and bottom in altitude range "/aXXX-YYY" with /airwork`)
 			} else if ar.Range[1]-ar.Range[0] < 2000 {
 				e.ErrorString("Must provide at least 2,000' of altitude range with /airwork")
@@ -724,13 +725,14 @@ func (wa WaypointArray) checkDescending(e *util.ErrorLogger) {
 		e.Push(wp.Fix)
 
 		if war := wp.AltitudeRestriction(); war != nil {
-			if war.Range[0] != 0 && war.Range[1] != 0 && war.Range[0] > war.Range[1] {
+			if war.Range[0] > war.Range[1] {
 				e.ErrorString("Minimum altitude %s is higher than maximum %s",
 					FormatAltitude(war.Range[0]), FormatAltitude(war.Range[1]))
 			}
 
 			// Make sure it's generally reasonable
-			if war.Range[0] < 0 || war.Range[0] >= 50000 || war.Range[1] < 0 || war.Range[1] >= 50000 {
+			if war.Range[0] < 0 || war.Range[0] >= 50000 ||
+				war.Range[1] < 0 || (war.Range[1] != MaxAltitude && war.Range[1] >= 50000) {
 				e.ErrorString("Invalid altitude range: should be between 0 and FL500: %s-%s",
 					FormatAltitude(war.Range[0]), FormatAltitude(war.Range[1]))
 			}
@@ -738,7 +740,7 @@ func (wa WaypointArray) checkDescending(e *util.ErrorLogger) {
 			if war.Range[0] != 0 {
 				if minFix != "" && war.Range[0] > lastMin {
 					e.ErrorString("Minimum altitude %s is higher than previous fix %s's minimum %s",
-						FormatAltitude(war.Range[1]), minFix, FormatAltitude(lastMin))
+						FormatAltitude(war.Range[0]), minFix, FormatAltitude(lastMin))
 				}
 				minFix = wp.Fix
 				lastMin = war.Range[0]
@@ -805,7 +807,7 @@ func RandomizeRoute(w []Waypoint, r *rand.Rand, randomizeAltitudeRange bool, per
 				low, high := ar.Range[0], ar.Range[1]
 				// We should clamp low to be a few hundred feet AGL, but
 				// hopefully we'll generally be given a full range.
-				if high == 0 {
+				if high == MaxAltitude {
 					high = low + 3000
 				}
 				// Cap at VFR max (17,500') since randomizeAltitudeRange is only true for VFR.
@@ -816,7 +818,7 @@ func RandomizeRoute(w []Waypoint, r *rand.Rand, randomizeAltitudeRange bool, per
 				alt := math.Lerp(ralt, low, high)
 
 				// Update the altitude restriction to just be the single altitude.
-				wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{alt, alt}})
+				wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(alt))
 
 				ralt = jitter(ralt)
 			}
@@ -1162,14 +1164,16 @@ func ParseAltitudeRestriction(s string) (*AltitudeRestriction, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: error parsing altitude restriction: %v", s, err)
 		}
-		return &AltitudeRestriction{Range: [2]float32{0, float32(alt)}}, nil
+		ar := MakeAtOrBelowAltitudeRestriction(float32(alt))
+		return &ar, nil
 	} else if s[n-1] == '+' {
 		// At or above
 		alt, err := strconv.Atoi(s[:n-1])
 		if err != nil {
 			return nil, fmt.Errorf("%s: error parsing altitude restriction: %v", s, err)
 		}
-		return &AltitudeRestriction{Range: [2]float32{float32(alt), 0}}, nil
+		ar := MakeAtOrAboveAltitudeRestriction(float32(alt))
+		return &ar, nil
 	} else if alts := strings.Split(s, "-"); len(alts) == 2 {
 		// Between
 		if low, err := strconv.Atoi(alts[0]); err != nil {
@@ -1179,14 +1183,16 @@ func ParseAltitudeRestriction(s string) (*AltitudeRestriction, error) {
 		} else if low > high {
 			return nil, fmt.Errorf("%s: low altitude %d is above high altitude %d", s, low, high)
 		} else {
-			return &AltitudeRestriction{Range: [2]float32{float32(low), float32(high)}}, nil
+			ar := MakeRangeAltitudeRestriction(float32(low), float32(high))
+			return &ar, nil
 		}
 	} else {
 		// At
 		if alt, err := strconv.Atoi(s); err != nil {
 			return nil, fmt.Errorf("%s: error parsing altitude restriction: %v", s, err)
 		} else {
-			return &AltitudeRestriction{Range: [2]float32{float32(alt), float32(alt)}}, nil
+			ar := MakeAtAltitudeRestriction(float32(alt))
+			return &ar, nil
 		}
 	}
 }
@@ -1496,10 +1502,32 @@ func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading math.MagneticHeadin
 ///////////////////////////////////////////////////////////////////////////
 // AltitudeRestriction
 
+// MaxAltitude is used as the upper bound for "at or
+// above" restrictions.  This lets the invariant Range[0] <= Range[1]
+// always hold, eliminating sentinel checks in clamping/bounding code.
+const MaxAltitude float32 = 100000
+
 type AltitudeRestriction struct {
-	// We treat 0 as "unset", which works naturally for the bottom but
-	// requires occasional care at the top.
+	// Range[0] is the floor, Range[1] is the ceiling. 0 means "no floor" (at or below) and
+	// MaxAltitude means "no ceiling" (at or above).
+	// The invariant Range[0] <= Range[1] always holds.
 	Range [2]float32
+}
+
+func MakeAtAltitudeRestriction(alt float32) AltitudeRestriction {
+	return AltitudeRestriction{Range: [2]float32{alt, alt}}
+}
+
+func MakeAtOrAboveAltitudeRestriction(alt float32) AltitudeRestriction {
+	return AltitudeRestriction{Range: [2]float32{alt, MaxAltitude}}
+}
+
+func MakeAtOrBelowAltitudeRestriction(alt float32) AltitudeRestriction {
+	return AltitudeRestriction{Range: [2]float32{0, alt}}
+}
+
+func MakeRangeAltitudeRestriction(low, high float32) AltitudeRestriction {
+	return AltitudeRestriction{Range: [2]float32{low, high}}
 }
 
 func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
@@ -1516,6 +1544,10 @@ func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
 		ar := struct{ Range [2]float32 }{}
 		if err := json.Unmarshal(b, &ar); err == nil {
 			a.Range = ar.Range
+			// Migrate old serialized "at or above" {alt, 0} to {alt, MaxAlt}.
+			if a.Range[0] != 0 && a.Range[1] == 0 {
+				a.Range[1] = MaxAltitude
+			}
 			return nil
 		} else {
 			return err
@@ -1524,37 +1556,16 @@ func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
 }
 
 func (a AltitudeRestriction) TargetAltitude(alt float32) float32 {
-	if a.Range[1] != 0 {
-		return math.Clamp(alt, a.Range[0], a.Range[1])
-	} else {
-		return max(alt, a.Range[0])
-	}
+	return math.Clamp(alt, a.Range[0], a.Range[1])
 }
 
 // ClampRange limits a range of altitudes to satisfy the altitude
 // restriction; the returned Boolean indicates whether the ranges
 // overlapped.
 func (a AltitudeRestriction) ClampRange(r [2]float32) (c [2]float32, ok bool) {
-	// r: I could be at any of these altitudes and be fine for a future restriction
-	// a: working backwards, we have this additional restriction, how does it limit r?
-	// c: result
-	ok = true
-	c = r
-
-	if a.Range[0] != 0 { // at or above
-		ok = r[1] == 0 || r[1] >= a.Range[0]
-		c[0] = max(a.Range[0], r[0])
-		if r[1] != 0 {
-			c[1] = max(a.Range[0], r[1])
-		}
-	}
-
-	if a.Range[1] != 0 { // at or below
-		ok = ok && c[0] <= a.Range[1]
-		c[0] = min(c[0], a.Range[1])
-		c[1] = min(c[1], a.Range[1])
-	}
-
+	ok = r[0] <= a.Range[1] && r[1] >= a.Range[0]
+	c[0] = math.Clamp(r[0], a.Range[0], a.Range[1])
+	c[1] = math.Clamp(r[1], a.Range[0], a.Range[1])
 	return
 }
 
@@ -1565,12 +1576,12 @@ func (a AltitudeRestriction) Encoded() string {
 	if a.Range[0] != 0 {
 		if a.Range[0] == a.Range[1] {
 			return fmt.Sprintf("%.0f", a.Range[0])
-		} else if a.Range[1] != 0 {
+		} else if a.Range[1] != MaxAltitude {
 			return fmt.Sprintf("%.0f-%.0f", a.Range[0], a.Range[1])
 		} else {
 			return fmt.Sprintf("%.0f+", a.Range[0])
 		}
-	} else if a.Range[1] != 0 {
+	} else if a.Range[1] != 0 && a.Range[1] != MaxAltitude {
 		return fmt.Sprintf("%.0f-", a.Range[1])
 	} else {
 		return ""

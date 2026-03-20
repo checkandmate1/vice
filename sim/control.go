@@ -2863,7 +2863,9 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 						return nil, err
 					}
 					ar.Range[0] *= 100
-					ar.Range[1] *= 100
+					if ar.Range[1] != av.MaxAltitude {
+						ar.Range[1] *= 100
+					}
 				} else if cmd[0] == 'S' {
 					speedStr := cmd[1:]
 					// Strip +/- suffix for now (treat as regular speed)

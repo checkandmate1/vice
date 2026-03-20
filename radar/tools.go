@@ -444,7 +444,7 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 			if ar := wp.AltitudeRestriction(); ar != nil {
 				pt := p       // draw position for text
 				var w float32 // max width of altitudes drawn
-				if ar.Range[1] != 0 {
+				if ar.Range[1] != av.MaxAltitude {
 					// Upper altitude
 					pp := td.AddText(av.FormatAltitude(ar.Range[1]), pt, style)
 					w = pp[0] - pt[0]
@@ -459,7 +459,7 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 
 				// Now that we have w, we can draw lines the specify the
 				// restrictions.
-				if ar.Range[1] != 0 {
+				if ar.Range[1] != av.MaxAltitude {
 					// At or below (or at)
 					ldr.AddLine([2]float32{p[0], p[1] + 2}, [2]float32{p[0] + w, p[1] + 2}, color)
 				}

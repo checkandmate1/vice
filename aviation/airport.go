@@ -297,7 +297,7 @@ func (ap *Airport) PostDeserialize(icao string, loc Locator, nmPerLongitude floa
 				Location: threshold,
 				Flags:    WaypointFlagLand | WaypointFlagFlyOver,
 			}
-			thresholdWP.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt), float32(alt)}})
+			thresholdWP.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt)))
 			appr.Waypoints[i] = append(appr.Waypoints[i], thresholdWP)
 			n := len(appr.Waypoints[i])
 

@@ -877,7 +877,7 @@ func (nav *Nav) firstFixAssignment() (string, float32) {
 		if fa, ok := nav.FixAssignments[wp.Fix]; ok && fa.Arrive.Altitude != nil {
 			// Use the floor; upgrade to the ceiling if one is set.
 			alt := fa.Arrive.Altitude.Range[0]
-			if fa.Arrive.Altitude.Range[1] != 0 {
+			if fa.Arrive.Altitude.Range[1] != av.MaxAltitude {
 				alt = fa.Arrive.Altitude.Range[1]
 			}
 			return wp.Fix, alt

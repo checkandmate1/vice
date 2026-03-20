@@ -589,25 +589,25 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 	if alt0 != 0 || alt1 != 0 {
 		switch r.altDescrip { // 5.29
 		case ' ':
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0), float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt0)))
 		case '+':
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrAboveAltitudeRestriction(float32(alt0)))
 		case '-':
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{0, float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrBelowAltitudeRestriction(float32(alt0)))
 		case 'B': // "At or above to at or below"; The higher value will always appear first.
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt1) /* low */, float32(alt0) /* high */}})
+			wp.SetAltitudeRestriction(MakeRangeAltitudeRestriction(float32(alt1) /* low */, float32(alt0) /* high */))
 		case 'G', 'I':
 			// glideslope alt in second, 'at' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0), float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt0)))
 		case 'H', 'J':
 			// glideslope alt in second, 'at or above' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrAboveAltitudeRestriction(float32(alt0)))
 		case 'V':
 			// coded vertical angle alt in second, 'at or above' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrAboveAltitudeRestriction(float32(alt0)))
 		case 'X':
 			// coded vertical angle alt in second, 'at' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0), float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt0)))
 		default:
 			panic("TODO alt descrip: " + string(r.altDescrip))
 		}

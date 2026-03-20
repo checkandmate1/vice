@@ -832,15 +832,14 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 			alt := float32(ac.FlightPlan.Altitude)
 			if i < nsteps/2 {
 				// At or above for the first half, even if unattainable so that they climb
-				ar = av.AltitudeRestriction{Range: [2]float32{alt, 0}}
+				ar = av.MakeAtOrAboveAltitudeRestriction(alt)
 			} else {
 				if i < nsteps-1 {
 					// at or below to be able to start descending
-					ar = av.AltitudeRestriction{Range: [2]float32{0, alt}}
+					ar = av.MakeAtOrBelowAltitudeRestriction(alt)
 				} else {
 					// Last one--get down to the field
-					ar = av.AltitudeRestriction{
-						Range: [2]float32{float32(arrap.Elevation) + 1500, float32(arrap.Elevation) + 2000}}
+					ar = av.MakeRangeAltitudeRestriction(float32(arrap.Elevation)+1500, float32(arrap.Elevation)+2000)
 				}
 			}
 
@@ -984,9 +983,7 @@ func (s *Sim) adjustRouteForMVA(callsign string, wps []av.Waypoint) []av.Waypoin
 						Fix:      fmt.Sprintf("_mva%d@%.0f", mvaWpNum, minAlt),
 						Location: pNew,
 					}
-					mvaWp.SetAltitudeRestriction(av.AltitudeRestriction{
-						Range: [2]float32{minAlt, 0},
-					})
+					mvaWp.SetAltitudeRestriction(av.MakeAtOrAboveAltitudeRestriction(minAlt))
 					result = append(result, mvaWp)
 				}
 
@@ -999,14 +996,12 @@ func (s *Sim) adjustRouteForMVA(callsign string, wps []av.Waypoint) []av.Waypoin
 		if mva := s.mvaGrid.GetMVA(wp.Location); mva > 0 {
 			minAlt := min(float32(mva-vfrMVABuffer), maxVFRAltitude)
 			if wp.AltitudeRestriction() == nil {
-				wp.SetAltitudeRestriction(av.AltitudeRestriction{
-					Range: [2]float32{minAlt, 0},
-				})
+				wp.SetAltitudeRestriction(av.MakeAtOrAboveAltitudeRestriction(minAlt))
 			} else {
 				if wp.AltRestriction.Range[0] < minAlt {
 					wp.AltRestriction.Range[0] = minAlt
 				}
-				if wp.AltRestriction.Range[1] != 0 && wp.AltRestriction.Range[1] < wp.AltRestriction.Range[0] {
+				if wp.AltRestriction.Range[1] != av.MaxAltitude && wp.AltRestriction.Range[1] < wp.AltRestriction.Range[0] {
 					wp.AltRestriction.Range[1] = wp.AltRestriction.Range[0] + 1000
 				}
 			}

@@ -417,7 +417,7 @@ func (nav *Nav) findAltitudeTarget() (altitudeTarget, bool) {
 			if ar == nil || ar.TargetAltitude(nav.FlightState.Altitude) == nav.FlightState.Altitude {
 				continue
 			}
-			alt := util.Select(ar.Range[1] != 0, ar.Range[1], nav.FinalAltitude)
+			alt := util.Select(ar.Range[1] != av.MaxAltitude, ar.Range[1], nav.FinalAltitude)
 			return altitudeTarget{altitude: alt, fix: nav.Waypoints[i].Fix}, true
 		}
 		return altitudeTarget{}, false
@@ -551,7 +551,7 @@ func (nav *Nav) findAltitudeTarget() (altitudeTarget, bool) {
 	}
 
 	// Prefer to be higher rather than low; deal with "at or above" here as well.
-	alt := util.Select(altRange[1] != 0, altRange[1], nav.FinalAltitude)
+	alt := util.Select(altRange[1] != av.MaxAltitude, altRange[1], nav.FinalAltitude)
 
 	// But leave arrivals at their current altitude if it's acceptable;
 	// don't climb just because we can.
