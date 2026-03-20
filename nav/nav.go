@@ -57,6 +57,11 @@ type Nav struct {
 	// second to override it.
 	DeferredNavHeading *DeferredNavHeading
 
+	// ExpectedDirectFix records a fix the pilot has been told to expect
+	// direct to; when the actual direct instruction comes, there is less
+	// delay since the pilot is prepared.
+	ExpectedDirectFix string
+
 	FinalAltitude float32
 	Waypoints     av.WaypointArray
 
@@ -511,7 +516,11 @@ func (nav *Nav) AssignedWaypoints() []av.Waypoint {
 
 func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTime time.Time) {
 	var delay float32
-	if nav.Heading.Assigned == nil && nav.DeferredNavHeading == nil {
+	if len(wps) > 0 && nav.ExpectedDirectFix == wps[0].Fix {
+		// Pilot was told to expect this fix; shorter delay
+		delay = 2 + 2*nav.Rand.Float32()
+		nav.ExpectedDirectFix = ""
+	} else if nav.Heading.Assigned == nil && nav.DeferredNavHeading == nil {
 		// Already in LNAV mode; have less of a delay
 		delay = 4 + 3*nav.Rand.Float32()
 	} else {

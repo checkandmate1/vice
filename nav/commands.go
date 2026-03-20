@@ -497,6 +497,14 @@ func (nav *Nav) directFixWaypoints(fix string) ([]av.Waypoint, waypointSource, e
 	return nil, waypointSourceOther, ErrInvalidFix
 }
 
+func (nav *Nav) ExpectDirect(fix string) av.CommandIntent {
+	if _, ok := av.DB.LookupWaypoint(fix); !ok && !nav.fixInRoute(fix) {
+		return av.MakeUnableIntent("unable. {fix} isn't a valid fix", fix)
+	}
+	nav.ExpectedDirectFix = fix
+	return nil
+}
+
 func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
 	if wps, source, err := nav.directFixWaypoints(fix); err == nil {
 		if hold := nav.Heading.Hold; hold != nil {

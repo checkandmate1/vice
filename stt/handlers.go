@@ -572,6 +572,19 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
+		"expect [to] [go] direct [to] {fix}",
+		func(fix string) string { return fmt.Sprintf("EXPDIR%s", fix) },
+		WithName("expect_direct_fix"),
+		WithPriority(14),
+	)
+	registerSTTCommand(
+		"expect [to] rejoin|resume [the] arrival [at] {fix}",
+		func(fix string) string { return fmt.Sprintf("EXPDIR%s", fix) },
+		WithName("expect_rejoin_arrival"),
+		WithPriority(16),
+	)
+
+	registerSTTCommand(
 		"cross {fix} [at] {altitude}",
 		func(fix string, alt int) string { return fmt.Sprintf("C%s/A%d", fix, alt) },
 		WithName("cross_fix_altitude"),

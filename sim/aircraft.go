@@ -305,6 +305,10 @@ func (ac *Aircraft) FlyPresentHeading(simTime time.Time) av.CommandIntent {
 	return ac.Nav.FlyPresentHeading(simTime)
 }
 
+func (ac *Aircraft) ExpectDirect(fix string) av.CommandIntent {
+	return ac.Nav.ExpectDirect(strings.ToUpper(fix))
+}
+
 func (ac *Aircraft) DirectFix(fix string, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
 	return ac.Nav.DirectFix(strings.ToUpper(fix), turn, simTime)
 }

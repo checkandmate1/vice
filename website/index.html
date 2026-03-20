@@ -1248,6 +1248,12 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                     <i>Right direct (fix)</i> / <i>Proceed right direct (fix)</i>
                   </td>
                 </tr>
+                <tr><td>Expect Direct (STT only)</td>
+                  <td>
+                    <i>Expect direct (fix)</i> / <i>Expect to rejoin the arrival at (fix)</i> /
+                    <i>Expect to resume the arrival at (fix)</i>
+                  </td>
+                </tr>
                 <tr><td>Depart Fix</td>
                   <td>
                     <i>Depart (fix) heading (heading)</i>
@@ -1514,25 +1520,6 @@ how it simulates aircraft or the STARS interface.
 
           <section class="docs-section" id="releases">
             <h2 class="section-heading">Release History</h2>
-
-            <h3 id="release-0.14.2">0.14.2 (TODO)</h3>
-            <ul>
-              <li>There are now VFR aircraft doing pattern work at airports with VFR traffic.</li>
-              <li>Bugfix: you can now tell VFR aircraft to "contact tower" without them complaining that they weren't assigned an approach.</li>
-              <li>Fixed a few crashes under unusual circumstances.</li>
-              <li>Many STT bugfixes and minor improvements:
-                <ul>
-                  <li>"Negative, ..." actually causes the aircraft that misheard the instruction to ignore it.</li>
-                  <li>"Negative, (updated instructions)" is allowed when an aircraft reads back the wrong instructions (i.e., the callsign isn't required).</li>
-                  <li>If a VFR calls in with a request, replying "(callsign), XYZ approach" is treated as "go ahead"</li>
-                </ul>
-              </li>
-              <li>STARS:
-                <ul>
-                  <li>Fixed a bug with datablock formatting when aircraft are squawking the wrong code.</li>
-                </ul>
-              </li>
-            </ul>
 
             <h3 id="release-0.14.1">0.14.1 (9 Mar 2026)</h3>
             <ul>

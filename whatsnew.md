@@ -1,12 +1,12 @@
 - New scenario: LBB (Gecko)
 - Scenario updates: MIA (Gecko), ZNY A/C, PHL (Ryan G), BOS (radarcontacto), I90 (Ketan K)
-- There are now VFR aircraft doing pattern work at airports with VFR traffic
 - Adjusted radio noise simulation to reduce muffling of pilot responses
 - Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)
 - Flight simulation
+  - Added "left/right direct {fix}" instruction (`LDFIX`, `RDFIX` if you're not using stt)
   - Improved pilot initial contact messages to include SIDs/STARs, altitude/speed restrictions, assigned headings, etc.
   - Aircraft will continue to descend after reaching the end of a STAR
-  - Added "left/right direct {fix}" instruction (`LDFIX`, `RDFIX` if you're not using stt)
+  - There are now VFR aircraft doing pattern work at airports with VFR traffic
 - Bugfixes:
   - You can now tell VFR aircraft to "contact tower" without them complaining that they weren't assigned an approach.
   - Fixed a few crashes under unusual circumstances.
@@ -15,6 +15,7 @@
   - "Negative, ..." actually causes the aircraft that misheard the instruction to ignore it.
   - "Negative, (updated instructions)" is allowed when an aircraft reads back the wrong instructions (i.e., the callsign isn't required).
   - If a VFR calls in with a request, replying "(callsign), XYZ approach" is treated as "go ahead"
+  - Added support for "expect direct (fix)" / "expect to rejoin the arrival at (fix)"
   - Fixed some issues with "at (fix), cleared (approach)"
   - Many other improvements to interpreting ambiguous instructions
 - STARS:

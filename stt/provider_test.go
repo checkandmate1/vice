@@ -996,6 +996,46 @@ func TestNavigationCommands(t *testing.T) {
 			},
 			expected: "ASA700 HJIMEE/R90/3M/R",
 		},
+		// Expect direct commands
+		{
+			name:       "expect direct fix",
+			transcript: "United 300 expect direct JENNY",
+			aircraft: map[string]Aircraft{
+				"United 300": {
+					Callsign: "UAL300",
+					Altitude: 15000,
+					State:    "arrival",
+					Fixes:    map[string]string{"jenny": "JENNY"},
+				},
+			},
+			expected: "UAL300 EXPDIRJENNY",
+		},
+		{
+			name:       "expect to rejoin arrival",
+			transcript: "Delta 450 expect to rejoin the arrival at MERIT",
+			aircraft: map[string]Aircraft{
+				"Delta 450": {
+					Callsign: "DAL450",
+					Altitude: 10000,
+					State:    "arrival",
+					Fixes:    map[string]string{"merit": "MERIT"},
+				},
+			},
+			expected: "DAL450 EXPDIRMERIT",
+		},
+		{
+			name:       "expect to resume arrival",
+			transcript: "American 870 expect to resume the arrival at WAVEY",
+			aircraft: map[string]Aircraft{
+				"American 870": {
+					Callsign: "AAL870",
+					Altitude: 12000,
+					State:    "arrival",
+					Fixes:    map[string]string{"wavey": "WAVEY"},
+				},
+			},
+			expected: "AAL870 EXPDIRWAVEY",
+		},
 	}
 
 	provider := NewTranscriber(nil)
