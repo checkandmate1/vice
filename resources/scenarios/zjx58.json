@@ -760,11 +760,11 @@
       ]
     }
   },
-  "default_scenario": "58 St. Augustine",
+  "default_scenario": "ZJX 58 St. Augustine",
   "magnetic_adjustment": -6.6,
   "scenarios": {
-    "58 St. Augustine": {
-      "configuration": "ZJS",
+    "ZJX 58 St. Augustine": {
+      "configuration": "J58",
       "default_maps": ["ZJX HI"],
       "inbound_rates": {
         "SNFLD3": {

@@ -1,7 +1,7 @@
 {
   "artcc": "ZJX",
-  "area": "Gulf",
-  "name": "Gulf Area",
+  "area": "Gulf Area",
+  "name": "ZJX Gulf Area",
   "airports": {
     "KMCO": {
       "approaches": {
@@ -2900,10 +2900,10 @@
       ]
     }
   },
-  "default_scenario": "ZJX Sector 14 + 15 (North)",
+  "default_scenario": "ZJX Sector 15 Ocala+14 (North)",
   "magnetic_adjustment": -6.6,
   "scenarios": {
-    "ZJX Sector 14 + 15 (North)": {
+    "ZJX Sector 15 Ocala+14 (North)": {
       "configuration": "ZJG",
       "default_maps": ["ZJX LO"],
       "default_map_group": "ZJX",

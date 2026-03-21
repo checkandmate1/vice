@@ -1,7 +1,7 @@
 {
   "artcc": "ZJX",
   "area": "South Area",
-  "name": "ZJX 75",
+  "name": "ZJX 75 Greencove",
   "airports": {
     "KMCO": {
       "departure_controller": "O1E",
@@ -908,10 +908,10 @@
       ]
     }
   },
-  "default_scenario": "75",
+  "default_scenario": "ZJX 75 Greencove",
   "scenarios": {
-    "75": {
-      "configuration": "ZST",
+    "ZJX 75 Greencove": {
+      "configuration": "J75",
       "default_maps": ["ZJX HI"],
       "inbound_rates": {
         "TTHOR3": {
@@ -976,8 +976,8 @@
         }
       ]
     },
-    "75 (UH Online)": {
-      "configuration": "ZST",
+    "ZJX 75 Greencove (UH Online)": {
+      "configuration": "J75",
       "default_maps": ["ZJX HI"],
       "inbound_rates": {
         "TTHOR3": {

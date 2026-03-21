@@ -91,7 +91,7 @@
       "radio_name": "Jacksonville Center"
     },
     "49": {
-      "callsign": "ZJX 49 Central",
+      "callsign": "ZJX 49 Moultrie",
       "frequency": 133300,
       "radio_name": "Jacksonville Center"
     },
@@ -101,7 +101,7 @@
       "radio_name": "JAX Center"
     },
     "51": {
-      "callsign": "ZJX 51 Knemo",
+      "callsign": "ZJX 51 KNEMO",
       "frequency": 120125,
       "radio_name": "Jacksonville Center"
     },
@@ -206,14 +206,14 @@
       "radio_name": "JAX Center"
     },
     "88": {
-      "callsign": "ZJX 88 Darbs",
+      "callsign": "ZJX 88 DARBS",
       "frequency": 128050,
       "radio_name": "JAX Center"
     }
   },
   "facility_adaptations": {
     "configurations": {
-      "STD": {
+      "ZJX": {
         "inbound_assignments": {
           "Overflights": "30",
           "PRICY4": "30",
@@ -247,29 +247,6 @@
           "15": ["14"]
         }
       },
-      "ZJX": {
-        "inbound_assignments": {
-          "BAGGY3": "50",
-          "CAMJO": "50",
-          "DADES2": "50",
-          "GRNCH5": "50",
-          "LUBBR3": "50",
-          "OHDEA2": "50",
-          "SHRKS": "50",
-          "TTHOR3": "50",
-          "50_BAGGY3": "50",
-          "50_CAMJO": "50",
-          "50_DADES2": "50",
-          "50_GRNCH5": "50",
-          "50_LUBBR3": "50",
-          "50_OHDEA2": "50",
-          "50_SHRKS": "50",
-          "50_TTHOR3": "50"
-        },
-        "default_consolidation": {
-          "50": []
-        }
-      },
       "J11": {
         "inbound_assignments": {
           "DEFUN": "11",
@@ -292,21 +269,66 @@
           "KVPS": "11",
           "KTLH": "11"
         },
-        "default_consolidation": {
-          "11": []
-        }
+        "default_consolidation": { "11": [] }
       },
-      "ZJS": {
+      "J30": {
+        "inbound_assignments": {
+          "Overflights": "30",
+          "PRICY4": "30"
+        },
+        "departure_assignments": {
+          "KMCO": "30"
+        },
+        "default_consolidation": { "30": [] }
+      },
+      "J50": {
+        "inbound_assignments": {
+          "BAGGY3": "50",
+          "CAMJO": "50",
+          "DADES2": "50",
+          "GRNCH5": "50",
+          "LUBBR3": "50",
+          "OHDEA2": "50",
+          "SHRKS": "50",
+          "TTHOR3": "50",
+          "50_BAGGY3": "50",
+          "50_CAMJO": "50",
+          "50_DADES2": "50",
+          "50_GRNCH5": "50",
+          "50_LUBBR3": "50",
+          "50_OHDEA2": "50",
+          "50_SHRKS": "50",
+          "50_TTHOR3": "50"
+        },
+        "default_consolidation": { "50": [] }
+      },
+      "J58": {
         "inbound_assignments": {
           "Overflights": "58",
           "SNFLD3": "58",
           "TTHOR3": "58"
         },
-        "default_consolidation": {
-          "58": []
-        }
+        "default_consolidation": { "58": [] }
       },
-      "ZST": {
+      "J66": {
+        "inbound_assignments": {
+          "50_BAGGY3": "66",
+          "50_CAMJO": "66",
+          "50_DADES2": "66",
+          "50_GRNCH5": "66",
+          "50_LUBBR3": "66",
+          "50_OHDEA2": "66",
+          "50_SHRKS": "66",
+          "50_TTHOR3": "66",
+          "50_68 Overflights": "66"
+        },
+        "departure_assignments": {
+          "KJAX": "66",
+          "KSAV": "66"
+        },
+        "default_consolidation": { "58": [] }
+      },
+      "J75": {
         "inbound_assignments": {
           "Northbound Overflights": "75",
           "Northbound Overflights (UH)": "75",
@@ -314,9 +336,22 @@
           "Southbound Overflights": "75",
           "TTHOR3": "75"
         },
-        "default_consolidation": {
-          "75": []
-        }
+        "default_consolidation": { "75": [] }
+      },
+      "J88": {
+        "inbound_assignments": {
+          "MAATY5": "88",
+          "BANGZ2": "88",
+          "PLYER.PIKKR7": "88",
+          "OCF": "88"
+        },
+        "departure_assignments": {
+          "KSRQ": "88",
+          "KLAL": "88",
+          "KPIE": "88",
+          "KTPA": "88"
+        },
+        "default_consolidation": { "88": [] }
       }
     },
     "center": "N029.0.0.0,W085.20.16.982",

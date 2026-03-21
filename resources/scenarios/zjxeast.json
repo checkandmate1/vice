@@ -1,7 +1,7 @@
 {
   "artcc": "ZJX",
-  "area": "East",
-  "name": "Sector 50",
+  "area": "East Area",
+  "name": "ZJX East Area",
   "airports": {
     "KJAX": {
       "departure_controller": "J1N",
@@ -1046,10 +1046,10 @@
       ]
     }
   },
-  "default_scenario": "49 Moultrie + 50 Alma",
+  "default_scenario": "ZJX 50 Alma+49",
   "scenarios": {
-    "49 Moultrie + 50 Alma": {
-      "configuration": "ZJX",
+    "ZJX 50 Alma+49": {
+      "configuration": "J50",
       "default_maps": ["ZJX HI"],
       "inbound_rates": {
         "50_OHDEA2": {
@@ -1121,8 +1121,8 @@
         }
       ]
     },
-    "65 Ridgeway + 66 Aiken": {
-      "configuration": "ZJX",
+    "ZJX 66 Aiken+65": {
+      "configuration": "J66",
       "default_maps": ["ZJX HI"],
       "inbound_rates": {
         "50_OHDEA2": {

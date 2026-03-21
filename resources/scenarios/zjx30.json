@@ -98,26 +98,11 @@
         }
       }
     },
-    "KDAB": {
-      "approaches": {
-        "I7L": {
-          "cifp_id": "I7L"
-        }
-      }
-    },
     "KSRQ": {
       "departure_controller": "J1S",
       "approaches": {
         "R14": {
           "cifp_id": "R14"
-        }
-      }
-    },
-    "KCHS": {
-      "departure_controller": "J1S",
-      "approaches": {
-        "I15": {
-          "cifp_id": "I15"
         }
       }
     }
@@ -262,11 +247,11 @@
       ]
     }
   },
-  "default_scenario": "30 Nepta",
+  "default_scenario": "ZJX 30 Nepta",
   "magnetic_adjustment": -6.6,
   "scenarios": {
-    "30 Nepta": {
-      "configuration": "STD",
+    "ZJX 30 Nepta": {
+      "configuration": "J30",
       "default_maps": ["ZJX HI"],
       "inbound_rates": {
         "PRICY4": {

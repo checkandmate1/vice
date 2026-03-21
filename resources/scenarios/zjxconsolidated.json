@@ -737,8 +737,7 @@
   "magnetic_adjustment": -6.6,
   "scenarios": {
     "ZJX Consolidated 30, 66, 15": {
-      "configuration": "STD",
-
+      "configuration": "ZJX",
       "default_maps": ["ZJX HI"],
       "inbound_rates": {
         "GRNCH5": {

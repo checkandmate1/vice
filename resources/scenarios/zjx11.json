@@ -1,7 +1,7 @@
 {
   "artcc": "ZJX",
   "area": "West Area",
-  "name": "ZJX 11+21",
+  "name": "ZJX 11 Brewton+21",
   "airports": {
     "KPNS": {
       "approaches": {
@@ -1155,14 +1155,14 @@
       ]
     }
   },
-  "default_scenario": "ZJX 11+21 PNS/ECP/VPS South",
+  "default_scenario": "ZJX 11 Brewton+21 PNS/ECP/VPS South",
   "fixes": {
     "HO1": "N030.47.11.197,W085.13.33.867",
     "HO2": "N030.38.27.472,W085.05.51.150"
   },
   "magnetic_adjustment": -3.6,
   "scenarios": {
-    "ZJX 11+21 PNS/ECP/VPS South": {
+    "ZJX 11 Brewton+21 PNS/ECP/VPS South": {
       "configuration": "J11",
       "default_maps": ["ZJX HI"],
       "default_map_group": "ZJX",
@@ -1272,7 +1272,7 @@
         "flight_rules": "VMC"
       }
     },
-    "ZJX 11+21 PNS/ECP/VPS North": {
+    "ZJX 11 Brewton+21 PNS/ECP/VPS North": {
       "configuration": "J11",
       "default_maps": ["ZJX HI"],
       "default_map_group": "ZJX",
