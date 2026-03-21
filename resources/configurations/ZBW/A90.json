@@ -362,6 +362,19 @@
           "1F": ["1I"]
         }
       },
+      "27F": {
+        "inbound_assignments": {
+          "FV.ROBUC3.27": "1F",
+          "FV.OOSHN5.27": "1F",
+          "FV.JFUND2.27": "1F"
+        },
+        "departure_assignments": {
+          "KBOS": "1D"
+        },
+        "default_consolidation": {
+          "1F": []
+        }
+      },
       "KMH": {
         "inbound_assignments": {
           "CON": "1W",

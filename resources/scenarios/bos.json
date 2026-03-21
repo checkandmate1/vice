@@ -69942,6 +69942,2831 @@
           "expect_approach": "I2L"
         }
       ]
+    },
+    "FV.OOSHN5.27": {
+      "arrivals": [
+        {
+          "initial_altitude": 12000,
+          "initial_controller": "1R",
+          "initial_speed": 290,
+          "star": "OOSHN5",
+          "waypoints": "OOSHN/a9000-14000/s250/ho1F PUDJJ AYBEE/a6000/s210/h272",
+          "expect_approach": "I27",
+          "scratchpad": "I27",
+          "airlines": {
+            "KBOS": [
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "AAL"
+              },
+              {
+                "airport": "LGAV",
+                "fleet": "long",
+                "icao": "ACA"
+              },
+              {
+                "airport": "CYHZ",
+                "fleet": "short",
+                "icao": "ACA"
+              },
+              {
+                "airport": "LFPG",
+                "fleet": "long",
+                "icao": "AFR"
+              },
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "BAW"
+              },
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "CFG"
+              },
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "DAL"
+              },
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "DLH"
+              },
+              {
+                "airport": "EINN",
+                "icao": "EIN"
+              },
+              {
+                "airport": "EIDW",
+                "fleet": "long",
+                "icao": "EIN"
+              },
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "ELY"
+              },
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "ETD"
+              },
+              {
+                "airport": "LEMD",
+                "fleet": "long",
+                "icao": "IBE"
+              },
+              {
+                "airport": "EGLL",
+                "icao": "ICE"
+              },
+              {
+                "airport": "EGLL",
+                "icao": "JBU"
+              },
+              {
+                "airport": "EHAM",
+                "fleet": "long",
+                "icao": "KLM"
+              },
+              {
+                "airport": "EGLL",
+                "fleet": "long",
+                "icao": "QTR"
+              },
+              {
+                "airport": "EKCH",
+                "fleet": "long",
+                "icao": "SAS"
+              },
+              {
+                "airport": "EKCH",
+                "fleet": "long",
+                "icao": "SWR"
+              },
+              {
+                "airport": "LPPT",
+                "icao": "TAP"
+              },
+              {
+                "airport": "EKCH",
+                "fleet": "long",
+                "icao": "THY"
+              },
+              {
+                "airport": "OMDB",
+                "icao": "UAE"
+              },
+              {
+                "airport": "EKCH",
+                "fleet": "long",
+                "icao": "VIR"
+              },
+              {
+                "airport": "CYHZ",
+                "icao": "WJA"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "FV.JFUND2.27": {
+      "arrivals": [
+        {
+          "star": "JFUND2",
+          "initial_altitude": 8000,
+          "initial_controller": "1R",
+          "initial_speed": 270,
+          "waypoints": "HRRIS/ho1F SPYSD/a7000/s220 REVER SEHAG/a6000/s210/h093",
+          "expect_approach": "I27",
+          "scratchpad": "I27",
+          "airlines": {
+            "KBOS": [
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B38M"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KPHX"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KAUS"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KPHX"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A320"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KSTL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B38M"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KPHX"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A21N"],
+                "airport": "KPHX"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KAUS"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A321"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KSTL"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A319"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["B738"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "AAL",
+                "types": ["A320"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "AAY",
+                "types": ["A320"],
+                "airport": "KSRQ"
+              },
+              {
+                "icao": "AAY",
+                "types": ["A320"],
+                "airport": "KTYS"
+              },
+              {
+                "icao": "AAY",
+                "types": ["A320"],
+                "airport": "KAVL"
+              },
+              {
+                "icao": "AAY",
+                "types": ["A320"],
+                "airport": "KGRR"
+              },
+              {
+                "icao": "ACA",
+                "types": ["BCS3"],
+                "airport": "CYUL"
+              },
+              {
+                "icao": "ASA",
+                "types": ["B738"],
+                "airport": "KSAN"
+              },
+              {
+                "icao": "ASA",
+                "types": ["B39M"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "ASA",
+                "types": ["B739"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "ASA",
+                "types": ["B39M"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "ASA",
+                "types": ["B39M"],
+                "airport": "KPDX"
+              },
+              {
+                "icao": "ASA",
+                "types": ["B39M"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "ASA",
+                "types": ["B738"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "CKS",
+                "types": ["B763"],
+                "airport": "KCVG"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KRSW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A21N"],
+                "airport": "KSAN"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A333"],
+                "airport": "LIRF"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A319"],
+                "airport": "KAUS"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KCVG"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B763"],
+                "airport": "LPPT"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KCVG"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KJAX"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B763"],
+                "airport": "EIDW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KMCI"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KCVG"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B738"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B738"],
+                "airport": "KFLL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A319"],
+                "airport": "KPBI"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KMSY"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A333"],
+                "airport": "LFPG"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A333"],
+                "airport": "LGAV"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A339"],
+                "airport": "LLBG"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KCVG"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A319"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A333"],
+                "airport": "EHAM"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A319"],
+                "airport": "KTPA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A339"],
+                "airport": "EHAM"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A21N"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KMCI"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A21N"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KMCI"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B763"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A319"],
+                "airport": "KTPA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A21N"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B752"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B752"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A21N"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B752"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B752"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B764"],
+                "airport": "EGLL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "MMUN"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "KSLC"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B752"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "KSLC"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "KLAS"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B739"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B752"],
+                "airport": "KCLE"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A21N"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KAUS"
+              },
+              {
+                "icao": "DAL",
+                "types": ["B763"],
+                "airport": "LPPT"
+              },
+              {
+                "icao": "DAL",
+                "types": ["A321"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "DAL",
+                "types": ["BCS1"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "EDV",
+                "types": ["CRJ9"],
+                "airport": "KMKE"
+              },
+              {
+                "icao": "EDV",
+                "types": ["CRJ9"],
+                "airport": "KCLE"
+              },
+              {
+                "icao": "EDV",
+                "types": ["CRJ9"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "EDV",
+                "types": ["CRJ9"],
+                "airport": "KRIC"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KMEM"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KMEM"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "FDX",
+                "types": ["A306"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KGSO"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "FDX",
+                "types": ["B763"],
+                "airport": "KMEM"
+              },
+              {
+                "icao": "FDX",
+                "types": ["MD11"],
+                "airport": "KMEM"
+              },
+              {
+                "icao": "FFT",
+                "types": ["A20N"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "FFT",
+                "types": ["A20N"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "IBE",
+                "types": ["A332"],
+                "airport": "LEBL"
+              },
+              {
+                "icao": "IBE",
+                "types": ["A333"],
+                "airport": "LEMD"
+              },
+              {
+                "icao": "JAL",
+                "types": ["B789"],
+                "airport": "RJAA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KPIT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KLAS"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KAUS"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KRIC"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KDFW"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KAUS"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KPBI"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KRIC"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KPIT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KPHX"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KJAX"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KSAN"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KRIC"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KSAT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KFLL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KBUF"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KRSW"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSAV"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KLAS"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "TBPB"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "TNCM"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "MDSD"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KPIT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KDTW"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "TXKF"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KFLL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KTPA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KBUF"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSAN"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KPIT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KMKE"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KPIT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KMCI"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KCHS"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KSAV"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A21N"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KTPA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KMSY"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KCHS"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KCLE"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "TJSJ"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "TNCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSEA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KRSW"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KRSW"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KCLE"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "TJSJ"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KTPA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KSAN"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KCLE"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KFLL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KPBI"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "TNCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "MBPV"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KFLL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "MMUN"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KLAS"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "TJSJ"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A21N"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "MSLP"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A21N"],
+                "airport": "KICT"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KTPA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KATL"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "MYNN"
+              },
+              {
+                "icao": "JBU",
+                "types": ["E190"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "TJSJ"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "MDST"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KJAX"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KIAH"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A320"],
+                "airport": "KSRQ"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "TNCA"
+              },
+              {
+                "icao": "JBU",
+                "types": ["BCS3"],
+                "airport": "KRDU"
+              },
+              {
+                "icao": "JBU",
+                "types": ["A321"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "JZA",
+                "types": ["E75S"],
+                "airport": "CYUL"
+              },
+              {
+                "icao": "JZA",
+                "types": ["E75S"],
+                "airport": "CYUL"
+              },
+              {
+                "icao": "JZA",
+                "types": ["E75S"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "JZA",
+                "types": ["CRJ9"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "JZA",
+                "types": ["E75S"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "JZA",
+                "types": ["E75S"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "JZA",
+                "types": ["E75S"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A319"],
+                "airport": "KMYR"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A320"],
+                "airport": "KMYR"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A20N"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A319"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A320"],
+                "airport": "TJSJ"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A320"],
+                "airport": "KMIA"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A320"],
+                "airport": "KMCO"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A319"],
+                "airport": "KFLL"
+              },
+              {
+                "icao": "NKS",
+                "types": ["A20N"],
+                "airport": "KFLL"
+              },
+              {
+                "icao": "PDT",
+                "types": ["E145"],
+                "airport": "KMDT"
+              },
+              {
+                "icao": "PDT",
+                "types": ["E145"],
+                "airport": "KROC"
+              },
+              {
+                "icao": "PDT",
+                "types": ["E145"],
+                "airport": "KSYR"
+              },
+              {
+                "icao": "PDT",
+                "types": ["E145"],
+                "airport": "KROC"
+              },
+              {
+                "icao": "PDT",
+                "types": ["E145"],
+                "airport": "KROC"
+              },
+              {
+                "icao": "PDT",
+                "types": ["E145"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E170"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75L"],
+                "airport": "KCVG"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCVG"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75L"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "CYYZ"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75L"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCMH"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCMH"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75L"],
+                "airport": "KCMH"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E170"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KMEM"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KSDF"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KILM"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KSTL"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KBDL"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KMKE"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E170"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCMH"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KHPN"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KMCI"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KRIC"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJAX"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCLE"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCMH"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E170"],
+                "airport": "KHPN"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCHS"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KHPN"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KMKE"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KMKE"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KRIC"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KPIT"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KPIT"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KSAV"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E170"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCLT"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KJFK"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KBDL"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KCLE"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E170"],
+                "airport": "KDCA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KLGA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "RPA",
+                "types": ["E75S"],
+                "airport": "KIND"
+              },
+              {
+                "icao": "SCX",
+                "types": ["B738"],
+                "airport": "KMSP"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KSTL"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KSTL"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KSTL"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KBNA"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B738"],
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SWA",
+                "types": ["B737"],
+                "airport": "KSTL"
+              },
+              {
+                "icao": "UAL",
+                "types": ["A320"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KIAH"
+              },
+              {
+                "icao": "UAL",
+                "types": ["A319"],
+                "airport": "KIAH"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B38M"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KIAD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B738"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["A320"],
+                "airport": "KIAH"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KIAD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["A319"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["A320"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KIAH"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KLAX"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KSFO"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B739"],
+                "airport": "KIAD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B752"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["A320"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KIAD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B39M"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B738"],
+                "airport": "KORD"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B738"],
+                "airport": "KDEN"
+              },
+              {
+                "icao": "UAL",
+                "types": ["B737"],
+                "airport": "KEWR"
+              },
+              {
+                "icao": "UPS",
+                "types": ["B763"],
+                "airport": "KSDF"
+              },
+              {
+                "icao": "UPS",
+                "types": ["B763"],
+                "airport": "KSDF"
+              },
+              {
+                "icao": "UPS",
+                "types": ["B763"],
+                "airport": "KPHL"
+              },
+              {
+                "icao": "UPS",
+                "types": ["A306"],
+                "airport": "KSDF"
+              },
+              {
+                "icao": "UPS",
+                "types": ["B763"],
+                "airport": "KPHL"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "FV.ROBUC3.27": {
+      "arrivals": [
+        {
+          "initial_altitude": 8000,
+          "assigned_altitude": 5000,
+          "initial_controller": "1M",
+          "initial_speed": 290,
+          "star": "ROBUC3",
+          "speed_restriction": 260,
+          "waypoints": "KLEBB N042.13.28.168,W070.35.34.780/ho1F HOKDU/a5000/s210/h024",
+          "expect_approach": "I27",
+          "scratchpad": "I27",
+          "airlines": {
+            "KBOS": [
+              {
+                "airport": "KJFK",
+                "fleet": "short",
+                "icao": "DAL"
+              },
+              {
+                "airport": "KJFK",
+                "icao": "JBU"
+              },
+              {
+                "airport": "MMMX",
+                "fleet": "b73x",
+                "icao": "AMX"
+              },
+              {
+                "airport": "KDCA",
+                "fleet": "long",
+                "icao": "AVA"
+              },
+              {
+                "airport": "KDCA",
+                "fleet": "short",
+                "icao": "DAL"
+              },
+              {
+                "airport": "KDCA",
+                "icao": "CMP"
+              },
+              {
+                "airport": "KDCA",
+                "icao": "JBU"
+              },
+              {
+                "airport": "KPHL",
+                "icao": "JBU"
+              },
+              {
+                "airport": "KPHL",
+                "fleet": "short",
+                "icao": "AAL"
+              },
+              {
+                "airport": "KIAD",
+                "fleet": "short",
+                "icao": "UAL"
+              },
+              {
+                "airport": "KBWI",
+                "icao": "SWA"
+              },
+              {
+                "airport": "KMCO",
+                "icao": "NKS"
+              },
+              {
+                "airport": "KMCO",
+                "icao": "FFT"
+              },
+              {
+                "airport": "KMCO",
+                "icao": "TAI"
+              },
+              {
+                "airport": "KMCO",
+                "fleet": "short",
+                "icao": "AAL"
+              },
+              {
+                "airport": "KMCO",
+                "fleet": "short",
+                "icao": "DAL"
+              },
+              {
+                "airport": "KMCO",
+                "icao": "SWA"
+              },
+              {
+                "airport": "KATL",
+                "icao": "DAL"
+              },
+              {
+                "airport": "KATL",
+                "icao": "NKS"
+              },
+              {
+                "airport": "KATL",
+                "icao": "FFT"
+              },
+              {
+                "airport": "KCLT",
+                "fleet": "short",
+                "icao": "AAL"
+              }
+            ]
+          }
+        }
+      ]
     }
   },
   "fixes": {
@@ -72134,6 +74959,38 @@
       "wind": {
         "direction": "140-310",
         "flight_rules": "VMC"
+      }
+    },
+    "FV BOS 27 ": {
+      "arrival_runways": [
+        {
+          "airport": "KBOS",
+          "runway": "27"
+        }
+      ],
+      "inbound_rates": {
+        "FV.JFUND2.27": {
+          "KBOS": 10
+        },
+        "FV.OOSHN5.27": {
+          "KBOS": 4
+        },
+        "FV.ROBUC3.27": {
+          "KBOS": 14
+        }
+      },
+      "configuration": "27F",
+      "default_maps": ["A90 MASTER BASE MAP A", "RWY 27", "A90 SHORLINE B"],
+      "departure_runways": [
+        {
+          "airport": "KBOS",
+          "rate": 0,
+          "runway": "22R",
+          "category": "Primary.22/22"
+        }
+      ],
+      "wind": {
+        "direction": "0-90"
       }
     }
   }
