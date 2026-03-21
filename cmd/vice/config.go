@@ -120,14 +120,30 @@ func (c *Config) Encode(w io.Writer) error {
 }
 
 func (c *Config) Save(lg *log.Logger) error {
-	lg.Infof("Saving config to: %s", configFilePath(lg))
-	f, err := os.Create(configFilePath(lg))
+	fn := configFilePath(lg)
+	lg.Infof("Saving config to: %s", fn)
+
+	// Write to a temp file in the same directory, then rename to the
+	// target path. This avoids corrupting the config file if we crash
+	// mid-write.
+	dir := filepath.Dir(fn)
+	tmp, err := os.CreateTemp(dir, "config-*.json.tmp")
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	tmpName := tmp.Name()
 
-	return c.Encode(f)
+	if err := c.Encode(tmp); err != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
+
+	return os.Rename(tmpName, fn)
 }
 
 func (c *Config) SaveIfChanged(renderer renderer.Renderer, platform platform.Platform,

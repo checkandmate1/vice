@@ -385,7 +385,7 @@ func (p *Point2LL) UnmarshalJSON(b []byte) error {
 		}
 
 		if locr == nil {
-			panic("Must provide location resolver via SetLocationResolver")
+			return fmt.Errorf("%s: unable to parse latlong and no location resolver available", string(b))
 		}
 
 		*p, err = locr.Resolve(string(b))
