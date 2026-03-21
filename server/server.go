@@ -69,7 +69,8 @@ import (
 // 59: server-side flightstrip management
 // 60: restructure scenario JSON
 // 61: restructure config JSON
-const ViceSerializeVersion = 61
+// 62: new route/waypoint options
+const ViceSerializeVersion = 62
 
 const ViceServerAddress = "vice.pharr.org"
 const ViceServerPort = 8000 - 50 + ViceRPCVersion
