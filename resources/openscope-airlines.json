@@ -12957,6 +12957,22 @@
       }
     },
     {
+      "icao": "ptr",
+      "name": "Porter Airlines",
+      "callsign": {
+        "name": "Porter Air",
+        "callsignFormats": ["####"]
+      },
+      "fleets": {
+        "default": [
+          ["DH8D", 29],
+          ["E295", 44]
+        ],
+        "short": [["DH8D", 29]],
+        "long": [["E295", 44]]
+      }
+    },
+    {
       "icao": "pp",
       "name": "General Aviation Brazil",
       "callsign": {

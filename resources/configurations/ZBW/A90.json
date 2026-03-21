@@ -366,13 +366,46 @@
         "inbound_assignments": {
           "FV.ROBUC3.27": "1F",
           "FV.OOSHN5.27": "1F",
-          "FV.JFUND2.27": "1F"
+          "FV.JFUND2.27": "1F",
+          "FV.FREDO.27": "1F",
+          "FV.LWRNC.27": "1F",
+          "FV.33L.OOSHN.27": "1F"
         },
         "departure_assignments": {
           "KBOS": "1D"
         },
         "default_consolidation": {
-          "1F": []
+          "1F": ["1I"]
+        }
+      },
+      "33L": {
+        "inbound_assignments": {
+          "FV.ROBUC3.33L": "1F",
+          "FV.RD.33L": "1F",
+          "FV.FREDO.33L": "1F",
+          "FV.LWRNC.33L": "1F",
+          "FV.WOONS.33L": "1F"
+        },
+        "departure_assignments": {
+          "KBOS": "1D"
+        },
+        "default_consolidation": {
+          "1F": ["1I"]
+        }
+      },
+      "33R": {
+        "inbound_assignments": {
+          "FV.ROBUC3.33L": "1F",
+          "FV.RD.33L": "1F",
+          "FV.FREDO.33R": "1F",
+          "FV.LWRNC.33R": "1F",
+          "FV.WOONS.33L": "1F"
+        },
+        "departure_assignments": {
+          "KBOS": "1D"
+        },
+        "default_consolidation": {
+          "1F": ["1I"]
         }
       },
       "KMH": {
