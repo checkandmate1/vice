@@ -886,8 +886,46 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 		simNav.FlightState.Altitude, simTime)
 	for i := range 3 * 60 * 60 { // limit to 3 hours of sim time, just in case
 		if wp := simNav.UpdateWithWeather("", prespawnWxs, &simFP,
-			simTime, nil); wp != nil && (wp.Delete() || wp.SequenceVFRLanding()) {
-			return ac, rwy.Id, nil
+			simTime, nil); wp != nil {
+			if wp.Delete() {
+				return ac, rwy.Id, nil
+			}
+			if wp.SequenceVFRLanding() {
+				// Generate descent waypoints so prespawn validates the
+				// descent from cruise altitude through any bravo/charlie
+				// airspace down to pattern altitude.
+				arrAP, ok := av.DB.Airports[ac.FlightPlan.ArrivalAirport]
+				if !ok {
+					return ac, rwy.Id, nil
+				}
+				patternAlt := float32(arrAP.Elevation + 1000)
+				pos := simNav.FlightState.Position
+				alt := simNav.FlightState.Altitude
+				dest := arrAP.Location
+				mid := math.Point2LL(math.Lerp2f(0.5, pos, dest))
+				midAlt := (alt + patternAlt) / 2
+
+				var descentWps []av.Waypoint
+				descentWps = append(descentWps, av.Waypoint{
+					Fix:      "_descent_mid",
+					Location: mid,
+				})
+				descentWps[0].SetAltitudeRestriction(av.MakeAtAltitudeRestriction(midAlt))
+				descentWps[0].Speed = 90
+
+				endWp := av.Waypoint{
+					Fix:      "_descent_end",
+					Location: dest,
+				}
+				endWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(patternAlt))
+				endWp.Speed = 70
+				endWp.SetDelete(true)
+				descentWps = append(descentWps, endWp)
+
+				simNav.Waypoints = descentWps
+				simNav.Heading = nav.NavHeading{}
+				continue
+			}
 		}
 
 		if (i % 4) != 0 {
