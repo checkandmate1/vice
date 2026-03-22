@@ -396,6 +396,17 @@ func clampMonitorWorkBounds() {
 		mainPosY := *(*float32)(unsafe.Add(mon, 4))
 		mainSizeX := *(*float32)(unsafe.Add(mon, 8))
 		mainSizeY := *(*float32)(unsafe.Add(mon, 12))
+
+		// Guard against monitors with uninitialized main bounds (e.g. during
+		// hot-plug or driver quirks). imgui asserts MainSize > 0 in NewFrame.
+		if mainSizeX <= 0 || mainSizeY <= 0 {
+			*(*float32)(unsafe.Add(mon, 8)) = 1
+			*(*float32)(unsafe.Add(mon, 12)) = 1
+			*(*float32)(unsafe.Add(mon, 24)) = 1
+			*(*float32)(unsafe.Add(mon, 28)) = 1
+			continue
+		}
+
 		workPosX := (*float32)(unsafe.Add(mon, 16))
 		workPosY := (*float32)(unsafe.Add(mon, 20))
 		workSizeX := (*float32)(unsafe.Add(mon, 24))
