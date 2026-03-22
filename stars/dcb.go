@@ -399,13 +399,13 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("FDB", &ps.Brightness.FullDatablocks, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LST", &ps.Brightness.Lists, 25, false),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LST", &ps.Brightness.Lists, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("POS", &ps.Brightness.Positions, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LDB", &ps.Brightness.LimitedDatablocks, 5, true),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LDB", &ps.Brightness.LimitedDatablocks, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("OTH", &ps.Brightness.OtherTracks, 5, true),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("OTH", &ps.Brightness.OtherTracks, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("TLS", &ps.Brightness.Lines, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
@@ -419,7 +419,7 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("HST", &ps.Brightness.History, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("WX", &ps.Brightness.Weather, 5, true),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("WX", &ps.Brightness.Weather, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("WXC", &ps.Brightness.WxContrast, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
@@ -1628,7 +1628,7 @@ func (s *dcbBrightnessSpinner) MouseDelta() float32 {
 func (s *dcbBrightnessSpinner) KeyboardInput(text string) (CommandMode, error) {
 	if v, err := strconv.Atoi(text); err != nil {
 		return CommandModeNone, ErrSTARSCommandFormat
-	} else if v < int(s.min) || v > 100 || (v == 0 && !s.allowOff) {
+	} else if v > 100 || (v < int(s.min) && !(v == 0 && s.allowOff)) {
 		return CommandModeNone, ErrSTARSIllegalValue
 	} else {
 		*s.b = radar.Brightness(v)
