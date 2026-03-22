@@ -631,6 +631,50 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 		fa.Filters.FDAM[i].ValidateTCPs(fc.ControlPositions, e)
 		e.Pop()
 	}
+
+	// Validate macros.
+	seenMacroInputs := make(map[string]bool)
+	for i, macro := range fa.STARSMacros {
+		e.Push(fmt.Sprintf("stars_macros[%d]", i))
+
+		// Check for [SLEW] placement — must only be at the very end.
+		input := macro.Input
+		baseName := strings.TrimSuffix(input, "[SLEW]")
+		if baseName == "" {
+			e.ErrorString("macro input must not be empty")
+		} else if idx := strings.Index(input, "[SLEW]"); idx != -1 {
+			if idx != len(input)-len("[SLEW]") {
+				e.ErrorString("[SLEW] must only appear at the end of input %q", input)
+			}
+		}
+
+		if seenMacroInputs[macro.Input] {
+			e.ErrorString("duplicate macro input %q", macro.Input)
+		}
+		seenMacroInputs[macro.Input] = true
+
+		if len(macro.Commands) == 0 {
+			e.ErrorString("macro must have at least one command")
+		}
+
+		for j, cmd := range macro.Commands {
+			// Commands may optionally start with a [MODE] prefix.
+			// If present, validate the mode string.
+			if strings.HasPrefix(cmd, "[") {
+				endBracket := strings.Index(cmd, "]")
+				if endBracket == -1 {
+					e.ErrorString("command[%d] %q: unclosed bracket in mode prefix", j, cmd)
+					continue
+				}
+				modeStr := cmd[1:endBracket]
+				if ValidateMacroCommandMode != nil && !ValidateMacroCommandMode(modeStr) {
+					e.ErrorString("command[%d]: invalid command mode %q", j, modeStr)
+				}
+			}
+		}
+
+		e.Pop()
+	}
 }
 
 func (fc *FacilityConfig) validateERAMAdaptation(e *util.ErrorLogger) {

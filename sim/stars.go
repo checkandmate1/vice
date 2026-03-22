@@ -442,7 +442,24 @@ type FacilityAdaptation struct {
 	} `json:"lists"`
 	RestrictionAreas []av.RestrictionArea `json:"restriction_areas"`
 	UseLegacyFont    bool                 `json:"use_legacy_font"`
+	STARSMacros      STARSMacroSet        `json:"stars_macros"`
 }
+
+// STARSMacroSet is a list of facility-defined keyboard macros.
+type STARSMacroSet []STARSMacro
+
+// STARSMacro defines a single keyboard macro that chains multiple STARS
+// commands together when activated via F16.
+type STARSMacro struct {
+	Input       string   `json:"input"`
+	Commands    []string `json:"commands"`
+	Output      string   `json:"output"`
+	Description string   `json:"description"`
+}
+
+// ValidateMacroCommandMode is registered by the stars package at init time.
+// It returns true if the given string is a valid command mode for macro commands.
+var ValidateMacroCommandMode func(string) bool
 
 type FilterRegion struct {
 	av.AirspaceVolume

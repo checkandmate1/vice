@@ -49,6 +49,7 @@ const (
 	CommandModeRestrictionArea
 	CommandModeDrawRoute
 	CommandModeDrawWind
+	CommandModeMacro
 
 	// These correspond to buttons on the main DCB menu.
 	CommandModeRange
@@ -118,6 +119,8 @@ func (c CommandMode) PreviewString(sp *STARSPane) string {
 		} else {
 			return "WIND"
 		}
+	case CommandModeMacro:
+		return "AM"
 	case CommandModeRange:
 		return "RANGE"
 	case CommandModePlaceCenter:
@@ -266,6 +269,9 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 				// Check if transient command handlers should intercept this input
 				status, err = sp.executeTransientCommandHandlers(ctx, sp.previewAreaInput,
 					nil, false, [2]float32{}, nil, radar.ScopeTransformations{})
+			} else if sp.commandMode == CommandModeMacro {
+				status, err = sp.handleMacroInput(ctx, sp.previewAreaInput, false, [2]float32{},
+					nil, radar.ScopeTransformations{})
 			} else {
 				status, err = sp.executeSTARSCommand(ctx, sp.previewAreaInput)
 			}
@@ -328,6 +334,8 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 		case imgui.KeyF4:
 			if ctx.Keyboard.KeyControl() {
 				sp.setCommandMode(ctx, CommandModeWX)
+			} else if ctx.Keyboard.KeyShift() { // F16
+				sp.setCommandMode(ctx, CommandModeMacro)
 			} else {
 				sp.setCommandMode(ctx, CommandModeTerminateControl)
 			}
@@ -402,6 +410,9 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 			if ctx.Keyboard.KeyControl() && ps.DisplayDCB {
 				sp.setCommandMode(ctx, CommandModeSite)
 			}
+
+		case imgui.KeyF16:
+			sp.setCommandMode(ctx, CommandModeMacro)
 
 		case imgui.KeyTab:
 			if imgui.IsKeyDown(imgui.KeyLeftShift) { // Check if LeftShift is pressed
@@ -652,6 +663,8 @@ func (sp *STARSPane) consumeMouseEvents(ctx *panes.Context, ghosts []*av.GhostTr
 		fmt.Printf("\n[MOUSE] Click, transientCommandHandlers=%d\n", len(sp.transientCommandHandlers))
 		if len(sp.transientCommandHandlers) > 0 {
 			status, err = sp.executeTransientCommandHandlers(ctx, sp.previewAreaInput, nil, true, ctx.Mouse.Pos, ghosts, transforms)
+		} else if sp.commandMode == CommandModeMacro {
+			status, err = sp.handleMacroInput(ctx, sp.previewAreaInput, true, ctx.Mouse.Pos, ghosts, transforms)
 		} else {
 			status, err = sp.executeSTARSClickedCommand(ctx, sp.previewAreaInput, ctx.Mouse.Pos, ghosts, transforms)
 		}
@@ -994,4 +1007,98 @@ func (sp *STARSPane) findClickedTrackAndGhost(ctx *panes.Context, mousePosition 
 	}
 
 	return trk, clickedGhost
+}
+
+// macroCommandModes maps the mode strings used in macro [MODE] prefixes
+// to their corresponding CommandMode values.
+var macroCommandModes = map[string]CommandMode{
+	"INIT CNTL":  CommandModeInitiateControl,
+	"TRK RPOS":   CommandModeTrackReposition,
+	"TRK SUSP":   CommandModeTrackSuspend,
+	"TERM CNTL":  CommandModeTerminateControl,
+	"HND OFF":    CommandModeHandOff,
+	"VFR FP":     CommandModeVFRPlan,
+	"MULTI FUNC": CommandModeMultiFunc,
+	"FLT DATA":   CommandModeFlightData,
+	"CA":         CommandModeCollisionAlert,
+	"TGT GEN":    CommandModeTargetGen,
+	"REL DEP":    CommandModeReleaseDeparture,
+	"RESTR AREA": CommandModeRestrictionArea,
+}
+
+func init() {
+	sim.ValidateMacroCommandMode = func(mode string) bool {
+		_, ok := macroCommandModes[mode]
+		return ok
+	}
+}
+
+func (sp *STARSPane) executeMacro(ctx *panes.Context, macro *sim.STARSMacro, inputIsSlew bool, args []string,
+	mousePosition [2]float32, ghosts []*av.GhostTrack, transforms radar.ScopeTransformations) (CommandStatus, error) {
+
+	for _, cmd := range macro.Commands {
+		// Parse optional [MODE] prefix; if absent, use CommandModeNone.
+		mode := CommandModeNone
+		if strings.HasPrefix(cmd, "[") {
+			endBracket := strings.Index(cmd, "]")
+			if endBracket == -1 {
+				sp.commandMode = CommandModeNone
+				return CommandStatus{}, ErrSTARSCommandFormat
+			}
+			var ok bool
+			mode, ok = macroCommandModes[cmd[1:endBracket]]
+			if !ok {
+				sp.commandMode = CommandModeNone
+				return CommandStatus{}, ErrSTARSCommandFormat
+			}
+			cmd = cmd[endBracket+1:]
+		}
+
+		// Substitute $1..$9 with args
+		for i := 1; i <= 9; i++ {
+			placeholder := "$" + strconv.Itoa(i)
+			var replacement string
+			if i-1 < len(args) {
+				replacement = args[i-1]
+			}
+			cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+		}
+
+		sp.commandMode = mode
+
+		var err error
+		if inputIsSlew {
+			_, err = sp.executeSTARSClickedCommand(ctx, cmd, mousePosition, ghosts, transforms)
+		} else {
+			_, err = sp.executeSTARSCommand(ctx, cmd)
+		}
+		if err != nil {
+			sp.commandMode = CommandModeNone
+			return CommandStatus{}, err
+		}
+	}
+
+	sp.commandMode = CommandModeNone
+	return CommandStatus{Output: strings.ToUpper(macro.Output)}, nil
+}
+
+// handleMacroInput parses the preview area input in macro mode,
+// finds a matching macro, and executes it. If isSlew is true, the macro
+// must have a [SLEW] suffix on its Input; otherwise it must not.
+func (sp *STARSPane) handleMacroInput(ctx *panes.Context, input string, isSlew bool,
+	mousePosition [2]float32, ghosts []*av.GhostTrack, transforms radar.ScopeTransformations) (CommandStatus, error) {
+	fields := strings.Fields(input)
+	if len(fields) == 0 {
+		return CommandStatus{}, ErrSTARSCommandFormat
+	}
+	name, args := fields[0], fields[1:]
+
+	for i := range ctx.FacilityAdaptation.STARSMacros {
+		macro := &ctx.FacilityAdaptation.STARSMacros[i]
+		if macroName, wantSlew := strings.CutSuffix(macro.Input, "[SLEW]"); macroName == name && isSlew == wantSlew {
+			return sp.executeMacro(ctx, macro, wantSlew, args, mousePosition, ghosts, transforms)
+		}
+	}
+
+	return CommandStatus{}, ErrSTARSCommandFormat
 }

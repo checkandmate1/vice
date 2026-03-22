@@ -2988,6 +2988,7 @@ SBA, SNA, SCTLA, DCA, Del Rey, SAN, PCT SHD (Ketan K), TPA (Nelson T), AAC, BOS 
                   <tr><td><code>[DCB-SHIFT]</code></td><td><code>[Ctrl-F7]</code></td></tr>
                   <tr><td><code>[DCB]</code></td><td><code>[Ctrl-F9]</code></td></tr>
                   <tr><td><code>[F13]</code></td><td><code>[Shift-F1]</code></td></tr>
+                  <tr><td><code>[F16 MACRO]</code></td><td><code>[Shift-F4]</code> or <code>[F16]</code></td></tr>
                   <tr><td><code>[FLT DATA]</code></td><td><code>[F6]</code></td></tr>
                   <tr><td><code>[HND OFF]</code></td><td><code>[F5]</code></td></tr>
                   <tr><td><code>[INIT CNTL]</code></td><td><code>[F1]</code></td></tr>
@@ -6755,7 +6756,19 @@ SBA, SNA, SCTLA, DCA, Del Rey, SAN, PCT SHD (Ketan K), TPA (Nelson T), AAC, BOS 
                   </tr>
                 </tbody>
               </table>
-            
+
+            <h4>Command Macros</h4>
+
+            <p>Facilities may define <i>command macros</i> that chain multiple STARS
+              commands together into a single shortcut. To use a macro:</p>
+            <ol>
+              <li>Press <code>[F16]</code> (<code>[Shift-F4]</code> on a standard keyboard) to enter macro mode. "AM" appears in the preview area.</li>
+              <li>Type the macro name, optionally followed by space-separated arguments.</li>
+              <li>Press <code>[Enter]</code> or slew (click) a track to execute, depending on the macro definition.</li>
+            </ol>
+            <p>Macros are defined per-facility in the scenario configuration. The available macros for the current
+              facility can be seen in the scenario info window, accessed by clicking the
+              <i class="fas fa-question-circle"></i> button in the menubar.</p>
 
             <h3 id="stars-video-maps">Video Maps</h3>
 

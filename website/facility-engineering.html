@@ -2369,6 +2369,48 @@
                       <td>Boolean</td>
                       <td>If "true", causes the legacy STARS font to be used in the STARS display.</td>
                     </tr>
+                    <tr>
+                      <td>"stars_macros"</td>
+                      <td>Array of objects</td>
+                      <td>Defines keyboard macros that chain multiple STARS commands together, activated via F16.</td>
+                    </tr>
+                    <tr><td colspan="3">
+                        <details class="json-fields" id="fe-stars-macros"><summary>"stars_macros" members</summary>
+                          <p>Each entry in the "stars_macros" array defines a macro that can be invoked by pressing F16,
+                            typing the macro input text and optional arguments, and pressing Enter or slewing a track.</p>
+                          <table class="table"><thead><tr><th>Element</th><th>Type</th><th>Description</th></tr></thead><tbody>
+                              <tr>
+                                <td>"input"</td>
+                                <td>String</td>
+                                <td>The text the user types after pressing F16. Append <code>[SLEW]</code> at the end
+                                  if the macro is activated by slewing (clicking) a track rather than pressing Enter.</td>
+                              </tr>
+                              <tr>
+                                <td>"commands"</td>
+                                <td>Array of strings</td>
+                                <td>The STARS commands to execute in sequence. Each command may optionally start with a
+                                  <code>[MODE]</code> prefix indicating the command mode. If no prefix is given, the command
+                                  executes with no command mode set. If <code>[SLEW]</code> is specified in the
+                                  macro's "input", all commands are executed as slew commands using the
+                                  clicked track position. Commands may contain
+                                  <code>$1</code> through <code>$9</code> for argument substitution from the
+                                  user's input. Valid modes: <code>INIT CNTL</code>, <code>TRK RPOS</code>, <code>TRK SUSP</code>,
+                                  <code>TERM CNTL</code>, <code>HND OFF</code>, <code>VFR FP</code>, <code>MULTI FUNC</code>,
+                                  <code>FLT DATA</code>, <code>CA</code>, <code>TGT GEN</code>, <code>REL DEP</code>, <code>RESTR AREA</code>.</td>
+                              </tr>
+                              <tr>
+                                <td>"output"</td>
+                                <td>String</td>
+                                <td>(<i>Optional</i>) Text displayed in the preview area on successful execution.</td>
+                              </tr>
+                              <tr>
+                                <td>"description"</td>
+                                <td>String</td>
+                                <td>(<i>Optional</i>) Human-readable description shown in the scenario info window.</td>
+                              </tr>
+                          </tbody></table>
+                        </details>
+                    </td></tr>
                   </tbody>
                 </table>
               </section><!--//section-->

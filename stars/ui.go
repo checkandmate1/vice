@@ -466,6 +466,32 @@ func (sp *STARSPane) DrawInfo(c *client.ControlClient, p platform.Platform, lg *
 		}
 	}
 
+	if macros := c.State.FacilityAdaptation.STARSMacros; len(macros) > 0 {
+		if imgui.CollapsingHeaderBoolPtr("STARS Macros", nil) {
+			if imgui.BeginTableV("macros", 3, tableFlags, imgui.Vec2{}, 0) {
+				imgui.TableSetupColumn("Input")
+				imgui.TableSetupColumn("Description")
+				imgui.TableSetupColumn("Type")
+				imgui.TableHeadersRow()
+
+				for _, m := range macros {
+					imgui.TableNextRow()
+					imgui.TableNextColumn()
+					imgui.Text(strings.TrimSuffix(m.Input, "[SLEW]"))
+					imgui.TableNextColumn()
+					imgui.Text(m.Description)
+					imgui.TableNextColumn()
+					if strings.HasSuffix(m.Input, "[SLEW]") {
+						imgui.Text("Slew")
+					} else {
+						imgui.Text("Enter")
+					}
+				}
+				imgui.EndTable()
+			}
+		}
+	}
+
 	// Holds section - show enroute and unassociated holds within 75nm
 	if imgui.CollapsingHeaderBoolPtr("Holds", nil) {
 		imgui.Text("Color:")
