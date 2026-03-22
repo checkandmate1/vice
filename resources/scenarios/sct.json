@@ -12385,7 +12385,7 @@
           "waypoints": "CMA N034.12.55.469,W119.01.23.193/ho GINNA",
           "cruise_altitude": 5000,
           "star": "SBAP2",
-          "initial_controller": "61T",
+          "initial_controller": "61H",
           "initial_altitude": 5000,
           "initial_speed": 150,
           "expect_approach": "RA2",
@@ -12820,7 +12820,7 @@
           },
           "star": "RUKKI1",
           "initial_controller": "C14",
-          "initial_altitude": 23000,
+          "initial_altitude": 32000,
           "initial_speed": 280,
           "expect_approach": null,
           "airlines": {
@@ -12876,7 +12876,7 @@
           },
           "star": "BAUBB3",
           "initial_controller": "C14",
-          "initial_altitude": 23000,
+          "initial_altitude": 32000,
           "initial_speed": 280,
           "expect_approach": null,
           "airlines": {

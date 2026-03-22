@@ -3175,7 +3175,7 @@
           "KHHR": 4
         }
       },
-      "configuration": "LA1",
+      "configuration": "2E",
       "default_maps": ["201S LAAB LE SCT"],
       "wind": {
         "direction": "30-120",
@@ -3215,7 +3215,7 @@
           "KLAX": 5
         }
       },
-      "configuration": "LA5",
+      "configuration": "2W",
       "default_maps": ["200S LAAB LW SCT"],
       "wind": {
         "direction": "200-360",
@@ -3254,7 +3254,7 @@
           "KHHR": 3
         }
       },
-      "configuration": "LA3",
+      "configuration": "M6R",
       "default_maps": ["202S LAAB LO SCT"],
       "wind": {
         "direction": "60-239",
@@ -3281,7 +3281,7 @@
           "KLAX": 5
         }
       },
-      "configuration": "LA2",
+      "configuration": "MID",
       "default_maps": ["202S LAAB LO SCT"],
       "wind": {
         "direction": "60-239",
@@ -3315,7 +3315,7 @@
           "KHHR": 2
         }
       },
-      "configuration": "LA4",
+      "configuration": "L2W",
       "default_maps": ["200S LAAB LW SCT"],
       "wind": {
         "direction": "200-360",
@@ -3348,7 +3348,7 @@
           "KLAX": 10
         }
       },
-      "configuration": "LAX",
+      "configuration": "L2E",
       "default_maps": ["201S LAAB LE SCT"],
       "wind": {
         "direction": "30-120",

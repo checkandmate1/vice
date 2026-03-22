@@ -1,17 +1,18 @@
+-- beta1
 - New scenario: LBB (Gecko), ZNY E/F (Ryan G)
 - Scenario updates: MIA (Gecko), ZNY, PHL, BOS (Ryan G), BOS (radarcontacto), I90 (Ketan K), ZJX (manaphy)
 - Adjusted radio noise simulation to reduce muffling of pilot responses
 - Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)
-- Flight simulation
+- Flight simulation:
   - Added "left/right direct {fix}" instruction (`LDFIX`, `RDFIX` if you're not using stt)
   - Improved pilot initial contact messages to include SIDs/STARs, altitude/speed restrictions, assigned headings, etc.
   - Aircraft will continue to descend after reaching the end of a STAR
+  - Fixed some bugs with meeting altitude restrictions on STARs
   - There are now VFR aircraft doing pattern work at airports with VFR traffic
-- Bugfixes:
-  - You can now tell VFR aircraft to "contact tower" without them complaining that they weren't assigned an approach.
-  - Fixed a few crashes under unusual circumstances.
   - Fixed a number of bugs with flying and drawing procedure turns
-- STT fixes:
+  - You can now tell VFR aircraft to "contact tower" without them complaining that they weren't assigned an approach.
+- Fixed a few crashes under unusual circumstances.
+- STT:
   - "Negative, ..." actually causes the aircraft that misheard the instruction to ignore it.
   - "Negative, (updated instructions)" is allowed when an aircraft reads back the wrong instructions (i.e., the callsign isn't required).
   - If a VFR calls in with a request, replying "(callsign), XYZ approach" is treated as "go ahead"
@@ -26,3 +27,9 @@
   - Added "cleared_altitude" for arrivals/overflights: this is like "cleared_altitude" for departures--aircraft try to get to that altitude when able, but obey altitude restrictions in their route while doing so.
   - When specifying routes, you can now use "/t" to specify departing a fix on a track heading, and "/lt" and "/rt" with a heading to specify a left/right turn to the given track heading.
   - When specifying routes, you can use "/ld" to specify to turn left when proceeding to the next fix, and similarly for "/rd" for turning right.
+-- beta2
+- New scenario: ZJX 88 (manaphy)
+- Scenario updates: NCT, SCT, ZLA (Ketan K)
+- Fixed bug where resources re-download each time vice launches
+- Fixed bug that was allowing mode C intruders into class B airspace
+- STARS: fixed bug where the compass brightness couldn't be set to 0 with the keyboard

@@ -578,7 +578,7 @@
           "3S": ["3D"]
         }
       },
-      "92X": {
+      "S3": {
         "inbound_assignments": {
           "EAST SAT ARR": "5D",
           "LEGOZ4": "5D",
@@ -596,7 +596,7 @@
           "5W": ["5D", "5E", "5M", "5N", "5Z"]
         }
       },
-      "SAN": {
+      "S2": {
         "inbound_assignments": {
           "EAST SAT ARR": "5D",
           "LEGOZ4": "5D",
@@ -614,7 +614,7 @@
           "5W": ["5D", "5E", "5M", "5N", "5Z"]
         }
       },
-      "SA1": {
+      "S1": {
         "inbound_assignments": {
           "COMIX2": "5N",
           "EAST SAT ARR": "5D",
@@ -741,7 +741,7 @@
           "6G": ["1M", "2F", "2U", "3N", "4Y", "5E", "6S"]
         }
       },
-      "LAX": {
+      "L2E": {
         "inbound_assignments": {
           "BIGBR3_FINAL": "2D",
           "BRUEN2_FINAL": "2D",
@@ -751,7 +751,7 @@
           "2D": ["2U"]
         }
       },
-      "LA1": {
+      "2E": {
         "inbound_assignments": {
           "BIGBR3": "2F",
           "BRUEN2": "2F",
@@ -764,7 +764,7 @@
           "2Z": ["2U"]
         }
       },
-      "LA2": {
+      "MID": {
         "inbound_assignments": {
           "MDNYT2_FINAL": "2U",
           "ZUUMA4_FINAL": "2U"
@@ -773,7 +773,7 @@
           "2U": []
         }
       },
-      "LA3": {
+      "M6R": {
         "inbound_assignments": {
           "EMMLN1": "2F",
           "MDNYT2.ANJLL": "2F",
@@ -785,7 +785,7 @@
           "2F": ["2U"]
         }
       },
-      "LA4": {
+      "L2W": {
         "inbound_assignments": {
           "ANJLL4/HLYWD1.FINAL": "2D",
           "GOATZ2/OLAAA2_FINAL": "2D",
@@ -795,7 +795,7 @@
           "2D": ["2U"]
         }
       },
-      "LA5": {
+      "2W": {
         "inbound_assignments": {
           "ANJLL4": "2F",
           "GOATZ2/OLAAA2": "2D",
@@ -1480,88 +1480,6 @@
           "vertices": "N035.12.54.426,W119.40.23.556 N035.06.12.985,W116.32.10.242 N034.20.04.650,W115.35.53.622 N034.01.19.458,W114.34.09.746 N033.07.48.209,W114.43.52.928 N033.02.32.009,W115.55.56.954 N032.17.44.355,W115.58.14.174 N032.13.07.156,W117.48.36.101 N032.52.08.274,W118.42.27.839 N032.55.25.135,W119.25.36.328 N034.53.19.424,W119.43.41.832 N035.12.54.426,W119.40.23.556",
           "floor": 0,
           "ceiling": 28000
-        }
-      ],
-      "inhibit_msaw": [
-        {
-          "id": "LAXMSAW",
-          "description": "PSP MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 3000,
-          "radius": 10,
-          "center": "KLAX"
-        },
-        {
-          "id": "LGBMSAW",
-          "description": "ONT MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 3000,
-          "radius": 8,
-          "center": "KLGB"
-        },
-        {
-          "id": "SNAMSAW",
-          "description": "PSP MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 3000,
-          "radius": 5,
-          "center": "KSNA"
-        },
-        {
-          "id": "SMOMSAW",
-          "description": "PSP MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 3000,
-          "radius": 3,
-          "center": "KSMO"
-        },
-        {
-          "id": "HHRMSAW",
-          "description": "ONT MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 3000,
-          "radius": 3,
-          "center": "KHHR"
-        },
-        {
-          "id": "ONTMSAW",
-          "description": "ONT MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 4300,
-          "radius": 8,
-          "center": "KONT"
-        },
-        {
-          "id": "PDPMSAW",
-          "description": "PSP DP MSAW SUPPRESS",
-          "type": "polygon",
-          "vertices": "N033.49.35.921,W116.31.10.999 N033.54.38.457,W116.36.04.196 N033.58.33.276,W116.31.26.022 N034.03.00.876,W116.31.54.285 N034.03.16.531,W116.29.50.222 N033.58.56.787,W116.29.28.249 N033.58.06.140,W116.24.37.056 N033.56.01.074,W116.25.15.481 N033.57.16.125,W116.30.17.193 N033.54.34.914,W116.32.45.509 N033.50.17.724,W116.29.27.947",
-          "floor": 0,
-          "ceiling": 5500
-        },
-        {
-          "id": "PSPMSAW",
-          "description": "PSP MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 5500,
-          "radius": 3.4,
-          "center": "KPSP"
-        },
-        {
-          "id": "SBDMSAW",
-          "description": "SBD MSAW SUPPRESS",
-          "type": "circle",
-          "floor": 0,
-          "ceiling": 4300,
-          "radius": 4,
-          "center": "KSBD"
         }
       ]
     },
@@ -2251,34 +2169,44 @@
     "lists": {
       "coordination": [
         {
-          "name": ".    SAN BERNADINO",
-          "id": "B",
+          "name": "SAN BERNADINO",
+          "id": "P",
           "airports": ["KSBD"]
         },
         {
           "name": "HAWTHORNE",
-          "id": "J",
+          "id": "65",
           "airports": ["KHHR"]
         },
         {
           "name": "SANTA MONICA",
-          "id": "O",
+          "id": "64",
           "airports": ["KSMO"]
         },
         {
           "name": "LONG BEACH",
-          "id": "V",
+          "id": "42",
           "airports": ["KLGB"]
         },
         {
-          "name": "VNY",
-          "id": "Y",
+          "name": "VAN NUYS",
+          "id": "12",
           "airports": ["KVNY"]
         },
         {
-          "name": ".    PALM SPRINGS",
-          "id": "Z",
+          "name": "PALM SPRINGS",
+          "id": "32",
           "airports": ["KPSP"]
+        },
+        {
+          "name": "MONTGOMERY",
+          "id": "55",
+          "airports": ["KMYF"]
+        },
+        {
+          "name": "PALOMAR",
+          "id": "52",
+          "airports": ["KCRQ"]
         }
       ],
       "ssa": {

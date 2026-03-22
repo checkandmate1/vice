@@ -4635,7 +4635,7 @@
         }
       },
       "vfr_rate_scale": 0.6,
-      "configuration": "01X",
+      "configuration": "C3B",
       "default_maps": ["RVMNCT901S"],
       "departure_runways": [
         {
@@ -4726,7 +4726,7 @@
         }
       },
       "vfr_rate_scale": 0.6,
-      "configuration": "01X",
+      "configuration": "C1B",
       "default_maps": ["RVMNCT901S"],
       "departure_runways": [
         {
@@ -4778,35 +4778,32 @@
       ],
       "inbound_rates": {
         "RISTI1.TIPRE": {
-          "KSFO": 5
+          "KSFO": 1
         },
         "RISTI1.ORRCA": {
-          "KSFO": 5
-        },
-        "PYE3.SFOE": {
-          "KSFO": 5
+          "KSFO": 1
         },
         "ALWYS3": {
-          "KSFO": 5
-        },
-        "BDEGA4": {
-          "KSFO": 5
-        },
-        "OAKES3.OAKE": {
-          "overflights": 10
+          "KSFO": 12
         },
         "PIRAT3": {
           "KSFO": 5
         },
-        "SERFR4": {
-          "KSFO": 5
+        "STLER4": {
+          "KSFO": 8
+        },
+        "WWAVS2": {
+          "KSFO": 12
+        },
+        "OAKES3.OAKE": {
+          "overflights": 6
         },
         "REBAS1": {
           "overflights": 4
         }
       },
       "vfr_rate_scale": 0.6,
-      "configuration": "AR6",
+      "configuration": "C2B",
       "default_maps": ["RVMNCT902S"],
       "departure_runways": [
         {
@@ -4830,7 +4827,7 @@
         "speed": "15+"
       }
     },
-    "Area B - SFOE (RWYS 19/10)": {
+    "Area B - SFOE (RWY10)": {
       "center": "KSFO",
       "arrival_runways": [
         {
@@ -4848,32 +4845,35 @@
       ],
       "inbound_rates": {
         "RISTI1.TIPRE": {
-          "KSFO": 5
+          "KSFO": 1
         },
         "RISTI1.ORRCA": {
-          "KSFO": 5
+          "KSFO": 1
+        },
+        "PYE3.SFOE": {
+          "KSFO": 2
         },
         "ALWYS3": {
-          "KSFO": 5
+          "KSFO": 12
+        },
+        "STLER4": {
+          "KSFO": 8
+        },
+        "OAKES3.OAKE": {
+          "overflights": 6
         },
         "PIRAT3": {
           "KSFO": 5
         },
-        "STLER4": {
-          "KSFO": 5
-        },
         "WWAVS2": {
-          "KSFO": 5
-        },
-        "OAKES3.OAKE": {
-          "overflights": 10
+          "KSFO": 12
         },
         "REBAS1": {
           "overflights": 4
         }
       },
       "vfr_rate_scale": 0.6,
-      "configuration": "11X",
+      "configuration": "C4B",
       "default_maps": ["RVMNCT902S"],
       "departure_runways": [
         {

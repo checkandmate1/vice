@@ -8,7 +8,6 @@
     "KHMT": { "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 2 } } },
     "KOKB": { "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 4 } } },
     "KRNM": { "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 4 } } },
-    "KSDM": { "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 5 } } },
     "KSEE": { "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 8 } } },
     "KLGB": { "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 10 } } },
     "F70": { "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 4 } } },
@@ -263,6 +262,22 @@
       ],
       "tower_list": 2,
       "hold_for_release": true
+    },
+    "KSDM": {
+      "vfr": { "random_routes": { "fleet": "GAsinglepiston", "rate": 5 } },
+      "approaches": {
+        "R8L": {
+          "cifp_id": "R8L"
+        },
+        "V26R": {
+          "full_name": "Visual Runway 26R",
+          "runway": "26R",
+          "type": "Visual",
+          "waypoints": [
+            "N032.38.18.120,W116.45.01.840/a5000+ N032.36.19.151,W116.48.10.722/a4200+ N032.33.47.856,W116.52.10.801/a3000"
+          ]
+        }
+      }
     },
     "KCRQ": {
       "approaches": {
@@ -1825,7 +1840,7 @@
         {
           "waypoints": "BOREN KARRO/ho JLI",
           "cruise_altitude": 10000,
-          "star": "BOREN KARRO JLI",
+          "route": "BOREN KARRO JLI",
           "initial_controller": "C09",
           "initial_altitude": 10000,
           "initial_speed": 200,
@@ -1918,7 +1933,7 @@
         {
           "waypoints": "MOMAR/a24000-26000 DSURT/a19000-23000 TRIXI/a12000-14000/s270/ho HSKER/a8700+ BARET/a8000+ HNAHH/a6100+ LUCKI/a6000 LYNDI/a5000+/s210",
           "cruise_altitude": 36000,
-          "route": "LUCKI LYNDI",
+          "star": "LUCKI1",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 280,
@@ -2007,7 +2022,7 @@
         {
           "waypoints": "CMPOE/a19000-23000 HEELX/a12000-15000/s270/ho JACKK/a10000-11000/s250 AZTEK/a8000+ JEEVS/a6100+ LUCKI/a6000 LYNDI/a5000+/s210",
           "cruise_altitude": 36000,
-          "route": "LUCKI LYNDI",
+          "star": "LUCKI1",
           "initial_controller": "C09",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -2091,12 +2106,70 @@
         }
       ]
     },
+    "CHASR2.IPL": {
+      "arrivals": [
+        {
+          "waypoints": "BLUZE/a17000-19000 GUUSE/a10000-12000 TOPGN/a7300+ CHASR/a6400/h250",
+          "star": "CHASR2",
+          "initial_controller": "C09",
+          "initial_altitude": 18000,
+          "initial_speed": 270,
+          "expect_approach": null,
+          "airlines": {
+            "KSDM": [
+              {
+                "icao": "N",
+                "fleet": "fastGA",
+                "airport": "KPHX"
+              },
+              {
+                "icao": "N",
+                "fleet": "fastGA",
+                "airport": "KIAH"
+              },
+              {
+                "icao": "XA",
+                "fleet": "fastGA",
+                "airport": "MMPR"
+              },
+              {
+                "icao": "XA",
+                "fleet": "fastGA",
+                "airport": "MMSD"
+              },
+              {
+                "icao": "LXJ",
+                "airport": "MMSD"
+              },
+              {
+                "icao": "EJA",
+                "airport": "MMSD"
+              }
+            ],
+            "KNZY": [
+              {
+                "icao": "CNV",
+                "airport": "KNIP"
+              },
+              {
+                "icao": "CNV",
+                "airport": "KADW"
+              },
+              {
+                "icao": "GTI",
+                "airport": "KWRI"
+              }
+            ]
+          }
+        }
+      ]
+    },
     "LAXX1/V23 NORTH ARR(W)": {
       "arrivals": [
         {
           "waypoints": "N033.32.45.467,W117.59.10.314 N033.20.01.876,W117.42.40.556/ho CARIF MZB",
           "cruise_altitude": 13000,
-          "star": "LAXX1",
+          "route": "LAXX1",
           "initial_controller": "4Y",
           "initial_altitude": 13000,
           "initial_speed": 280,
@@ -2113,7 +2186,7 @@
         {
           "waypoints": "SLI DANAH/ho OCN CARIF MZB",
           "cruise_altitude": 23000,
-          "star": "SLI DANAH OCN MZB",
+          "route": "SLI DANAH OCN MZB",
           "initial_controller": "4Y",
           "initial_altitude": 13000,
           "initial_speed": 200,
@@ -2142,7 +2215,7 @@
         {
           "waypoints": "SLI ALBAS PACIF REDIN SARGS",
           "cruise_altitude": 11000,
-          "star": "SLI ALBAS PACIF REDIN SARGS",
+          "route": "SLI ALBAS PACIF REDIN SARGS",
           "initial_controller": "4Y",
           "initial_altitude": 11000,
           "initial_speed": 270,
@@ -2163,7 +2236,7 @@
         {
           "waypoints": "WESIN TANNR/ho ROBNN OCN",
           "cruise_altitude": 7000,
-          "star": "ROBNN OCN",
+          "route": "ROBNN OCN",
           "initial_controller": "3N",
           "initial_altitude": 7000,
           "initial_speed": 180,
@@ -2229,7 +2302,7 @@
         {
           "waypoints": "KUMBA/ho GILYY STAXS BLLYJ HAILE MZB",
           "cruise_altitude": 12000,
-          "star": "KUMBA GILYY STAXS BLLYJ HAILE MZB",
+          "route": "KUMBA T326 MZB",
           "initial_controller": "C09",
           "initial_altitude": 10000,
           "initial_speed": 200,
@@ -2254,7 +2327,7 @@
         {
           "waypoints": "MOMAR/a24000+ DSURT/a19000+ TRIXI/a12000+/s270/ho TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
           "cruise_altitude": 36000,
-          "route": "TOPGN ISEMN ZIPPP TMCAT",
+          "star": "TOPGN2",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 270,
@@ -2343,7 +2416,7 @@
         {
           "waypoints": "IPL/a24000+ BLUZE/a17000+/ho GUUSE/a12000+/s270 TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
           "cruise_altitude": 36000,
-          "route": "TOPGN ISEMN ZIPPP TMCAT",
+          "star": "TOPGN2",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 270,
@@ -3542,6 +3615,10 @@
         {
           "airport": "KNZY",
           "runway": "29"
+        },
+        {
+          "airport": "KSDM",
+          "runway": "26R"
         }
       ],
       "inbound_rates": {
@@ -3571,6 +3648,10 @@
         "LEGOZ4": {
           "KCRQ": 3
         },
+        "CHASR2.IPL": {
+          "KNZY": 1,
+          "KSDM": 1
+        },
         "W291 NZY ARR": {
           "KNZY": 2
         },
@@ -3578,7 +3659,7 @@
           "overflights": 6
         }
       },
-      "configuration": "SA1",
+      "configuration": "S1",
       "default_maps": ["500S SB WEST SCT"],
       "departure_runways": [
         {
@@ -3664,7 +3745,7 @@
           "overflights": 6
         }
       },
-      "configuration": "SAN",
+      "configuration": "S2",
       "default_maps": ["501S SB EAST SCT"],
       "departure_runways": [
         {
@@ -3744,7 +3825,7 @@
           "overflights": 6
         }
       },
-      "configuration": "92X",
+      "configuration": "S3",
       "default_maps": ["501S SB EAST SCT"],
       "departure_runways": [
         {

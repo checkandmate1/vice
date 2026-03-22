@@ -80,6 +80,21 @@
       "frequency": 125350,
       "radio_name": "NorCal Approach"
     },
+    "3K": {
+      "callsign": "OAK_K_APP",
+      "frequency": 120950,
+      "radio_name": "NorCal Approach"
+    },
+    "3J": {
+      "callsign": "OAK_J_APP",
+      "frequency": 123850,
+      "radio_name": "NorCal Approach"
+    },
+    "3M": {
+      "callsign": "OAK_J_APP",
+      "frequency": 124400,
+      "radio_name": "NorCal Approach"
+    },
     "4U": {
       "callsign": "SFO_U_DEP",
       "frequency": 135100,
@@ -218,31 +233,7 @@
   },
   "facility_adaptations": {
     "configurations": {
-      "ARE": {
-        "inbound_assignments": {
-          "BRINY2": "1M",
-          "EMZOH4.E": "1M",
-          "FRLON2": "1M",
-          "PYE3": "1L",
-          "RAZRR5.E": "1M",
-          "RISTI1.ORRCA": "1M",
-          "RISTI1.TIPRE": "1M",
-          "SAT.EAST": "1M",
-          "SAT.SOUTH": "1M",
-          "SILCN6.S": "1M"
-        },
-        "departure_assignments": {
-          "KMRY": "1S",
-          "KPAO": "1L",
-          "KSJC": "1T",
-          "KSNS": "1M"
-        },
-        "default_consolidation": {
-          "1L": ["1T"],
-          "1M": ["1L", "1S"]
-        }
-      },
-      "AR1": {
+      "C1A": {
         "inbound_assignments": {
           "BRINY2": "1K",
           "BRIXX4": "1K",
@@ -267,18 +258,18 @@
           "1S": ["1F"]
         }
       },
-      "AR2": {
+      "C2A": {
         "inbound_assignments": {
           "BRINY2": "1M",
-          "BRIXX4": "1M",
           "EMZOH4.E": "1M",
+          "FRLON2": "1M",
           "PYE3": "1L",
           "RAZRR5.E": "1M",
           "RISTI1.ORRCA": "1M",
           "RISTI1.TIPRE": "1M",
           "SAT.EAST": "1M",
           "SAT.SOUTH": "1M",
-          "SILCN6.N": "1M"
+          "SILCN6.S": "1M"
         },
         "departure_assignments": {
           "KMRY": "1S",
@@ -291,26 +282,53 @@
           "1M": ["1L", "1S"]
         }
       },
-      "11X": {
+      "C3A": {
         "inbound_assignments": {
-          "ALWYS3": "2Z",
-          "PIRAT3": "2B",
-          "REBAS1": "2Z",
-          "RISTI1.ORRCA": "2Z",
-          "RISTI1.TIPRE": "2Z",
-          "STLER4": "2B",
-          "WWAVS2": "2G"
+          "BRIXX4": "1M",
+          "EMZOH4.E": "1M",
+          "PYE3": "1L",
+          "RAZRR5.E": "1M",
+          "RISTI1.ORRCA": "1M",
+          "RISTI1.TIPRE": "1M",
+          "SAT.EAST": "1M",
+          "SAT.SOUTH": "1M",
+          "SILCN6.S": "1M"
         },
         "departure_assignments": {
-          "KSQL": "2W"
+          "KMRY": "1S",
+          "KPAO": "1L",
+          "KSJC": "1T",
+          "KSNS": "1M"
         },
         "default_consolidation": {
-          "2B": ["2G", "2W", "2Z"],
-          "2W": ["2F"],
-          "2Z": ["2N"]
+          "1L": ["1T"],
+          "1M": ["1L", "1S"]
         }
       },
-      "01X": {
+      "C4A": {
+        "inbound_assignments": {
+          "BRIXX4": "1M",
+          "EMZOH4.W": "1M",
+          "PYE3": "1L",
+          "RAZRR5.E": "1M",
+          "RISTI1.ORRCA": "1M",
+          "RISTI1.TIPRE": "1M",
+          "SAT.EAST": "1M",
+          "SAT.SOUTH": "1M",
+          "SILCN6.S": "1M"
+        },
+        "departure_assignments": {
+          "KMRY": "1S",
+          "KPAO": "1L",
+          "KSJC": "1T",
+          "KSNS": "1M"
+        },
+        "default_consolidation": {
+          "1L": ["1T"],
+          "1M": ["1L", "1S"]
+        }
+      },
+      "C1B": {
         "inbound_assignments": {
           "BDEGA4": "2B",
           "BRIXX4": "2B",
@@ -331,6 +349,124 @@
           "2B": ["2G", "2W", "2Z"],
           "2W": ["2F"],
           "2Z": ["2N"]
+        }
+      },
+      "C2B": {
+        "inbound_assignments": {
+          "ALWYS3": "2Z",
+          "PIRAT3": "2B",
+          "REBAS1": "2Z",
+          "RISTI1.ORRCA": "2Z",
+          "RISTI1.TIPRE": "2Z",
+          "STLER4": "2B",
+          "WWAVS2": "2G"
+        },
+        "departure_assignments": {
+          "KSQL": "2W"
+        },
+        "default_consolidation": {
+          "2B": ["2G", "2W", "2Z"],
+          "2W": ["2F"],
+          "2Z": ["2N"]
+        }
+      },
+      "C3B": {
+        "inbound_assignments": {
+          "BDEGA4": "2B",
+          "BRIXX4": "2B",
+          "DYAMD5": "2Z",
+          "PIRAT3": "2B",
+          "PYE3": "2B",
+          "RISTI1.ORRCA": "2Z",
+          "RISTI1.TIPRE": "2Z",
+          "SERFR4": "2G",
+          "SJC OCEANIC": "2B",
+          "VNYRD1": "2Z",
+          "YOSEM3": "2Z"
+        },
+        "departure_assignments": {
+          "KSQL": "2W"
+        },
+        "default_consolidation": {
+          "2B": ["2G", "2W", "2Z"],
+          "2W": ["2F"],
+          "2Z": ["2N"]
+        }
+      },
+      "C4B": {
+        "inbound_assignments": {
+          "ALWYS3": "2Z",
+          "PIRAT3": "2B",
+          "PYE3.SFOE": "2B",
+          "REBAS1": "2Z",
+          "RISTI1.ORRCA": "2Z",
+          "RISTI1.TIPRE": "2Z",
+          "STLER4": "2B",
+          "WWAVS2": "2G"
+        },
+        "departure_assignments": {
+          "KSQL": "2W"
+        },
+        "default_consolidation": {
+          "2B": ["2G", "2W", "2Z"],
+          "2W": ["2F"],
+          "2Z": ["2N"]
+        }
+      },
+      "C1C": {
+        "inbound_assignments": {
+          "EMZOH4.W": "3S",
+          "OAKES3.W": "3S",
+          "BMBER1.NURAY": "3S",
+          "BMBER1.OAKES": "3S",
+          "SUUTR4": "3S",
+          "PIRAT3": "3M",
+          "PXN6": "3S",
+          "WNDSR2": "3G",
+          "SAT.EAST": "3Y",
+          "SAT.SOUTH": "3S"
+        },
+        "default_consolidation": {
+          "3Y": ["3S", "3K", "3J"],
+          "3S": ["3G"],
+          "3G": ["3M"]
+        }
+      },
+      "C2C": {
+        "inbound_assignments": {
+          "EMZOH4.E": "3S",
+          "OAKES3.E": "3S",
+          "BMBER1.NURAY": "3S",
+          "BMBER1.OAKES": "3S",
+          "SUUTR4": "3S",
+          "PXN6": "3S",
+          "PIRAT3": "3M",
+          "AANET1": "3G",
+          "SAT.EAST": "3Y",
+          "SAT.SOUTH": "3S"
+        },
+        "default_consolidation": {
+          "3Y": ["3S", "3K", "3J"],
+          "3S": ["3G"],
+          "3G": ["3M"]
+        }
+      },
+      "C3C": {
+        "inbound_assignments": {
+          "EMZOH4.E": "3S",
+          "OAKES3.E": "3S",
+          "BMBER1.NURAY": "3S",
+          "BMBER1.OAKES": "3S",
+          "SUUTR4": "3S",
+          "PIRAT3": "3M",
+          "AANET1": "3G",
+          "SAT.EAST": "3Y",
+          "SAT.SOUTH": "3S"
+        },
+        "default_consolidation": {
+          "3Y": ["3S", "3K", "3J"],
+          "3S": ["3G"],
+          "3G": ["3M"]
         }
       },
       "22X": {
@@ -466,26 +602,6 @@
           "5P": ["5E", "5X"],
           "5X": ["5D"]
         }
-      },
-      "AR6": {
-        "inbound_assignments": {
-          "ALWYS3": "2Z",
-          "BDEGA4": "2B",
-          "PIRAT3": "2B",
-          "PYE3.SFOE": "2F",
-          "REBAS1": "2Z",
-          "RISTI1.ORRCA": "2Z",
-          "RISTI1.TIPRE": "2Z",
-          "SERFR4": "2G"
-        },
-        "departure_assignments": {
-          "KSQL": "2W"
-        },
-        "default_consolidation": {
-          "2B": ["2G", "2W", "2Z"],
-          "2W": ["2F"],
-          "2Z": ["2N"]
-        }
       }
     },
     "center": "KSJC",
@@ -520,25 +636,211 @@
         ]
       }
     },
+    "ssr_codes": {
+      "auto_assignable_codes": {
+        "ifr": {
+          "ranges": ["4601-4677", "5601-5677"]
+        },
+        "vfr": {
+          "ranges": ["0301-0377", "5301-5377"],
+          "backup_pool_list": "1"
+        },
+        "1": {
+          "ranges": ["5701-5777"],
+          "flight_rules": "v"
+        }
+      },
+      "beacon_code_table": {
+        "vfr_codes": ["1200-1202"]
+      }
+    },
     "filters": {
       "quicklook": [
         {
           "id": "Q69",
           "description": "SECA SERFR QUICKLOOK",
           "type": "polygon",
-          "floor": 16000,
+          "tcps": "1S",
+          "scratchpad": "SF1,SJ1,SFO,SJC",
+          "floor": 15000,
           "ceiling": 24000,
           "vertices": [
-            "N036.32.25.060,W121.48.32.997",
-            "N036.33.45.508,W121.41.43.674",
-            "N036.31.00.575,W121.39.46.834",
-            "N036.28.41.214,W121.45.51.828"
+            "N036.33.08.800,W121.41.41.394",
+            "N036.14.50.112,W121.26.57.791",
+            "N036.11.45.390,W121.33.15.474",
+            "N036.09.23.612,W121.49.30.703",
+            "N036.06.55.667,W122.02.46.827",
+            "N036.11.04.219,W122.23.48.195",
+            "N036.23.39.680,W122.32.16.257",
+            "N036.33.08.800,W121.41.41.394"
           ]
+        },
+        {
+          "id": "Q13",
+          "description": "AREA B QUICKLOOK",
+          "type": "polygon",
+          "tcps": "2Z,2B,2F,2G,2N,2W",
+          "scratchpad": "SFO,SF1,YSM",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q14",
+          "description": "MRY ARR QUICKLOOK",
+          "type": "polygon",
+          "tcps": "1M",
+          "scratchpad": "MRY",
+          "floor": 10000,
+          "ceiling": 25000,
+          "vertices": "N036.32.59.557,W121.41.30.628 N036.37.39.104,W121.43.36.833 N036.39.24.093,W121.22.48.347 N036.10.47.300,W120.54.00.911 N036.00.35.897,W121.16.23.441 N036.33.07.069,W121.41.15.549 N036.32.59.557,W121.41.30.628"
+        },
+        {
+          "id": "Q18A",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "2W",
+          "owning_tcp": "2F",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q18B",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "2F",
+          "owning_tcp": "2W",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q18C",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "3M",
+          "owning_tcp": "3G",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q18D",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "3G",
+          "owning_tcp": "3M",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q18E",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "4U",
+          "owning_tcp": "4R",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q18F",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "4R",
+          "owning_tcp": "4U",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q18G",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "8N",
+          "owning_tcp": "8S",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q18H",
+          "description": "NCT CROSSREF QUICKLOOK",
+          "type": "polygon",
+          "tcps": "8S",
+          "owning_tcp": "8N",
+          "floor": 0,
+          "ceiling": 25000,
+          "vertices": "N040.07.48.814,W125.54.14.260 N041.20.05.598,W118.57.28.223 N034.45.59.271,W116.05.56.478 N033.02.07.015,W123.10.05.319 N040.07.48.814,W125.54.14.260"
+        },
+        {
+          "id": "Q40",
+          "description": "GROVE/MULFORD QUICKLOOK",
+          "type": "polygon",
+          "owning_tcp": "1L,1T,2B,2Z,2N,2S,3J,3Y,4D,4F,4R,4Q",
+          "tcps": "3G,3M",
+          "floor": 0,
+          "ceiling": 9000,
+          "vertices": "N037.22.49.075,W121.41.26.233 N037.31.10.669,W121.59.51.046 N037.38.58.632,W122.17.17.164 N037.48.20.335,W122.09.50.817 N037.52.16.170,W121.50.20.388 N037.56.37.906,W121.48.34.782 N037.51.30.000,W121.37.57.658 N037.43.20.587,W121.41.55.759 N037.38.53.152,W121.40.30.670 N037.31.05.231,W121.32.23.151 N037.22.49.075,W121.41.26.233"
+        },
+        {
+          "id": "Q41",
+          "description": "GROVE/MULFORD QUICKLOOK",
+          "type": "polygon",
+          "owning_tcp": "2F,2W,1P,2S",
+          "tcps": "3G,3M",
+          "floor": 0,
+          "ceiling": 9000,
+          "vertices": "N037.22.49.075,W121.41.26.233 N037.31.10.669,W121.59.51.046 N037.38.58.632,W122.17.17.164 N037.48.20.335,W122.09.50.817 N037.52.16.170,W121.50.20.388 N037.56.37.906,W121.48.34.782 N037.51.30.000,W121.37.57.658 N037.43.20.587,W121.41.55.759 N037.38.53.152,W121.40.30.670 N037.31.05.231,W121.32.23.151 N037.22.49.075,W121.41.26.233"
+        },
+        {
+          "id": "Q48A",
+          "description": "AREA D/PARADISE QUICKLOOK",
+          "type": "polygon",
+          "owning_tcp": "4Q,4R,4U",
+          "tcps": "4F",
+          "floor": 8000,
+          "ceiling": 21000,
+          "vertices": "N037.23.50.845,W121.56.21.784 N037.23.37.057,W121.40.42.974 N037.43.27.646,W121.31.06.577 N037.58.44.153,W120.13.45.183 N039.07.00.913,W120.43.11.867 N038.47.22.410,W121.57.18.198 N037.54.21.360,W122.36.55.036 N037.35.36.085,W122.24.17.089 N037.23.50.845,W121.56.21.784"
+        },
+        {
+          "id": "Q48B",
+          "description": "AREA D/PARADISE QUICKLOOK",
+          "type": "polygon",
+          "owning_tcp": "4F,4Q,4R,4U",
+          "tcps": "5P",
+          "floor": 8000,
+          "ceiling": 21000,
+          "vertices": "N037.23.50.845,W121.56.21.784 N037.23.37.057,W121.40.42.974 N037.43.27.646,W121.31.06.577 N037.58.44.153,W120.13.45.183 N039.07.00.913,W120.43.11.867 N038.47.22.410,W121.57.18.198 N037.54.21.360,W122.36.55.036 N037.35.36.085,W122.24.17.089 N037.23.50.845,W121.56.21.784"
+        },
+        {
+          "id": "Q48C",
+          "description": "AREA D/PARADISE QUICKLOOK",
+          "type": "polygon",
+          "owning_tcp": "4Q",
+          "tcps": "4R",
+          "floor": 8000,
+          "ceiling": 21000,
+          "vertices": "N037.23.50.845,W121.56.21.784 N037.23.37.057,W121.40.42.974 N037.43.27.646,W121.31.06.577 N037.58.44.153,W120.13.45.183 N039.07.00.913,W120.43.11.867 N038.47.22.410,W121.57.18.198 N037.54.21.360,W122.36.55.036 N037.35.36.085,W122.24.17.089 N037.23.50.845,W121.56.21.784"
+        },
+        {
+          "id": "Q53",
+          "description": "LVK QUICKLOOK",
+          "type": "polygon",
+          "scratchpad": "LKV",
+          "tcps": "3G,3J",
+          "floor": 0,
+          "ceiling": 5000,
+          "vertices": "N037.38.08.685,W121.55.48.880 N037.47.52.883,W121.56.19.888 N037.51.27.721,W121.46.59.558 N037.52.47.797,W121.16.15.421 N037.33.59.749,W121.14.53.984 N037.38.08.685,W121.55.48.880"
         },
         {
           "id": "Q81",
           "description": "TOGA-SUTRO QUICKLOOK",
           "type": "polygon",
+          "tcps": "1T",
+          "owning_tcp": "4U,4Q",
           "floor": 5000,
           "ceiling": 21000,
           "vertices": [
@@ -550,6 +852,36 @@
             "N037.02.07.276,W121.34.16.063",
             "N037.08.08.287,W121.54.11.431"
           ]
+        },
+        {
+          "id": "Q82",
+          "description": "MORGAN/SUTRO QUICKLOOK",
+          "type": "polygon",
+          "owning_tcp": "4U,4Q",
+          "tcps": "1M",
+          "floor": 5000,
+          "ceiling": 19000,
+          "vertices": "N037.19.50.148,W121.28.14.393 N037.22.21.156,W121.16.46.237 N036.39.06.995,W120.32.04.227 N036.13.34.773,W120.50.20.635 N036.06.07.369,W121.04.55.642 N036.10.05.387,W121.36.12.683 N037.00.36.776,W122.03.28.135 N037.19.50.148,W121.28.14.393"
+        },
+        {
+          "id": "Q86",
+          "description": "MORGAN QUICKLOOK",
+          "type": "polygon",
+          "scratchpad": "SJC,SJ1",
+          "tcps": "1M",
+          "floor": 5000,
+          "ceiling": 13000,
+          "vertices": "N037.23.54.443,W122.29.33.165 N037.31.13.883,W122.02.06.397 N037.27.45.390,W121.08.16.911 N037.02.48.200,W121.34.08.345 N036.56.10.935,W122.14.56.868 N037.23.54.443,W122.29.33.165"
+        },
+        {
+          "id": "Q87",
+          "description": "PARADISE SLMMR QUICKLOOK",
+          "type": "polygon",
+          "tcps": "5P",
+          "scratchpad": "SMF,SM1,MA1",
+          "floor": 9000,
+          "ceiling": 21000,
+          "vertices": "N038.41.36.588,W120.56.41.614 N038.57.56.321,W121.04.35.756 N039.20.25.318,W120.19.53.527 N038.44.06.592,W120.07.33.323 N038.41.36.588,W120.56.41.614"
         }
       ],
       "inhibit_ca": [
@@ -1685,6 +2017,48 @@
         "center": "KSFO",
         "range": 80
       },
+      "3": {
+        "video_maps": [
+          "RVMNCT903S",
+          "RVMNCT907S",
+          "RVMNCT921S",
+          "RVMNCT905S",
+          "RVMNCT906S",
+          "RVMNCT904S",
+          "RVMNCT901S",
+          "RVMNCT903S",
+          "RVMNCT905S",
+          "RVMNCT907S",
+          "RVMNCT909S",
+          "RVMNCT911S",
+          "RVMNCT913S",
+          "RVMNCT916S",
+          "RVMNCT922S",
+          "RVMNCT924S",
+          "RVMNCT931S",
+          "RVMNCT941S",
+          "RVMNCT943S",
+          "RVMNCT945S",
+          "",
+          "",
+          "RVMNCT902S",
+          "RVMNCT904S",
+          "RVMNCT906S",
+          "RVMNCT908S",
+          "RVMNCT910S",
+          "",
+          "RVMNCT915S",
+          "RVMNCT921S",
+          "RVMNCT923S",
+          "RVMNCT925S",
+          "RVMNCT934S",
+          "RVMNCT942S",
+          "RVMNCT944S",
+          "RVMNCT946S"
+        ],
+        "center": "ALTAM",
+        "range": 60
+      },
       "4": {
         "video_maps": [
           "RVMNCT903S",
@@ -1801,48 +2175,6 @@
           }
         ]
       },
-      "3": {
-        "video_maps": [
-          "RVMNCT903S",
-          "RVMNCT907S",
-          "RVMNCT921S",
-          "RVMNCT905S",
-          "RVMNCT906S",
-          "RVMNCT904S",
-          "RVMNCT901S",
-          "RVMNCT903S",
-          "RVMNCT905S",
-          "RVMNCT907S",
-          "RVMNCT909S",
-          "RVMNCT911S",
-          "RVMNCT913S",
-          "RVMNCT916S",
-          "RVMNCT922S",
-          "RVMNCT924S",
-          "RVMNCT931S",
-          "RVMNCT941S",
-          "RVMNCT943S",
-          "RVMNCT945S",
-          "",
-          "",
-          "RVMNCT902S",
-          "RVMNCT904S",
-          "RVMNCT906S",
-          "RVMNCT908S",
-          "RVMNCT910S",
-          "",
-          "RVMNCT915S",
-          "RVMNCT921S",
-          "RVMNCT923S",
-          "RVMNCT925S",
-          "RVMNCT934S",
-          "RVMNCT942S",
-          "RVMNCT944S",
-          "RVMNCT946S"
-        ],
-        "center": "KSJC",
-        "range": 45
-      },
       "8": {
         "video_maps": [
           "RVMNCT903S",
@@ -1890,28 +2222,43 @@
       "coordination": [
         {
           "name": "Palo Alto",
-          "id": "P",
+          "id": "1P",
           "airports": ["KPAO"]
         },
         {
           "name": "Salinas",
-          "id": "Y",
+          "id": "1Y",
           "airports": ["KSNS"]
         },
         {
           "name": "San Carlos",
-          "id": "S",
+          "id": "2S",
           "airports": ["KSQL"]
         },
         {
           "name": "MHR",
-          "id": "M",
+          "id": "5M",
           "airports": ["KMHR"]
         },
         {
           "name": "SAC",
-          "id": "Z",
+          "id": "5Z",
           "airports": ["KSAC"]
+        },
+        {
+          "name": "Castle",
+          "id": "3K",
+          "airports": ["KMER"]
+        },
+        {
+          "name": "Modesto",
+          "id": "3P",
+          "airports": ["KMOD"]
+        },
+        {
+          "name": "Livermore",
+          "id": "3L",
+          "airports": ["KLVK"]
         }
       ],
       "ssa": {
@@ -1931,10 +2278,6 @@
     {
       "id": "NLC",
       "prefix": "4"
-    },
-    {
-      "id": "O90",
-      "prefix": "9"
     },
     {
       "id": "SUU",

@@ -1,0 +1,32 @@
+{
+  "control_positions": {
+    "1A": {
+      "callsign": "NZY_A_APP",
+      "frequency": 127700,
+      "radio_name": "North Island"
+    },
+    "1B": {
+      "callsign": "NZY_B_APP",
+      "frequency": 133175,
+      "radio_name": "SoCal Approach"
+    },
+    "1L": {
+      "callsign": "NZY_TWR",
+      "frequency": 133175,
+      "radio_name": "North Island Tower"
+    }
+  },
+  "facility_adaptations": {
+    "configurations": {}
+  },
+  "handoff_ids": [
+    {
+      "id": "SCT",
+      "prefix": "1"
+    },
+    {
+      "id": "ZLA",
+      "prefix": "C"
+    }
+  ]
+}
