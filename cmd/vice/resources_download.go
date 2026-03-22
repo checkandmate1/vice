@@ -328,11 +328,16 @@ func SyncResources(plat platform.Platform, r renderer.Renderer, lg *log.Logger) 
 	// Migrate from lowercase "vice" to "Vice" for case-sensitive filesystems.
 	oldDir := filepath.Join(configDir, "vice")
 	newDir := filepath.Join(configDir, "Vice")
-	if info, err := os.Stat(oldDir); err == nil && info.IsDir() {
-		if _, err := os.Stat(newDir); os.IsNotExist(err) {
+	oldInfo, oldErr := os.Stat(oldDir)
+	newInfo, newErr := os.Stat(newDir)
+	// On case-insensitive filesystems (macOS), both paths resolve to the same
+	// directory. os.SameFile detects this so we skip the migration entirely.
+	sameFile := oldErr == nil && newErr == nil && os.SameFile(oldInfo, newInfo)
+	if oldErr == nil && oldInfo.IsDir() && !sameFile {
+		if os.IsNotExist(newErr) {
 			// Only the old lowercase directory exists; rename it.
 			os.Rename(oldDir, newDir)
-		} else if err == nil {
+		} else if newErr == nil {
 			// Both exist (unusual). Move resources if needed, then remove the old dir.
 			oldRes := filepath.Join(oldDir, "resources")
 			newRes := filepath.Join(newDir, "resources")
