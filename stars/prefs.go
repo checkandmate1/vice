@@ -201,6 +201,8 @@ type CommonPreferences struct {
 		History            radar.Brightness
 		Weather            radar.Brightness
 		WxContrast         radar.Brightness
+		TPA                radar.Brightness
+		ATPA               radar.Brightness
 	}
 
 	CharSize struct {
@@ -378,6 +380,8 @@ func makeDefaultPreferences() *Preferences {
 	prefs.Brightness.History = 60
 	prefs.Brightness.Weather = 30
 	prefs.Brightness.WxContrast = 30
+	prefs.Brightness.TPA = 40
+	prefs.Brightness.ATPA = 40
 
 	for i := range prefs.DisplayWeatherLevel {
 		prefs.DisplayWeatherLevel[i] = true
@@ -581,6 +585,10 @@ func (p *Preferences) Upgrade(from, to int) {
 	}
 	if from < 32 {
 		p.MCISuppressionList.Position = [2]float32{.8, .1}
+	}
+	if from < 63 {
+		p.Brightness.TPA = 40
+		p.Brightness.ATPA = 40
 	}
 }
 

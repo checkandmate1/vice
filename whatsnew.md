@@ -33,3 +33,5 @@
 - Fixed bug where resources re-download each time vice launches
 - Fixed bug that was allowing mode C intruders into class B airspace
 - STARS: fixed bug where the compass brightness couldn't be set to 0 with the keyboard
+--
+- STARS: add controls for TPA and ATPA brightness in the BRITE menu in the DCB

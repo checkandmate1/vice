@@ -724,9 +724,9 @@ func (sp *STARSPane) drawRingsAndCones(ctx *panes.Context, transforms radar.Scop
 
 	ps := sp.currentPrefs()
 	font := sp.systemFont(ctx, ps.CharSize.Datablocks)
-	color := ps.Brightness.Lines.ScaleRGB(sp.Colors.JRingCone)
 
 	for _, trk := range sp.visibleTracks {
+		color := ps.Brightness.TPA.ScaleRGB(sp.Colors.JRingCone)
 		state := sp.TrackState[trk.ADSBCallsign]
 
 		// Format a radius/length for printing, ditching the ".0" if it's
@@ -791,26 +791,28 @@ func (sp *STARSPane) drawRingsAndCones(ctx *panes.Context, transforms radar.Scop
 			// Now we'll rotate the vertices so that it points in the
 			// appropriate direction.
 			var coneHeading float32
+			var coneColor renderer.RGB
 			if drawATPACone {
 				// The cone is oriented to point toward the leading aircraft.
 				if sfront, ok := sp.TrackState[state.ATPALeadAircraftCallsign]; ok {
 					coneHeading = float32(math.TrueToMagnetic(math.Heading2LL(state.track.Location, sfront.track.Location,
 						ctx.NmPerLongitude), ctx.MagneticVariation))
 				}
+				coneColor = ps.Brightness.ATPA.ScaleRGB(sp.Colors.JRingCone)
 			} else {
 				// The cone is oriented along the aircraft's heading.
 				coneHeading = float32(math.TrueToMagnetic(state.TrackHeading(ctx.NmPerLongitude), ctx.MagneticVariation))
+				coneColor = ps.Brightness.TPA.ScaleRGB(sp.Colors.JRingCone)
 			}
 			rot := math.Rotator2f(coneHeading)
 			for i := range pts {
 				pts[i] = rot(pts[i])
 			}
 
-			coneColor := ps.Brightness.Lines.ScaleRGB(sp.Colors.JRingCone)
 			if atpaStatus == ATPAStatusWarning {
-				coneColor = ps.Brightness.Lines.ScaleRGB(sp.Colors.ATPAWarning)
+				coneColor = ps.Brightness.ATPA.ScaleRGB(sp.Colors.ATPAWarning)
 			} else if atpaStatus == ATPAStatusAlert {
-				coneColor = ps.Brightness.Lines.ScaleRGB(sp.Colors.ATPAAlert)
+				coneColor = ps.Brightness.ATPA.ScaleRGB(sp.Colors.ATPAAlert)
 			}
 
 			// We've got what we need to draw a polyline with the

@@ -386,7 +386,7 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 	}
 
 	if sp.commandMode == CommandModeBrite || sp.commandMode == CommandModeBriteSpinner {
-		rewindDCBCursor(7, buttonScale)
+		rewindDCBCursor(10, buttonScale)
 		dcbStartCaptureMouseRegion()
 
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("DCB", &ps.Brightness.DCB, 25, false),
@@ -423,6 +423,16 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("WXC", &ps.Brightness.WxContrast, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("TPA", &ps.Brightness.TPA, 5, false),
+			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("ATPA", &ps.Brightness.ATPA, 5, false),
+			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
+		// These are all related to FMA alerts
+		sp.disabledButton(ctx, "AMZ", buttonHalfVertical, buttonScale) // 5-100, true
+		sp.disabledButton(ctx, "RWY", buttonHalfVertical, buttonScale) // 5-100, true
+		sp.disabledButton(ctx, "NTZ", buttonHalfVertical, buttonScale) // 50-100, false
+		sp.disabledButton(ctx, "REF", buttonHalfVertical, buttonScale) // 5-100, false
+
 		if sp.selectButton(ctx, "DONE", buttonHalfVertical, buttonScale) {
 			sp.setCommandMode(ctx, CommandModeNone)
 		} else if sp.activeSpinner == nil { // let spinner capture take precedence

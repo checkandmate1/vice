@@ -70,7 +70,8 @@ import (
 // 60: restructure scenario JSON
 // 61: restructure config JSON
 // 62: new route/waypoint options
-const ViceSerializeVersion = 62
+// 63: stars [A]TPA brightness controls
+const ViceSerializeVersion = 63
 
 const ViceServerAddress = "vice.pharr.org"
 const ViceServerPort = 8000 - 50 + ViceRPCVersion
