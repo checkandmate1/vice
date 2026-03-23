@@ -457,6 +457,35 @@ type STARSMacro struct {
 	Description string   `json:"description"`
 }
 
+func (m STARSMacro) IsSlew() bool {
+	return strings.HasSuffix(m.Input, "[SLEW]")
+}
+
+func (m STARSMacro) Name() string {
+	n := strings.TrimSuffix(m.Input, "[SLEW]")
+	if idx := strings.IndexByte(n, ']'); idx != -1 {
+		return n[idx+1:]
+	}
+	return n
+}
+
+func (m STARSMacro) Mode() string {
+	n := strings.TrimSuffix(m.Input, "[SLEW]")
+	if idx := strings.IndexByte(n, ']'); idx > 2 {
+		return n[1:idx]
+	}
+	return ""
+}
+
+func (m STARSMacro) HasParameters() bool {
+	for _, cmd := range m.Commands {
+		if strings.Contains(cmd, "$1") {
+			return true
+		}
+	}
+	return false
+}
+
 // ValidateMacroCommandMode is registered by the stars package at init time.
 // It returns true if the given string is a valid command mode for macro commands.
 var ValidateMacroCommandMode func(string) bool

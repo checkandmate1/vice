@@ -16,6 +16,7 @@ import (
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/panes"
 	"github.com/mmp/vice/platform"
+	"github.com/mmp/vice/renderer"
 	"github.com/mmp/vice/sim"
 	"github.com/mmp/vice/util"
 
@@ -468,24 +469,52 @@ func (sp *STARSPane) DrawInfo(c *client.ControlClient, p platform.Platform, lg *
 
 	if macros := c.State.FacilityAdaptation.STARSMacros; len(macros) > 0 {
 		if imgui.CollapsingHeaderBoolPtr("STARS Macros", nil) {
-			if imgui.BeginTableV("macros", 3, tableFlags, imgui.Vec2{}, 0) {
+			// Sort by mode for grouped display.
+			sorted := make(sim.STARSMacroSet, len(macros))
+			copy(sorted, macros)
+			slices.SortStableFunc(sorted, func(a, b sim.STARSMacro) int {
+				return strings.Compare(a.Input, b.Input)
+			})
+
+			fixedFont := renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoMono, Size: renderer.FixedFontSize(int(imgui.FontSize()))})
+			if imgui.BeginTableV("macros", 5, tableFlags, imgui.Vec2{}, 0) {
+				imgui.TableSetupColumn("Mode")
 				imgui.TableSetupColumn("Input")
+				imgui.TableSetupColumn("Activation")
+				imgui.TableSetupColumn("Commands")
 				imgui.TableSetupColumn("Description")
-				imgui.TableSetupColumn("Type")
 				imgui.TableHeadersRow()
 
-				for _, m := range macros {
+				for _, m := range sorted {
 					imgui.TableNextRow()
 					imgui.TableNextColumn()
-					imgui.Text(strings.TrimSuffix(m.Input, "[SLEW]"))
+					fixedFont.ImguiPush()
+					if mode := m.Mode(); mode == "" {
+						imgui.Text("--")
+					} else {
+						imgui.Text(mode)
+					}
+					imgui.PopFont()
 					imgui.TableNextColumn()
-					imgui.Text(m.Description)
+					fixedFont.ImguiPush()
+					if input := m.Name(); input == "" {
+						imgui.Text("--")
+					} else {
+						imgui.Text(input)
+					}
+					imgui.PopFont()
 					imgui.TableNextColumn()
-					if strings.HasSuffix(m.Input, "[SLEW]") {
+					if m.IsSlew() {
 						imgui.Text("Slew")
 					} else {
 						imgui.Text("Enter")
 					}
+					imgui.TableNextColumn()
+					fixedFont.ImguiPush()
+					imgui.Text(strings.Join(m.Commands, "\n"))
+					imgui.PopFont()
+					imgui.TableNextColumn()
+					imgui.Text(m.Description)
 				}
 				imgui.EndTable()
 			}

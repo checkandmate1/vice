@@ -35,3 +35,4 @@
 - STARS: fixed bug where the compass brightness couldn't be set to 0 with the keyboard
 --
 - STARS: add controls for TPA and ATPA brightness in the BRITE menu in the DCB
+- STARS: added support for macro commands

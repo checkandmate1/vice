@@ -637,15 +637,32 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 	for i, macro := range fa.STARSMacros {
 		e.Push(fmt.Sprintf("stars_macros[%d]", i))
 
-		// Check for [SLEW] placement — must only be at the very end.
 		input := macro.Input
-		baseName := strings.TrimSuffix(input, "[SLEW]")
-		if baseName == "" {
-			e.ErrorString("macro input must not be empty")
-		} else if idx := strings.Index(input, "[SLEW]"); idx != -1 {
+
+		// [SLEW] must only appear at the very end.
+		if idx := strings.Index(input, "[SLEW]"); idx != -1 {
 			if idx != len(input)-len("[SLEW]") {
 				e.ErrorString("[SLEW] must only appear at the end of input %q", input)
 			}
+		}
+
+		// Parse and validate the optional [MODE] prefix.
+		remainder := strings.TrimSuffix(input, "[SLEW]")
+		hasMode := false
+		if strings.HasPrefix(remainder, "[") {
+			if end := strings.Index(remainder, "]"); end == -1 {
+				e.ErrorString("unclosed bracket in input mode prefix %q", input)
+			} else {
+				hasMode = true
+				modeStr := remainder[1:end]
+				if ValidateMacroCommandMode != nil && !ValidateMacroCommandMode(modeStr) {
+					e.ErrorString("invalid input command mode %q", modeStr)
+				}
+				remainder = remainder[end+1:]
+			}
+		}
+		if !hasMode && remainder == "" {
+			e.ErrorString(`macro "input" must not be empty`)
 		}
 
 		if seenMacroInputs[macro.Input] {

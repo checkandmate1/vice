@@ -6760,12 +6760,18 @@ SBA, SNA, SCTLA, DCA, Del Rey, SAN, PCT SHD (Ketan K), TPA (Nelson T), AAC, BOS 
             <h4>Command Macros</h4>
 
             <p>Facilities may define <i>command macros</i> that chain multiple STARS
-              commands together into a single shortcut. To use a macro:</p>
-            <ol>
-              <li>Press <code>[F16]</code> (<code>[Shift-F4]</code> on a standard keyboard) to enter macro mode. "AM" appears in the preview area.</li>
-              <li>Type the macro name, optionally followed by space-separated arguments.</li>
-              <li>Press <code>[Enter]</code> or slew (click) a track to execute, depending on the macro definition.</li>
-            </ol>
+              commands together into a single shortcut. Macros can be associated with any command mode;
+              when a macro matches the current mode and typed text, it takes priority over built-in commands.</p>
+            <p>For example, a macro with input <code>[F16]X[SLEW]</code> activates when the user presses
+              <code>[F16]</code>, types <code>X</code>, and slews a track. A macro with input
+              <code>[TERM CNTL]HELLO</code> activates when the user types <code>[TERM CNTL]HELLO[Enter]</code>.
+              Macros may also have empty matching text
+              (e.g., <code>[F16]</code> or <code>[F16][SLEW]</code>) to activate immediately on <code>[Enter]</code> or slew.</p>
+            <p>Macros support parameter substitution: commands may include <code>$1</code> through
+              <code>$9</code> placeholders that are replaced with words from the user's input.
+              A macro with no text in its input but with <code>$1</code> in its commands acts as a
+              <i>catch-all</i> for its command mode: any text the user types is passed as parameters.
+              Catch-all macros only activate as a fallback when no exact-name macro matches.</p>
             <p>Macros are defined per-facility in the scenario configuration. The available macros for the current
               facility can be seen in the scenario info window, accessed by clicking the
               <i class="fas fa-question-circle"></i> button in the menubar.</p>
