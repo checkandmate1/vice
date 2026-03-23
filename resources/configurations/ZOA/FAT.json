@@ -21,6 +21,148 @@
       "radio_name": "Fresno Tower"
     }
   },
+"facility_adaptations": {
+	"areas": {
+	"1": {
+	  "video_maps": [
+      "RVMFAT021S",
+	  "RVMFAT022S",
+	  "RVMFAT030S",
+	  "RVMFAT023S",
+	  "RVMFAT028S",
+	  "RVMFAT027S",
+	  
+	  "RVMFAT021S",
+	  "RVMFAT022S",
+	  "RVMFAT030S",
+	  "RVMFAT029S",
+	  "RVMFAT020S",
+	  "RVMFAT026S",
+	  "RVMFAT032S",
+	  "RVMFAT034S",
+	  "RVMFAT036S",
+	  "RVMFAT038S",
+	  "RVMFAT043S",
+	  "",
+	  "",
+	  "",
+	  "",
+	  "",	  
+	  "RVMFAT023S",
+	  "RVMFAT028S",
+	  "RVMFAT027S",
+	  "RVMFAT024S",
+	  "RVMFAT025S",
+	  "RVMFAT031S",
+	  "RVMFAT033S",
+	  "RVMFAT035S",
+	  "RVMFAT037S",
+	  "RVMFAT039S",
+	  "RVMFAT040S"
+    ],
+	"center": "KFAT",
+	"range": 50
+  }
+  },
+  "center": "KFAT",
+  "filters": {
+      "auto_acquisition": [
+        {
+          "id": "ACQ",
+          "description": "FAT AUTO-ACQUISITION",
+          "type": "polygon",
+          "vertices": "N035.43.07.898,W119.55.17.871 N037.16.09.969,W121.09.28.789 N037.52.07.642,W120.22.17.667 N037.53.19.232,W119.13.24.693 N037.23.02.107,W118.21.14.249 N035.59.06.153,W118.34.40.041 N035.26.10.042,W119.02.44.547",
+          "floor": 0,
+          "ceiling": 23000
+        }
+      ]
+    },
+"controllers": {
+    "1F": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 10000,
+            "vertices": "N035.59.17.826,W119.28.43.370 N036.03.26.652,W119.12.23.170 N036.07.04.113,W119.09.39.583 N036.07.10.828,W119.00.52.294 N036.32.55.122,W119.12.54.893 N037.05.08.784,W119.14.25.502 N037.08.39.447,W119.29.54.342 N037.11.50.829,W120.05.47.882 N037.06.54.582,W120.12.21.220 N036.53.42.454,W120.18.11.766 N036.43.04.382,W120.11.31.314 N036.33.45.906,W119.46.23.496 N035.59.17.826,W119.28.43.370"
+          },
+		  {
+            "type": "polygon",
+            "ceiling": 3000,
+            "vertices": "N036.43.46.885,W120.11.24.640 N036.38.53.564,W120.09.11.733 N036.29.13.967,W119.47.42.844 N036.13.40.802,W119.39.24.669 N036.14.31.517,W119.34.48.061 N036.34.21.886,W119.44.54.342 N036.44.34.017,W120.11.21.674 N036.43.46.885,W120.11.24.640"
+          }
+        ]
+      }
+    },
+  "radar_sites": {
+      "FAT": {
+        "char": "S",
+        "position": "35.394728, 120.354325",
+        "elevation": 3622,
+        "primary_range": 55,
+        "secondary_range": 120,
+        "silence_angle": 30,
+        "slope_angle": 0.3
+      }
+  },
+  "range": 50,
+  "scratchpads": {
+      "NTELL": "NTL",
+      "FRAME": "FRM",
+      "CABAB": "CAB",
+	  "SWR": "SWR",
+	  "NIKOL": "NIK",
+	  "SHIMR": "SHM"
+    },
+	"coordination_fixes": {
+      "ALTTA": [
+        {
+          "type": "route",
+          "to": "FAT",
+          "from": "ZLA"
+        }
+      ],
+	  "NTELL": [
+        {
+          "type": "route",
+          "to": "FAT",
+          "from": "NCT"
+        }
+      ]
+    },
+	"video_map_file": "videomaps/ZOA-videomaps.gob.zst",
+    "configurations": {
+      "CF1": {
+        "inbound_assignments": {
+          "ALTTA9": "1F",
+          "NTELL ARRS N": "1H",
+		  "NORTH ARRS N": "1H",
+		  "EAST ARRS N": "1F"
+        },
+        "departure_assignments": {
+          "KFAT/BULL3": "1F",
+		  "KFAT/YOSE3": "1H"
+        },
+		"default_consolidation": {
+          "1F": ["1H","1S"]
+        }
+      },
+	  "CF2": {
+        "inbound_assignments": {
+          "ALTTA9": "1F",
+          "NTELL ARRS S": "1H",
+		  "NORTH ARRS S": "1H",
+		  "EAST ARRS S": "1H"
+        },
+        "departure_assignments": {
+          "KFAT/BULL3": "1F",
+		  "KFAT/YOSE3": "1H"
+        },
+		"default_consolidation": {
+          "1F": ["1H","1S"]
+        }
+      }
+    }
+  },
   "handoff_ids": [
     {
       "id": "BFL",
@@ -42,8 +184,5 @@
       "id": "ZOA",
       "prefix": "C"
     }
-  ],
-  "facility_adaptations": {
-    "configurations": {}
-  }
+  ]
 }

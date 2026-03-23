@@ -36,3 +36,4 @@
 --
 - STARS: add controls for TPA and ATPA brightness in the BRITE menu in the DCB
 - STARS: added support for macro commands
+- New scenarios: TYS (Jake Magee / manaphy), FAT (Ketan K)
