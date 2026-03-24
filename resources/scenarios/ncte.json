@@ -2532,7 +2532,7 @@
           "waypoints": "CWALK/a20000-23000 N038.46.46.430,W119.30.31.970/ho TARVR/a14000/h347",
           "star": "TARVR1",
           "initial_controller": "C44",
-          "initial_altitude": 26000,
+          "initial_altitude": 23000,
           "initial_speed": 280,
           "description": "MVA",
           "expect_approach": null,
