@@ -1032,7 +1032,159 @@
       "ssa": {
         "altimeters": ["KMLB", "KISM", "KLEE", "KMCO", "KTIX", "KSFB"]
       }
-    }
+    },
+    "stars_macros": [
+      {
+        "input": "[F16]A",
+        "commands": ["[MAP]113"],
+        "output": "",
+        "description": "Videomap: Airports"
+      },
+      {
+        "input": "[F16]AN",
+        "commands": ["[MAP]881"],
+        "output": "",
+        "description": "Videomap: STARS North"
+      },
+      {
+        "input": "[F16]AS",
+        "commands": ["[MAP]880"],
+        "output": "",
+        "description": "Videomap: STARS South"
+      },
+      {
+        "input": "[F16]B",
+        "commands": ["[MAP]142"],
+        "output": "",
+        "description": "Videomap: Class B"
+      },
+      {
+        "input": "[F16]D",
+        "commands": ["[MAP]825"],
+        "output": "",
+        "description": "Videomap: Tampa DADES Arrival"
+      },
+      {
+        "input": "[F16]DN",
+        "commands": ["[MAP]883"],
+        "output": "",
+        "description": "Videomap: SIDS North"
+      },
+      {
+        "input": "[F16]DS",
+        "commands": ["[MAP]882"],
+        "output": "",
+        "description": "Videomap: SIDS South"
+      },
+      {
+        "input": "[F16]E",
+        "commands": ["[MAP]169"],
+        "output": "",
+        "description": "Videomap: Emergency"
+      },
+      {
+        "input": "[F16]G",
+        "commands": ["[MAP]201"],
+        "output": "",
+        "description": "Videomap: GPS/RNAV"
+      },
+      {
+        "input": "[F16]H",
+        "commands": ["[MAP]119"],
+        "output": "",
+        "description": "Videomap: Heliports"
+      },
+      {
+        "input": "[F16]I",
+        "commands": ["[MAP]121"],
+        "output": "",
+        "description": "Videomap: ILS Fixes/Altitudes"
+      },
+      {
+        "input": "[F16]K",
+        "commands": ["[MAP]888"],
+        "output": "",
+        "description": "Videomap: ISM Finals"
+      },
+      {
+        "input": "[F16]L",
+        "commands": ["[MAP]889"],
+        "output": "",
+        "description": "Videomap: LEE Finals"
+      },
+      {
+        "input": "[F16]M",
+        "commands": ["[MAP]116"],
+        "output": "",
+        "description": "Videomap: FUSION 3NM MVA"
+      },
+      {
+        "input": "[F16]MM",
+        "commands": ["[MAP]172"],
+        "output": "",
+        "description": "Videomap: SCR ASR-11 MVA"
+      },
+      {
+        "input": "[F16]MO",
+        "commands": ["[MAP]116"],
+        "output": "",
+        "description": "Videomap: MCO ASR-9 MVA"
+      },
+      {
+        "input": "[F16]MU",
+        "commands": ["[MAP]181"],
+        "output": "",
+        "description": "Videomap: Fusion ISR/Multi-Mode 5NM MVA"
+      },
+      {
+        "input": "[F16]N",
+        "commands": ["[MAP]112"],
+        "output": "",
+        "description": "Videomap: Intersections"
+      },
+      {
+        "input": "[F16]O",
+        "commands": ["[MAP]132"],
+        "output": "",
+        "description": "Videomap: Obstructions"
+      },
+      {
+        "input": "[F16]Q",
+        "commands": ["[MAP]179"],
+        "output": "",
+        "description": "Videomap: Q-Routes"
+      },
+      {
+        "input": "[F16]R",
+        "commands": ["[MAP]120"],
+        "output": "",
+        "description": "Videomap: Restricted Areas"
+      },
+      {
+        "input": "[F16]RN",
+        "commands": ["[MAP]184"],
+        "output": "",
+        "description": "Videomap: RNAV Visual Fix Names"
+      },
+      {
+        "input": "[F16]RV",
+        "commands": ["[MAP]183"],
+        "output": "",
+        "description": "Videomap: RNAV Visual Fixes"
+      },
+      {
+        "input": "[F16]V",
+        "commands": ["[MAP]109"],
+        "output": "",
+        "description": "Videomap: Victor Airways"
+      },
+      {
+        "input": "[F16]TR",
+        "commands": ["[MAP]884"],
+        "output": "",
+        "description": "Videomap: T-Routes"
+      }
+    ]
   },
   "handoff_ids": [
     {

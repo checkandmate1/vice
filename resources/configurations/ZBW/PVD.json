@@ -121,6 +121,7 @@
         }
       }
     },
+    "use_legacy_font": true,
     "center": "N041.43.29.033,W071.25.35.559",
     "radar_sites": {
       "PVD": {
@@ -245,7 +246,33 @@
       "ssa": {
         "altimeters": ["KPVD"]
       }
-    }
+    },
+    "stars_macros": [
+      {
+        "input": "T[SLEW]",
+        "commands": ["[MULTI FUNC]M1T"],
+        "output": "",
+        "description": "Modify track to T tag"
+      },
+      {
+        "input": "Q[SLEW]",
+        "commands": ["[MULTI FUNC]M1Q"],
+        "output": "",
+        "description": "Modify track to Q tag"
+      },
+      {
+        "input": "E[SLEW]",
+        "commands": ["[MULTI FUNC]M1E"],
+        "output": "",
+        "description": "Modify track to E tag"
+      },
+      {
+        "input": "X[SLEW]",
+        "commands": ["[MULTI FUNC]M1X"],
+        "output": "",
+        "description": "Modify track to X tag"
+      }
+    ]
   },
   "handoff_ids": [
     {

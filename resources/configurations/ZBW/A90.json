@@ -102,6 +102,11 @@
       "frequency": 119700,
       "radio_name": "Boston Approach"
     },
+    "1X": {
+      "callsign": "OMIC",
+      "frequency": 119740,
+      "radio_name": "OPS SUP"
+    },
     "1S": {
       "callsign": "ACK_S_APP",
       "frequency": 133750,
@@ -647,6 +652,9 @@
       "1U": {
         "center": "N042.20.54.899,W071.00.21.011"
       },
+      "1X": {
+        "center": "N042.20.54.899,W071.00.21.011"
+      },
       "1L": {
         "center": "N042.20.54.899,W071.00.21.011",
         "flight_following_airspace": [
@@ -753,6 +761,7 @@
           "ZBW SPLIT 3"
         ]
       },
+
       "1Z": {
         "center": "KMHT",
         "video_map_file": "videomaps/ZBW-videomaps.gob.zst",
@@ -1018,7 +1027,27 @@
       "ssa": {
         "altimeters": ["KBOS", "KFMH", "KMHT"]
       }
-    }
+    },
+    "stars_macros": [
+      {
+        "input": "[F16][SLEW]",
+        "commands": ["[MULTI FUNC]Y+VA"],
+        "output": "",
+        "description": "Implied +VA"
+      },
+      {
+        "input": "[F16]1[SLEW]",
+        "commands": ["++000"],
+        "output": "",
+        "description": "Implied clear requested altitude"
+      },
+      {
+        "input": "X[SLEW]",
+        "commands": ["[MULTI FUNC]M1X"],
+        "output": "",
+        "description": "Modify track to X tag"
+      }
+    ]
   },
   "handoff_ids": [
     {
