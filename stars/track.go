@@ -124,6 +124,7 @@ type TrackState struct {
 	// entirely.
 	PointOutAcknowledged bool
 	ForceQL              bool
+	InQLRegion           bool
 
 	// Unreasonable Mode-C
 	UnreasonableModeC       bool
@@ -537,21 +538,29 @@ func (sp *STARSPane) updateQuicklookRegionTracks(ctx *panes.Context) {
 	for _, trk := range sp.visibleTracks {
 		state := sp.TrackState[trk.ADSBCallsign]
 
-		if trk.IsUnassociated() || state.DisplayFDB {
+		if trk.IsUnassociated() {
 			continue
-		} else {
-			fp := trk.FlightPlan
-			acType := ""
-			if fp != nil {
-				acType = fp.AircraftType
-			}
-			state.DisplayFDB = slices.ContainsFunc(qlfilt,
-				func(f sim.QuicklookRegion) bool {
-					return f.Match(state.track.Location, int(state.track.TransponderAltitude),
-						fp, userPositions, acType, fa.SignificantPoints) &&
-						!f.Match(state.previousTrack.Location, int(state.previousTrack.TransponderAltitude),
-							fp, userPositions, acType, fa.SignificantPoints)
-				})
+		}
+
+		fp := trk.FlightPlan
+		acType := ""
+		if fp != nil {
+			acType = fp.AircraftType
+		}
+		inRegion := slices.ContainsFunc(qlfilt,
+			func(f sim.QuicklookRegion) bool {
+				return f.Match(state.track.Location, int(state.track.TransponderAltitude),
+					fp, userPositions, acType, fa.SignificantPoints)
+			})
+
+		if inRegion && !state.InQLRegion {
+			// Entry: track just entered a quicklook region.
+			state.DisplayFDB = true
+			state.InQLRegion = true
+		} else if !inRegion && state.InQLRegion {
+			// Exit: track just left a quicklook region.
+			state.DisplayFDB = false
+			state.InQLRegion = false
 		}
 	}
 }
