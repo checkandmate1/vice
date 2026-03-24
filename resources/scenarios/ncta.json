@@ -4796,8 +4796,8 @@
       "arrivals": [
         {
           "waypoints": "CHBLI/a28000+ GRIJO/a22000+/s280 ZINNN CORKK/a14000/ho2B BRIXX/a12000/s250 N037.27.43.783,W122.17.28.178/ho LUYTA/a7000/h140",
-          "cruise_altitude": 29000,
           "star": "BRIXX4",
+          "scratchpad": "SJ1",
           "initial_controller": "C41",
           "initial_altitude": 28000,
           "initial_speed": 300,
@@ -5265,6 +5265,7 @@
         {
           "waypoints": "GGULF/a28000+ FRLON/a13000+/s280/ho2B STLER/a12000/s250 MNTNA/ho4U MISSS/a7000/ho PPEGS/s210/h110",
           "star": "FRLON2",
+          "scratchpad": "SJ1",
           "initial_controller": "C41",
           "initial_altitude": 29000,
           "initial_speed": 300,

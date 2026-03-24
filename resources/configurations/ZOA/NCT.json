@@ -469,7 +469,7 @@
           "3G": ["3M"]
         }
       },
-      "22X": {
+      "C1D": {
         "inbound_assignments": {
           "LOUPE1.AD": "4Q",
           "VNYRD1.RGOOD": "4Q",
@@ -477,15 +477,43 @@
           "WNDSR2.AD": "4R"
         },
         "departure_assignments": {
-          "KOAK": "4R",
-          "KSFO": "4R"
+          "KOAK/CNDEL5": "4U",
+          "KOAK/OAK6": "4R",
+          "KOAK/NUEVO8": "4U",
+          "KOAK/SLNT3": "4R",
+          "KOAK/COAST9": "4U",
+          "KSFO/SSTIK5": "4U",
+          "KSFO/TRUKN2": "4R",
+          "KSFO/SNTNA2": "4R",
+          "KSFO/GNNRR3": "4U",
+          "KSFO/SEGUL1": "4U",
+          "KSFO/GAPP7": "4U"
         },
         "default_consolidation": {
           "4R": ["4D", "4F"],
           "4U": ["4Q", "4R"]
         }
       },
-      "28X": {
+      "C2D": {
+        "inbound_assignments": {
+          "ALMDN4/OCEANIC.AD": "4R",
+          "REBAS1.RGOOD": "4R",
+          "REBAS1.SNORA": "4R"
+        },
+        "departure_assignments": {
+          "KOAK/KATFH3": "4U",
+          "KOAK/OAK6": "4R",
+          "KOAK/OAK6.O": "4U",
+          "KSFO/MOLEN9": "4U",
+          "KSFO/CIITY3": "4R",
+          "KSFO/SAHEY4": "4U"
+        },
+        "default_consolidation": {
+          "4R": ["4D", "4F"],
+          "4U": ["4R"]
+        }
+      },
+      "CRT": {
         "inbound_assignments": {
           "LOUPE1.AD": "4Q",
           "VNYRD1.RGOOD": "4Q",
@@ -493,48 +521,44 @@
           "WNDSR2.AD": "4R"
         },
         "departure_assignments": {
-          "KOAK": "4U",
-          "KSFO": "4U"
+          "KOAK/CNDEL5": "4U",
+          "KOAK/OAK6": "4R",
+          "KOAK/NUEVO8": "4U",
+          "KOAK/SLNT3": "4R",
+          "KOAK/COAST9": "4U",
+          "KSFO/WESLA5": "4U",
+          "KSFO/TRUKN2": "4R",
+          "KSFO/SNTNA2": "4R",
+          "KSFO/GNNRR3": "4U",
+          "KSFO/SEGUL1": "4U"
         },
         "default_consolidation": {
           "4R": ["4D", "4F"],
           "4U": ["4Q", "4R"]
         }
       },
-      "AR3": {
-        "inbound_assignments": {
-          "ANAHO2": "8N",
-          "KLUBS1": "8N",
-          "ORRCA1": "8S",
-          "RYANN2": "8S",
-          "SCOLA1": "8S",
-          "WINRZ1": "8N"
-        },
-        "departure_assignments": {
-          "KRNO": "8S"
-        },
-        "default_consolidation": {
-          "8S": ["8N"]
-        }
-      },
-      "NCT": {
+      "CSO": {
         "inbound_assignments": {
           "BMRNG4.AD": "4Q",
           "VNYRD1.RGOOD": "4Q",
           "VNYRD1.SNORA": "4Q"
         },
         "departure_assignments": {
-          "KOAK": "4U",
-          "KSFO": "4R"
+          "KOAK/QUAKE2": "4R",
+          "KSFO/WESLA5": "4U",
+          "KSFO/SNTNA2": "4R",
+          "KSFO/GNNRR3": "4U",
+          "KSFO/SEGUL1": "4U"
         },
         "default_consolidation": {
           "4R": ["4D", "4F"],
           "4U": ["4Q", "4R"]
         }
       },
-      "NCA": {
+      "C1E": {
         "inbound_assignments": {
           "AMRVR2": "5P",
+          "BMBER1": "5P",
           "CCR2.S": "5D",
           "SAT.SOUTH": "5P",
           "SLMMR5": "5B",
@@ -552,40 +576,10 @@
           "5X": ["5D"]
         }
       },
-      "NAR": {
-        "inbound_assignments": {
-          "EELZA4": "8N",
-          "KENNO.TARVR1": "8S",
-          "MVA.TARVR1": "8S",
-          "ORRCA.TARVR1": "8S",
-          "SLEAT.TARVR1": "8S",
-          "WADOL4": "8N"
-        },
-        "departure_assignments": {
-          "KRNO": "8N"
-        },
-        "default_consolidation": {
-          "8S": ["8N"]
-        }
-      },
-      "AR4": {
-        "inbound_assignments": {
-          "ALMDN4/OCEANIC.AD": "4R",
-          "REBAS1.RGOOD": "4R",
-          "REBAS1.SNORA": "4R"
-        },
-        "departure_assignments": {
-          "KOAK": "4U",
-          "KSFO": "4U"
-        },
-        "default_consolidation": {
-          "4R": ["4D", "4F"],
-          "4U": ["4R"]
-        }
-      },
-      "AR5": {
+      "C3E": {
         "inbound_assignments": {
           "AMRVR2": "5P",
+          "BMBER1": "5P",
           "CCR2.N": "5D",
           "SAT.SOUTH": "5P",
           "SLMMR5": "5B",
@@ -601,6 +595,38 @@
           "5E": ["5B"],
           "5P": ["5E", "5X"],
           "5X": ["5D"]
+        }
+      },
+      "C1R": {
+        "inbound_assignments": {
+          "ANAHO2": "8N",
+          "KLUBS1": "8N",
+          "ORRCA1": "8S",
+          "FMG ARR": "8S",
+          "RYANN2": "8S",
+          "SCOLA1": "8S",
+          "WINRZ1": "8N"
+        },
+        "departure_assignments": {
+          "KRNO": "8S"
+        },
+        "default_consolidation": {
+          "8S": ["8N"]
+        }
+      },
+      "C4R": {
+        "inbound_assignments": {
+          "ANAHO2": "8N",
+          "EELZA4": "8N",
+          "RYANN2": "8S",
+          "TARVR1": "8S",
+          "WADOL4": "8N"
+        },
+        "departure_assignments": {
+          "KRNO": "8N"
+        },
+        "default_consolidation": {
+          "8S": ["8N"]
         }
       }
     },
@@ -656,6 +682,16 @@
     },
     "filters": {
       "quicklook": [
+        {
+          "id": "Q09",
+          "description": "BRIXX QUICKLOOK",
+          "type": "polygon",
+          "owning_tcp": "2B,2W,2F",
+          "tcps": "4U,4Q,4R",
+          "floor": 6000,
+          "ceiling": 21000,
+          "vertices": "N037.59.58.832,W123.05.11.682 N038.21.13.439,W122.16.20.914 N037.25.29.653,W122.12.20.423 N037.23.21.031,W122.20.10.528 N037.59.58.832,W123.05.11.682"
+        },
         {
           "id": "Q69",
           "description": "SECA SERFR QUICKLOOK",
@@ -1576,10 +1612,7 @@
         "short_name": "TPR"
       },
       "VLREE": {},
-      "YERIN": {},
-      "YYUNG": {
-        "short_name": "YNG"
-      }
+      "YERIN": {}
     },
     "video_map_file": "videomaps/ZOA-videomaps.gob.zst",
     "airspace_awareness": [
@@ -1952,6 +1985,7 @@
         ],
         "center": "KSJC",
         "range": 45,
+        "altimeters": ["KMRY", "KSCK", "KSJC", "KSNS"],
         "airspace_awareness": [
           {
             "fixes": ["NTELL", "JFREE", "VLREE", "TECKY"],
@@ -1961,7 +1995,7 @@
           {
             "fixes": ["ALCOA", "CINNY", "BEBOP", "MOLEN", "STINS", "AMAKR"],
             "altitude_range": [0, 19000],
-            "receiving_controller": "4U"
+            "receiving_controller": "4Q"
           },
           {
             "fixes": ["GRTFL", "DEDHD", "HRNER", "RBL", "SGD", "ENI", "PYE", "SUU", "CCR", "RAGGS", "BURDE"],
@@ -2015,7 +2049,8 @@
           "RVMNCT965S"
         ],
         "center": "KSFO",
-        "range": 80
+        "range": 80,
+        "altimeters": ["KSFO"]
       },
       "3": {
         "video_maps": [
@@ -2057,7 +2092,8 @@
           "RVMNCT946S"
         ],
         "center": "ALTAM",
-        "range": 60
+        "range": 60,
+        "altimeters": ["KOAK", "KHWD", "KSCK", "KLVK", "KMOD", "KMER"]
       },
       "4": {
         "video_maps": [
@@ -2100,7 +2136,8 @@
           "RVMNCT946S"
         ],
         "center": "KSJC",
-        "range": 45
+        "range": 45,
+        "altimeters": ["KSFO", "KOAK"]
       },
       "5": {
         "video_maps": [
@@ -2142,6 +2179,7 @@
         ],
         "center": "KMHR",
         "range": 65,
+        "altimeters": ["KSMF", "KMHR", "KSAC"],
         "airspace_awareness": [
           {
             "fixes": ["RBL"],
@@ -2214,8 +2252,9 @@
           "RVMNCT944S",
           "RVMNCT946S"
         ],
-        "center": "KMHR",
-        "range": 65
+        "center": "FMG",
+        "range": 45,
+        "altimeters": ["KRNO"]
       }
     },
     "lists": {
