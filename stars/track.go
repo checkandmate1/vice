@@ -788,7 +788,9 @@ func (sp *STARSPane) drawGhosts(ctx *panes.Context, ghosts []*av.GhostTrack, tra
 		vll := sp.getLeaderLineVector(ctx, ghost.LeaderLineDirection)
 		pll := math.Add2f(pac, vll)
 
-		db.draw(td, pll, datablockFont, &strBuilder, brightness, ghost.LeaderLineDirection, ctx.Now.Unix())
+		halfSeconds := ctx.Now.UnixMilli() / 500
+		clockPhase := ctx.FacilityAdaptation.CurrentDatablockClockPhase(ctx.Now)
+		db.draw(td, pll, datablockFont, &strBuilder, brightness, ghost.LeaderLineDirection, clockPhase, halfSeconds)
 
 		// Leader line
 		ld.AddLine(pac, math.Add2f(pac, vll), color)

@@ -414,6 +414,29 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 		fa.Datablocks.FDB.AcceptFlashDuration = 5
 	}
 
+	// Clock phase defaults.
+	if len(fa.Datablocks.ClockPhase.Sequence) == 0 {
+		fa.Datablocks.ClockPhase.Sequence = []int{1, 2, 1, 3}
+		fa.Datablocks.ClockPhase.Intervals = []float32{2, 1, 2, 1}
+	}
+	// Validate clock phase.
+	cp := &fa.Datablocks.ClockPhase
+	if len(cp.Sequence) != len(cp.Intervals) {
+		e.ErrorString(`"clock_phase" sequence and "intervals" must have the same length`)
+	}
+	for _, p := range cp.Sequence {
+		if p < 1 || p > 4 {
+			e.ErrorString(`"clock_phase" sequence values must be 1-4, got %d`, p)
+			break
+		}
+	}
+	for _, d := range cp.Intervals {
+		if d < 0.5 || d > 5.0 {
+			e.ErrorString(`"clock_phase" intervals must be 0.5-5.0 seconds, got %.1f`, d)
+			break
+		}
+	}
+
 	// PDB mutual exclusion.
 	if fa.Datablocks.PDB.SplitGSAndCWT && fa.Datablocks.PDB.ShowAircraftType {
 		e.ErrorString(`Both "split_gs_and_cwt" and "show_aircraft_type" cannot be specified for "pdb" adaption.`)

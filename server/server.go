@@ -71,7 +71,8 @@ import (
 // 61: restructure config JSON
 // 62: new route/waypoint options
 // 63: stars [A]TPA brightness controls
-const ViceSerializeVersion = 63
+// 64: stars datablock intervals
+const ViceSerializeVersion = 64
 
 const ViceServerAddress = "vice.pharr.org"
 const ViceServerPort = 8000 - 50 + ViceRPCVersion

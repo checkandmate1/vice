@@ -389,6 +389,10 @@ type FacilityAdaptation struct {
 	} `json:"flight_plan"`
 
 	Datablocks struct {
+		ClockPhase struct {
+			Sequence  []int     `json:"sequence"`  // e.g., [1,2,1,3]
+			Intervals []float32 `json:"intervals"` // per-position durations in seconds
+		} `json:"clock_phase"`
 		FDB struct {
 			DisplayRequestedAltitude bool `json:"display_requested_altitude"`
 			Scratchpad2OnLine3       bool `json:"scratchpad2_on_line3"`
@@ -954,6 +958,26 @@ type STARSArea struct {
 	CoordinationLists               []CoordinationList             `json:"coordination_lists,omitempty"`
 	AirspaceAwareness               []AirspaceAwareness            `json:"airspace_awareness,omitempty"`
 	Airspace                        map[string][]av.AirspaceVolume `json:"airspace,omitempty"`
+}
+
+// CurrentDatablockClockPhase returns the current clock phase (1-4)
+// based on the configured phase sequence and interval durations.
+func (fa *FacilityAdaptation) CurrentDatablockClockPhase(now time.Time) int {
+	seq := fa.Datablocks.ClockPhase.Sequence
+	intervals := fa.Datablocks.ClockPhase.Intervals
+
+	// Total cycle duration in milliseconds.
+	totalMs := util.ReduceSlice(intervals, func(d float32, acc int64) int64 { return acc + int64(d*1000) }, int64(0))
+	posMs := now.UnixMilli() % totalMs
+
+	var elapsed int64
+	for i, d := range intervals {
+		elapsed += int64(d * 1000)
+		if posMs < elapsed {
+			return seq[i]
+		}
+	}
+	return seq[0]
 }
 
 // DefaultAirportForArea returns the CRDA default airport for a given
