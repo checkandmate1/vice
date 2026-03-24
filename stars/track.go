@@ -353,9 +353,12 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 					}
 				}
 				if outbound || inbound {
-					state.AcceptedHandoffSector = string(util.Select(outbound, event.ToController, event.FromController))
-					dur := time.Duration(ctx.FacilityAdaptation.Datablocks.FDB.SectorDisplayDuration) * time.Second
-					state.AcceptedHandoffDisplayEnd = time.Now().Add(dur)
+					otherPos := util.Select(outbound, event.ToController, event.FromController)
+					if otherCtrl := ctx.GetResolvedController(otherPos); otherCtrl != nil && otherCtrl.IsExternal() {
+						state.AcceptedHandoffSector = string(otherPos)
+						dur := time.Duration(ctx.FacilityAdaptation.Datablocks.FDB.SectorDisplayDuration) * time.Second
+						state.AcceptedHandoffDisplayEnd = time.Now().Add(dur)
+					}
 				}
 			}
 			// Clean up if a point out was instead taken as a handoff.
