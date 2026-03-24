@@ -21,51 +21,51 @@
       "radio_name": "Fresno Tower"
     }
   },
-"facility_adaptations": {
-	"areas": {
-	"1": {
-	  "video_maps": [
-      "RVMFAT021S",
-	  "RVMFAT022S",
-	  "RVMFAT030S",
-	  "RVMFAT023S",
-	  "RVMFAT028S",
-	  "RVMFAT027S",
-	  
-	  "RVMFAT021S",
-	  "RVMFAT022S",
-	  "RVMFAT030S",
-	  "RVMFAT029S",
-	  "RVMFAT020S",
-	  "RVMFAT026S",
-	  "RVMFAT032S",
-	  "RVMFAT034S",
-	  "RVMFAT036S",
-	  "RVMFAT038S",
-	  "RVMFAT043S",
-	  "",
-	  "",
-	  "",
-	  "",
-	  "",	  
-	  "RVMFAT023S",
-	  "RVMFAT028S",
-	  "RVMFAT027S",
-	  "RVMFAT024S",
-	  "RVMFAT025S",
-	  "RVMFAT031S",
-	  "RVMFAT033S",
-	  "RVMFAT035S",
-	  "RVMFAT037S",
-	  "RVMFAT039S",
-	  "RVMFAT040S"
-    ],
-	"center": "KFAT",
-	"range": 50
-  }
-  },
-  "center": "KFAT",
-  "filters": {
+  "facility_adaptations": {
+    "areas": {
+      "1": {
+        "video_maps": [
+          "RVMFAT021S",
+          "RVMFAT022S",
+          "RVMFAT030S",
+          "RVMFAT023S",
+          "RVMFAT028S",
+          "RVMFAT027S",
+
+          "RVMFAT021S",
+          "RVMFAT022S",
+          "RVMFAT030S",
+          "RVMFAT029S",
+          "RVMFAT020S",
+          "RVMFAT026S",
+          "RVMFAT032S",
+          "RVMFAT034S",
+          "RVMFAT036S",
+          "RVMFAT038S",
+          "RVMFAT043S",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "RVMFAT023S",
+          "RVMFAT028S",
+          "RVMFAT027S",
+          "RVMFAT024S",
+          "RVMFAT025S",
+          "RVMFAT031S",
+          "RVMFAT033S",
+          "RVMFAT035S",
+          "RVMFAT037S",
+          "RVMFAT039S",
+          "RVMFAT040S"
+        ],
+        "center": "KFAT",
+        "range": 50
+      }
+    },
+    "center": "KFAT",
+    "filters": {
       "auto_acquisition": [
         {
           "id": "ACQ",
@@ -77,15 +77,15 @@
         }
       ]
     },
-"controllers": {
-    "1F": {
+    "controllers": {
+      "1F": {
         "flight_following_airspace": [
           {
             "type": "polygon",
             "ceiling": 10000,
             "vertices": "N035.59.17.826,W119.28.43.370 N036.03.26.652,W119.12.23.170 N036.07.04.113,W119.09.39.583 N036.07.10.828,W119.00.52.294 N036.32.55.122,W119.12.54.893 N037.05.08.784,W119.14.25.502 N037.08.39.447,W119.29.54.342 N037.11.50.829,W120.05.47.882 N037.06.54.582,W120.12.21.220 N036.53.42.454,W120.18.11.766 N036.43.04.382,W120.11.31.314 N036.33.45.906,W119.46.23.496 N035.59.17.826,W119.28.43.370"
           },
-		  {
+          {
             "type": "polygon",
             "ceiling": 3000,
             "vertices": "N036.43.46.885,W120.11.24.640 N036.38.53.564,W120.09.11.733 N036.29.13.967,W119.47.42.844 N036.13.40.802,W119.39.24.669 N036.14.31.517,W119.34.48.061 N036.34.21.886,W119.44.54.342 N036.44.34.017,W120.11.21.674 N036.43.46.885,W120.11.24.640"
@@ -93,7 +93,7 @@
         ]
       }
     },
-  "radar_sites": {
+    "radar_sites": {
       "FAT": {
         "char": "S",
         "position": "35.394728, 120.354325",
@@ -103,17 +103,17 @@
         "silence_angle": 30,
         "slope_angle": 0.3
       }
-  },
-  "range": 50,
-  "scratchpads": {
+    },
+    "range": 50,
+    "scratchpads": {
       "NTELL": "NTL",
       "FRAME": "FRM",
       "CABAB": "CAB",
-	  "SWR": "SWR",
-	  "NIKOL": "NIK",
-	  "SHIMR": "SHM"
+      "SWR": "SWR",
+      "NIKOL": "NIK",
+      "SHIMR": "SHM"
     },
-	"coordination_fixes": {
+    "coordination_fixes": {
       "ALTTA": [
         {
           "type": "route",
@@ -121,7 +121,7 @@
           "from": "ZLA"
         }
       ],
-	  "NTELL": [
+      "NTELL": [
         {
           "type": "route",
           "to": "FAT",
@@ -129,36 +129,36 @@
         }
       ]
     },
-	"video_map_file": "videomaps/ZOA-videomaps.gob.zst",
+    "video_map_file": "videomaps/ZOA-videomaps.gob.zst",
     "configurations": {
       "CF1": {
         "inbound_assignments": {
           "ALTTA9": "1F",
           "NTELL ARRS N": "1H",
-		  "NORTH ARRS N": "1H",
-		  "EAST ARRS N": "1F"
+          "NORTH ARRS N": "1H",
+          "EAST ARRS N": "1F"
         },
         "departure_assignments": {
           "KFAT/BULL3": "1F",
-		  "KFAT/YOSE3": "1H"
+          "KFAT/YOSE3": "1H"
         },
-		"default_consolidation": {
-          "1F": ["1H","1S"]
+        "default_consolidation": {
+          "1F": ["1H", "1S"]
         }
       },
-	  "CF2": {
+      "CF2": {
         "inbound_assignments": {
           "ALTTA9": "1F",
           "NTELL ARRS S": "1H",
-		  "NORTH ARRS S": "1H",
-		  "EAST ARRS S": "1H"
+          "NORTH ARRS S": "1H",
+          "EAST ARRS S": "1H"
         },
         "departure_assignments": {
           "KFAT/BULL3": "1F",
-		  "KFAT/YOSE3": "1H"
+          "KFAT/YOSE3": "1H"
         },
-		"default_consolidation": {
-          "1F": ["1H","1S"]
+        "default_consolidation": {
+          "1F": ["1H", "1S"]
         }
       }
     }
