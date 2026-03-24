@@ -680,6 +680,63 @@
         "vfr_codes": ["1200-1202"]
       }
     },
+    "stars_macros": [
+      {
+        "input": "[F16]ACON",
+        "commands": [
+          "[MULTI FUNC]C1M1T+",
+          "[MULTI FUNC]C1M1S+",
+          "[MULTI FUNC]C1M1K+",
+          "[MULTI FUNC]C1M1F+",
+          "[MULTI FUNC]C1M1L+",
+          "[MULTI FUNC]C1M1Q+"
+        ],
+        "output": "",
+        "description": "Area A Mid-Shift Consolidation"
+      },
+      {
+        "input": "[F16]BCON",
+        "commands": [
+          "[MULTI FUNC]C2B2Z+",
+          "[MULTI FUNC]C2B2G+",
+          "[MULTI FUNC]C2B2N+",
+          "[MULTI FUNC]C2B2W+",
+          "[MULTI FUNC]C2B2F+"
+        ],
+        "output": "",
+        "description": "Area B Mid-Shift Consolidation"
+      },
+      {
+        "input": "[F16]CCON",
+        "commands": [
+          "[MULTI FUNC]C3Y3J+",
+          "[MULTI FUNC]C3Y3K+",
+          "[MULTI FUNC]C3Y3M+",
+          "[MULTI FUNC]C3Y3G+",
+          "[MULTI FUNC]C3Y3S+"
+        ],
+        "output": "",
+        "description": "Area C Mid-Shift Consolidation"
+      },
+      {
+        "input": "[F16]DCON",
+        "commands": ["[MULTI FUNC]C4U4R+", "[MULTI FUNC]C4U4Q+", "[MULTI FUNC]C4U4D+", "[MULTI FUNC]C4U4F+"],
+        "output": "",
+        "description": "Area D Mid-Shift Consolidation"
+      },
+      {
+        "input": "[F16]ECON",
+        "commands": ["[MULTI FUNC]C5P5E+", "[MULTI FUNC]C5P5X+", "[MULTI FUNC]C5P5B+", "[MULTI FUNC]C5P5D+"],
+        "output": "",
+        "description": "Area E Mid-Shift Consolidation"
+      }
+    ],
+    "datablocks": {
+      "fdb": {
+        "display_requested_altitude": true
+      },
+      "force_ql_self": true
+    },
     "filters": {
       "quicklook": [
         {
@@ -1612,7 +1669,10 @@
         "short_name": "TPR"
       },
       "VLREE": {},
-      "YERIN": {}
+      "YERIN": {},
+      "YYUNG": {
+        "short_name": "FOI"
+      }
     },
     "video_map_file": "videomaps/ZOA-videomaps.gob.zst",
     "airspace_awareness": [
@@ -2135,8 +2195,8 @@
           "RVMNCT944S",
           "RVMNCT946S"
         ],
-        "center": "KSJC",
-        "range": 45,
+        "center": "KOAK",
+        "range": 50,
         "altimeters": ["KSFO", "KOAK"]
       },
       "5": {
