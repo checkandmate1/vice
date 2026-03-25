@@ -419,6 +419,12 @@
           "airports": ["KVGT"]
         }
       ]
+    },
+    "datablocks": {
+      "clock_phase": {
+        "sequence": [1, 2, 1, 3],
+        "intervals": [2, 1, 1, 1]
+      }
     }
   },
   "handoff_ids": [

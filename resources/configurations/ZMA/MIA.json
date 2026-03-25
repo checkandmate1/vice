@@ -623,6 +623,12 @@
       "1J": {
         "center": "N026.04.18.679,W080.09.01.076"
       }
+    },
+    "datablocks": {
+      "clock_phase": {
+        "sequence": [1, 2, 1, 3],
+        "intervals": [1.6, 0.8, 0.8, 1]
+      }
     }
   },
   "handoff_ids": [

@@ -997,6 +997,10 @@
       }
     },
     "datablocks": {
+      "clock_phase": {
+        "sequence": [1, 2, 1, 3],
+        "intervals": [2, 1, 2, 1]
+      },
       "pdb": {
         "hide_gs": true
       },

@@ -987,6 +987,10 @@
       }
     },
     "datablocks": {
+      "clock_phase": {
+        "sequence": [1, 2, 3],
+        "intervals": [1, 1, 1]
+      },
       "fdb": {
         "scratchpad2_on_line3": true,
         "display_facility_only": true

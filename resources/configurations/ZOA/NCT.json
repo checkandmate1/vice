@@ -732,6 +732,10 @@
       }
     ],
     "datablocks": {
+      "clock_phase": {
+        "sequence": [1, 2, 1, 3],
+        "intervals": [1.0, 0.5, 1.0, 0.5]
+      },
       "fdb": {
         "display_requested_altitude": true
       },

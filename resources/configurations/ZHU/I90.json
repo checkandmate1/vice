@@ -473,6 +473,12 @@
           "DWH FINAL"
         ]
       }
+    },
+    "datablocks": {
+      "clock_phase": {
+        "sequence": [1, 2, 1, 3],
+        "intervals": [1, 1, 1, 1]
+      }
     }
   },
   "handoff_ids": [
