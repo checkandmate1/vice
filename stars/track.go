@@ -562,7 +562,11 @@ func (sp *STARSPane) updateQuicklookRegionTracks(ctx *panes.Context) {
 			state.InQLRegion = true
 		} else if !inRegion && state.InQLRegion {
 			// Exit: track just left a quicklook region.
-			state.DisplayFDB = false
+			// Don't clear DisplayFDB if it's being maintained by the
+			// outbound handoff acceptance logic.
+			if !state.OutboundHandoffAccepted {
+				state.DisplayFDB = false
+			}
 			state.InQLRegion = false
 		}
 	}
