@@ -1109,21 +1109,23 @@ func (sp *STARSPane) fillFDBField7(ctx *panes.Context, trk sim.Track, sfp *sim.N
 			}
 		} else {
 			// Phases 1 and 4: assigned alt → SP2
-			if altSet {
+			if sp2Set && !altSet {
+				for p := range 4 {
+					writeSP2(db.field7[p][:])
+				}
+			} else {
+				// Just alt or both are set; alt is in phases 1 and 4 in both cases.
 				writeAssignedAlt(db.field7[0][:])
 				writeAssignedAlt(db.field7[3][:])
-			} else {
-				writeSP2(db.field7[0][:])
-				writeSP2(db.field7[3][:])
+				// SP2 in phases 2 and 3 if set; otherwise it's all alt
+				if sp2Set {
+					writeSP2(db.field7[1][:])
+					writeSP2(db.field7[2][:])
+				} else {
+					writeAssignedAlt(db.field7[1][:])
+					writeAssignedAlt(db.field7[2][:])
+				}
 			}
-			// Phase 2: SP2 → assigned alt
-			if sp2Set {
-				writeSP2(db.field7[1][:])
-			} else {
-				writeAssignedAlt(db.field7[1][:])
-			}
-			// Phase 3: assigned alt only (no SP2)
-			writeAssignedAlt(db.field7[2][:])
 		}
 	} else {
 		// Unguarded rules apply to all phases.
