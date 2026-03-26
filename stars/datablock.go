@@ -1517,7 +1517,7 @@ func (sp *STARSPane) getDatablockAlerts(ctx *panes.Context, trk sim.Track, dbtyp
 
 		color := util.Select(red, sp.Colors.AlertDatablock, sp.Colors.CautionDatablock)
 		if len(alerts) > 0 {
-			alerts = append(alerts, dbChar{ch: '/', color: color})
+			alerts = append(alerts, dbChar{ch: '/', color: color, flashing: flash})
 		}
 		for _, ch := range s {
 			alerts = append(alerts, dbChar{ch: ch, color: color, flashing: flash})
