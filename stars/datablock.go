@@ -66,6 +66,17 @@ type fullDatablock struct {
 	field7 [4][8]dbChar // assigned alt/sp2
 }
 
+// hasAlertInField0 checks if the given two-character alert string (e.g. "LA"
+// or "CA") appears in the already-populated field0 (line 0 alerts).
+func (db *fullDatablock) hasAlertInField0(a, b rune) bool {
+	for i := 0; i+1 < len(db.field0); i++ {
+		if db.field0[i].ch == a && db.field0[i+1].ch == b {
+			return true
+		}
+	}
+	return false
+}
+
 func (db fullDatablock) draw(td *renderer.TextDrawBuilder, pt [2]float32, font *renderer.Font, strBuilder *strings.Builder,
 	brightness radar.Brightness, leaderLineDirection math.CardinalOrdinalDirection, clockPhase int, halfSeconds int64) {
 	idx := clockPhase - 1
@@ -848,13 +859,19 @@ func (sp *STARSPane) buildFullDatablock(ctx *panes.Context, trk sim.Track, sfp *
 	sp2 := sfp.SecondaryScratchpad
 	sp2OnLine2 := sp2 != "" && !fa.Datablocks.FDB.Scratchpad2OnLine3
 
+	// When MSAW or CA is active, altitude is forced into all clock phases,
+	// overriding the normal timesharing of scratchpad/handoff TCP.
+	alertForceAlt := db.hasAlertInField0('L', 'A') || db.hasAlertInField0('C', 'A')
+
 	// Phase 1: altitude
 	if altitude != "" || handoffId != " " {
 		writeAlt34(0)
 	}
 
 	// Phase 2: scratchpad 1 → scratchpad 2 → altitude
-	if sp1 != "" {
+	if alertForceAlt {
+		writeAlt34(1)
+	} else if sp1 != "" {
 		formatDBText(db.field34[1][:], fmtPad(sp1)+handoffId, color, false)
 	} else if sp2OnLine2 {
 		// TODO: confirm no handoffId here
@@ -864,7 +881,9 @@ func (sp *STARSPane) buildFullDatablock(ctx *panes.Context, trk sim.Track, sfp *
 	}
 
 	// Phase 3: handoffTCP → scratchpad 2 → scratchpad 1 → altitude
-	if handoffTCP != "" && !fa.Datablocks.FDB.DisplayFacilityOnly {
+	if alertForceAlt {
+		writeAlt34(2)
+	} else if handoffTCP != "" && !fa.Datablocks.FDB.DisplayFacilityOnly {
 		formatDBText(db.field34[2][:], fmtPad(handoffTCP)+handoffId, color, false)
 	} else if sp2OnLine2 {
 		formatDBText(db.field34[2][:], fmtPad(sp2)+"+", color, false)
@@ -874,7 +893,11 @@ func (sp *STARSPane) buildFullDatablock(ctx *panes.Context, trk sim.Track, sfp *
 		writeAlt34(2)
 	}
 
-	// Phase 4: intentionally blank. In real STARS, all FDB_L2_C1 rules use explicit clock_phase
+	// Phase 4: when an alert is active, force altitude here too (normally blank).
+	if alertForceAlt {
+		writeAlt34(3)
+	}
+	// Otherwise intentionally blank. In real STARS, all FDB_L2_C1 rules use explicit clock_phase
 	// 1/2/3 guards with no unguarded fallthrough, so phase 4 only shows all-phases overrides
 	// (frozen, coast, AMB, NAT). Unlike PDB which has an unguarded mode-c fallthrough rule.
 
