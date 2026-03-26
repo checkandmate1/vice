@@ -2010,7 +2010,7 @@ func (s *Sim) checkFinalApproachSpacing() {
 			eligible25nm := vol != nil && vol.Enable25nmApproach &&
 				s.State.IsATPAVolume25nmEnabled(vol.Id) &&
 				trailing.OnExtendedCenterline(0.2) && front.OnExtendedCenterline(0.2)
-			reqSep := av.CWTRequiredApproachSeparation(front.CWT(), trailing.CWT(), eligible25nm)
+			reqSep := av.CWTApproachSeparation(front.CWT(), trailing.CWT(), eligible25nm)
 
 			actualSep := math.NMDistance2LL(front.Position(), trailing.Position())
 

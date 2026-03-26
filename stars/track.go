@@ -1337,7 +1337,7 @@ func (sp *STARSPane) checkInTrailCwtSeparation(ctx *panes.Context, back, front s
 		ctx.Client.State.IsATPAVolume25nmEnabled(vol.Id) &&
 		math.NMDistance2LL(vol.Threshold, back.Location) < vol.Dist25nmApproach &&
 		back.OnExtendedCenterline && front.OnExtendedCenterline
-	cwtSeparation := av.CWTRequiredApproachSeparation(
+	cwtSeparation := av.CWTApproachSeparation(
 		front.FlightPlan.CWTCategory, back.FlightPlan.CWTCategory, eligible25nm)
 
 	state.MinimumMIT = cwtSeparation

@@ -1762,9 +1762,9 @@ func (r RadioTransmissionType) String() string {
 ///////////////////////////////////////////////////////////////////////////
 // CWT functions
 
-// CWTApproachSeparation returns the required separation between aircraft of the two
-// given CWT categories. If 0 is returned, minimum radar separation should be used.
-func CWTApproachSeparation(front, back string) float32 {
+// cwtApproachSeparation returns the raw CWT approach separation table value.
+// If 0 is returned, minimum radar separation should be used.
+func cwtApproachSeparation(front, back string) float32 {
 	if len(front) != 1 || (front[0] < 'A' && front[0] > 'I') {
 		return 10
 	}
@@ -1789,26 +1789,14 @@ func CWTApproachSeparation(front, back string) float32 {
 	return cwtOnApproachLookUp[f][b]
 }
 
-// CWT25nmReductionAllowed returns true if 2.5nm reduced approach separation is
-// allowed for the given front/back CWT category pair per 7110.65 5-5-4(i):
-// the leading aircraft's weight class must be the same or less than the trailing
-// aircraft, and super/heavy aircraft may only participate as the trailing aircraft.
-func CWT25nmReductionAllowed(frontCWT, backCWT string) bool {
-	return len(frontCWT) == 1 && frontCWT[0] >= 'E' && frontCWT[0] <= 'I' &&
-		len(backCWT) == 1 && backCWT[0] >= 'A' && backCWT[0] <= 'I' &&
-		frontCWT[0] >= backCWT[0]
-}
-
-// CWTRequiredApproachSeparation returns the required approach separation between
-// aircraft of the given CWT categories, applying the 2.5nm reduction if eligible25nm
-// is true and the weight categories allow it.
-func CWTRequiredApproachSeparation(frontCWT, backCWT string, eligible25nm bool) float32 {
-	sep := CWTApproachSeparation(frontCWT, backCWT)
+// CWTApproachSeparation returns the required approach separation between
+// aircraft of the given CWT categories. When the CWT table specifies no
+// extra wake turbulence separation (0), minimum radar separation applies:
+// 2.5 NM on eligible runways, 3 NM otherwise.
+func CWTApproachSeparation(frontCWT, backCWT string, eligible25nm bool) float32 {
+	sep := cwtApproachSeparation(frontCWT, backCWT)
 	if sep == 0 {
-		sep = 3 // baseline radar separation
-	}
-	if eligible25nm && CWT25nmReductionAllowed(frontCWT, backCWT) {
-		sep = 2.5
+		sep = float32(util.Select(eligible25nm, 2.5, 3))
 	}
 	return sep
 }
