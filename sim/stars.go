@@ -50,7 +50,7 @@ func (rd *RedirectedHandoff) ShowRDIndicator(pos ControlPosition, RDIndicatorEnd
 
 func (rd *RedirectedHandoff) ShouldFallbackToHandoff(ctrl, octrl ControlPosition) bool {
 	// True if the 2nd redirector redirects back to the 1st redirector
-	return (len(rd.Redirector) == 1 || (len(rd.Redirector) > 1) && rd.Redirector[1] == ctrl) && octrl == rd.Redirector[0]
+	return (len(rd.Redirector) == 1 || ((len(rd.Redirector) > 1) && rd.Redirector[1] == ctrl)) && octrl == rd.Redirector[0]
 }
 
 func (rd *RedirectedHandoff) AddRedirector(ctrl *av.Controller) {

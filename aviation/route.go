@@ -998,7 +998,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					wp.SetClearSecondaryScratchpad(true)
 				} else if f == "tc" {
 					wp.SetTransferComms(true)
-				} else if (len(f) >= 4 && f[:4] == "pt45") || len(f) >= 5 && f[:5] == "lpt45" {
+				} else if (len(f) >= 4 && f[:4] == "pt45") || (len(f) >= 5 && f[:5] == "lpt45") {
 					pt := wp.InitExtra()
 					if pt.ProcedureTurn == nil {
 						pt.ProcedureTurn = &ProcedureTurn{}

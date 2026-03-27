@@ -1765,10 +1765,10 @@ func (r RadioTransmissionType) String() string {
 // cwtApproachSeparation returns the raw CWT approach separation table value.
 // If 0 is returned, minimum radar separation should be used.
 func cwtApproachSeparation(front, back string) float32 {
-	if len(front) != 1 || (front[0] < 'A' && front[0] > 'I') {
+	if len(front) != 1 || front[0] < 'A' || front[0] > 'I' {
 		return 10
 	}
-	if len(back) != 1 || (back[0] < 'A' && back[0] > 'I') {
+	if len(back) != 1 || back[0] < 'A' || back[0] > 'I' {
 		return 10
 	}
 
@@ -1805,10 +1805,10 @@ func CWTApproachSeparation(frontCWT, backCWT string, eligible25nm bool) float32 
 // aircraft of the two given CWT categories. If 0 is returned, minimum
 // radar separation should be used.
 func CWTDirectlyBehindSeparation(front, back string) float32 {
-	if len(front) != 1 || (front[0] < 'A' && front[0] > 'I') {
+	if len(front) != 1 || front[0] < 'A' || front[0] > 'I' {
 		return 10
 	}
-	if len(back) != 1 || (back[0] < 'A' && back[0] > 'I') {
+	if len(back) != 1 || back[0] < 'A' || back[0] > 'I' {
 		return 10
 	}
 

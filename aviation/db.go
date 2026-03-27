@@ -536,7 +536,7 @@ func parseAircraft() (map[string]string, map[string]AircraftPerformance) {
 		if ac.Speed.Landing < 40 || ac.Speed.Landing > 200 {
 			fmt.Fprintf(os.Stderr, "%s: aircraft landing speed %f seems off\n", ac.ICAO, ac.Speed.Landing)
 		}
-		if ac.Speed.MaxTAS < 40 || ac.Speed.MaxTAS > 550 && ac.ICAO != "CONC" {
+		if ac.Speed.MaxTAS < 40 || (ac.Speed.MaxTAS > 550 && ac.ICAO != "CONC") {
 			fmt.Fprintf(os.Stderr, "%s: aircraft max TAS %f seems off\n", ac.ICAO, ac.Speed.MaxTAS)
 		}
 		if ac.Speed.V2 != 0 && ac.Speed.V2 > 1.5*ac.Speed.Min {
