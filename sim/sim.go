@@ -1980,6 +1980,10 @@ func (s *Sim) getGoAroundProcedureForAircraft(ac *Aircraft) *GoAroundProcedure {
 // checkFinalApproachSpacing checks for spacing violations between IFR aircraft
 // on the same final approach and triggers go-arounds when separation is insufficient.
 func (s *Sim) checkFinalApproachSpacing() {
+	if !s.State.LaunchConfig.EnableTowerGoArounds {
+		return
+	}
+
 	type runwayKey struct{ airport, runway string }
 	aircraftByRunway := make(map[runwayKey][]*Aircraft)
 

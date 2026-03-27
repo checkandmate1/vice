@@ -92,7 +92,8 @@ type LaunchConfig struct {
 	ArrivalMode    int32
 	OverflightMode int32
 
-	GoAroundRate float32
+	GoAroundRate         float32
+	EnableTowerGoArounds bool
 	// airport -> runway -> category -> rate
 	DepartureRates     map[string]map[av.RunwayID]map[string]float32
 	DepartureRateScale float32

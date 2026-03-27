@@ -821,8 +821,10 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 	imgui.Checkbox("Update Discord activity status", &update)
 	config.InhibitDiscordActivity.Store(!update)
 
-	if c != nil {
-		imgui.Checkbox("Disable text-to-speech", &config.DisableTextToSpeech)
+	imgui.Checkbox("Disable text-to-speech", &config.DisableTextToSpeech)
+	if imgui.Checkbox("Enable tower initiated go-arounds due to separation", &config.EnableTowerGoArounds) {
+		c.State.LaunchConfig.EnableTowerGoArounds = config.EnableTowerGoArounds
+		c.SetLaunchConfig(c.State.LaunchConfig)
 	}
 
 	imgui.Separator()

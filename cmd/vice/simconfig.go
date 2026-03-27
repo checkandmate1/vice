@@ -1420,6 +1420,7 @@ func (c *NewSimConfiguration) DrawRatesUI(p platform.Platform) bool {
 func (c *NewSimConfiguration) Start(config *Config) error {
 	c.TFRs = c.tfrCache.TFRsForTRACON(c.Facility, c.lg)
 	c.NewSimRequest.Emergencies = c.emergencies
+	c.ScenarioSpec.LaunchConfig.EnableTowerGoArounds = config.EnableTowerGoArounds
 
 	if c.newSimType == NewSimJoinRemote {
 		// Set the privileged flag from the main config
