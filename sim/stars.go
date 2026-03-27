@@ -444,9 +444,9 @@ type FacilityAdaptation struct {
 			Format string `json:"format"`
 		} `json:"tower"`
 	} `json:"lists"`
-	RestrictionAreas []av.RestrictionArea `json:"restriction_areas"`
-	UseLegacyFont    bool                 `json:"use_legacy_font"`
-	STARSMacros      STARSMacroSet        `json:"stars_macros"`
+	RestrictionAreas map[int]av.RestrictionArea `json:"restriction_areas"`
+	UseLegacyFont    bool                       `json:"use_legacy_font"`
+	STARSMacros      STARSMacroSet              `json:"stars_macros"`
 }
 
 // STARSMacroSet is a list of facility-defined keyboard macros.

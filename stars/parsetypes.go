@@ -835,7 +835,7 @@ func (h *raIndexParser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandI
 		return nil, text, false, nil
 	}
 
-	if sp.getRestrictionArea(ctx, idx, h.userOnly) != nil {
+	if _, ok := sp.getRestrictionArea(ctx, idx, h.userOnly); ok {
 		return idx, remainder, true, nil
 	}
 

@@ -231,8 +231,9 @@ type NewSimConfiguration struct {
 	ControllerConfiguration *ControllerConfiguration
 	ConfigurationId         string
 
-	TFRs               []av.TFR
-	FacilityAdaptation FacilityAdaptation
+	TFRs                       []av.TFR
+	FacilityAdaptation         FacilityAdaptation
+	DisableTFRRestrictionAreas bool
 
 	EnforceUniqueCallsignSuffix bool
 
@@ -636,17 +637,12 @@ func (s *Sim) CreateRestrictionArea(ra av.RestrictionArea) (int, error) {
 
 	ra.UpdateTriangles()
 
-	// Look for a free slot from one that was deleted
-	for i, ua := range s.State.UserRestrictionAreas {
-		if ua.Deleted {
-			s.State.UserRestrictionAreas[i] = ra
-			return i + 1, nil
+	// Find the smallest unused key in 1-MaxRestrictionAreas (user range)
+	for key := 1; key <= av.MaxRestrictionAreas; key++ {
+		if _, exists := s.State.RestrictionAreas[key]; !exists {
+			s.State.RestrictionAreas[key] = ra
+			return key, nil
 		}
-	}
-
-	if n := len(s.State.UserRestrictionAreas); n < av.MaxRestrictionAreas {
-		s.State.UserRestrictionAreas = append(s.State.UserRestrictionAreas, ra)
-		return n + 1, nil
 	}
 
 	return 0, ErrTooManyRestrictionAreas
@@ -656,20 +652,17 @@ func (s *Sim) UpdateRestrictionArea(idx int, ra av.RestrictionArea) error {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
-	// Adjust for one-based indexing in the API call
-	idx--
-
-	if idx < 0 || idx >= len(s.State.UserRestrictionAreas) {
+	if idx < 1 || idx > av.MaxRestrictionAreas {
 		return ErrInvalidRestrictionAreaIndex
 	}
-	if s.State.UserRestrictionAreas[idx].Deleted {
+	if _, exists := s.State.RestrictionAreas[idx]; !exists {
 		return ErrInvalidRestrictionAreaIndex
 	}
 
 	// Update the triangulation just in case it's been moved.
 	ra.UpdateTriangles()
 
-	s.State.UserRestrictionAreas[idx] = ra
+	s.State.RestrictionAreas[idx] = ra
 	return nil
 }
 
@@ -677,17 +670,14 @@ func (s *Sim) DeleteRestrictionArea(idx int) error {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
-	// Adjust for one-based indexing in the API call
-	idx--
-
-	if idx < 0 || idx >= len(s.State.UserRestrictionAreas) {
+	if idx < 1 || idx > av.MaxRestrictionAreas {
 		return ErrInvalidRestrictionAreaIndex
 	}
-	if s.State.UserRestrictionAreas[idx].Deleted {
+	if _, exists := s.State.RestrictionAreas[idx]; !exists {
 		return ErrInvalidRestrictionAreaIndex
 	}
 
-	s.State.UserRestrictionAreas[idx] = av.RestrictionArea{Deleted: true}
+	delete(s.State.RestrictionAreas, idx)
 	return nil
 }
 

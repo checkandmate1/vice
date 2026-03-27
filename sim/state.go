@@ -35,7 +35,7 @@ type DynamicState struct {
 
 	LaunchConfig LaunchConfig
 
-	UserRestrictionAreas []av.RestrictionArea
+	RestrictionAreas map[int]av.RestrictionArea
 
 	Paused  bool
 	SimRate float32
@@ -286,10 +286,27 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, model *wx.M
 		}
 	}
 
-	// Add the TFR restriction areas
-	for _, tfr := range config.TFRs {
-		ra := av.RestrictionAreaFromTFR(tfr)
-		ss.FacilityAdaptation.RestrictionAreas = append(ss.FacilityAdaptation.RestrictionAreas, ra)
+	// Build unified restriction areas map from facility adaptation
+	ss.RestrictionAreas = make(map[int]av.RestrictionArea, len(config.FacilityAdaptation.RestrictionAreas))
+	maps.Copy(ss.RestrictionAreas, config.FacilityAdaptation.RestrictionAreas)
+
+	// Add TFR restriction areas in the 101-200 range unless disabled
+	if !config.DisableTFRRestrictionAreas {
+		for _, tfr := range config.TFRs {
+			ra := av.RestrictionAreaFromTFR(tfr)
+			// Find the smallest unused key in 101-200
+			placed := false
+			for key := av.MaxRestrictionAreas + 1; key <= 2*av.MaxRestrictionAreas; key++ {
+				if _, exists := ss.RestrictionAreas[key]; !exists {
+					ss.RestrictionAreas[key] = ra
+					placed = true
+					break
+				}
+			}
+			if !placed {
+				lg.Warnf("no available system restriction area slot for TFR %q", tfr.LocalName)
+			}
+		}
 	}
 
 	// Consolidate all positions to the root TCW

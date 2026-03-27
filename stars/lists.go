@@ -1147,15 +1147,8 @@ func (sp *STARSPane) drawRestrictionAreasList(ctx *panes.Context, paneExtent mat
 		idx int
 	}
 	var areas []indexedRA
-	for i, ra := range ctx.Client.State.UserRestrictionAreas {
-		if !ra.Deleted {
-			areas = append(areas, indexedRA{ra, i + 1})
-		}
-	}
-	for i, ra := range ctx.FacilityAdaptation.RestrictionAreas {
-		if !ra.Deleted {
-			areas = append(areas, indexedRA{ra, i + 101})
-		}
+	for idx, ra := range util.SortedMap(ctx.Client.State.RestrictionAreas) {
+		areas = append(areas, indexedRA{ra, idx})
 	}
 
 	return sp.drawSystemList(ctx, paneExtent, &ps.RestrictionAreaList.Position, style, td, ld, ListFormatter{

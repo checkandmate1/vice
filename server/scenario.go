@@ -1609,22 +1609,25 @@ func PostDeserializeFacilityAdaptation(s *sim.FacilityAdaptation, e *util.ErrorL
 
 	// Restriction areas: vertex resolution and spatial checks (require Locator).
 	e.Push(`"restriction_areas"`)
-	for idx := range s.RestrictionAreas {
-		ra := &s.RestrictionAreas[idx]
-
-		if ra.Closed && len(ra.Vertices) == 0 || len(ra.Vertices[0]) < 3 {
-			e.ErrorString(`At least 3 "vertices" must be given for a closed restriction area.`)
-		}
-		if !ra.Closed && len(ra.Vertices) == 0 || len(ra.Vertices[0]) < 2 {
-			e.ErrorString(`At least 2 "vertices" must be given for an open restriction area.`)
-		}
-
+	for idx, ra := range s.RestrictionAreas {
 		if len(ra.VerticesUser) > 0 {
 			// Polygons
+			if ra.CircleRadius > 0 {
+				e.ErrorString(`Cannot specify both "circle_radius" and "vertices".`)
+			}
+
 			ra.VerticesUser = ra.VerticesUser.InitializeLocations(sg, sg.NmPerLongitude, sg.MagneticVariation, false, e)
 			var verts []math.Point2LL
 			for _, v := range ra.VerticesUser {
 				verts = append(verts, v.Location)
+			}
+
+			nv := len(verts)
+			if ra.Closed && nv < 3 {
+				e.ErrorString(`At least 3 "vertices" must be given for a closed restriction area.`)
+			}
+			if !ra.Closed && nv < 2 {
+				e.ErrorString(`At least 2 "vertices" must be given for an open restriction area.`)
 			}
 
 			ra.Vertices = make([][]math.Point2LL, 1)
@@ -1633,10 +1636,6 @@ func PostDeserializeFacilityAdaptation(s *sim.FacilityAdaptation, e *util.ErrorL
 
 			if ra.TextPosition.IsZero() {
 				ra.TextPosition = ra.AverageVertexPosition()
-			}
-
-			if ra.CircleRadius > 0 {
-				e.ErrorString(`Cannot specify both "circle_radius" and "vertices".`)
 			}
 		} else if ra.CircleRadius > 0 {
 			// Circle-related checks
@@ -1651,10 +1650,11 @@ func PostDeserializeFacilityAdaptation(s *sim.FacilityAdaptation, e *util.ErrorL
 			}
 		} else {
 			// Must be text-only
-			if ra.Text[0] != "" || ra.Text[1] != "" && ra.TextPosition.IsZero() {
+			if (ra.Text[0] != "" || ra.Text[1] != "") && ra.TextPosition.IsZero() {
 				e.ErrorString(`Must specify "text_position" with restriction area`)
 			}
 		}
+		s.RestrictionAreas[idx] = ra
 	}
 	e.Pop()
 

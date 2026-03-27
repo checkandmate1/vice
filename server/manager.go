@@ -228,6 +228,7 @@ func (sm *SimManager) makeSimConfiguration(req *NewSimRequest, lg *log.Logger) *
 		Facility:                    req.Facility,
 		LaunchConfig:                req.ScenarioSpec.LaunchConfig,
 		FacilityAdaptation:          deep.MustCopy(sg.FacilityConfig.FacilityAdaptation),
+		DisableTFRRestrictionAreas:  sg.FacilityConfig.DisableTFRRestrictionAreas,
 		EnforceUniqueCallsignSuffix: req.EnforceUniqueCallsignSuffix,
 		PilotErrorInterval:          req.PilotErrorInterval,
 		DepartureRunways:            sc.DepartureRunways,

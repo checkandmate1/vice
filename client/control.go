@@ -280,9 +280,6 @@ func (c *ControlClient) CreateRestrictionArea(ra av.RestrictionArea, callback fu
 	}, &result, nil), &result.StateUpdate,
 		func(err error) {
 			if callback != nil {
-				if err != nil {
-					callback(result.Index, err)
-				}
 				callback(result.Index, err)
 			}
 		}))

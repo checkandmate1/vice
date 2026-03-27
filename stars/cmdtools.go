@@ -348,17 +348,17 @@ func registerToolsCommands() {
 	registerCommand(CommandModeRestrictionArea, "[USER_RA_INDEX]*"+STARSTriangleCharacter+"[RA_LOCATION]|"+
 		"[USER_RA_INDEX]*"+STARSTriangleCharacter+"[POS]",
 		func(sp *STARSPane, ctx *panes.Context, idx int, pos math.Point2LL) {
-			ra := sp.getRestrictionArea(ctx, idx, true)
+			ra, _ := sp.getRestrictionArea(ctx, idx, true)
 			ra.MoveTo(pos)
 			ra.BlinkingText = true
-			updateRestrictionArea(sp, ctx, idx, *ra)
+			updateRestrictionArea(sp, ctx, idx, ra)
 		})
 	registerCommand(CommandModeRestrictionArea, "[USER_RA_INDEX]*[RA_LOCATION]|[USER_RA_INDEX]*[POS]",
 		func(sp *STARSPane, ctx *panes.Context, idx int, pos math.Point2LL) {
-			ra := sp.getRestrictionArea(ctx, idx, true)
+			ra, _ := sp.getRestrictionArea(ctx, idx, true)
 			ra.MoveTo(pos)
 			ra.BlinkingText = true
-			updateRestrictionArea(sp, ctx, idx, *ra)
+			updateRestrictionArea(sp, ctx, idx, ra)
 		})
 
 	// 6.6.6 Delete restriction area
@@ -371,10 +371,10 @@ func registerToolsCommands() {
 	// 6.6.7 Change restriction area text
 	registerCommand(CommandModeRestrictionArea, "[USER_RA_INDEX]T[RA_TEXT]",
 		func(sp *STARSPane, ctx *panes.Context, idx int, parsed RAText) {
-			ra := sp.getRestrictionArea(ctx, idx, true)
+			ra, _ := sp.getRestrictionArea(ctx, idx, true)
 			ra.Text = parsed.text
 			ra.BlinkingText = parsed.blink
-			updateRestrictionArea(sp, ctx, idx, *ra)
+			updateRestrictionArea(sp, ctx, idx, ra)
 		})
 
 	// 6.6.8 Hide / show restriction area text
@@ -412,7 +412,7 @@ func registerToolsCommands() {
 			}
 
 			// If text is blinking, stop it; otherwise toggle visibility
-			ra := sp.getRestrictionArea(ctx, idx, false)
+			ra, _ := sp.getRestrictionArea(ctx, idx, false)
 			blinking := settings.ForceBlinkingText || (ra.BlinkingText && !settings.StopBlinkingText)
 			if blinking {
 				settings.ForceBlinkingText = false

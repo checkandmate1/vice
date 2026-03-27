@@ -21,10 +21,11 @@ import (
 // contains control positions, STARS configuration, handoff IDs, and
 // fix pair definitions for a facility (TRACON or ARTCC).
 type FacilityConfig struct {
-	ControlPositions   map[TCP]*av.Controller `json:"control_positions"`
-	FacilityAdaptation FacilityAdaptation     `json:"facility_adaptations"`
-	HandoffIDs         []HandoffID            `json:"handoff_ids"`
-	FixPairs           []FixPairDefinition    `json:"fix_pairs"`
+	ControlPositions           map[TCP]*av.Controller `json:"control_positions"`
+	FacilityAdaptation         FacilityAdaptation     `json:"facility_adaptations"`
+	HandoffIDs                 []HandoffID            `json:"handoff_ids"`
+	FixPairs                   []FixPairDefinition    `json:"fix_pairs"`
+	DisableTFRRestrictionAreas bool                   `json:"disable_tfr_restriction_areas"`
 }
 
 // HandoffID maps a neighboring facility to its STARS identifiers at
@@ -537,15 +538,14 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 
 	// Restriction areas: non-spatial checks.
 	e.Push(`"restriction_areas"`)
-	if len(fa.RestrictionAreas) > av.MaxRestrictionAreas {
-		e.ErrorString("No more than %d restriction areas may be specified; %d were given.",
-			av.MaxRestrictionAreas, len(fa.RestrictionAreas))
-	}
-	for idx := range fa.RestrictionAreas {
-		ra := &fa.RestrictionAreas[idx]
+	for idx, ra := range fa.RestrictionAreas {
+		if idx < 1 || idx > 2*av.MaxRestrictionAreas {
+			e.ErrorString("restriction area key %d must be between 1 and %d", idx, 2*av.MaxRestrictionAreas)
+			continue
+		}
 
 		if ra.Title == "" {
-			e.ErrorString(`Must define "title" for restriction area.`)
+			e.ErrorString(`Must define "title" for restriction area %d.`, idx)
 		}
 		for i := range 2 {
 			if len(ra.Text[i]) > 32 {

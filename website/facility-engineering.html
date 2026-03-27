@@ -1004,6 +1004,13 @@
                         </table>
                       </details>
                   </td></tr>
+                  <tr>
+                    <td>"disable_tfr_restriction_areas"</td>
+                    <td>Boolean</td>
+                    <td>(<i>Optional</i>) If true, TFR (Temporary Flight Restriction) areas are not automatically
+                      added as system restriction areas when a simulation starts. By default, TFRs are converted
+                      to restriction areas and assigned keys in the 101&ndash;200 range.</td>
+                  </tr>
                 </tbody>
               </table>
               <section class="docs-section" id="fe-config-common">
@@ -2239,12 +2246,16 @@
                     </td></tr>
                     <tr>
                       <td>"restriction_areas"</td>
-                      <td>Array of objects</td>
-                      <td>Defines restriction areas that controllers may display in the STARS window.</td>
+                      <td>Map of integer keys (1&ndash;200) to objects</td>
+                      <td>Defines restriction areas that controllers may display in the STARS window.
+                        Keys 1&ndash;100 are user restriction areas (can be created/modified/deleted at runtime);
+                        keys 101&ndash;200 are system restriction areas (can only be toggled for display).
+                        TFR-generated restriction areas are automatically assigned keys in the 101&ndash;200 range.</td>
                     </tr>
                     <tr><td colspan="3">
                         <details class="json-fields" id="fe-stars-restriction-areas"><summary>"restriction_areas" members</summary>
-                          <p>The "restriction_areas" array specifies restriction areas that controllers may display in the STARS window.
+                          <p>The "restriction_areas" map specifies restriction areas that controllers may display in the STARS window.
+                            Each key is an integer from 1 to 200; keys 1&ndash;100 are user restriction areas and keys 101&ndash;200 are system restriction areas.
                             There are three types: text-only, circular, and polygonal.</p>
                           <table class="table"><thead><tr><th>Element</th><th>Type</th><th>Description</th></tr></thead><tbody>
                               <tr>

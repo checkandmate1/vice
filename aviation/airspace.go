@@ -460,8 +460,7 @@ type RestrictionArea struct {
 	Shaded       bool `json:"shade_region"`
 	Color        int  `json:"color"`
 
-	Tris    [][3]math.Point2LL
-	Deleted bool
+	Tris [][3]math.Point2LL
 }
 
 type Airspace struct {

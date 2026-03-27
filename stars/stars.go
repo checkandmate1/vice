@@ -1454,38 +1454,25 @@ func (sp *STARSPane) drawWIPRestrictionArea(ctx *panes.Context, transforms radar
 	}
 }
 
-func (sp *STARSPane) getRestrictionArea(ctx *panes.Context, idx int, userOnly bool) *av.RestrictionArea {
-	uras := ctx.Client.State.UserRestrictionAreas
-	if idx >= 1 && idx-1 < len(uras) && !uras[idx-1].Deleted {
-		return &uras[idx-1]
+func (sp *STARSPane) getRestrictionArea(ctx *panes.Context, idx int, userOnly bool) (av.RestrictionArea, bool) {
+	if userOnly && idx > av.MaxRestrictionAreas {
+		return av.RestrictionArea{}, false
 	}
-
-	if !userOnly {
-		ras := ctx.FacilityAdaptation.RestrictionAreas
-		if !userOnly && idx >= 101 && idx-101 < len(ras) && !ras[idx-101].Deleted {
-			return &ras[idx-101]
-		}
-	}
-
-	return nil
+	ra, ok := ctx.Client.State.RestrictionAreas[idx]
+	return ra, ok
 }
 
 func (sp *STARSPane) drawRestrictionAreas(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
 	sp.drawWIPRestrictionArea(ctx, transforms, cb)
 
 	ps := sp.currentPrefs()
-	draw := make(map[int]*av.RestrictionArea)
+	draw := make(map[int]av.RestrictionArea)
 	for idx, s := range ps.RestrictionAreaSettings {
 		if !s.Visible {
 			continue
 		}
-
-		uras := ctx.Client.State.UserRestrictionAreas
-		ras := ctx.FacilityAdaptation.RestrictionAreas
-		if idx >= 1 && idx-1 < len(uras) && !uras[idx-1].Deleted {
-			draw[idx] = &uras[idx-1]
-		} else if idx >= 101 && idx-101 < len(ras) && !ras[idx-101].Deleted {
-			draw[idx] = &ras[idx-101]
+		if ra, ok := ctx.Client.State.RestrictionAreas[idx]; ok {
+			draw[idx] = ra
 		}
 	}
 
