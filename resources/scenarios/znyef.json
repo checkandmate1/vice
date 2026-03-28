@@ -969,6 +969,10 @@
         {
           "airport": "KHPN",
           "runway": "34"
+        },
+        {
+          "airport": "KPHL",
+          "runway": "27R"
         }
       ],
       "inbound_rates": {
@@ -980,6 +984,9 @@
         },
         "BOUNO5": {
           "KHPN": 9
+        },
+        "JIIMS4 (BRIGS)": {
+          "KPHL": 15
         },
         "SARDI1": {
           "KHVN": 2,
