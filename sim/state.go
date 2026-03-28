@@ -83,6 +83,8 @@ type CommonState struct {
 
 	SimDescription string
 
+	TFRs []av.TFR
+
 	HandoffIDs []HandoffID
 }
 
@@ -260,6 +262,8 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, model *wx.M
 		NmPerLongitude:    config.NmPerLongitude,
 		PrimaryAirport:    config.PrimaryAirport,
 		SimDescription:    config.Description,
+
+		TFRs: config.TFRs,
 
 		HandoffIDs: config.HandoffIDs,
 	}

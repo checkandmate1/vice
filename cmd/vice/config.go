@@ -12,9 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/client"
 	"github.com/mmp/vice/eram"
 	"github.com/mmp/vice/log"
@@ -59,8 +57,6 @@ type ConfigNoSim struct {
 	// Whether the floating windows are visible
 	ShowMessages     bool
 	ShowFlightStrips bool
-
-	TFRCache av.TFRCache
 
 	AskedDiscordOptIn      bool
 	InhibitDiscordActivity util.AtomicBool
@@ -164,8 +160,6 @@ func (c *Config) SaveIfChanged(renderer renderer.Renderer, platform platform.Pla
 	c.ImGuiSettings = imgui.SaveIniSettingsToMemory()
 	c.InitialWindowSize = platform.WindowSize()
 	c.InitialWindowPosition = platform.WindowPosition()
-	c.TFRCache.Sync(100*time.Millisecond, lg)
-
 	fn := configFilePath(lg)
 	onDisk, err := os.ReadFile(fn)
 	if err != nil {
@@ -203,7 +197,6 @@ func getDefaultConfig() *Config {
 			Config: platform.Config{
 				InitialWindowPosition: [2]int{100, 100},
 			},
-			TFRCache:              av.MakeTFRCache(),
 			Version:               server.ViceSerializeVersion,
 			WhatsNewIndex:         len(whatsNew),
 			NotifiedTargetGenMode: true, // don't warn for new installs
@@ -248,10 +241,6 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 			config.UserWorkstation = ""
 		}
 
-		if config.Version < 29 {
-			config.TFRCache = av.MakeTFRCache()
-		}
-
 		// Ensure all pane instances are initialized
 		if config.STARSPane == nil {
 			config.STARSPane = stars.NewSTARSPane()
@@ -291,8 +280,6 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 		config.UIFontSize = 16
 	}
 	config.Version = server.ViceSerializeVersion
-
-	config.TFRCache.UpdateAsync(lg)
 
 	imgui.LoadIniSettingsFromMemory(config.ImGuiSettings)
 

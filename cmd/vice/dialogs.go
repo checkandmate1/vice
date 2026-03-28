@@ -238,7 +238,7 @@ func (c *ScenarioSelectionModalClient) Title() string { return "New Simulation" 
 
 func (c *ScenarioSelectionModalClient) Opening() {
 	if c.simConfig == nil {
-		c.simConfig = MakeNewSimConfiguration(c.mgr, &c.config.LastTRACON, &c.config.TFRCache, c.lg)
+		c.simConfig = MakeNewSimConfiguration(c.mgr, &c.config.LastTRACON, c.lg)
 	}
 }
 

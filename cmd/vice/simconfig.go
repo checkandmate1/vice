@@ -41,7 +41,6 @@ type NewSimConfiguration struct {
 	mgr             *client.ConnectionManager
 	selectedServer  *client.Server
 	defaultFacility *string
-	tfrCache        *av.TFRCache
 	emergencies     []sim.Emergency
 	lg              *log.Logger
 
@@ -159,7 +158,7 @@ func loadEmergencies(e *util.ErrorLogger) []sim.Emergency {
 	return emergencies
 }
 
-func MakeNewSimConfiguration(mgr *client.ConnectionManager, defaultFacility *string, tfrCache *av.TFRCache, lg *log.Logger) *NewSimConfiguration {
+func MakeNewSimConfiguration(mgr *client.ConnectionManager, defaultFacility *string, lg *log.Logger) *NewSimConfiguration {
 	var emergencyLogger util.ErrorLogger
 	emergencies := loadEmergencies(&emergencyLogger)
 	if emergencyLogger.HaveErrors() {
@@ -171,7 +170,6 @@ func MakeNewSimConfiguration(mgr *client.ConnectionManager, defaultFacility *str
 		mgr:             mgr,
 		selectedServer:  mgr.LocalServer,
 		defaultFacility: defaultFacility,
-		tfrCache:        tfrCache,
 		emergencies:     emergencies,
 		NewSimRequest:   server.MakeNewSimRequest(),
 	}
@@ -1418,7 +1416,6 @@ func (c *NewSimConfiguration) DrawRatesUI(p platform.Platform) bool {
 }
 
 func (c *NewSimConfiguration) Start(config *Config) error {
-	c.TFRs = c.tfrCache.TFRsForTRACON(c.Facility, c.lg)
 	c.NewSimRequest.Emergencies = c.emergencies
 	c.ScenarioSpec.LaunchConfig.EnableTowerGoArounds = config.EnableTowerGoArounds
 
@@ -1911,6 +1908,72 @@ func drawScenarioInfoWindow(config *Config, c *client.ControlClient, activeRadar
 				imgui.EndTable()
 			}
 
+		}
+	}
+
+	if len(c.State.TFRs) > 0 {
+		if imgui.CollapsingHeaderBoolPtr("TFRs", nil) {
+			tableFlags := imgui.TableFlagsBordersV | imgui.TableFlagsBordersOuterH |
+				imgui.TableFlagsRowBg | imgui.TableFlagsSizingStretchProp
+			if imgui.BeginTableV("tfrs", 5, tableFlags, imgui.Vec2{}, 0) {
+				imgui.TableSetupColumn("Type")
+				imgui.TableSetupColumn("Name")
+				imgui.TableSetupColumn("ARTCC")
+				imgui.TableSetupColumn("Effective")
+				imgui.TableSetupColumn("Expires")
+				imgui.TableHeadersRow()
+
+				ui.fixedFont.ImguiPush()
+				for _, tfr := range c.State.TFRs {
+					imgui.TableNextRow()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.Type)
+					rowHovered := imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.LocalName)
+					rowHovered = rowHovered || imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.ARTCC)
+					rowHovered = rowHovered || imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.Effective.Format("2006-01-02 15:04Z"))
+					rowHovered = rowHovered || imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.Expire.Format("2006-01-02 15:04Z"))
+					rowHovered = rowHovered || imgui.IsItemHovered()
+
+					if rowHovered {
+						var lines []string
+						if tfr.Regulation != "" {
+							r := tfr.Regulation
+							if tfr.Type != "" {
+								r += " - " + tfr.Type
+							}
+							lines = append(lines, r)
+						}
+						if tfr.City != "" || tfr.State != "" {
+							loc := tfr.City
+							if loc != "" && tfr.State != "" {
+								loc += ", "
+							}
+							loc += tfr.State
+							lines = append(lines, loc)
+						}
+						if tfr.AltDescr != "" {
+							lines = append(lines, tfr.AltDescr)
+						}
+						if tfr.Purpose != "" {
+							lines = append(lines, tfr.Purpose)
+						}
+						if len(lines) > 0 {
+							imgui.SetTooltip(strings.Join(lines, "\n"))
+						}
+					}
+				}
+				imgui.PopFont()
+
+				imgui.EndTable()
+			}
 		}
 	}
 

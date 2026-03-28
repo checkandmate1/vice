@@ -14,6 +14,7 @@ import (
 	"time"
 
 	av "github.com/mmp/vice/aviation"
+	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/util"
 
 	"github.com/klauspost/compress/zstd"
@@ -34,6 +35,11 @@ var (
 		byTime  map[string]*AtmosByTime        // keyed by facility (TRACON or ARTCC)
 		timeInt map[string][]util.TimeInterval // keyed by facility
 	}
+	tfrCache struct {
+		done chan struct{}
+		tfrs []av.TFR
+		err  error
+	}
 )
 
 var wxInitOnce sync.Once
@@ -52,6 +58,17 @@ func initResources() {
 			return
 		}
 		metarCache.cm, metarCache.err = LoadCompressedMETAR(bytes.NewReader(f))
+	}()
+
+	tfrCache.done = make(chan struct{})
+	go func() {
+		defer close(tfrCache.done)
+		f, err := fs.ReadFile(util.GetResourcesFS(), "wx/"+TFRFilename)
+		if err != nil {
+			tfrCache.err = err
+			return
+		}
+		tfrCache.tfrs, tfrCache.err = LoadCompressedTFRs(bytes.NewReader(f))
 	}()
 
 	atmosCache.done = make(chan struct{})
@@ -173,4 +190,27 @@ func loadAtmosByTime(facility string) (*AtmosByTime, error) {
 
 	atmosByTime := atmosTimesSOA.ToAOS()
 	return &atmosByTime, nil
+}
+
+// GetCachedTFRsForARTCC returns TFRs from bundled resources matching the given
+// ARTCC that are active at time t.
+func GetCachedTFRsForARTCC(artcc string, t time.Time) ([]av.TFR, error) {
+	Init()
+	<-tfrCache.done
+	if tfrCache.err != nil {
+		return nil, tfrCache.err
+	}
+	return GetTFRsForARTCC(tfrCache.tfrs, artcc, t), nil
+}
+
+// GetCachedTFRsForTRACON returns TFRs from bundled resources matching the parent
+// ARTCC that are active at time t and geographically near center.
+func GetCachedTFRsForTRACON(artcc string, center math.Point2LL,
+	rangeNm float32, t time.Time) ([]av.TFR, error) {
+	Init()
+	<-tfrCache.done
+	if tfrCache.err != nil {
+		return nil, tfrCache.err
+	}
+	return GetTFRsForTRACON(tfrCache.tfrs, artcc, center, rangeNm, t), nil
 }

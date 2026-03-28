@@ -72,7 +72,8 @@ import (
 // 62: new route/waypoint options
 // 63: stars [A]TPA brightness controls
 // 64: stars datablock intervals
-const ViceSerializeVersion = 64
+// 65: TFR ingest pipeline
+const ViceSerializeVersion = 65
 
 const ViceServerAddress = "vice.pharr.org"
 const ViceServerPort = 8000 - 50 + ViceRPCVersion

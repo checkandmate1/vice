@@ -137,7 +137,6 @@ type NewSimRequest struct {
 	ScenarioSpec *ScenarioSpec
 	StartTime    time.Time
 
-	TFRs        []av.TFR
 	Emergencies []sim.Emergency
 
 	RequirePassword bool
@@ -224,7 +223,6 @@ func (sm *SimManager) makeSimConfiguration(req *NewSimRequest, lg *log.Logger) *
 	wxp := sm.getWXProvider()
 
 	nsc := sim.NewSimConfiguration{
-		TFRs:                        req.TFRs,
 		Facility:                    req.Facility,
 		LaunchConfig:                req.ScenarioSpec.LaunchConfig,
 		FacilityAdaptation:          deep.MustCopy(sg.FacilityConfig.FacilityAdaptation),
@@ -258,6 +256,28 @@ func (sm *SimManager) makeSimConfiguration(req *NewSimRequest, lg *log.Logger) *
 		StartTime:                   req.StartTime,
 		HandoffIDs:                  sg.FacilityConfig.HandoffIDs,
 		FixPairs:                    sg.FacilityConfig.FixPairs,
+	}
+
+	// Look up historical TFRs for this facility and time.
+	artcc := sg.ARTCC
+	if artcc == "" {
+		if info, ok := av.DB.TRACONs[req.Facility]; ok {
+			artcc = info.ARTCC
+		} else if info, ok := av.DB.ATCTs[req.Facility]; ok {
+			artcc = info.ARTCC
+		}
+	}
+	if artcc != "" {
+		var err error
+		if isARTCC(req.Facility) {
+			nsc.TFRs, err = wx.GetCachedTFRsForARTCC(artcc, req.StartTime)
+		} else {
+			nsc.TFRs, err = wx.GetCachedTFRsForTRACON(artcc, nsc.Center, nsc.Range,
+				req.StartTime)
+		}
+		if err != nil {
+			lg.Warnf("unable to load TFRs for %s: %v", artcc, err)
+		}
 	}
 
 	return &nsc
