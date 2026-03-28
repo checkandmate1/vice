@@ -526,6 +526,9 @@ func (sp *STARSPane) resolveHandoff(ctx *panes.Context, sfp *sim.NASFlightPlan,
 
 func formatAltitude(trk sim.Track, sfp *sim.NASFlightPlan, unreasonableModeC bool) (altitude string, pilotReported bool) {
 	if trk.IsUnsupportedDB() {
+		if sfp != nil && sfp.PilotReportedAltitude != 0 {
+			return fmt.Sprintf("%03d", sfp.PilotReportedAltitude/100), true
+		}
 		return "", false
 	}
 
@@ -929,7 +932,13 @@ func (sp *STARSPane) fillFDBField5(ctx *panes.Context, trk sim.Track, sfp *sim.N
 
 	// Helper: write groundspeed + indicators (IF/HL/ID + rules/CWT).
 	writeGSRules := func(field []dbChar) {
-		if state == nil || trk.IsUnsupportedDB() {
+		if state == nil {
+			return
+		}
+		if trk.IsUnsupportedDB() {
+			// No radar return, so show 00 for speed with CWT/flight rules.
+			idx := formatDBText(field, "00", color, false)
+			formatDBText(field[idx:], rulesCategory, color, false)
 			return
 		}
 		if state.IFFlashing {
