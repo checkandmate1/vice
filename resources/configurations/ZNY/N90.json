@@ -1,258 +1,249 @@
 {
   "control_positions": {
-    "1G": {
-      "callsign": "HPN_TWR",
-      "frequency": 118575,
-      "radio_name": "Westchester tower"
-    },
-    "1T": {
-      "callsign": "LGA_TWR",
-      "frequency": 118700,
-      "radio_name": "Laguardia tower"
-    },
-    "3Z": {
-      "callsign": "ISP_Z_APP",
-      "frequency": 124075,
-      "radio_name": "New York approach"
+    "1D": {
+      "callsign": "LGA_D_APP",
+      "frequency": 127300,
+      "radio_name": "New York Approach"
     },
     "1F": {
       "callsign": "LGA_F_APP",
       "frequency": 134950,
-      "radio_name": "New York approach"
+      "radio_name": "New York Approach"
     },
     "1L": {
       "callsign": "LGA_L_APP",
       "frequency": 120400,
-      "radio_name": "New York approach"
-    },
-    "1M": {
-      "callsign": "DXR_TWR",
-      "frequency": 119400,
-      "radio_name": "Danbury tower"
-    },
-    "3P": {
-      "callsign": "HVN_TWR",
-      "frequency": 124800,
-      "radio_name": "New Haven tower"
-    },
-    "3N": {
-      "callsign": "ISP_N_APP",
-      "frequency": 120050,
-      "radio_name": "New York approach"
-    },
-    "3R": {
-      "callsign": "ISP_R_APP",
-      "frequency": 133100,
-      "radio_name": "New York approach"
-    },
-    "3O": {
-      "callsign": "ISP_O_APP",
-      "frequency": 128625,
-      "radio_name": "New York approach"
-    },
-    "3I": {
-      "callsign": "ISP_I_APP",
-      "frequency": 118950,
-      "radio_name": "New York approach"
-    },
-    "3B": {
-      "callsign": "ISP_B_APP",
-      "frequency": 125975,
-      "radio_name": "New York approach"
-    },
-    "3C": {
-      "callsign": "ISP_TWR",
-      "frequency": 119300,
-      "radio_name": "Long Island Macarthur tower",
-      "scope_char": "T"
-    },
-    "1X": {
-      "callsign": "LGA_X_APP",
-      "frequency": 126400,
-      "radio_name": "New York approach"
-    },
-    "5H": {
-      "callsign": "SWF_APP",
-      "frequency": 132750,
-      "radio_name": "New York approach"
-    },
-    "2P": {
-      "callsign": "FRG_TWR",
-      "frequency": 118800,
-      "radio_name": "Republic tower"
-    },
-    "3H": {
-      "callsign": "ISP_H_APP",
-      "frequency": 120050,
-      "radio_name": "New York approach"
-    },
-    "2A": {
-      "callsign": "JFK_A_APP",
-      "frequency": 132400,
-      "radio_name": "New York approach"
-    },
-    "2E": {
-      "callsign": "JFK_E_APP",
-      "frequency": 136500,
-      "radio_name": "New York approach"
-    },
-    "2K": {
-      "callsign": "JFK_K_APP",
-      "frequency": 125700,
-      "radio_name": "New York approach"
-    },
-    "2M": {
-      "callsign": "JFK_M_APP",
-      "frequency": 118400,
-      "radio_name": "New York approach"
-    },
-    "2J": {
-      "callsign": "JFK_DEP",
-      "frequency": 135900,
-      "radio_name": "New York departure"
-    },
-    "2W": {
-      "callsign": "JFK_TWR",
-      "frequency": 119100,
-      "radio_name": "Kennedy tower"
-    },
-    "4N": {
-      "callsign": "EWR_DEP",
-      "frequency": 119200,
-      "radio_name": "New York departure"
-    },
-    "2G": {
-      "callsign": "JFK_G_APP",
-      "frequency": 128125,
-      "radio_name": "New York approach"
-    },
-    "5E": {
-      "callsign": "NY_LE_APP",
-      "frequency": 126800,
-      "radio_name": "New York departure"
-    },
-    "5T": {
-      "callsign": "NY_LN_APP",
-      "frequency": 118170,
-      "radio_name": "New York departure"
-    },
-    "5W": {
-      "callsign": "NY_LW_APP",
-      "frequency": 120850,
-      "radio_name": "New York departure"
-    },
-    "5S": {
-      "callsign": "NY_LS_APP",
-      "frequency": 124750,
-      "radio_name": "New York departure"
-    },
-    "1Y": {
-      "callsign": "LGA_Y_APP",
-      "frequency": 120550,
-      "radio_name": "New York departure"
-    },
-    "OT": {
-      "callsign": "OXC_TWR",
-      "frequency": 118475,
-      "radio_name": "Oxford Tower"
-    },
-    "JT": {
-      "callsign": "JPX_TWR",
-      "frequency": 118950,
-      "radio_name": "East Hampton Tower"
-    },
-    "GT": {
-      "callsign": "FOK_TWR",
-      "frequency": 125300,
-      "radio_name": "Gabreski Tower"
-    },
-    "BT": {
-      "callsign": "BDR_TWR",
-      "frequency": 120900,
-      "radio_name": "Bridgeport Tower"
-    },
-    "HT": {
-      "callsign": "POU_TWR",
-      "frequency": 124000,
-      "radio_name": "Hudson Tower"
-    },
-    "ST": {
-      "callsign": "SWF_TWR",
-      "frequency": 121000,
-      "radio_name": "Stewart Tower"
-    },
-    "4K": {
-      "callsign": "MMU_TWR",
-      "frequency": 119400,
-      "radio_name": "Morristown Tower",
-      "scope_char": "T"
-    },
-    "4J": {
-      "callsign": "TEB_TWR",
-      "frequency": 119500,
-      "radio_name": "Teterboro Tower",
-      "scope_char": "T"
-    },
-    "4A": {
-      "callsign": "EWR_A_APP",
-      "frequency": 120150,
-      "radio_name": "New York approach"
-    },
-    "4Z": {
-      "callsign": "EWR_TWR",
-      "frequency": 118300,
-      "radio_name": "Newark tower",
-      "scope_char": "T"
-    },
-    "4T": {
-      "callsign": "CDW_TWR",
-      "frequency": 119800,
-      "radio_name": "Caldwell Tower"
-    },
-    "4H": {
-      "callsign": "EWR_H_APP",
-      "frequency": 132800,
-      "radio_name": "Newark approach"
-    },
-    "4P": {
-      "callsign": "EWR_P_APP",
-      "frequency": 128550,
-      "radio_name": "Newark approach"
-    },
-    "4M": {
-      "callsign": "EWR_M_APP",
-      "frequency": 125550,
-      "radio_name": "Newark approach"
-    },
-    "4Q": {
-      "callsign": "EWR_Q_APP",
-      "frequency": 125500,
-      "radio_name": "Newark approach"
-    },
-    "4S": {
-      "callsign": "EWR_S_APP",
-      "frequency": 123770,
-      "radio_name": "Newark approach"
-    },
-    "4U": {
-      "callsign": "EWR_U_APP",
-      "frequency": 127600,
-      "radio_name": "Newark approach"
-    },
-    "4W": {
-      "callsign": "EWR_W_APP",
-      "frequency": 120150,
-      "radio_name": "New York approach"
+      "radio_name": "New York Approach"
     },
     "1V": {
       "callsign": "LGA_V_APP",
       "frequency": 120800,
-      "radio_name": "New York approach"
+      "radio_name": "New York Approach"
     },
-    "1D": {
-      "callsign": "LGA_D_APP",
-      "frequency": 127300,
-      "radio_name": "New York approach"
+    "1X": {
+      "callsign": "LGA_X_APP",
+      "frequency": 126400,
+      "radio_name": "New York Approach"
+    },
+    "1Y": {
+      "callsign": "LGA_Y_APP",
+      "frequency": 120550,
+      "radio_name": "New York Departure"
+    },
+    "2A": {
+      "callsign": "JFK_A_APP",
+      "frequency": 132400,
+      "radio_name": "New York Approach"
+    },
+    "2E": {
+      "callsign": "JFK_E_APP",
+      "frequency": 136500,
+      "radio_name": "New York Approach"
+    },
+    "2G": {
+      "callsign": "JFK_G_APP",
+      "frequency": 128125,
+      "radio_name": "New York Approach"
+    },
+    "2J": {
+      "callsign": "JFK_DEP",
+      "frequency": 135900,
+      "radio_name": "New York Departure"
+    },
+    "2K": {
+      "callsign": "JFK_K_APP",
+      "frequency": 125700,
+      "radio_name": "New York Approach"
+    },
+    "2M": {
+      "callsign": "JFK_M_APP",
+      "frequency": 118400,
+      "radio_name": "New York Approach"
+    },
+    "3B": {
+      "callsign": "ISP_B_APP",
+      "frequency": 125975,
+      "radio_name": "New York Approach"
+    },
+    "3H": {
+      "callsign": "ISP_H_APP",
+      "frequency": 120050,
+      "radio_name": "New York Approach"
+    },
+    "3I": {
+      "callsign": "ISP_I_APP",
+      "frequency": 118950,
+      "radio_name": "New York Approach"
+    },
+    "3N": {
+      "callsign": "ISP_N_APP",
+      "frequency": 120050,
+      "radio_name": "New York Approach"
+    },
+    "3O": {
+      "callsign": "ISP_O_APP",
+      "frequency": 128625,
+      "radio_name": "New York Approach"
+    },
+    "3R": {
+      "callsign": "ISP_R_APP",
+      "frequency": 133100,
+      "radio_name": "New York Approach"
+    },
+    "3Z": {
+      "callsign": "ISP_Z_APP",
+      "frequency": 124075,
+      "radio_name": "New York Approach"
+    },
+    "4A": {
+      "callsign": "EWR_A_APP",
+      "frequency": 120150,
+      "radio_name": "New York Approach"
+    },
+    "4H": {
+      "callsign": "EWR_H_APP",
+      "frequency": 132800,
+      "radio_name": "Newark Approach"
+    },
+    "4M": {
+      "callsign": "EWR_M_APP",
+      "frequency": 125550,
+      "radio_name": "Newark Approach"
+    },
+    "4N": {
+      "callsign": "EWR_DEP",
+      "frequency": 119200,
+      "radio_name": "New York Departure"
+    },
+    "4P": {
+      "callsign": "EWR_P_APP",
+      "frequency": 128550,
+      "radio_name": "Newark Approach"
+    },
+    "4Q": {
+      "callsign": "EWR_Q_APP",
+      "frequency": 125500,
+      "radio_name": "Newark Approach"
+    },
+    "4S": {
+      "callsign": "EWR_S_APP",
+      "frequency": 123770,
+      "radio_name": "Newark Approach"
+    },
+    "4U": {
+      "callsign": "EWR_U_APP",
+      "frequency": 127600,
+      "radio_name": "Newark Approach"
+    },
+    "4W": {
+      "callsign": "EWR_W_APP",
+      "frequency": 120150,
+      "radio_name": "New York Approach"
+    },
+    "5E": {
+      "callsign": "NY_LE_APP",
+      "frequency": 126800,
+      "radio_name": "New York Departure"
+    },
+    "5H": {
+      "callsign": "SWF_APP",
+      "frequency": 132750,
+      "radio_name": "New York Approach"
+    },
+    "5S": {
+      "callsign": "NY_LS_APP",
+      "frequency": 124750,
+      "radio_name": "New York Departure"
+    },
+    "5T": {
+      "callsign": "NY_LN_APP",
+      "frequency": 118170,
+      "radio_name": "New York Departure"
+    },
+    "5W": {
+      "callsign": "NY_LW_APP",
+      "frequency": 120850,
+      "radio_name": "New York Departure"
+    },
+    "1I": {
+      "callsign": "LGA_TWR",
+      "frequency": 118700,
+      "radio_name": "LaGuardia Tower"
+    },
+    "1W": {
+      "callsign": "HPN_TWR",
+      "frequency": 118575,
+      "radio_name": "Westchester Tower"
+    },
+    "14": {
+      "callsign": "DXR_TWR",
+      "frequency": 119400,
+      "radio_name": "Danbury Tower"
+    },
+    "2W": {
+      "callsign": "JFK_TWR",
+      "frequency": 119100,
+      "radio_name": "Kennedy Tower"
+    },
+    "2P": {
+      "callsign": "FRG_TWR",
+      "frequency": 118800,
+      "radio_name": "Republic Tower"
+    },
+    "HT": {
+      "callsign": "JPX_TWR",
+      "frequency": 125225,
+      "radio_name": "East Hampton Tower"
+    },
+    "3L": {
+      "callsign": "FOK_TWR",
+      "frequency": 125300,
+      "radio_name": "Suffolk County Tower"
+    },
+    "3S": {
+      "callsign": "OXC_TWR",
+      "frequency": 118475,
+      "radio_name": "Oxford Tower"
+    },
+    "3P": {
+      "callsign": "HVN_TWR",
+      "frequency": 124800,
+      "radio_name": "New Haven Tower"
+    },
+    "3G": {
+      "callsign": "BDR_TWR",
+      "frequency": 120900,
+      "radio_name": "Bridgeport Tower"
+    },
+    "4Z": {
+      "callsign": "EWR_TWR",
+      "frequency": 118300,
+      "radio_name": "Newark Tower"
+    },
+    "4J": {
+      "callsign": "TEB_TWR",
+      "frequency": 119500,
+      "radio_name": "Teterboro Tower"
+    },
+    "45": {
+      "callsign": "MMU_TWR",
+      "frequency": 118100,
+      "radio_name": "Morristown Tower"
+    },
+    "41": {
+      "callsign": "CDW_TWR",
+      "frequency": 119800,
+      "radio_name": "Caldwell Tower"
+    },
+    "5A": {
+      "callsign": "SWF_TWR",
+      "frequency": 121000,
+      "radio_name": "Stewart Tower"
+    },
+    "5C": {
+      "callsign": "POU_TWR",
+      "frequency": 124000,
+      "radio_name": "Duchess County Tower"
     }
   },
   "facility_adaptations": {
@@ -441,22 +432,29 @@
       },
       "LGA": {
         "inbound_assignments": {
-          "HAARP3": "1V",
-          "KORRY4": "1D",
-          "MIP4": "1D"
+          "VADDR1": "1V",
+          "PROUD2": "1D",
+          "MIP4": "1D",
+          "VALRE1": "1V",
+          "BOUNO5": "1X",
+          "RICED4": "1X",
+          "NOBBI1": "1V"
         },
         "departure_assignments": {
-          "KLGA": "1L"
+          "KLGA": "1L",
+          "KHPN": "1Y"
         },
         "default_consolidation": {
-          "1V": ["1D", "1F", "1L"]
+          "1V": ["1D", "1F", "1L", "1X"],
+          "1X": ["1Y"]
         }
       },
       "LGF": {
         "inbound_assignments": {
           "Finals-EMPYR-ILS13": "1F",
           "Finals-HAARP-ILS13": "1F",
-          "Finals-EMPYR-ILS22/D13": "1F",
+          "Finals-EMPYR-ILS22/D31-L": "1F",
+          "Finals-EMPYR-ILS22/D13-R": "1F",
           "Finals-HAARP-ILS22": "1F",
           "Finals-EMPYR-ILS22/D31": "1F",
           "Finals-EMPYR-ILS4": "1F",
@@ -465,10 +463,40 @@
           "Finals-EMPYR-LOC31": "1F",
           "Finals-HAARP-LOC31": "1F",
           "Finals-EMPYR-RX31": "1F",
+          "VADDR1": "1F",
           "Finals-HAARP-RX31": "1F"
         },
         "default_consolidation": {
           "1F": []
+        }
+      },
+      "LAF": {
+        "inbound_assignments": {
+          "MIP4": "1D",
+          "PROUD2": "1D"
+        },
+        "default_consolidation": {
+          "1D": []
+        }
+      },
+      "1DF": {
+        "inbound_assignments": {
+          "Finals-HAARP-L4/D13": "1F",
+          "PROUD2": "1D",
+          "MIP4": "1D"
+        },
+        "default_consolidation": {
+          "1D": ["1F"]
+        }
+      },
+      "1VF": {
+        "inbound_assignments": {
+          "Finals-EMPYR-ILS22/D13-L": "1F",
+          "VADDR1": "1V",
+          "Finals-EMPYR-ILS22/D13-R": "1F"
+        },
+        "default_consolidation": {
+          "1V": ["1F"]
         }
       },
       "JFF": {
@@ -483,6 +511,18 @@
         },
         "default_consolidation": {
           "2A": []
+        }
+      },
+      "N2J": {
+        "inbound_assignments": {
+          "CAMRN5.Background31": "2G"
+        },
+        "departure_assignments": {
+          "KJFK": "2J",
+          "KISP": "3H"
+        },
+        "default_consolidation": {
+          "2J": []
         }
       },
       "JF4": {
@@ -539,10 +579,9 @@
           "Intra-TRACON Via DENNA": "3Z",
           "Intra-TRACON Via HFD": "3O",
           "Intra-TRACON Via HTO": "3B",
-          "Intra-TRACON Via JFK": "3H",
           "Intra-TRACON Via LOVES": "3R",
           "Intra-TRACON Via MAD": "3O",
-          "Intra-TRACON Via SARDI": "3H",
+          "SARDI1": "3H",
           "LOVES1": "3R",
           "NELIE4": "3B"
         },
@@ -676,7 +715,9 @@
       "ARD": {},
       "BAYYS": {},
       "BDR": {},
-      "BEADS": { "short_name": "BDS" },
+      "BEADS": {
+        "short_name": "BDS"
+      },
       "BETTE": {},
       "BIGGY": {},
       "BREZY": {},
@@ -1610,10 +1651,6 @@
       }
     },
     "datablocks": {
-      "clock_phase": {
-        "sequence": [1, 2, 1, 3],
-        "intervals": [2, 1.5, 2, 1.5]
-      },
       "fdb": {
         "display_requested_altitude": true
       },

@@ -4247,6 +4247,17 @@
       }
     },
     {
+      "icao": "ffl",
+      "name": "ForeFlight",
+      "callsign": {
+        "name": "ForeFlight",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [["FA50", 1]]
+      }
+    },
+    {
       "icao": "bdr",
       "name": "Badr Airlines",
       "callsign": {
@@ -5873,6 +5884,17 @@
       },
       "fleets": {
         "default": [["B350", 4]]
+      }
+    },
+    {
+      "icao": "CYO",
+      "name": "ATI Jet",
+      "callsign": {
+        "name": "Coyote",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [["LJ60", 1]]
       }
     },
     {
@@ -9182,6 +9204,21 @@
       }
     },
     {
+      "icao": "hpj",
+      "name": "Hop-a-Jet",
+      "callsign": {
+        "name": "Hopa-Jet",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [
+          ["LJ60", 1],
+          ["CL60", 1],
+          ["CL35", 1]
+        ]
+      }
+    },
+    {
       "icao": "hr",
       "name": "General Aviation Honduras",
       "callsign": {
@@ -11397,6 +11434,17 @@
           ["B738", 56],
           ["B744", 3]
         ]
+      }
+    },
+    {
+      "icao": "mds",
+      "name": "Mcneely Charter Service",
+      "callsign": {
+        "name": "Midsouth",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [["SW4", 1]]
       }
     },
     {
@@ -14129,6 +14177,17 @@
       }
     },
     {
+      "icao": "sgx",
+      "name": "SLATE Aviation",
+      "callsign": {
+        "name": "Slate Global",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [["CRJ2", 1]]
+      }
+    },
+    {
       "icao": "sht",
       "name": "British Airways",
       "callsign": {
@@ -15260,6 +15319,17 @@
       }
     },
     {
+      "icao": "TCN",
+      "name": "BellAir",
+      "callsign": {
+        "name": "Transcon",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [["C750", 1]]
+      }
+    },
+    {
       "icao": "tf",
       "name": "General Aviation Iceland",
       "callsign": {
@@ -15548,6 +15618,21 @@
           ["E50P", 1],
           ["E545", 1],
           ["E55P", 1]
+        ]
+      }
+    },
+    {
+      "icao": "TIV",
+      "name": "Thrive Aviation",
+      "callsign": {
+        "name": "Thrive",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [
+          ["C700", 1],
+          ["C680", 1],
+          ["C750", 1]
         ]
       }
     },
@@ -18847,7 +18932,29 @@
         "callsignFormats": ["###"]
       },
       "fleets": {
-        "default": [["C750", 2]]
+        "default": [
+          ["C750", 2],
+          ["C25B", 1],
+          ["C56X", 8],
+          ["C680", 1]
+        ]
+      }
+    },
+    {
+      "icao": "jrt",
+      "name": "JetRight",
+      "callsign": {
+        "name": "JetRight",
+        "callsignFormats": ["##"]
+      },
+      "fleets": {
+        "default": [
+          ["CL35", 1],
+          ["CL30", 1],
+          ["LJ40", 1],
+          ["LJ45", 1],
+          ["LJ75", 1]
+        ]
       }
     },
     {
