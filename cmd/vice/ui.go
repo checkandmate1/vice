@@ -317,7 +317,7 @@ func uiDraw(mgr *client.ConnectionManager, config *Config, p platform.Platform, 
 	}
 	ui.menuBarHeight = imgui.CursorPos().Y - 1
 
-	if controlClient != nil {
+	if controlClient != nil && !hasActiveModalDialogs() {
 		uiDrawSettingsWindow(controlClient, config, activeRadarPane, p, lg)
 
 		if ui.showScenarioInfo {
