@@ -58,6 +58,9 @@ func SelectRandomScenario(srv *client.Server) (server.NewSimRequest, error) {
 
 	var choices []scenarioChoice
 	for tracon, facilityCatalogs := range catalogs {
+		if !av.DB.IsTRACON(tracon) && !av.DB.IsATCT(tracon) {
+			continue
+		}
 		for groupName, catalog := range facilityCatalogs {
 			for scenarioName, spec := range catalog.Scenarios {
 				choices = append(choices, scenarioChoice{
