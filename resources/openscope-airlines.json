@@ -19439,6 +19439,86 @@
       }
     },
     {
+      "icao": "e",
+      "name": "USAF Air EVAC",
+      "callsign": {
+        "name": "E",
+        "callsignFormats": ["#####"]
+      },
+      "fleets": {
+        "default": [
+          ["C130", 10],
+          ["C17", 10]
+        ]
+      }
+    },
+    {
+      "icao": "sam",
+      "name": "USAF SAM",
+      "callsign": {
+        "name": "SAM",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [
+          ["GLF5", 10],
+          ["GLF4", 8],
+          ["B742", 2],
+          ["B752", 2],
+          ["B737", 6]
+        ]
+      }
+    },
+    {
+      "icao": "venus",
+      "name": "USAF SAM",
+      "callsign": {
+        "name": "VENUS",
+        "callsignFormats": ["##"]
+      },
+      "fleets": {
+        "default": [
+          ["GLF5", 10],
+          ["GLF4", 8],
+          ["B752", 2],
+          ["B737", 6]
+        ]
+      }
+    },
+    {
+      "icao": "decoy",
+      "name": "USAF",
+      "callsign": {
+        "name": "DECOY",
+        "callsignFormats": ["6#"]
+      },
+      "fleets": {
+        "default": [["C17", 10]]
+      }
+    },
+    {
+      "icao": "pat",
+      "name": "Army",
+      "callsign": {
+        "name": "PAT",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [["BE20", 10]]
+      }
+    },
+    {
+      "icao": "nle",
+      "name": "Nelie - FAA Tech Center Shuttle",
+      "callsign": {
+        "name": "NLE",
+        "callsignFormats": ["###"]
+      },
+      "fleets": {
+        "default": [["JS31", 1]]
+      }
+    },
+    {
       "icao": "bmj",
       "name": "Bemidji Air Lines",
       "callsign": {

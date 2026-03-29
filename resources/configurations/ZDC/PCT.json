@@ -300,7 +300,11 @@
           "DEALE3.N": "1E",
           "FRDMM6": "1L",
           "RAVNN8": "1D",
-          "TRUPS5": "1L"
+          "TRUPS5": "1L",
+          "JRV.TAPPA.6": "1J",
+          "BWI.GRACO.4": "1K",
+          "JRV.TAPPA.4": "1V",
+          "IAD.BARIN.5": "1V"
         },
         "departure_assignments": {
           "KDCA": "1K"

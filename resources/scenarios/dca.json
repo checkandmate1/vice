@@ -1,6 +1,30 @@
 {
   "tracon": "PCT",
   "airports": {
+    "KADW": {
+      "approaches": {
+        "I1L": {
+          "runway": "1L",
+          "type": "ILS",
+          "waypoints": ["PREZZ/a2500/iaf FAWKS/a2000/faf"]
+        }
+      },
+      "departure_routes": {},
+      "departures": [],
+      "exit_categories": {}
+    },
+    "KDAA": {
+      "approaches": {
+        "I32": {
+          "runway": "32",
+          "type": "ILS",
+          "waypoints": ["HAXIL/a3000/iaf TACIT/a2000 EDCUT/a1500/faf"]
+        }
+      },
+      "departure_routes": {},
+      "departures": [],
+      "exit_categories": {}
+    },
     "KHWY": {
       "vfr": {
         "random_routes": {
@@ -1920,6 +1944,40 @@
                 "icao": "AAL",
                 "fleet": "short",
                 "airport": "KCLE"
+              }
+            ]
+          }
+        },
+        {
+          "waypoints": "COURG/a20000-23000/s280 PLDGE/a15000-17000/s280/ho WEWIL/a14000+ NEVVR/a12000+ FORGT/a11000+/s250 SEPII/a10000 ALWYZ/a10000-/s250",
+          "runway_waypoints": {
+            "KADW": {
+              "1L": "ALWYZ/a10000- LETZZ/a8000 RLLLL/a6000/s250 VCTRY HEROO/t189"
+            }
+          },
+          "star": "FRDMM6",
+          "initial_controller": "C05",
+          "initial_altitude": 20000,
+          "initial_speed": 280,
+          "expect_approach": "I1L",
+          "scratchpad": "FRA",
+          "airlines": {
+            "KADW": [
+              {
+                "icao": "VENUS",
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SAM",
+                "airport": "KORD"
+              },
+              {
+                "icao": "DECOY",
+                "airport": "KORD"
+              },
+              {
+                "icao": "RCH",
+                "airport": "KMSP"
               }
             ]
           }
@@ -4386,6 +4444,118 @@
               }
             ]
           }
+        },
+        {
+          "waypoints": "USAAY/a17000-21000/s280 WEEDU/a16000-19000/ho SUPRT/a14000-17000/s280 OOURR/a13000-/s250 TRUPS/a11000/s250 LETZZ/a8000 RLLLL/a6000/s250 VCTRY HEROO/t189",
+          "star": "TRUPS5",
+          "initial_controller": "C05",
+          "initial_altitude": 18000,
+          "initial_speed": 280,
+          "expect_approach": "I1L",
+          "scratchpad": "TRA",
+          "airlines": {
+            "KADW": [
+              {
+                "icao": "VENUS",
+                "airport": "KMDW"
+              },
+              {
+                "icao": "SAM",
+                "airport": "KORD"
+              },
+              {
+                "icao": "DECOY",
+                "airport": "KORD"
+              },
+              {
+                "icao": "RCH",
+                "airport": "KMSP"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "JRV.TAPPA.6": {
+      "arrivals": [
+        {
+          "waypoints": "N037.56.22.951,W076.56.18.103 N037.58.31.601,W076.57.19.682/ho ZUNAR OJAAY V376 IRONS",
+          "route": "ZUNAR OJAAY V376 IRONS",
+          "initial_controller": "2P",
+          "initial_altitude": 6000,
+          "initial_speed": 250,
+          "expect_approach": null,
+          "airlines": {
+            "KDCA": [
+              {
+                "icao": "N",
+                "types": ["B190", "B350", "BE20"],
+                "airport": "KRIC"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "JRV.TAPPA.4": {
+      "arrivals": [
+        {
+          "waypoints": "N037.56.10.797,W077.03.25.773 N037.57.55.758,W077.03.06.135/ho ZUNAR OJAAY",
+          "route": "ZUNAR OJAAY",
+          "initial_controller": "2P",
+          "initial_altitude": 4000,
+          "initial_speed": 250,
+          "expect_approach": null,
+          "airlines": {
+            "KDAA": [
+              {
+                "icao": "PAT",
+                "types": ["BE20"],
+                "airport": "KRIC"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "IAD.BARIN.5": {
+      "arrivals": [
+        {
+          "waypoints": "N038.20.23.780,W077.37.17.832 N038.20.52.001,W077.33.33.903/ho/h090",
+          "route": "BRV",
+          "initial_controller": "3B",
+          "initial_altitude": 5000,
+          "initial_speed": 250,
+          "expect_approach": null,
+          "airlines": {
+            "KDCA": [
+              {
+                "icao": "N",
+                "types": ["B350", "BE20", "C56X"],
+                "airport": "KROA"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "BWI.GRACO.4": {
+      "arrivals": [
+        {
+          "waypoints": "N038.45.04.243,W076.08.11.940 N038.44.32.232,W076.15.35.101/ho CAPKO",
+          "route": "BILIT CAPKO",
+          "initial_controller": "1G",
+          "initial_altitude": 4000,
+          "initial_speed": 250,
+          "expect_approach": null,
+          "airlines": {
+            "KDCA": [
+              {
+                "icao": "NLE",
+                "airport": "KACY"
+              }
+            ]
+          }
         }
       ]
     }
@@ -4416,6 +4586,14 @@
         {
           "airport": "KBWI",
           "runway": "33L"
+        },
+        {
+          "airport": "KADW",
+          "runway": "1L"
+        },
+        {
+          "airport": "KDAA",
+          "runway": "32"
         }
       ],
       "inbound_rates": {
@@ -4432,13 +4610,27 @@
           "KDCA": 10
         },
         "FRDMM6": {
-          "KDCA": 10
+          "KDCA": 10,
+          "KADW": 5
         },
         "TRUPS5": {
-          "KDCA": 10
+          "KDCA": 10,
+          "KADW": 5
         },
         "RAVNN8": {
           "KBWI": 10
+        },
+        "JRV.TAPPA.6": {
+          "KDCA": 1
+        },
+        "JRV.TAPPA.4": {
+          "KDAA": 1
+        },
+        "IAD.BARIN.5": {
+          "KDCA": 1
+        },
+        "BWI.GRACO.4": {
+          "KDCA": 1
         }
       },
       "configuration": "MT1",
