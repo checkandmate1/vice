@@ -350,13 +350,6 @@ func (s *Sim) preCheckFlightPlanSpecifier(spec *FlightPlanSpecifier) error {
 		}
 	}
 
-	if spec.Rules.IsSet && spec.Rules.Get() == av.FlightRulesVFR {
-		// Disable MSAW for VFR flight plans unless specifically enabled.
-		if !spec.DisableMSAW.IsSet {
-			spec.DisableMSAW.Set(true)
-		}
-	}
-
 	if spec.TrackingController.IsSet {
 		tcp := spec.TrackingController.Get()
 		// TODO: this will need to be more sophisticated with consolidation.
