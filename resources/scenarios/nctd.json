@@ -4651,6 +4651,7 @@
         {
           "waypoints": "GRIJO/a22000+/s280 ZINNN/ho2B CORKK/a14000 BRIXX/a12000/s250 LUYTA/ho1L JILNA/a7000 YADUT/a4700+/arc1.7 HEPAP/a4700+ FODPA JEGSA/s180/arc3.9 WOXAR/a1600 KSJC-30L/a62/delete",
           "initial_controller": "C41",
+          "scratchpad": "SJ1",
           "initial_altitude": 22000,
           "initial_speed": 280,
           "airlines": [
@@ -5253,7 +5254,8 @@
           "initial_controller": "1T",
           "initial_speed": 150,
           "scratchpad": "HNR",
-          "waypoints": "KSJC-12L MLPTS/a900+/flyover LOUPE/a5000/s230 N037.17.31.336,W121.44.56.594/arc7.5 N037.14.47.077,W121.49.48.034/ho SJC/a11000+ BMRNG HRNER"
+          "cruise_altitude": 36000,
+          "waypoints": "KSJC-12L MLPTS/a900+/flyover/po2N LOUPE/a5000/s230/c120/ho N037.17.31.336,W121.44.56.594/flyover/c150/tc SJC BMRNG HRNER"
         },
         {
           "airlines": [
@@ -5272,7 +5274,8 @@
           "initial_controller": "1T",
           "initial_speed": 150,
           "scratchpad": "ORR",
-          "waypoints": "KSJC-12L MLPTS/a900+/flyover LOUPE/a5000/s230 N037.17.31.336,W121.44.56.594/arc7.5 N037.14.47.077,W121.49.48.034/ho SJC/a11000+ BMRNG DEEII ORRCA"
+          "cruise_altitude": 35000,
+          "waypoints": "KSJC-12L MLPTS/a900+/flyover/po2N LOUPE/a5000/s230/c120/ho N037.17.31.336,W121.44.56.594/flyover/c150/tc SJC BMRNG DEEII ORRCA"
         },
         {
           "airlines": [
@@ -5314,7 +5317,8 @@
           "initial_controller": "1T",
           "initial_speed": 150,
           "scratchpad": "MOG",
-          "waypoints": "KSJC-12L MLPTS/a900+/flyover LOUPE/a5000/s230 N037.17.31.336,W121.44.56.594/arc7.5 N037.14.47.077,W121.49.48.034/ho SJC/a11000+ BMRNG AXXXX MOGEE"
+          "cruise_altitude": 35000,
+          "waypoints": "KSJC-12L MLPTS/a900+/flyover/po2N LOUPE/a5000/s230/c120/ho N037.17.31.336,W121.44.56.594/flyover/c150/tc SJC BMRNG AXXXX MOGEE"
         },
         {
           "airlines": [
@@ -5351,7 +5355,8 @@
           "initial_controller": "1T",
           "initial_speed": 150,
           "scratchpad": "TIP",
-          "waypoints": "KSJC-12L MLPTS/a900+/flyover LOUPE/a5000/s230 N037.17.31.336,W121.44.56.594/arc7.5 N037.14.47.077,W121.49.48.034/ho SJC/a11000+ BMRNG KAESS TIPRE"
+          "cruise_altitude": 35000,
+          "waypoints": "KSJC-12L MLPTS/a900+/flyover/po2N LOUPE/a5000/s230/c120/ho N037.17.31.336,W121.44.56.594/flyover/c150/tc SJC BMRNG KAESS TIPRE"
         },
         {
           "airlines": [
@@ -5388,7 +5393,8 @@
           "initial_controller": "1T",
           "initial_speed": 150,
           "scratchpad": "SRH",
-          "waypoints": "KSJC-12L MLPTS/a900+/flyover LOUPE/a5000/s230 N037.17.31.336,W121.44.56.594/arc7.5 N037.14.47.077,W121.49.48.034/ho SJC/a11000+ BMRNG HNNLE SYRAH"
+          "cruise_altitude": 35000,
+          "waypoints": "KSJC-12L MLPTS/a900+/flyover/po2N LOUPE/a5000/s230/c120/ho N037.17.31.336,W121.44.56.594/flyover/c150/tc SJC BMRNG HNNLE SYRAH"
         },
         {
           "airlines": [
@@ -5422,7 +5428,8 @@
           "initial_controller": "1T",
           "initial_speed": 150,
           "scratchpad": "BEP",
-          "waypoints": "KSJC-12L MLPTS/a900+/flyover LOUPE/a5000/s230 N037.17.31.336,W121.44.56.594/arc5.8 N037.13.52.406,W121.48.06.273/a10000+/ho/h262 BRINY BEBOP"
+          "cruise_altitude": 34000,
+          "waypoints": "KSJC-12L MLPTS/a900+/flyover/po2N LOUPE/a5000/s230/c120/ho N037.17.31.336,W121.44.56.594/flyover/h260/tc BRINY BEBOP"
         }
       ]
     },
@@ -6084,7 +6091,7 @@
           "initial_controller": "C34",
           "initial_speed": 280,
           "scratchpad": "STS",
-          "waypoints": "SNORA ZOMER/a27000+/ho2G KIMZY/a19000 N037.26.21.921,W121.27.19.215/ho STEEV  N037.28.20.051,W121.39.11.870/a16000 OAK VNYRD BURDE/delete"
+          "waypoints": "SNORA ZOMER/a27000+/ho2Z KIMZY/a19000 N037.26.21.921,W121.27.19.215/ho/d160 STEEV OAK VNYRD BURDE/delete"
         }
       ]
     },
