@@ -6212,6 +6212,9 @@
       ]
     }
   },
+  "fixes": {
+    "SAMML": "N037.34.32.340,W122.14.16.160"
+  },
   "default_scenario": "Area A - SFOW",
   "name": "NCT Area A",
   "primary_airport": "KSJC",

@@ -941,7 +941,7 @@
     "YUTES1.N": {
       "arrivals": [
         {
-          "waypoints": "BVL KNOLE/a17000/s250/ho SKWAH/a14000+ YUTES GOGGL BUSHH/a12000+ SURYP/a11000/h164",
+          "waypoints": "BVL KNOLE/a17000/s250/ho SKWAH/a14000+ YUTES GOGGL BUSHH/a12000 SURYP/a11000/h164",
           "star": "YUTES1",
           "initial_controller": "C40",
           "initial_altitude": 24000,
@@ -1030,7 +1030,7 @@
     "YUTES1.S": {
       "arrivals": [
         {
-          "waypoints": "BVL KNOLE/a17000/s250/ho SKWAH/a14000+ YUTES DUGGY JAXXX/a12000+ RIBSS LAWVA/a11000/h347",
+          "waypoints": "BVL KNOLE/a17000/s250/ho SKWAH/a14000+ YUTES DUGGY JAXXX/a12000 MAGNE LAWVA/a11000/h344",
           "star": "YUTES1",
           "initial_controller": "C40",
           "initial_altitude": 24000,

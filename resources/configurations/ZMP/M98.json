@@ -95,12 +95,12 @@
     "configurations": {
       "117": {
         "inbound_assignments": {
-          "BAINY3.12s": "1I",
-          "BLUEM4.12s": "1H",
+          "BAINY4.12s": "1I",
+          "BLUEM5.12s": "1H",
           "KKILR3.12s": "1I",
-          "MUSCL3.12s": "1I",
-          "NITZR3.12s": "1H",
-          "TORGY3.12s": "1H",
+          "MUSCL4.12s": "1I",
+          "NITZR4.12s": "1H",
+          "TORGY4.12s": "1H",
           "GEP1.12s": "1I",
           "LSE.12s": "1G",
           "RPD": "1G"
@@ -119,12 +119,12 @@
       },
       "135": {
         "inbound_assignments": {
-          "BAINY3.35": "1I",
-          "BLUEM4.35": "1N",
+          "BAINY4.35": "1I",
+          "BLUEM5.35": "1N",
           "KKILR3.35": "1H",
-          "MUSCL3.35": "1H",
-          "NITZR3.35": "1N",
-          "TORGY3.35": "1I",
+          "MUSCL4.35": "1H",
+          "NITZR4.35": "1N",
+          "TORGY4.35": "1I",
           "GEP1.35": "1I",
           "LSE.30s": "1G",
           "RPD": "1G"
@@ -142,12 +142,12 @@
       },
       "317": {
         "inbound_assignments": {
-          "BAINY3.30s": "1I",
-          "BLUEM4.30s": "1H",
+          "BAINY4.30s": "1I",
+          "BLUEM5.30s": "1H",
           "KKILR3.30s": "1I",
-          "MUSCL3.30s": "1I",
-          "NITZR3.30s": "1H",
-          "TORGY3.30s": "1H",
+          "MUSCL4.30s": "1I",
+          "NITZR4.30s": "1H",
+          "TORGY4.30s": "1H",
           "GEP1.30s": "1I",
           "LSE.30s": "1G",
           "RPD": "1G"
@@ -166,12 +166,12 @@
       },
       "335": {
         "inbound_assignments": {
-          "BAINY3.30s": "1I",
-          "BLUEM4.35": "1J",
+          "BAINY4.30s": "1I",
+          "BLUEM5.35": "1J",
           "KKILR3.30s": "1I",
-          "MUSCL3.30s": "1I",
-          "NITZR3.35": "1J",
-          "TORGY3.35": "1H",
+          "MUSCL4.30s": "1I",
+          "NITZR4.35": "1J",
+          "TORGY4.35": "1H",
           "GEP1.30s": "1I",
           "LSE.30s": "1G",
           "RPD": "1G"
@@ -189,12 +189,12 @@
       },
       "12S": {
         "inbound_assignments": {
-          "BAINY3.12s": "1I",
-          "BLUEM4.12s": "1H",
+          "BAINY4.12s": "1I",
+          "BLUEM5.12s": "1H",
           "KKILR3.12s": "1I",
-          "MUSCL3.12s": "1I",
-          "NITZR3.12s": "1H",
-          "TORGY3.12s": "1H",
+          "MUSCL4.12s": "1I",
+          "NITZR4.12s": "1H",
+          "TORGY4.12s": "1H",
           "GEP1.12s": "1I",
           "LSE.12s": "1G",
           "RPD": "1G"
@@ -212,12 +212,12 @@
       },
       "30S": {
         "inbound_assignments": {
-          "BAINY3.30s": "1I",
-          "BLUEM4.30s": "1H",
+          "BAINY4.30s": "1I",
+          "BLUEM5.30s": "1H",
           "KKILR3.30s": "1I",
-          "MUSCL3.30s": "1I",
-          "NITZR3.30s": "1H",
-          "TORGY3.30s": "1H",
+          "MUSCL4.30s": "1I",
+          "NITZR4.30s": "1H",
+          "TORGY4.30s": "1H",
           "GEP1.30s": "1I",
           "LSE.30s": "1G",
           "RPD": "1G"

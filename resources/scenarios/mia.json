@@ -4632,24 +4632,24 @@
         }
       ]
     },
-    "TEEKY3": {
+    "TEEKY4": {
       "arrivals": [
         {
           "waypoints": "N026.32.15.186,W081.31.03.610 PCOCK/ho TEEKY/a12000+",
           "runway_waypoints": {
             "KFLL": {
-              "10L": "TEEKY/a12000+ BANTY/a10000-11000/s250 HEEZE/a7000 HOLID/a5000/h105",
-              "10R": "TEEKY/a12000+ BANTY/a10000-11000/s250 HEEZE/a7000 BUNKR/a5000/h107",
+              "10L": "TEEKY/a12000+ BANTY/a10000-11000/s250 HEEZE/a7000 HOLID/a5000",
+              "10R": "TEEKY/a12000+ BANTY/a10000-11000/s250 HEEZE/a7000 BUNKR/a5000",
               "28L": "TEEKY/a12000+ BANTY/a10000-11000/s250 HEEZE/a7000 GOYLE/a7000 BEPAC/a6000 FAMBA/a6000/h96",
               "28R": "TEEKY/a12000+ BANTY/a10000-11000/s250 HEEZE/a7000 GOYLE/a7000 BEPAC/a6000 FAMBA/a6000/h96"
             },
             "KFXE": {
-              "9": "TEEKY/a12000+ BACIN/a8000 CANUR/a7000/h60",
-              "27": "TEEKY/a12000+ BACIN/a8000 CANUR/a7000/h60"
+              "9": "TEEKY/a12000+ BACIN/a8000 WELDN/a7000/h70",
+              "27": "TEEKY/a12000+ BACIN/a8000 WELDN/a7000/h70"
             }
           },
           "cruise_altitude": 33000,
-          "star": "TEEKY3",
+          "star": "TEEKY4",
           "initial_controller": "C24",
           "initial_altitude": 15000,
           "initial_speed": 280,
@@ -4695,7 +4695,7 @@
         }
       ]
     },
-    "TEEKY3 NOSATS EAST": {
+    "TEEKY4 NOSATS EAST": {
       "arrivals": [
         {
           "waypoints": "N026.32.15.186,W081.31.03.610 PCOCK/ho TEEKY/a12000+",
@@ -4708,7 +4708,7 @@
             }
           },
           "cruise_altitude": 33000,
-          "star": "TEEKY3",
+          "star": "TEEKY4",
           "initial_controller": "C24",
           "initial_altitude": 15000,
           "initial_speed": 280,
@@ -4745,7 +4745,7 @@
         }
       ]
     },
-    "TEEKY3 NOSATS WEST": {
+    "TEEKY4 NOSATS WEST": {
       "arrivals": [
         {
           "waypoints": "N026.32.15.186,W081.31.03.610 PCOCK/ho TEEKY/a12000+",
@@ -4758,7 +4758,7 @@
             }
           },
           "cruise_altitude": 33000,
-          "star": "TEEKY3",
+          "star": "TEEKY4",
           "initial_controller": "C24",
           "initial_altitude": 15000,
           "initial_speed": 280,
@@ -5108,7 +5108,7 @@
         "OLAHS3 NOSATS EAST": {
           "KFLL": 5
         },
-        "TEEKY3 NOSATS EAST": {
+        "TEEKY4 NOSATS EAST": {
           "KFLL": 8
         },
         "CSTAL3 NOSATS EAST": {
@@ -5190,7 +5190,7 @@
         "OLAHS3 NOSATS WEST": {
           "KFLL": 5
         },
-        "TEEKY3 NOSATS WEST": {
+        "TEEKY4 NOSATS WEST": {
           "KFLL": 8
         },
         "CSTAL3 NOSATS WEST": {
@@ -5297,7 +5297,7 @@
           "KFXE": 2,
           "KOPF": 2
         },
-        "TEEKY3": {
+        "TEEKY4": {
           "KFLL": 6,
           "KFXE": 2
         },
@@ -5423,7 +5423,7 @@
           "KFXE": 2,
           "KOPF": 2
         },
-        "TEEKY3": {
+        "TEEKY4": {
           "KFLL": 6,
           "KFXE": 2
         },

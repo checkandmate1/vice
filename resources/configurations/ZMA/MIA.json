@@ -117,7 +117,7 @@
           "FROGZ4 NOSATS EAST": "1S",
           "OLAHS3 NOSATS EAST": "1D",
           "SNDBR3 NOSATS EAST": "1S",
-          "TEEKY3 NOSATS EAST": "1R",
+          "TEEKY4 NOSATS EAST": "1R",
           "VIICE2 NOSATS EAST": "1S"
         },
         "departure_assignments": {
@@ -161,7 +161,7 @@
           "FROGZ4": "1S",
           "OLAHS3": "1D",
           "SNDBR3": "1S",
-          "TEEKY3": "1R",
+          "TEEKY4": "1R",
           "VIICE2": "1S"
         },
         "departure_assignments": {
@@ -208,7 +208,7 @@
           "FROGZ4 NOSATS WEST": "1S",
           "OLAHS3 NOSATS WEST": "1Z",
           "SNDBR3 NOSATS WEST": "1S",
-          "TEEKY3 NOSATS WEST": "1R",
+          "TEEKY4 NOSATS WEST": "1R",
           "VIICE2 NOSATS WEST": "1S"
         },
         "departure_assignments": {
@@ -252,7 +252,7 @@
           "FROGZ4": "1S",
           "OLAHS3": "1Z",
           "SNDBR3": "1S",
-          "TEEKY3": "1R",
+          "TEEKY4": "1R",
           "VIICE2": "1S"
         },
         "departure_assignments": {

@@ -7,7 +7,7 @@
           "cifp_id": "I17L"
         },
         "R7L": {
-          "cifp_id": "R17L"
+          "cifp_id": "RY17L"
         },
         "I7R": {
           "cifp_id": "I17R"
@@ -22,7 +22,7 @@
           "cifp_id": "I18R"
         },
         "R8R": {
-          "cifp_id": "R18R"
+          "cifp_id": "RY18R"
         },
         "I5L": {
           "cifp_id": "I35L"
@@ -34,7 +34,7 @@
           "cifp_id": "I35R"
         },
         "R5R": {
-          "cifp_id": "R35R"
+          "cifp_id": "RY35R"
         },
         "I6R": {
           "cifp_id": "I36R"
@@ -43,7 +43,7 @@
           "cifp_id": "R36R"
         },
         "R6L": {
-          "cifp_id": "R36L"
+          "cifp_id": "RY36L"
         }
       },
       "departure_routes": {
@@ -10214,7 +10214,7 @@
         }
       ]
     },
-    "RIDES2_BNU": {
+    "MUNGI1_BNU": {
       "arrivals": [
         {
           "airlines": {
@@ -10282,13 +10282,13 @@
           "initial_altitude": 15000,
           "initial_controller": "R22",
           "initial_speed": 280,
-          "star": "RIDES2",
+          "star": "MUNGI1",
           "speed_restriction": 250,
-          "waypoints": "MOOTS/a15000/ho RIDES/a8000+ HAHNA/a6000/s210 SERAY/a4000 FESHA/a3000 HEWES/a1600 WOLDI/a540 _MCO_35R/a90"
+          "waypoints": "MOOTS/a15000/ho MUNGI/a8000+ HAHNA/a6000/s210 SERAY/a4000 FESHA/a3000 HEWES/a1600 WOLDI/a540 _MCO_35R/a90"
         }
       ]
     },
-    "RIDES2_BSU": {
+    "MUNGI1_BSU": {
       "arrivals": [
         {
           "airlines": {
@@ -10356,13 +10356,13 @@
           "initial_altitude": 15000,
           "initial_controller": "R22",
           "initial_speed": 280,
-          "star": "RIDES2",
+          "star": "MUNGI1",
           "speed_restriction": 250,
-          "waypoints": "MOOTS/a15000/ho RIDES THEAM/a10000 PARRX/a10000/s250 HAANZ/a8000/s220 PTMAN/a5000/s210 _MCO_17L_BITHO COCAS/a1500 JAXES/a540 _MCO_17L/a90"
+          "waypoints": "MOOTS/a15000+/ho MUNGI HIJON PARRX/a10000/s250 HAANZ/a8000/s220 PTMAN/a5000/s210 _MCO_17L_BITHO COCAS/a1500 JAXES/a540 _MCO_17L/a90"
         }
       ]
     },
-    "RIDES2": {
+    "MUNGI1": {
       "arrivals": [
         {
           "airlines": {
@@ -10491,45 +10491,45 @@
               }
             ]
           },
-          "initial_altitude": 15000,
+          "initial_altitude": 20000,
           "initial_controller": "R22",
           "initial_speed": 280,
-          "star": "RIDES2",
+          "star": "MUNGI1",
           "runway_waypoints": {
             "KMCO": {
-              "17L": "RIDES WISRD THEAM/a10000+ PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220  PTMAN/a5000/s210/h005",
-              "17R": "RIDES WISRD THEAM/a10000+ PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220  PTMAN/a5000/s210/h005",
-              "18L": "RIDES WISRD THEAM/a10000+ PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220  PTMAN/a5000/s210/h005",
-              "18R": "RIDES WISRD THEAM/a10000+ PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220  PTMAN/a5000/s210/h005",
-              "36L": "RIDES WISRD HAHNA/a6000/s210/h339",
-              "36R": "RIDES WISRD HAHNA/a6000/s210/h339",
-              "35L": "RIDES WISRD HAHNA/a6000/s210/h339",
-              "35R": "RIDES WISRD HAHNA/a6000/s210 SERAY/a4000 FESHA/a3000"
+              "17L": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
+              "17R": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
+              "18L": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
+              "18R": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
+              "36L": "MUNGI MMADD/a6000/s210/h302",
+              "36R": "MUNGI MMADD/a6000/s210/h302",
+              "35L": "MUNGI MMADD/a6000/s210/h302",
+              "35R": "MUNGI MMADD/a6000/s210/h302"
             },
             "KSFB": {
-              "9L": "RIDES MPLEX/a12000/s250/h351",
-              "27R": "RIDES MPLEX/a12000/s250/h351"
+              "9L": "MUNGI BLOKD/a12000/s250/h345",
+              "27R": "MUNGI BLOKD/a12000/s250/h345"
             },
             "KISM": {
-              "15": "RIDES MPLEX/a12000/s250/h351",
-              "33": "RIDES MPLEX/a12000/s250/h351"
+              "15": "MUNGI PDLLA/a8000/h345",
+              "33": "MUNGI PDLLA/a8000/h345"
             },
             "KORL": {
-              "7": "RIDES MPLEX/a12000/s250/h351",
-              "25": "RIDES MPLEX/a12000/s250/h351"
+              "7": "MUNGI BLOKD/a12000/s250/h345",
+              "25": "MUNGI BLOKD/a12000/s250/h345"
             },
             "KLEE": {
-              "13": "RIDES MPLEX/a12000/s250/h351",
-              "4": "RIDES MPLEX/a12000/s250/h351",
-              "31": "RIDES MPLEX/a12000/s250/h351"
+              "13": "MUNGI BLOKD/a12000/s250/h345",
+              "4": "MUNGI BLOKD/a12000/s250/h345",
+              "31": "MUNGI BLOKD/a12000/s250/h345"
             }
           },
           "speed_restriction": 250,
-          "waypoints": "CHEFS/a15000/s280 MOOTS/a13000+/ho RIDES"
+          "waypoints": "CHEFS/a19000-21000/s280 MOOTS/a15000+/ho MUNGI"
         }
       ]
     },
-    "RIDES2.SFBE": {
+    "MUNGI1.SFBE": {
       "arrivals": [
         {
           "airlines": {
@@ -10553,17 +10553,17 @@
               }
             ]
           },
-          "initial_altitude": 15000,
+          "initial_altitude": 20000,
           "initial_controller": "R22",
           "initial_speed": 280,
           "scratchpad": "I9L",
           "expect_approach": "I9L",
-          "star": "RIDES2",
-          "waypoints": "CHEFS/a15000/s280 MOOTS/a13000+/ho1B RIDES MPLEX/a12000/s250 N028.26.49.757,W081.13.29.197/ho1M/a5000 N028.42.20.698,W081.15.35.733/a3000/h270/ho"
+          "star": "MUNGI1",
+          "waypoints": "CHEFS/a19000-21000/s280 MOOTS/a15000+/ho1B MUNGI BLOKD/a12000/s250 N028.26.49.757,W081.13.29.197/ho1M/a5000 N028.42.20.698,W081.15.35.733/a3000/h270/ho"
         }
       ]
     },
-    "RIDES2_SFINAL": {
+    "MUNGI1_SFINAL": {
       "arrivals": [
         {
           "airlines": {
@@ -10634,13 +10634,13 @@
           "initial_controller": "1B",
           "initial_speed": 220,
           "speed_restriction": 220,
-          "star": "RIDES2",
+          "star": "MUNGI1",
           "scratchpad": "I7L",
-          "waypoints": "HAANZ/a8000/s220/ho PTMAN/a5000/s210/h006"
+          "waypoints": "HAANZ/a8000-9000/s220/ho WONMR/a6000/s210/h006"
         }
       ]
     },
-    "RIDES2_NFINAL": {
+    "MUNGI1_NFINAL": {
       "arrivals": [
         {
           "airlines": {
@@ -10711,9 +10711,9 @@
           "initial_controller": "1B",
           "initial_speed": 220,
           "speed_restriction": 220,
-          "star": "RIDES2",
+          "star": "MUNGI1",
           "scratchpad": "I5R",
-          "waypoints": "RIDES/a8000 WISRD/ho HAHNA/a6000/s210  SERAY/a4000 FESHA/a3000"
+          "waypoints": "MUNGI/a8000 MMADD/a6000/s210/h302/ho"
         }
       ]
     },
@@ -12555,7 +12555,7 @@
         "PRICY3.SFBE": {
           "KSFB": 4
         },
-        "RIDES2.SFBE": {
+        "MUNGI1.SFBE": {
           "KSFB": 4
         },
         "SHREK2E.SFB": {

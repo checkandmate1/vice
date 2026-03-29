@@ -5173,6 +5173,9 @@
       ]
     }
   },
+  "fixes": {
+    "SAMML": "N037.34.32.340,W122.14.16.160"
+  },
   "default_scenario": "Area C - SFOW",
   "name": "NCT Area C",
   "primary_airport": "KOAK",

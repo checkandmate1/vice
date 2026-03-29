@@ -6134,20 +6134,20 @@
     }
   },
   "inbound_flows": {
-    "BAINY3.30s": {
+    "BAINY4.30s": {
       "arrivals": [
         {
-          "waypoints": "BAINY/a15000-19000/s280 N045.41.31.273,W093.39.58.233/ho LUCCY/a11000+/s280 SAUGR",
+          "waypoints": "BAINY/a15000+/s280 N045.41.31.273,W093.39.58.233/ho LUCCY/a11000+/s280 SAUGR",
           "runway_waypoints": {
             "KMSP": {
-              "35": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ BRNVL/a8000/s210 GWAIT/h176",
-              "12L": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210/h181",
-              "12R": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210/h181",
-              "30L": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ MAUER/a8000/s210 JJENI/h121",
-              "30R": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ OSMOH/a8000/s210 IRRRV/h122"
+              "35": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ BRNVL/a8000/s210 LISEL/a8000/s210/h176",
+              "12L": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210",
+              "12R": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210",
+              "30L": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ MAUER/a8000/s210 LEDRZ/a8000/s210/h121",
+              "30R": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ OSMOH/a8000/s210/h121"
             }
           },
-          "star": "BAINY3",
+          "star": "BAINY4",
           "initial_controller": "C10",
           "initial_altitude": 15000,
           "initial_speed": 280,
@@ -6350,20 +6350,20 @@
         }
       ]
     },
-    "BAINY3.12s": {
+    "BAINY4.12s": {
       "arrivals": [
         {
           "waypoints": "BAINY/a15000-19000/s280 N045.41.31.273,W093.39.58.233/ho LUCCY/a11000+/s280 SAUGR",
           "runway_waypoints": {
             "KMSP": {
-              "35": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ BRNVL/a8000/s210 GWAIT/h176",
-              "12L": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210/h181",
-              "12R": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210/h181",
-              "30L": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ MAUER/a8000/s210 JJENI/h121",
-              "30R": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ OSMOH/a8000/s210 IRRRV/h122"
+              "35": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ BRNVL/a8000/s210 LISEL/a8000/s210/h176",
+              "12L": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210",
+              "12R": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210",
+              "30L": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ MAUER/a8000/s210 LEDRZ/a8000/s210/h121",
+              "30R": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ OSMOH/a8000/s210/h121"
             }
           },
-          "star": "BAINY3",
+          "star": "BAINY4",
           "initial_controller": "C10",
           "initial_altitude": 15000,
           "initial_speed": 280,
@@ -6566,20 +6566,20 @@
         }
       ]
     },
-    "BAINY3.35": {
+    "BAINY4.35": {
       "arrivals": [
         {
           "waypoints": "BAINY/a15000-19000/s280 N045.41.31.273,W093.39.58.233/ho LUCCY/a11000+/s280 SAUGR",
           "runway_waypoints": {
             "KMSP": {
-              "35": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ BRNVL/a8000/s210 GWAIT/h176",
-              "12L": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210/h181",
-              "12R": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210/h181",
-              "30L": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ MAUER/a8000/s210 JJENI/h121",
-              "30R": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ OSMOH/a8000/s210 IRRRV/h122"
+              "35": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ BRNVL/a8000/s210 LISEL/a8000/s210/h176",
+              "12L": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210",
+              "12R": "SAUGR OGLVE/a8000+ KAYQU/a7000/s210",
+              "30L": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ MAUER/a8000/s210 LEDRZ/a8000/s210/h121",
+              "30R": "SAUGR GEP/a10000+/s250 PRRPL/a9000+ OSMOH/a8000/s210/h121"
             }
           },
-          "star": "BAINY3",
+          "star": "BAINY4",
           "initial_controller": "C10",
           "initial_altitude": 15000,
           "initial_speed": 280,
@@ -6782,20 +6782,20 @@
         }
       ]
     },
-    "BLUEM4.30s": {
+    "BLUEM5.30s": {
       "arrivals": [
         {
-          "waypoints": "N043.52.22.955,W093.15.20.297 LAZYY/a16000+/s280/ho BLUEM/a11000+/s280 HHAMR/a10000+ FARBO",
+          "waypoints": "N043.52.22.955,W093.15.20.297 LAZYY/a16000+/s280/ho BLUEM/a10000+/s280 HHAMR/a10000+/s280/s280 FARBO",
           "runway_waypoints": {
             "KMSP": {
-              "35": "FARBO  DNDIS/a9000/s230 JAMEZ/a7000+/h013",
-              "12L": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 GREAK/a8000/s230 DOLEE/h301",
-              "30L": "FARBO NOFLD/a10000/s250 CANDD/a7000/s230 HAPTN/a7000/s210/h036",
-              "30R": "FARBO NOFLD/a10000/s250 CANDD/a7000/s230 HAPTN/a7000/s210/h036"
+              "35": "FARBO DNDIS/a9000/s230 JAMEZ/a7000+/s210",
+              "12L": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "FARBO NOFLD/a8000-9000/s250 CANDD/a7000/s230 HAPTN/a7000/s210",
+              "30R": "FARBO NOFLD/a8000-9000/s250 CANDD/a7000/s230 HAPTN/a7000/s210"
             }
           },
-          "star": "BLUEM4",
+          "star": "BLUEM5",
           "initial_controller": "C07",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -7020,20 +7020,20 @@
         }
       ]
     },
-    "BLUEM4.12s": {
+    "BLUEM5.12s": {
       "arrivals": [
         {
-          "waypoints": "N043.52.22.955,W093.15.20.297 LAZYY/a16000+/s280/ho BLUEM/a11000+/s280 HHAMR/a10000+ FARBO",
+          "waypoints": "N043.52.22.955,W093.15.20.297 LAZYY/a16000+/s280/ho BLUEM/a10000+/s280 HHAMR/a10000+/s280 FARBO",
           "runway_waypoints": {
             "KMSP": {
-              "35": "FARBO DNDIS/a9000/s230 JAMEZ/a7000+/h013",
-              "12L": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 GREAK/a8000/s230 DOLEE/h301",
-              "30L": "FARBO NOFLD/a10000/s250 CANDD/a7000/s230 HAPTN/a7000/s210/h036",
-              "30R": "FARBO NOFLD/a10000/s250 CANDD/a7000/s230 HAPTN/a7000/s210/h036"
+              "35": "FARBO DNDIS/a9000/s230 JAMEZ/a7000+/s210",
+              "12L": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "FARBO NOFLD/a8000-9000/s250 CANDD/a7000/s230 HAPTN/a7000/s210",
+              "30R": "FARBO NOFLD/a8000-9000/s250 CANDD/a7000/s230 HAPTN/a7000/s210"
             }
           },
-          "star": "BLUEM4",
+          "star": "BLUEM5",
           "initial_controller": "C07",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -7258,20 +7258,20 @@
         }
       ]
     },
-    "BLUEM4.35": {
+    "BLUEM5.35": {
       "arrivals": [
         {
-          "waypoints": "N043.52.22.955,W093.15.20.297 LAZYY/a16000+/s280/ho BLUEM/a11000+/s280 HHAMR/a10000+ FARBO",
+          "waypoints": "N043.52.22.955,W093.15.20.297 LAZYY/a16000+/s280/ho BLUEM/a10000+/s280 HHAMR/a10000+/s280 FARBO",
           "runway_waypoints": {
             "KMSP": {
-              "35": "FARBO DNDIS/a9000/s230 JAMEZ/a7000+/h013",
-              "12L": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 GREAK/a8000/s230 DOLEE/h301",
-              "30L": "FARBO NOFLD/a10000/s250 CANDD/a7000/s230 HAPTN/a7000/s210/h036",
-              "30R": "FARBO NOFLD/a10000/s250 CANDD/a7000/s230 HAPTN/a7000/s210/h036"
+              "35": "FARBO DNDIS/a9000/s230 JAMEZ/a7000+/s210",
+              "12L": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "FARBO ELLKO/a10000+/s250 SAVVG/a9000 GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "FARBO NOFLD/a8000-9000/s250 CANDD/a7000/s230 HAPTN/a7000/s210",
+              "30R": "FARBO NOFLD/a8000-9000/s250 CANDD/a7000/s230 HAPTN/a7000/s210"
             }
           },
-          "star": "BLUEM4",
+          "star": "BLUEM5",
           "initial_controller": "C07",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -7502,9 +7502,9 @@
           "waypoints": "CMAAC/a14000+/s280 N044.48.19.649,W092.00.34.112/ho KKILR/a12000+/s280 HUGGI/a10000+ KRISP",
           "runway_waypoints": {
             "KMSP": {
-              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 DOLEE/h301",
+              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
               "30L": "KRISP GEEQU/a7000/s210/h243",
               "30R": "KRISP GEEQU/a7000/s210/h243"
             }
@@ -7756,9 +7756,9 @@
           "waypoints": "CMAAC/a14000+/s280 N044.48.19.649,W092.00.34.112/ho KKILR/a12000+/s280 HUGGI/a10000+ KRISP",
           "runway_waypoints": {
             "KMSP": {
-              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 DOLEE/h301",
+              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
               "30L": "KRISP GEEQU/a7000/s210/h243",
               "30R": "KRISP GEEQU/a7000/s210/h243"
             }
@@ -8010,9 +8010,9 @@
           "waypoints": "CMAAC/a14000+/s280 N044.48.19.649,W092.00.34.112/ho KKILR/a12000+/s280 HUGGI/a10000+ KRISP",
           "runway_waypoints": {
             "KMSP": {
-              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 DOLEE/h301",
+              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
               "30L": "KRISP GEEQU/a7000/s210/h243",
               "30R": "KRISP GEEQU/a7000/s210/h243"
             }
@@ -8258,20 +8258,20 @@
         }
       ]
     },
-    "MUSCL3.30s": {
+    "MUSCL4.30s": {
       "arrivals": [
         {
           "waypoints": "MUSCL/a17000+/s280 N045.02.22.973,W091.55.31.082/ho BAYKS/a12000+/s280 WOLVS",
           "runway_waypoints": {
             "KMSP": {
-              "35": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "12L": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "30L": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210/h224",
-              "30R": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210/h224"
+              "35": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "12L": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210",
+              "30R": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210"
             }
           },
-          "star": "MUSCL3",
+          "star": "MUSCL4",
           "initial_controller": "C06",
           "initial_altitude": 21000,
           "initial_speed": 280,
@@ -8508,20 +8508,20 @@
         }
       ]
     },
-    "MUSCL3.12s": {
+    "MUSCL4.12s": {
       "arrivals": [
         {
           "waypoints": "MUSCL/a17000+/s280 N045.02.22.973,W091.55.31.082/ho BAYKS/a12000+/s280 WOLVS",
           "runway_waypoints": {
             "KMSP": {
-              "35": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "12L": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "30L": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210/h224",
-              "30R": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210/h224"
+              "35": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "12L": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210",
+              "30R": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210"
             }
           },
-          "star": "MUSCL3",
+          "star": "MUSCL4",
           "initial_controller": "C06",
           "initial_altitude": 21000,
           "initial_speed": 280,
@@ -8758,20 +8758,20 @@
         }
       ]
     },
-    "MUSCL3.35": {
+    "MUSCL4.35": {
       "arrivals": [
         {
           "waypoints": "MUSCL/a17000+/s280 N045.02.22.973,W091.55.31.082/ho BAYKS/a12000+/s280 WOLVS",
           "runway_waypoints": {
             "KMSP": {
-              "35": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 DOLEE/h301",
-              "12L": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 DOLEE/h301",
+              "35": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "12L": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "WOLVS LOOON/a11000+ WDBRY/a10000+/s250 ZASKY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
               "30L": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210/h224",
               "30R": "WOLVS LKLND/a8000+ KROIX/a7000/s230 TRTEL/a7000/s210/h224"
             }
           },
-          "star": "MUSCL3",
+          "star": "MUSCL4",
           "initial_controller": "C06",
           "initial_altitude": 21000,
           "initial_speed": 280,
@@ -9008,20 +9008,20 @@
         }
       ]
     },
-    "NITZR3.30s": {
+    "NITZR4.30s": {
       "arrivals": [
         {
           "waypoints": "N043.53.32.800,W093.29.51.430 DEMLL/a16000+/s280/ho NITZR/a12000+/s280 WRSAW/a11000+ DAHRL",
           "runway_waypoints": {
             "KMSP": {
-              "35": "DAHRL SHILD/a9000/s230 GDNEE NNEWW/a7000/h023",
-              "12L": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 GREAK/a8000/s230 DOLEE/h301",
-              "30L": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210/h036",
-              "30R": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210/h036"
+              "35": "DAHRL SHILD/a9000+ GDNEE NNEWW/a7000/s210",
+              "12L": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210",
+              "30R": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210"
             }
           },
-          "star": "NITZR3",
+          "star": "NITZR4",
           "initial_controller": "C07",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -9154,20 +9154,20 @@
         }
       ]
     },
-    "NITZR3.12s": {
+    "NITZR4.12s": {
       "arrivals": [
         {
           "waypoints": "N043.53.32.800,W093.29.51.430 DEMLL/a16000+/s280/ho NITZR/a12000+/s280 WRSAW/a11000+ DAHRL",
           "runway_waypoints": {
             "KMSP": {
-              "35": "DAHRL SHILD/a9000/s230 GDNEE NNEWW/a7000/h023",
-              "12L": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 GREAK/a8000/s230 DOLEE/h301",
-              "30L": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210/h036",
-              "30R": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210/h036"
+              "35": "DAHRL SHILD/a9000+ GDNEE NNEWW/a7000/s210",
+              "12L": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210",
+              "30R": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210"
             }
           },
-          "star": "NITZR3",
+          "star": "NITZR4",
           "initial_controller": "C07",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -9300,20 +9300,20 @@
         }
       ]
     },
-    "NITZR3.35": {
+    "NITZR4.35": {
       "arrivals": [
         {
           "waypoints": "N043.53.32.800,W093.29.51.430 DEMLL/a16000+/s280/ho NITZR/a12000+/s280 WRSAW/a11000+ DAHRL",
           "runway_waypoints": {
             "KMSP": {
-              "35": "DAHRL SHILD/a9000/s230 GDNEE NNEWW/a7000/h023",
-              "12L": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 CMMOE/a8000/s230 COZZZ/h301",
-              "12R": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 GREAK/a8000/s230 DOLEE/h301",
-              "30L": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210/h036",
-              "30R": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210/h036"
+              "35": "DAHRL SHILD/a9000+ GDNEE NNEWW/a7000/s210",
+              "12L": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
+              "12R": "DAHRL GDNEE ELLKO/a11000+/s250 SAVVG/a10000 GREAK/a8000/s230 TIETN/a8000/s230/h301",
+              "30L": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210",
+              "30R": "DAHRL AANAH/a10000/s250 WBSTR/a9000+ CANDD/a7000/s230 HAPTN/a7000/s210"
             }
           },
-          "star": "NITZR3",
+          "star": "NITZR4",
           "initial_controller": "C07",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -9446,20 +9446,20 @@
         }
       ]
     },
-    "TORGY3.30s": {
+    "TORGY4.30s": {
       "arrivals": [
         {
-          "waypoints": "N044.36.14.510,W094.32.48.832 TORGY/a13000+/s280/ho OFSON/a11000+ HMBRG CONIA",
+          "waypoints": "N044.36.14.510,W094.32.48.832 TORGY/a13000+/s280/ho OFSON/a11000+/s280/s280 HMBRG/a10000+/s280 CONIA",
           "runway_waypoints": {
             "KMSP": {
-              "35": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ BRNVL/a8000/s210 GWAIT/h176",
-              "12L": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210/h042",
-              "12R": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210/h042",
-              "30L": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ MAUER/a8000/s210 JJENI/h121",
-              "30R": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ OSMOH/a8000/s210 IRRRV/h122"
+              "35": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ BRNVL/a8000/s210 LISEL/a8000/s210/h176",
+              "12L": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210",
+              "12R": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210",
+              "30L": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ MAUER/a8000/s210 LEDRZ/a8000/s210/h121",
+              "30R": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ WILKN/a8000/s210 OSMOH/a8000/s210/h122"
             }
           },
-          "star": "TORGY3",
+          "star": "TORGY4",
           "initial_controller": "C09",
           "initial_altitude": 16000,
           "initial_speed": 280,
@@ -9749,20 +9749,20 @@
         }
       ]
     },
-    "TORGY3.12s": {
+    "TORGY4.12s": {
       "arrivals": [
         {
-          "waypoints": "N044.36.14.510,W094.32.48.832 TORGY/a13000+/s280/ho OFSON/a11000+ HMBRG CONIA",
+          "waypoints": "N044.36.14.510,W094.32.48.832 TORGY/a13000+/s280/ho OFSON/a11000+/s280 HMBRG/a10000+/s280 CONIA",
           "runway_waypoints": {
             "KMSP": {
-              "35": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ BRNVL/a8000/s210 GWAIT/h176",
-              "12L": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210/h042",
-              "12R": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210/h042",
-              "30L": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ MAUER/a8000/s210 JJENI/h121",
-              "30R": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ OSMOH/a8000/s210 IRRRV/h122"
+              "35": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ BRNVL/a8000/s210 LISEL/a8000/s210/h176",
+              "12L": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210",
+              "12R": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210",
+              "30L": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ MAUER/a8000/s210 LEDRZ/a8000/s210/h121",
+              "30R": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ WILKN/a8000/s210 OSMOH/a8000/s210/h122"
             }
           },
-          "star": "TORGY3",
+          "star": "TORGY4",
           "initial_controller": "C09",
           "initial_altitude": 16000,
           "initial_speed": 280,
@@ -10052,20 +10052,20 @@
         }
       ]
     },
-    "TORGY3.35": {
+    "TORGY4.35": {
       "arrivals": [
         {
-          "waypoints": "N044.36.14.510,W094.32.48.832 TORGY/a13000+/s280/ho OFSON/a11000+ HMBRG CONIA",
+          "waypoints": "N044.36.14.510,W094.32.48.832 TORGY/a13000+/s280/ho OFSON/a11000+/s280 HMBRG/a10000+/s280 CONIA",
           "runway_waypoints": {
             "KMSP": {
-              "35": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ BRNVL/a8000/s210 GWAIT/h176",
-              "12L": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210/h042",
-              "12R": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210/h042",
-              "30L": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ MAUER/a8000/s210 JJENI/h121",
-              "30R": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ OSMOH/a8000/s210 IRRRV/h122"
+              "35": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ BRNVL/a8000/s210 LISEL/a8000/s210/h176",
+              "12L": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210",
+              "12R": "CONIA SPUKI/a7000/s230 KRUGG/a7000/s210",
+              "30L": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ MAUER/a8000/s210 LEDRZ/a8000/s210/h121",
+              "30R": "CONIA JAEDN/a10000+/s250 HDEEE/a9000+ WILKN/a8000/s210 OSMOH/a8000/s210/h122"
             }
           },
-          "star": "TORGY3",
+          "star": "TORGY4",
           "initial_controller": "C09",
           "initial_altitude": 16000,
           "initial_speed": 280,
@@ -10909,22 +10909,22 @@
         "1K": ["KSAT_12S"]
       },
       "inbound_rates": {
-        "BAINY3.12s": {
+        "BAINY4.12s": {
           "KMSP": 2
         },
-        "BLUEM4.12s": {
+        "BLUEM5.12s": {
           "KMSP": 2
         },
         "KKILR3.12s": {
           "KMSP": 2
         },
-        "MUSCL3.12s": {
+        "MUSCL4.12s": {
           "KMSP": 2
         },
-        "NITZR3.12s": {
+        "NITZR4.12s": {
           "KMSP": 3
         },
-        "TORGY3.12s": {
+        "TORGY4.12s": {
           "KMSP": 2
         },
         "GEP1.12s": {
@@ -10967,22 +10967,22 @@
         }
       ],
       "inbound_rates": {
-        "BAINY3.30s": {
+        "BAINY4.30s": {
           "KMSP": 2
         },
-        "BLUEM4.30s": {
+        "BLUEM5.30s": {
           "KMSP": 2
         },
         "KKILR3.30s": {
           "KMSP": 2
         },
-        "MUSCL3.30s": {
+        "MUSCL4.30s": {
           "KMSP": 2
         },
-        "NITZR3.30s": {
+        "NITZR4.30s": {
           "KMSP": 3
         },
-        "TORGY3.30s": {
+        "TORGY4.30s": {
           "KMSP": 2
         },
         "GEP1.30s": {
@@ -11025,22 +11025,22 @@
         }
       ],
       "inbound_rates": {
-        "BAINY3.12s": {
+        "BAINY4.12s": {
           "KMSP": 2
         },
-        "BLUEM4.12s": {
+        "BLUEM5.12s": {
           "KMSP": 2
         },
         "KKILR3.12s": {
           "KMSP": 2
         },
-        "MUSCL3.12s": {
+        "MUSCL4.12s": {
           "KMSP": 2
         },
-        "NITZR3.12s": {
+        "NITZR4.12s": {
           "KMSP": 3
         },
-        "TORGY3.12s": {
+        "TORGY4.12s": {
           "KMSP": 2
         },
         "GEP1.12s": {
@@ -11088,22 +11088,22 @@
         }
       ],
       "inbound_rates": {
-        "BAINY3.30s": {
+        "BAINY4.30s": {
           "KMSP": 2
         },
-        "BLUEM4.30s": {
+        "BLUEM5.30s": {
           "KMSP": 2
         },
         "KKILR3.30s": {
           "KMSP": 2
         },
-        "MUSCL3.30s": {
+        "MUSCL4.30s": {
           "KMSP": 2
         },
-        "NITZR3.30s": {
+        "NITZR4.30s": {
           "KMSP": 3
         },
-        "TORGY3.30s": {
+        "TORGY4.30s": {
           "KMSP": 2
         },
         "GEP1.30s": {
@@ -11147,22 +11147,22 @@
         }
       ],
       "inbound_rates": {
-        "BAINY3.35": {
+        "BAINY4.35": {
           "KMSP": 2
         },
-        "BLUEM4.35": {
+        "BLUEM5.35": {
           "KMSP": 2
         },
         "KKILR3.35": {
           "KMSP": 2
         },
-        "MUSCL3.35": {
+        "MUSCL4.35": {
           "KMSP": 2
         },
-        "NITZR3.35": {
+        "NITZR4.35": {
           "KMSP": 3
         },
-        "TORGY3.35": {
+        "TORGY4.35": {
           "KMSP": 2
         },
         "GEP1.35": {
@@ -11209,22 +11209,22 @@
         }
       ],
       "inbound_rates": {
-        "BAINY3.30s": {
+        "BAINY4.30s": {
           "KMSP": 2
         },
-        "BLUEM4.35": {
+        "BLUEM5.35": {
           "KMSP": 2
         },
         "KKILR3.30s": {
           "KMSP": 2
         },
-        "MUSCL3.30s": {
+        "MUSCL4.30s": {
           "KMSP": 2
         },
-        "NITZR3.35": {
+        "NITZR4.35": {
           "KMSP": 3
         },
-        "TORGY3.35": {
+        "TORGY4.35": {
           "KMSP": 2
         },
         "GEP1.30s": {

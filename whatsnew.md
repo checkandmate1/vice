@@ -37,3 +37,10 @@
 - STARS: add controls for TPA and ATPA brightness in the BRITE menu in the DCB
 - STARS: added support for macro commands
 - New scenarios: TYS (Jake Magee / manaphy), FAT (Ketan K)
+- Scenario updates: N90 (manaphy, Ryan G)
+- STARS: improved realism of datablock clock phases, add FE controls to specify cycle and lengths
+- STARS: fixed minor bugs with unsupported datablock display
+- Added pipeline to ingest and use historical TFRs (alongside wx)
+- Facility engineering:
+  - Improved restriction area specification in configs: RA numbers are now part of the specification, and auto-RAs-from-TFRs can be disabled
+- Updated to AIRAC 260319 (Ketan K)

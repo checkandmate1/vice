@@ -4564,6 +4564,9 @@
       ]
     }
   },
+  "fixes": {
+    "SAMML": "N037.34.32.340,W122.14.16.160"
+  },
   "default_scenario": "Area B - SFOW (DEP 01s)",
   "name": "NCT Area B",
   "primary_airport": "KSFO",

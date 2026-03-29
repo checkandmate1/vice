@@ -7,7 +7,7 @@
       "departure_controller": "O1E",
       "approaches": {
         "R6L": {
-          "cifp_id": "R36L"
+          "cifp_id": "RY36L"
         }
       },
       "departure_routes": {
@@ -482,15 +482,15 @@
         }
       ]
     },
-    "RIDES2": {
+    "MUNGI1": {
       "arrivals": [
         {
-          "waypoints": "CHEFS/a19000-21000/hoO1E MOOTS/a15000+ RIDES/a8000+ HAHNA/a6000/s210  SERAY/a4000 FESHA/a3000 HEWES/a1600 KMCO-35R/a50/delete",
-          "star": "RIDES2",
-          "route": "/. RIDES2",
+          "waypoints": "CHEFS/a19000-21000/s280/hoO1E MOOTS/a15000+ MUNGI MMADD/a6000/s210 SERAY/a4000 FESHA/a3000 HEWES/a1600 KMCO-35R/a50/delete",
+          "star": "MUNGI1",
+          "route": "/. MUNGI1",
           "initial_controller": "R02",
           "initial_altitude": 21000,
-          "initial_speed": 300,
+          "initial_speed": 280,
           "airlines": {
             "KMCO": [
               {
@@ -920,7 +920,7 @@
         "GRNCH5": {
           "KMCO": 10
         },
-        "RIDES2": {
+        "MUNGI1": {
           "KMCO": 5
         },
         "SNFLD3": {
@@ -986,7 +986,7 @@
         "GRNCH5": {
           "KMCO": 10
         },
-        "RIDES2": {
+        "MUNGI1": {
           "KMCO": 5
         },
         "SNFLD3": {
