@@ -2391,22 +2391,22 @@ func CreateNewSimConfiguration(catalog *ScenarioCatalog, scenarioGroup *scenario
 	return newSimConfig, nil
 }
 
-// LintScenarioGroups checks each arrival's spawn altitude against its
-// first altitude restriction to flag cases where the aircraft spawns too
-// high and too close to meet the restriction.
-func LintScenarioGroups(scenarioGroups map[string]map[string]*scenarioGroup, e *util.ErrorLogger) {
+// CheckArrivalSpawnAltitudes checks each arrival's spawn altitude against
+// its first altitude restriction to flag cases where the aircraft spawns
+// too high and too close to meet the restriction.
+func CheckArrivalSpawnAltitudes(scenarioGroups map[string]map[string]*scenarioGroup, e *util.ErrorLogger) {
 	for tracon, sgs := range scenarioGroups {
 		for _, sg := range sgs {
 			for flowName, flow := range sg.InboundFlows {
 				for _, arr := range flow.Arrivals {
-					lintArrival(tracon, flowName, arr, e)
+					checkArrivalSpawnAltitude(sg.SourceFile, tracon, flowName, arr, e)
 				}
 			}
 		}
 	}
 }
 
-func lintArrival(tracon, flowName string, arr av.Arrival, e *util.ErrorLogger) {
+func checkArrivalSpawnAltitude(sourceFile, tracon, flowName string, arr av.Arrival, e *util.ErrorLogger) {
 	if arr.AssignedAltitude > 0 {
 		return
 	}
@@ -2444,9 +2444,9 @@ func lintArrival(tracon, flowName string, arr av.Arrival, e *util.ErrorLogger) {
 
 		needed := spawnAlt - upperBound
 		if needed > maxDescent {
-			e.ErrorString("%s/%s: arrival %s spawns at %.0f ft but restriction [%.0f,%.0f] at %s is %.1f nm away "+
+			e.ErrorString("%s: %s/%s: arrival %s spawns at %.0f ft but restriction [%.0f,%.0f] at %s is %.1f nm away "+
 				"(need %.0f ft descent, max achievable ~%.0f ft)",
-				tracon, flowName, arr.STAR, spawnAlt,
+				sourceFile, tracon, flowName, arr.STAR, spawnAlt,
 				restr.Range[0], restr.Range[1], wp.Fix, dist,
 				needed, maxDescent)
 		}

@@ -139,6 +139,11 @@ func makeServer(config ServerLaunchConfig, lg *log.Logger) (int, func(), util.Er
 		return 0, nil, errorLogger, ""
 	}
 
+	CheckArrivalSpawnAltitudes(scenarioGroups, &errorLogger)
+	if errorLogger.HaveErrors() {
+		return 0, nil, errorLogger, ""
+	}
+
 	serverFunc := func() {
 		server := rpc.NewServer()
 
