@@ -619,10 +619,10 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeNone, "[FP_ACID]", createAbbrevFP)
-	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FLT_TYPE|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE|FP_ALT_R|FP_RULES]", createAbbrevFP)
+	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FLT_TYPE|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ|FP_ALT_R|FP_RULES]", createAbbrevFP)
 
 	// 5.5.2 Create / modify interfacility VFR FP and send FP message to ARTCC (Implied command)
-	registerCommand(CommandModeNone, "[FP_ACID] [FP_VFR_FIXES][FP_ACTYPE][?FP_ALT_R][?FP_TCP]",
+	registerCommand(CommandModeNone, "[FP_ACID] [FP_VFR_FIXES][FP_ACTYPE_EQ][?FP_ALT_R][?FP_TCP]",
 		func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier) {
 			spec.Rules.Set(av.FlightRulesVFR)
 			spec.TypeOfFlight.Set(av.FlightTypeArrival)
@@ -643,7 +643,7 @@ func registerOpsCommands() {
 		return nil
 	}
 	registerCommand(CommandModeNone, "[FP_ACID][SLEW]", createFPAndAssociate)
-	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][SLEW]", createFPAndAssociate)
+	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][SLEW]", createFPAndAssociate)
 
 	createUnsupportedDB := func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier, p math.Point2LL) {
 		spec.TypeOfFlight.Set(av.FlightTypeArrival)
@@ -651,10 +651,10 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeNone, "[FP_ACID][POS]", createUnsupportedDB)
-	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][POS]", createUnsupportedDB)
+	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][POS]", createUnsupportedDB)
 
 	// 5.5.4 Create FP and associate to LDB with blinking ACID or frozen SPC (implied)
-	// {C: "[*FP_ACID|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][SLEW]" }
+	// {C: "[*FP_ACID|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][SLEW]" }
 
 	// 5.5.5 Create flight plan (p. 5-109)
 	registerCommand(CommandModeFlightData, "[FP_ACID]",
@@ -663,7 +663,7 @@ func registerOpsCommands() {
 			spec.PlanType.Set(sim.LocalNonEnroute)
 			createFlightPlan(sp, ctx, spec)
 		})
-	registerCommand(CommandModeFlightData, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FIX_PAIR|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE|FP_ALT_R|FP_RULES]",
+	registerCommand(CommandModeFlightData, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FIX_PAIR|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ|FP_ALT_R|FP_RULES]",
 		func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier) {
 			spec.TypeOfFlight.Set(av.FlightTypeArrival)
 			spec.PlanType.Set(sim.LocalNonEnroute)
@@ -672,7 +672,7 @@ func registerOpsCommands() {
 
 	// 5.5.6 Create Departure FP with DM indicator
 	// registerCommand(CommandModeFlightData, "* [FP_ACID]", ...)
-	// registerCommand(CommandModeFlightData, "* [FP_ACID] [*FP_BEACON|FP_EXIT_FIX|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE|FP_ALT_R]"", ...)
+	// registerCommand(CommandModeFlightData, "* [FP_ACID] [*FP_BEACON|FP_EXIT_FIX|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ|FP_ALT_R]"", ...)
 
 	// 5.5.7 Create pending FP with discrete beacon code (p. 5-120)
 	createPendingFPWithBeacon := func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier) {
@@ -681,7 +681,7 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeInitiateControl, "[FP_ACID] [FP_BEACON]", createPendingFPWithBeacon)
-	registerCommand(CommandModeInitiateControl, "[FP_ACID] [FP_BEACON] [*FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE]", createPendingFPWithBeacon)
+	registerCommand(CommandModeInitiateControl, "[FP_ACID] [FP_BEACON] [*FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ]", createPendingFPWithBeacon)
 
 	// 5.5.8 Create active FP with discrete beacon code (p. 5-124)
 	createActiveFPWithBeacon := func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier, trk *sim.Track) error {
@@ -696,7 +696,7 @@ func registerOpsCommands() {
 		return nil
 	}
 	registerCommand(CommandModeInitiateControl, "[FP_ACID][SLEW]", createActiveFPWithBeacon)
-	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][SLEW]",
+	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][SLEW]",
 		createActiveFPWithBeacon)
 
 	// 5.5.9 Create active FP and Unsupported data block (p. 5-129)
@@ -707,7 +707,7 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeInitiateControl, "[FP_ACID][POS]", createActiveFPAndUnsupportedDB)
-	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][POS]",
+	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][POS]",
 		createActiveFPAndUnsupportedDB)
 
 	// 5.5.10 Create / modify VFR FP and send FP message to ARTCC (p. 5-133)
@@ -717,8 +717,8 @@ func registerOpsCommands() {
 		spec.PlanType.Set(sim.LocalEnroute)
 		createFlightPlan(sp, ctx, spec)
 	}
-	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE]", createModifyVFRFP)
-	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE] [*FP_ALT_R|FP_TCP]", createModifyVFRFP)
+	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE_EQ]", createModifyVFRFP)
+	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE_EQ] [*FP_ALT_R|FP_TCP]", createModifyVFRFP)
 
 	// 5.5.11 Create flight plans on formation breakup
 	// registerCommand(CommandModeInitiateControl, "STARSTriangleCharacter+" [TRK_ACID] ..." also TRK_INDEX, TRK_BCN)
@@ -774,7 +774,7 @@ func registerOpsCommands() {
 	})
 
 	// 5.6.2 Add or modify aircraft type (Implied command) (p. 5-148)
-	registerCommand(CommandModeNone, "[FP_NUM_ACTYPE4][SLEW]",
+	registerCommand(CommandModeNone, "[FP_NUM_ACTYPE4_EQ][SLEW]",
 		func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier, trk *sim.Track) error {
 			if !trk.IsAssociated() {
 				return ErrSTARSCommandFormat
@@ -800,7 +800,7 @@ func registerOpsCommands() {
 		return nil
 	}
 	registerCommand(CommandModeNone, "[FP_SP1|FP_ALT_P|FP_PLUS_SP2|FP_PLUS_ALT_A|FP_PLUS2_ALT_R][SLEW]", modifyFPSlew)
-	registerCommand(CommandModeNone, "[FP_SP1|FP_ALT_P|FP_PLUS_SP2|FP_PLUS_ALT_A|FP_PLUS2_ALT_R] [FP_ACTYPE][SLEW]", modifyFPSlew)
+	registerCommand(CommandModeNone, "[FP_SP1|FP_ALT_P|FP_PLUS_SP2|FP_PLUS_ALT_A|FP_PLUS2_ALT_R] [FP_ACTYPE_EQ][SLEW]", modifyFPSlew)
 
 	// 5.6.6 Inhibit blinking data block at former local owner's TCW/TDW (implied)
 
@@ -918,10 +918,10 @@ func registerOpsCommands() {
 	registerCommand(CommandModeMultiFunc, "M"+modFPEntries+"[SLEW]", modifyFP)
 
 	// 5.6.18 Modify RNAV symbol, a/c type, equipment suffix, or flight rules (p. 5-178)
-	registerCommand(CommandModeMultiFunc, "H[TRK_ACID] [FP_RNAV|FP_NUM_ACTYPE|FP_RULES]", modifyFP)
-	registerCommand(CommandModeMultiFunc, "H[TRK_BCN] [FP_RNAV|FP_NUM_ACTYPE|FP_RULES]", modifyFP)
-	registerCommand(CommandModeMultiFunc, "H[TRK_INDEX] [FP_RNAV|FP_NUM_ACTYPE|FP_RULES]", modifyFP)
-	registerCommand(CommandModeMultiFunc, "H[FP_RNAV|FP_NUM_ACTYPE|FP_RULES][SLEW]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[TRK_ACID] [FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[TRK_BCN] [FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[TRK_INDEX] [FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES][SLEW]", modifyFP)
 
 	// 5.6.19 Retransmit VFR FP message with amended fix data
 	// note it's the VFR tab line number: is this different than TRK_INDEX? (actually, TRK_INDEX is n/a since fp is not associated...)

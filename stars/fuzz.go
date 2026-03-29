@@ -807,7 +807,7 @@ func (g *fpSpecMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Gen
 		return GeneratorResult{Text: "++" + fmt.Sprintf("%03d", alt)}
 	case "FP_TCP":
 		return GeneratorResult{Text: fmt.Sprintf("%d%c", 1+r.Intn(9), 'A'+rune(r.Intn(26)))}
-	case "FP_NUM_ACTYPE":
+	case "FP_NUM_ACTYPE_EQ":
 		var comp []string
 		if r.Bool() {
 			comp = append(comp, strconv.Itoa(1+r.Intn(7)))
@@ -818,7 +818,7 @@ func (g *fpSpecMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Gen
 			comp = append(comp, string('A'+rune(r.Intn(26))))
 		}
 		return GeneratorResult{Text: strings.Join(comp, "/")}
-	case "FP_NUM_ACTYPE4":
+	case "FP_NUM_ACTYPE4_EQ":
 		var comp []string
 		if r.Bool() {
 			comp = append(comp, strconv.Itoa(1+r.Intn(7)))
@@ -829,7 +829,7 @@ func (g *fpSpecMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Gen
 			comp = append(comp, string('A'+rune(r.Intn(26))))
 		}
 		return GeneratorResult{Text: strings.Join(comp, "/")}
-	case "FP_ACTYPE":
+	case "FP_ACTYPE_EQ":
 		var comp []string
 		types := []string{"B738", "A320", "C172", "E170", "B77W", "A359"}
 		comp = append(comp, types[r.Intn(len(types))])
