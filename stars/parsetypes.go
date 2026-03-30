@@ -1642,7 +1642,6 @@ func (h *fpActypeEqParser) Parse(sp *STARSPane, ctx *panes.Context, input *Comma
 func (h *fpActypeEqParser) GoType() reflect.Type { return fpSpecType }
 func (h *fpActypeEqParser) ConsumesClick() bool  { return false }
 
-
 type fpCoordTimeParser struct{}
 
 func (h *fpCoordTimeParser) Identifier() string { return "FP_COORD_TIME" }
