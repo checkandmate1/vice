@@ -1483,7 +1483,7 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                 <p>Your browser may warn about the installer being from an unknown publisher and when you run the installer, Windows will put up a window informing you that it has protected your PC and prevented the installer from running. Click "More Info" and then "Run anyway" to proceed with installation.</p>
               </div><!--//callout-block-->
             </div><!--//content-->
-            <a href="https://github.com/mmp/vice/releases/download/v0.14.1/Vice-v0.14.1-installer.msi" class="btn btn-primary"><i class="fas fa-download me-2"></i> Download Vice v0.14.1 for Windows</a>
+            <a href="https://github.com/mmp/vice/releases/download/v0.14.2/Vice-v0.14.2-installer.msi" class="btn btn-primary"><i class="fas fa-download me-2"></i> Download Vice v0.14.2 for Windows</a>
           </section><!--//section-->
           
           <section class="docs-section" id="install-mac">
@@ -1492,7 +1492,7 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
             <p>On a Mac, download the <i>zip</i> file below; it contains a universal binary that runs
               on both Intel and Apple CPUs. Note that MacOS Big Sur or a more recent version of OSX is required.
               After opening the <i>zip</i> file, drag <i>Vice.app</i> to your <i>Applications</i> folder to install it.</p>
-            <a href="https://github.com/mmp/vice/releases/download/v0.14.1/Vice-v0.14.1-osx.zip" class="btn btn-primary"><i class="fas fa-download me-2"></i> Download Vice v0.14.1 for Mac</a>
+            <a href="https://github.com/mmp/vice/releases/download/v0.14.2/Vice-v0.14.2-osx.zip" class="btn btn-primary"><i class="fas fa-download me-2"></i> Download Vice v0.14.2 for Mac</a>
           </section><!--//section-->
 
           <section class="docs-section" id="install-linux">
@@ -1520,6 +1520,55 @@ how it simulates aircraft or the STARS interface.
 
           <section class="docs-section" id="releases">
             <h2 class="section-heading">Release History</h2>
+
+            <h3 id="release-0.14.2">0.14.2 (30 Mar 2026)</h3>
+            <ul>
+              <li>New scenarios: LBB (Gecko), ZNY E/F (Ryan G), ZJX 88 (manaphy), TYS (Jake Magee / manaphy), FAT (Ketan K)</li>
+              <li>Scenario updates: MIA (Gecko), ZNY, PHL, BOS (Ryan G), BOS, DCA (radarcontacto), I90, NCT, SCT, ZLA (Ketan K), ZJX (manaphy), N90 (manaphy, Ryan G)</li>
+              <li>Updated to AIRAC 260319 (Ketan K)</li>
+              <li>Adjusted radio noise simulation to reduce muffling of pilot responses</li>
+              <li>Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)</li>
+              <li>Fixed a few crashes under unusual circumstances.</li>
+              <li>Flight simulation:
+                <ul>
+                  <li>Added &quot;left/right direct {fix}&quot; instruction (<code>LDFIX</code>, <code>RDFIX</code> if you're not using stt)</li>
+                  <li>Improved pilot initial contact messages to include SIDs/STARs, altitude/speed restrictions, assigned headings, etc.</li>
+                  <li>Aircraft will continue to descend after reaching the end of a STAR</li>
+                  <li>Fixed some bugs with meeting altitude restrictions on STARs</li>
+                  <li>There are now VFR aircraft doing pattern work at airports with VFR traffic</li>
+                  <li>Fixed a number of bugs with flying and drawing procedure turns</li>
+                  <li>You can now tell VFR aircraft to &quot;contact tower&quot; without them complaining that they weren't assigned an approach.</li>
+                </ul>
+              </li>
+              <li>STT:
+                <ul>
+                  <li>&quot;Negative, ...&quot; actually causes the aircraft that misheard the instruction to ignore it.</li>
+                  <li>&quot;Negative, (updated instructions)&quot; is allowed when an aircraft reads back the wrong instructions (i.e., the callsign isn't required).</li>
+                  <li>If a VFR calls in with a request, replying &quot;(callsign), XYZ approach&quot; is treated as &quot;go ahead&quot;</li>
+                  <li>Added support for &quot;expect direct (fix)&quot; / &quot;expect to rejoin the arrival at (fix)&quot;</li>
+                  <li>Fixed some issues with &quot;at (fix), cleared (approach)&quot;</li>
+                  <li>Many other improvements to interpreting ambiguous instructions</li>
+                </ul>
+              </li>
+              <li>STARS:
+                <ul>
+                  <li>Fixed a bug with datablock formatting when aircraft are squawking the wrong code.</li>
+                  <li>Trying to hand off or point out a track with a local flight plan now gives an ILL TRK - LCL FP error</li>
+                  <li>Added controls for TPA and ATPA brightness in the BRITE menu in the DCB</li>
+                  <li>Improved realism of datablock clock phases, add FE controls to specify cycle and lengths</li>
+                </ul>
+              </li>
+              <li>Facility engineering:
+                <ul>
+                  <li>Added support for per-area and per-controller &quot;altimeters&quot; lists</li>
+                  <li>Added &quot;cleared_altitude&quot; for arrivals/overflights: this is like &quot;cleared_altitude&quot; for departures--aircraft try to get to that altitude when able, but obey altitude restrictions in their route while doing so.</li>
+                  <li>When specifying routes, you can now use &quot;/t&quot; to specify departing a fix on a track heading, and &quot;/lt&quot; and &quot;/rt&quot; with a heading to specify a left/right turn to the given track heading.</li>
+                  <li>When specifying routes, you can use &quot;/ld&quot; to specify to turn left when proceeding to the next fix, and similarly for &quot;/rd&quot; for turning right.</li>
+                  <li>Improved restriction area specification in configs: RA numbers are now part of the specification, and auto-RAs-from-TFRs can be disabled</li>
+                </ul>
+              </li>
+            </ul>
+
 
             <h3 id="release-0.14.1">0.14.1 (9 Mar 2026)</h3>
             <ul>
