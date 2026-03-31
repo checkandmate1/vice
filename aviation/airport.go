@@ -324,10 +324,10 @@ func (ap *Airport) PostDeserialize(icao string, loc Locator, nmPerLongitude floa
 				e.ErrorString(`Must provide "full_name" for charted visual approach`)
 			} else {
 				appr.FullName = appr.Type.String() + " "
-				if len(appr.Id) > 3 && appr.Id[1] >= 'W' && appr.Id[1] <= 'Z' {
+				if len(appr.Id) >= 3 && appr.Id[1] >= 'W' && appr.Id[1] <= 'Z' {
 					appr.FullName += string(appr.Id[1]) + " "
 				}
-				if len(appr.Id) > 3 && appr.Id[0] == 'G' {
+				if len(appr.Id) >= 3 && appr.Id[0] == 'G' {
 					appr.FullName += "GPS "
 				}
 				appr.FullName += "Runway " + appr.Runway
