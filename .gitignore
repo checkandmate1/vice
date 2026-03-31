@@ -34,7 +34,8 @@ vice-logs/
 vice.exe
 vice.slog
 vice.zip
-ext/sherpa-import-libs/
+ext/
+windows/*.dll
 libsherpa-onnx-c-api.so
 libsherpa-onnx-cxx-api.so
 libonnxruntime.so

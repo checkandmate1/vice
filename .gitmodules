@@ -2,6 +2,8 @@
 	path = whisper.cpp
 	url = https://github.com/mmp/whisper.cpp.git
 	branch = stt
+	ignore = dirty
 [submodule "sherpa-onnx"]
 	path = sherpa-onnx
 	url = https://github.com/mmp/sherpa-onnx.git
+	ignore = dirty
