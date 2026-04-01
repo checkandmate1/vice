@@ -209,6 +209,7 @@ type SpeedIntent struct {
 	Speed         float32
 	Type          SpeedType
 	AfterAltitude *float32    // speed change conditional on reaching this altitude
+	AfterFix      string      // speed change conditional on passing this fix
 	Until         *SpeedUntil // what the speed restriction is "until"
 	Mach          bool
 }
@@ -241,27 +242,41 @@ func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 			rt.Add("[speed {spd} for now|we'll keep it at {spd} for now]", s.Speed)
 		}
 	case SpeedReduce:
-		if s.AfterAltitude != nil {
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd}|after {fix} {spd}]", s.AfterFix, s.Speed)
+		} else if s.AfterAltitude != nil {
 			rt.Add("[at {alt} maintain {spd}|at {alt} {spd}|{alt} then {spd}]", *s.AfterAltitude, s.Speed)
 		} else {
 			rt.Add("[reduce to {spd}|speed {spd}|slow to {spd}|{spd}]", s.Speed)
 		}
 	case SpeedIncrease:
-		if s.AfterAltitude != nil {
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd}|after {fix} {spd}]", s.AfterFix, s.Speed)
+		} else if s.AfterAltitude != nil {
 			rt.Add("[at {alt} maintain {spd}|at {alt} {spd}|{alt} then {spd}]", *s.AfterAltitude, s.Speed)
 		} else {
 			rt.Add("[increase to {spd}|speed {spd}|maintain {spd}|{spd}]", s.Speed)
 		}
 	case SpeedAssign:
-		if s.AfterAltitude != nil {
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd}|after {fix} {spd}]", s.AfterFix, s.Speed)
+		} else if s.AfterAltitude != nil {
 			rt.Add("[at {alt} maintain {spd}|at {alt} {spd}|{alt} then {spd}]", *s.AfterAltitude, s.Speed)
 		} else {
 			rt.Add("[speed {spd}|maintain {spd}|{spd}]", s.Speed)
 		}
 	case SpeedAtOrAbove:
-		rt.Add("[maintain {spd} or greater|{spd} or greater|{spd} or above]", s.Speed)
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd} or greater|after {fix} {spd} or greater]", s.AfterFix, s.Speed)
+		} else {
+			rt.Add("[maintain {spd} or greater|{spd} or greater|{spd} or above]", s.Speed)
+		}
 	case SpeedAtOrBelow:
-		rt.Add("[do not exceed {spd}|not exceeding {spd}|{spd} or less]", s.Speed)
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} do not exceed {spd}|after {fix} {spd} or less]", s.AfterFix, s.Speed)
+		} else {
+			rt.Add("[do not exceed {spd}|not exceeding {spd}|{spd} or less]", s.Speed)
+		}
 	}
 }
 

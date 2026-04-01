@@ -495,6 +495,7 @@ var secondaryAcCommands = [][3]string{
 	{"*SQON", `"Squawk on."`, "*SSON*"},
 	{"*A_fix*/C[_appr]", `"At _fix_, cleared [_appr_] approach." (approach is optional)`, "*AROSLY/C*"},
 	{"*A_fix*/I", `"At _fix_, intercept the localizer."`, "*AROSLY/I*"},
+	{"*A_fix*/S_kts[+|-]", `"After _fix_, maintain _kts_ knots." Append *+* for "or greater", *-* for "or less".`, "*AROSLY/S230*, *ACAMRN/S210+*"},
 	{"*CAC*", `"Cancel approach clearance".`, "*CAC*"},
 	{"*CSI_appr", `"Cleared straight-in _appr_ approach.`, "*CSII6*"},
 	{"*I*", `"Intercept the localizer."`, "*I*"},

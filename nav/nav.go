@@ -217,6 +217,7 @@ type NavFixAssignment struct {
 		Fix     *av.Waypoint
 		Heading *math.MagneticHeading
 		Turn    *av.TurnDirection
+		Speed   *av.SpeedRestriction
 	}
 	Hold *av.Hold
 }
@@ -734,6 +735,17 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		if nfa.Depart.Heading != nil && nav.Heading.Assigned == nil {
 			lines = append(lines, fmt.Sprintf("Depart "+fix+" heading %03d",
 				int(*nfa.Depart.Heading)))
+		}
+		if nfa.Depart.Speed != nil {
+			sr := nfa.Depart.Speed
+			spd, exact := sr.ExactValue()
+			if exact {
+				lines = append(lines, fmt.Sprintf("After %s maintain %.0f kts", fix, spd))
+			} else if sr.Range[0] > 0 {
+				lines = append(lines, fmt.Sprintf("After %s maintain %.0f kts or greater", fix, sr.Range[0]))
+			} else {
+				lines = append(lines, fmt.Sprintf("After %s maintain %.0f kts or less", fix, sr.Range[1]))
+			}
 		}
 	}
 

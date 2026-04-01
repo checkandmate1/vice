@@ -120,6 +120,8 @@ func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp av.Temperature
 }
 
 func (nav *Nav) AssignSpeed(sr *av.SpeedRestriction, afterAltitude bool) av.CommandIntent {
+	nav.clearAfterFixSpeeds()
+
 	if sr == nil {
 		nav.Speed = NavSpeed{}
 		return av.SpeedIntent{Type: av.SpeedCancel}
@@ -188,6 +190,8 @@ func (nav *Nav) AssignSpeed(sr *av.SpeedRestriction, afterAltitude bool) av.Comm
 }
 
 func (nav *Nav) AssignSpeedUntil(sr *av.SpeedRestriction, until *av.SpeedUntil) av.CommandIntent {
+	nav.clearAfterFixSpeeds()
+
 	speed, exact := sr.ExactValue()
 	if !exact {
 		speed = sr.Range[0]
@@ -210,16 +214,19 @@ func (nav *Nav) AssignSpeedUntil(sr *av.SpeedRestriction, until *av.SpeedUntil) 
 }
 
 func (nav *Nav) MaintainSlowestPractical() av.CommandIntent {
+	nav.clearAfterFixSpeeds()
 	nav.Speed = NavSpeed{MaintainSlowestPractical: true}
 	return av.SpeedIntent{Type: av.SpeedSlowestPractical}
 }
 
 func (nav *Nav) MaintainMaximumForward() av.CommandIntent {
+	nav.clearAfterFixSpeeds()
 	nav.Speed = NavSpeed{MaintainMaximumForward: true}
 	return av.SpeedIntent{Type: av.SpeedMaximumForward}
 }
 
 func (nav *Nav) MaintainPresentSpeed() av.CommandIntent {
+	nav.clearAfterFixSpeeds()
 	// Capture current indicated airspeed and assign it, rounded to nearest 10
 	currentSpeed := nav.FlightState.IAS
 	speed := float32(int((currentSpeed+5)/10) * 10)
@@ -740,6 +747,50 @@ func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedR
 	nav.FixAssignments[fix] = nfa
 
 	return intent
+}
+
+func (nav *Nav) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.CommandIntent {
+	if !nav.fixInRoute(fix) {
+		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
+	}
+
+	speed, exact := sr.ExactValue()
+	if !exact {
+		speed = sr.Range[0]
+		if speed == 0 {
+			speed = sr.Range[1]
+		}
+	}
+
+	nfa := nav.FixAssignments[fix]
+	nfa.Depart.Speed = sr
+	nav.FixAssignments[fix] = nfa
+
+	var stype av.SpeedType
+	if !exact {
+		if sr.Range[0] > 0 {
+			stype = av.SpeedAtOrAbove
+		} else {
+			stype = av.SpeedAtOrBelow
+		}
+	} else if speed < nav.FlightState.IAS {
+		stype = av.SpeedReduce
+	} else if speed > nav.FlightState.IAS {
+		stype = av.SpeedIncrease
+	} else {
+		stype = av.SpeedAssign
+	}
+
+	return av.SpeedIntent{Speed: speed, Type: stype, AfterFix: fix}
+}
+
+func (nav *Nav) clearAfterFixSpeeds() {
+	for fix, nfa := range nav.FixAssignments {
+		if nfa.Depart.Speed != nil {
+			nfa.Depart.Speed = nil
+			nav.FixAssignments[fix] = nfa
+		}
+	}
 }
 
 func (nav *Nav) CancelApproachClearance() av.CommandIntent {

@@ -1036,6 +1036,58 @@ func TestNavigationCommands(t *testing.T) {
 			},
 			expected: "AAL870 EXPDIRWAVEY",
 		},
+		{
+			name:       "after fix maintain speed",
+			transcript: "American 870 after ROSLY maintain 230 knots",
+			aircraft: map[string]Aircraft{
+				"American 870": {
+					Callsign: "AAL870",
+					Altitude: 12000,
+					State:    "arrival",
+					Fixes:    map[string]string{"rosly": "ROSLY"},
+				},
+			},
+			expected: "AAL870 AROSLY/S230",
+		},
+		{
+			name:       "after fix speed or greater",
+			transcript: "Delta 450 after CAMRN maintain 210 knots or greater",
+			aircraft: map[string]Aircraft{
+				"Delta 450": {
+					Callsign: "DAL450",
+					Altitude: 10000,
+					State:    "arrival",
+					Fixes:    map[string]string{"camrn": "CAMRN"},
+				},
+			},
+			expected: "DAL450 ACAMRN/S210+",
+		},
+		{
+			name:       "at fix reduce speed",
+			transcript: "JetBlue 83 at CAMRN reduce speed to 180",
+			aircraft: map[string]Aircraft{
+				"JetBlue 83": {
+					Callsign: "JBU83",
+					Altitude: 11000,
+					State:    "arrival",
+					Fixes:    map[string]string{"Cameron": "CAMRN"},
+				},
+			},
+			expected: "JBU83 ACAMRN/S180",
+		},
+		{
+			name:       "after fix speed or less",
+			transcript: "United 300 after JENNY 250 knots or less",
+			aircraft: map[string]Aircraft{
+				"United 300": {
+					Callsign: "UAL300",
+					Altitude: 15000,
+					State:    "arrival",
+					Fixes:    map[string]string{"jenny": "JENNY"},
+				},
+			},
+			expected: "UAL300 AJENNY/S250-",
+		},
 	}
 
 	provider := NewTranscriber(nil)

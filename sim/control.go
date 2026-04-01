@@ -1520,6 +1520,16 @@ func (s *Sim) CrossFixAt(tcw TCW, callsign av.ADSBCallsign, fix string, ar *av.A
 		})
 }
 
+func (s *Sim) AfterFixSpeed(tcw TCW, callsign av.ADSBCallsign, fix string, sr *av.SpeedRestriction) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.AfterFixSpeed(fix, sr)
+		})
+}
+
 func (s *Sim) AtFixCleared(tcw TCW, callsign av.ADSBCallsign, fix, approach string) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -2838,6 +2848,12 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				return s.AtFixCleared(tcw, callsign, fix, approach)
 			case 'I':
 				return s.AtFixIntercept(tcw, callsign, fix)
+			case 'S':
+				sr, err := av.ParseSpeedRestriction(components[1][1:])
+				if err != nil {
+					return nil, err
+				}
+				return s.AfterFixSpeed(tcw, callsign, fix, sr)
 			default:
 				return nil, ErrInvalidCommandSyntax
 			}

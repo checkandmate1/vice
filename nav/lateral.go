@@ -449,6 +449,11 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 			nav.AssignAltitude(alt, false)
 		}
 
+		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Speed != nil {
+			sr := *nfa.Depart.Speed
+			nav.Speed = NavSpeed{Assigned: &sr}
+		}
+
 		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Heading != nil {
 			// Controller-assigned heading
 			hdg := *nfa.Depart.Heading

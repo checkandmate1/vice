@@ -329,6 +329,10 @@ func (ac *Aircraft) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.Sp
 	return ac.Nav.CrossFixAt(strings.ToUpper(fix), ar, sr, mach)
 }
 
+func (ac *Aircraft) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.CommandIntent {
+	return ac.Nav.AfterFixSpeed(strings.ToUpper(fix), sr)
+}
+
 func (ac *Aircraft) ExpectApproach(id string, ap *av.Airport, lahsoRunway string, lg *log.Logger) av.CommandIntent {
 	return ac.Nav.ExpectApproach(ap, id, ac.STARRunwayWaypoints, lahsoRunway, lg)
 }

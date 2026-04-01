@@ -641,6 +641,38 @@ func registerAllCommands() {
 		WithPriority(15),
 	)
 
+	// === AFTER FIX SPEED COMMANDS ===
+	registerSTTCommand(
+		"after|at {fix} [,] maintain [speed] {speed} [knots]",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d", fix, spd) },
+		WithName("after_fix_maintain_speed"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] [maintain] [speed] {speed} [knots] or greater|better",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d+", fix, spd) },
+		WithName("after_fix_speed_or_greater"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] [maintain] [speed] {speed} [knots] or less",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d-", fix, spd) },
+		WithName("after_fix_speed_or_less"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] reduce|slow|increase [speed] [to] {speed} [knots]",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d", fix, spd) },
+		WithName("after_fix_reduce_speed"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] [speed] {speed} [knots]",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d", fix, spd) },
+		WithName("after_fix_speed_bare"),
+		WithPriority(14),
+	)
+
 	// === APPROACH COMMANDS ===
 	registerSTTCommand(
 		"at {fix} [cleared] [clear] [for] [approach] {approach}",
