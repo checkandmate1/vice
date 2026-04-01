@@ -229,12 +229,12 @@ func (ac *Aircraft) AssignMach(mach float32, afterAltitude bool, temp av.Tempera
 	return ac.Nav.AssignMach(mach, afterAltitude, temp)
 }
 
-func (ac *Aircraft) AssignSpeed(speed int, afterAltitude bool) av.CommandIntent {
-	return ac.Nav.AssignSpeed(float32(speed), afterAltitude)
+func (ac *Aircraft) AssignSpeed(sr *av.SpeedRestriction, afterAltitude bool) av.CommandIntent {
+	return ac.Nav.AssignSpeed(sr, afterAltitude)
 }
 
-func (ac *Aircraft) AssignSpeedUntil(speed int, until *av.SpeedUntil) av.CommandIntent {
-	return ac.Nav.AssignSpeedUntil(float32(speed), until)
+func (ac *Aircraft) AssignSpeedUntil(sr *av.SpeedRestriction, until *av.SpeedUntil) av.CommandIntent {
+	return ac.Nav.AssignSpeedUntil(sr, until)
 }
 
 func (ac *Aircraft) MaintainSlowestPractical() av.CommandIntent {
@@ -325,8 +325,8 @@ func (ac *Aircraft) DepartFixDirect(fixa, fixb string) av.CommandIntent {
 	return ac.Nav.DepartFixDirect(strings.ToUpper(fixa), strings.ToUpper(fixb))
 }
 
-func (ac *Aircraft) CrossFixAt(fix string, ar *av.AltitudeRestriction, speed int, mach float32) av.CommandIntent {
-	return ac.Nav.CrossFixAt(strings.ToUpper(fix), ar, speed, mach)
+func (ac *Aircraft) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction, mach float32) av.CommandIntent {
+	return ac.Nav.CrossFixAt(strings.ToUpper(fix), ar, sr, mach)
 }
 
 func (ac *Aircraft) ExpectApproach(id string, ap *av.Airport, lahsoRunway string, lg *log.Logger) av.CommandIntent {
@@ -505,7 +505,7 @@ func (ac *Aircraft) InitializeVFRDeparture(ap *av.Airport, wps av.WaypointArray,
 	ac.TypeOfFlight = av.FlightTypeDeparture
 
 	nav := nav.MakeDepartureNav(ac.ADSBCallsign, ac.FlightPlan, perf, 0, /* assigned alt */
-		ac.FlightPlan.Altitude /* cleared alt */, 0 /* speed restriction */, wp,
+		ac.FlightPlan.Altitude /* cleared alt */, av.SpeedRestriction{} /* speed restriction */, wp,
 		randomizeAltitudeRange, nmPerLongitude, magneticVariation, model, simTime, lg)
 	if nav == nil {
 		return fmt.Errorf("error initializing Nav")

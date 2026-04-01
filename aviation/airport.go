@@ -745,14 +745,14 @@ func (ap Airport) VFRRateSum() int {
 }
 
 type ExitRoute struct {
-	SID              string        `json:"sid"`
-	AssignedAltitude int           `json:"assigned_altitude"`
-	ClearedAltitude  int           `json:"cleared_altitude"`
-	SpeedRestriction int           `json:"speed_restriction"`
-	Waypoints        WaypointArray `json:"waypoints"`
-	Description      string        `json:"description"`
-	IsRNAV           bool          `json:"is_rnav"`
-	HoldForRelease   bool          `json:"hold_for_release"`
+	SID              string           `json:"sid"`
+	AssignedAltitude int              `json:"assigned_altitude"`
+	ClearedAltitude  int              `json:"cleared_altitude"`
+	SpeedRestriction SpeedRestriction `json:"speed_restriction"`
+	Waypoints        WaypointArray    `json:"waypoints"`
+	Description      string           `json:"description"`
+	IsRNAV           bool             `json:"is_rnav"`
+	HoldForRelease   bool             `json:"hold_for_release"`
 	// optional, control position to handoff to at a /ho
 	HandoffController ControlPosition `json:"handoff_controller"`
 	// optional, the initial tracking controller for the departure.

@@ -145,17 +145,17 @@ type Arrival struct {
 	Route           string                              `json:"route"`
 	STAR            string                              `json:"star"`
 
-	InitialController   ControlPosition `json:"initial_controller"`
-	InitialAltitude     float32         `json:"initial_altitude"`
-	AssignedAltitude    float32         `json:"assigned_altitude"`
-	ClearedAltitude     float32         `json:"cleared_altitude"`
-	InitialSpeed        float32         `json:"initial_speed"`
-	SpeedRestriction    float32         `json:"speed_restriction"`
-	Scratchpad          string          `json:"scratchpad"`
-	SecondaryScratchpad string          `json:"secondary_scratchpad"`
-	Description         string          `json:"description"`
-	CoordinationFix     string          `json:"coordination_fix"`
-	IsRNAV              bool            `json:"is_rnav"`
+	InitialController   ControlPosition  `json:"initial_controller"`
+	InitialAltitude     float32          `json:"initial_altitude"`
+	AssignedAltitude    float32          `json:"assigned_altitude"`
+	ClearedAltitude     float32          `json:"cleared_altitude"`
+	InitialSpeed        float32          `json:"initial_speed"`
+	SpeedRestriction    SpeedRestriction `json:"speed_restriction"`
+	Scratchpad          string           `json:"scratchpad"`
+	SecondaryScratchpad string           `json:"secondary_scratchpad"`
+	Description         string           `json:"description"`
+	CoordinationFix     string           `json:"coordination_fix"`
+	IsRNAV              bool             `json:"is_rnav"`
 
 	ExpectApproach util.OneOf[string, map[string]string] `json:"expect_approach"`
 

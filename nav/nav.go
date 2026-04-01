@@ -170,13 +170,13 @@ type NavAltitude struct {
 }
 
 type NavSpeed struct {
-	Assigned                 *float32
-	AfterAltitude            *float32
+	Assigned                 *av.SpeedRestriction // controller-assigned (exact or range)
+	AfterAltitude            *av.SpeedRestriction // speed to apply after reaching assigned altitude
 	AfterAltitudeAltitude    *float32
 	MaintainSlowestPractical bool
 	MaintainMaximumForward   bool
 	// Carried after passing a waypoint
-	Restriction *float32
+	Restriction *av.SpeedRestriction
 	Mach        bool
 }
 
@@ -210,7 +210,7 @@ type NavApproach struct {
 type NavFixAssignment struct {
 	Arrive struct {
 		Altitude *av.AltitudeRestriction
-		Speed    *float32
+		Speed    *av.SpeedRestriction
 		Mach     *float32
 	}
 	Depart struct {
@@ -251,8 +251,10 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 	randomizeAltitudeRange := fp.Rules == av.FlightRulesVFR
 	if nav := makeNav(callsign, fp, perf, arr.Waypoints, randomizeAltitudeRange, nmPerLongitude,
 		magneticVariation, lg); nav != nil {
-		spd := arr.SpeedRestriction
-		nav.Speed.Restriction = util.Select(spd != 0, &spd, nil)
+		if !arr.SpeedRestriction.IsZero() {
+			sr := arr.SpeedRestriction
+			nav.Speed.Restriction = &sr
+		}
 		if arr.AssignedAltitude > 0 {
 			// Descend to the assigned altitude but then hold that until
 			// either DVS or further descents are given.
@@ -278,7 +280,7 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 }
 
 func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerformance,
-	assignedAlt, clearedAlt, speedRestriction int, wp []av.Waypoint, randomizeAltitudeRange bool,
+	assignedAlt, clearedAlt int, speedRestriction av.SpeedRestriction, wp []av.Waypoint, randomizeAltitudeRange bool,
 	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
 	if nav := makeNav(callsign, fp, perf, wp, randomizeAltitudeRange, nmPerLongitude, magneticVariation,
 		lg); nav != nil {
@@ -289,9 +291,16 @@ func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.Aircra
 			alt := float32(min(clearedAlt, fp.Altitude))
 			nav.Altitude.Cleared = &alt
 		}
-		if speedRestriction != 0 {
-			speed := float32(max(speedRestriction, int(perf.Speed.Min)))
-			nav.Speed.Restriction = &speed
+		if !speedRestriction.IsZero() {
+			sr := speedRestriction
+			// Ensure we don't go below aircraft minimum speed
+			if sr.Range[0] < perf.Speed.Min {
+				sr.Range[0] = perf.Speed.Min
+			}
+			if sr.Range[1] < perf.Speed.Min {
+				sr.Range[1] = perf.Speed.Min
+			}
+			nav.Speed.Restriction = &sr
 		}
 		nav.FlightState.InitialDepartureClimb = true
 		nav.FlightState.Altitude = nav.FlightState.DepartureAirportElevation
@@ -305,15 +314,17 @@ func MakeOverflightNav(callsign av.ADSBCallsign, of *av.Overflight, fp av.Flight
 	randomizeAltitudeRange := fp.Rules == av.FlightRulesVFR
 	if nav := makeNav(callsign, fp, perf, of.Waypoints, randomizeAltitudeRange, nmPerLongitude,
 		magneticVariation, lg); nav != nil {
-		spd := of.SpeedRestriction
-		nav.Speed.Restriction = util.Select(spd != 0, &spd, nil)
+		if !of.SpeedRestriction.IsZero() {
+			sr := of.SpeedRestriction
+			nav.Speed.Restriction = &sr
+		}
 		if of.AssignedAltitude > 0 {
 			alt := of.AssignedAltitude
 			nav.Altitude.Assigned = &alt
 		}
 		if of.AssignedSpeed > 0 {
-			spd := of.AssignedSpeed
-			nav.Speed.Assigned = &spd
+			sr := av.MakeAtSpeedRestriction(of.AssignedSpeed)
+			nav.Speed.Assigned = &sr
 		}
 
 		nav.FlightState.Altitude = float32(rand.SampleSlice(nav.Rand, of.InitialAltitudes))
@@ -696,11 +707,15 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		lines = append(lines, fmt.Sprintf("Maintain maximum forward speed: %.0f kts", ias))
 	} else if ias != nav.FlightState.IAS {
 		lines = append(lines, fmt.Sprintf("Speed %.0f kts to %.0f", nav.FlightState.IAS, ias))
-	} else if nav.Speed.Assigned != nil {
-		lines = append(lines, fmt.Sprintf("Maintaining %.0f kts assignment", *nav.Speed.Assigned))
+	} else if sr := nav.Speed.Assigned; sr != nil {
+		if spd, exact := sr.ExactValue(); exact {
+			lines = append(lines, fmt.Sprintf("Maintaining %.0f kts assignment", spd))
+		} else {
+			lines = append(lines, fmt.Sprintf("Maintaining %s kts assignment", sr.Encoded()))
+		}
 	} else if nav.Speed.AfterAltitude != nil && nav.Speed.AfterAltitudeAltitude != nil {
-		lines = append(lines, fmt.Sprintf("At %s, maintain %0.f kts", av.FormatAltitude(*nav.Speed.AfterAltitudeAltitude),
-			*nav.Speed.AfterAltitude))
+		lines = append(lines, fmt.Sprintf("At %s, maintain %s kts", av.FormatAltitude(*nav.Speed.AfterAltitudeAltitude),
+			nav.Speed.AfterAltitude.Encoded()))
 	}
 
 	for _, fix := range util.SortedMapKeys(nav.FixAssignments) {
@@ -871,8 +886,14 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 	}
 
 	// Speed assignment
-	if nav.Speed.Assigned != nil {
-		resp.Add("[assigned {spd}|{spd} knots]", *nav.Speed.Assigned)
+	if sr := nav.Speed.Assigned; sr != nil {
+		if spd, exact := sr.ExactValue(); exact {
+			resp.Add("[assigned {spd}|{spd} knots]", spd)
+		} else if sr.Range[0] > 0 && sr.Range[1] == av.MaxSpeed {
+			resp.Add("[{spd} or greater|at or above {spd}]", sr.Range[0])
+		} else if sr.Range[0] == 0 && sr.Range[1] < av.MaxSpeed {
+			resp.Add("[not exceeding {spd}|at or below {spd}]", sr.Range[1])
+		}
 	}
 
 	return &resp

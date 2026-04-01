@@ -45,22 +45,23 @@ const (
 	WaypointFlagTurnLeft
 	WaypointFlagTurnRight
 	WaypointFlagHasAltRestriction
+	WaypointFlagHasSpeedRestriction
 	WaypointFlagSequenceVFRLanding
 	WaypointFlagHeadingIsTrack
 )
 
 // Waypoint is the core waypoint struct. Most waypoints only use Fix,
 // Location, and a few flags; Extra fields are heap-allocated only when
-// needed. AltRestriction, Heading, and Speed are inline because they
-// are used by ~48% of waypoints, avoiding a heap allocation for those.
+// needed. AltRestriction, Heading, and SpdRestriction are inline because
+// they are used by ~48% of waypoints, avoiding a heap allocation for those.
 type Waypoint struct {
 	Fix            string              `json:"fix"`
 	Location       math.Point2LL       `json:"location,omitempty"`
 	AltRestriction AltitudeRestriction // valid iff WaypointFlagHasAltRestriction set
+	SpdRestriction SpeedRestriction    // valid iff WaypointFlagHasSpeedRestriction set
 	Extra          *WaypointExtra
 	Flags          WaypointFlags
 	Heading        int16 // 0 = unset
-	Speed          int16 // 0 = unset
 	VFRPhase       uint8 // VFRPhaseNone for non-VFR-pattern waypoints
 }
 
@@ -199,6 +200,20 @@ func (wp *Waypoint) SetAltitudeRestriction(ar AltitudeRestriction) {
 	wp.Flags |= WaypointFlagHasAltRestriction
 }
 
+// SpeedRestriction returns a pointer to the inline restriction if the flag is set, else nil.
+func (wp *Waypoint) SpeedRestriction() *SpeedRestriction {
+	if wp.Flags&WaypointFlagHasSpeedRestriction != 0 {
+		return &wp.SpdRestriction
+	}
+	return nil
+}
+
+// SetSpeedRestriction stores the restriction inline and sets the flag.
+func (wp *Waypoint) SetSpeedRestriction(sr SpeedRestriction) {
+	wp.SpdRestriction = sr
+	wp.Flags |= WaypointFlagHasSpeedRestriction
+}
+
 // Extra field readers (value receiver, nil-safe)
 func (wp Waypoint) ProcedureTurn() *ProcedureTurn {
 	if wp.Extra != nil {
@@ -290,8 +305,8 @@ func (wp Waypoint) LogValue() slog.Value {
 	if ar := wp.AltitudeRestriction(); ar != nil {
 		attrs = append(attrs, slog.Any("altitude_restriction", ar))
 	}
-	if wp.Speed != 0 {
-		attrs = append(attrs, slog.Int("speed", int(wp.Speed)))
+	if sr := wp.SpeedRestriction(); sr != nil {
+		attrs = append(attrs, slog.String("speed_restriction", sr.Encoded()))
 	}
 	if wp.Heading != 0 {
 		attrs = append(attrs, slog.Int("heading", int(wp.Heading)))
@@ -398,8 +413,8 @@ func (wa WaypointArray) Encode() string {
 		if ar := w.AltitudeRestriction(); ar != nil {
 			s += "/a" + ar.Encoded()
 		}
-		if w.Speed != 0 {
-			s += fmt.Sprintf("/s%d", w.Speed)
+		if sr := w.SpeedRestriction(); sr != nil {
+			s += "/s" + sr.Encoded()
 		}
 		if pt := w.ProcedureTurn(); pt != nil {
 			if pt.Type == PTStandard45 {
@@ -602,8 +617,10 @@ func (wa WaypointArray) checkBasics(e *util.ErrorLogger, controllers map[Control
 
 	for i, wp := range wa {
 		e.Push(wp.Fix)
-		if wp.Speed < 0 || wp.Speed > 300 {
-			e.ErrorString("invalid speed restriction %d", wp.Speed)
+		if sr := wp.SpeedRestriction(); sr != nil {
+			if sr.Range[0] < 0 || (sr.Range[1] > 300 && sr.Range[1] != MaxSpeed) {
+				e.ErrorString("invalid speed restriction %s", sr.Encoded())
+			}
 		}
 
 		if wp.AirworkMinutes() > 0 {
@@ -1087,11 +1104,11 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					}
 					wp.SetAltitudeRestriction(*ar)
 				} else if f[0] == 's' {
-					kts, err := strconv.Atoi(f[1:])
+					sr, err := ParseSpeedRestriction(f[1:])
 					if err != nil {
-						return nil, fmt.Errorf("%s: error parsing number after speed restriction: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: error parsing speed restriction: %v", f[1:], err)
 					}
-					wp.Speed = int16(kts)
+					wp.SetSpeedRestriction(*sr)
 				} else if f[0] == 'h' { // after "ho" and "hilpt" check...
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
@@ -1544,6 +1561,64 @@ func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading math.MagneticHeadin
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// NavigationRestriction
+
+// NavigationRestriction is the shared base for altitude and speed restrictions.
+// Range[0] is the floor, Range[1] is the ceiling.
+// 0 means "no floor" (at or below); the type-specific max constant
+// means "no ceiling" (at or above).
+// Invariant: Range[0] <= Range[1].
+type NavigationRestriction struct {
+	Range [2]float32
+}
+
+// Target clamps val into the restriction's range.
+func (r NavigationRestriction) Target(val float32) float32 {
+	return math.Clamp(val, r.Range[0], r.Range[1])
+}
+
+// Satisfied returns true if val complies with the restriction.
+func (r NavigationRestriction) Satisfied(val float32) bool {
+	return val >= r.Range[0] && val <= r.Range[1]
+}
+
+// ExactValue returns the value if this is an "at" restriction (lo == hi),
+// or false if it's a range.
+func (r NavigationRestriction) ExactValue() (float32, bool) {
+	if r.Range[0] == r.Range[1] {
+		return r.Range[0], true
+	}
+	return 0, false
+}
+
+// ClampRange limits a range to satisfy the restriction;
+// the returned Boolean indicates whether the ranges overlapped.
+func (r NavigationRestriction) ClampRange(rng [2]float32) (c [2]float32, ok bool) {
+	ok = rng[0] <= r.Range[1] && rng[1] >= r.Range[0]
+	c[0] = math.Clamp(rng[0], r.Range[0], r.Range[1])
+	c[1] = math.Clamp(rng[1], r.Range[0], r.Range[1])
+	return
+}
+
+// encoded returns the restriction in compact text form, using maxVal as
+// the sentinel for "no ceiling".
+func (r NavigationRestriction) encoded(maxVal float32) string {
+	if r.Range[0] != 0 {
+		if r.Range[0] == r.Range[1] {
+			return fmt.Sprintf("%.0f", r.Range[0])
+		} else if r.Range[1] != maxVal {
+			return fmt.Sprintf("%.0f-%.0f", r.Range[0], r.Range[1])
+		} else {
+			return fmt.Sprintf("%.0f+", r.Range[0])
+		}
+	} else if r.Range[1] != 0 && r.Range[1] != maxVal {
+		return fmt.Sprintf("%.0f-", r.Range[1])
+	} else {
+		return ""
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
 // AltitudeRestriction
 
 // MaxAltitude is used as the upper bound for "at or
@@ -1552,26 +1627,23 @@ func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading math.MagneticHeadin
 const MaxAltitude float32 = 100000
 
 type AltitudeRestriction struct {
-	// Range[0] is the floor, Range[1] is the ceiling. 0 means "no floor" (at or below) and
-	// MaxAltitude means "no ceiling" (at or above).
-	// The invariant Range[0] <= Range[1] always holds.
-	Range [2]float32
+	NavigationRestriction
 }
 
 func MakeAtAltitudeRestriction(alt float32) AltitudeRestriction {
-	return AltitudeRestriction{Range: [2]float32{alt, alt}}
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{alt, alt}}}
 }
 
 func MakeAtOrAboveAltitudeRestriction(alt float32) AltitudeRestriction {
-	return AltitudeRestriction{Range: [2]float32{alt, MaxAltitude}}
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{alt, MaxAltitude}}}
 }
 
 func MakeAtOrBelowAltitudeRestriction(alt float32) AltitudeRestriction {
-	return AltitudeRestriction{Range: [2]float32{0, alt}}
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{0, alt}}}
 }
 
 func MakeRangeAltitudeRestriction(low, high float32) AltitudeRestriction {
-	return AltitudeRestriction{Range: [2]float32{low, high}}
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{low, high}}}
 }
 
 func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
@@ -1599,36 +1671,132 @@ func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
 	}
 }
 
+// TargetAltitude clamps alt into the restriction's range.
 func (a AltitudeRestriction) TargetAltitude(alt float32) float32 {
-	return math.Clamp(alt, a.Range[0], a.Range[1])
+	return a.Target(alt)
 }
 
-// ClampRange limits a range of altitudes to satisfy the altitude
-// restriction; the returned Boolean indicates whether the ranges
-// overlapped.
-func (a AltitudeRestriction) ClampRange(r [2]float32) (c [2]float32, ok bool) {
-	ok = r[0] <= a.Range[1] && r[1] >= a.Range[0]
-	c[0] = math.Clamp(r[0], a.Range[0], a.Range[1])
-	c[1] = math.Clamp(r[1], a.Range[0], a.Range[1])
-	return
-}
-
-// Encoded returns the restriction in the encoded form in which it is
-// specified in scenario configuration files, e.g. "5000+" for "at or above
-// 5000".
+// Encoded returns the restriction in the encoded form used in scenario
+// configuration files, e.g. "5000+" for "at or above 5000".
 func (a AltitudeRestriction) Encoded() string {
-	if a.Range[0] != 0 {
-		if a.Range[0] == a.Range[1] {
-			return fmt.Sprintf("%.0f", a.Range[0])
-		} else if a.Range[1] != MaxAltitude {
-			return fmt.Sprintf("%.0f-%.0f", a.Range[0], a.Range[1])
-		} else {
-			return fmt.Sprintf("%.0f+", a.Range[0])
+	return a.encoded(MaxAltitude)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// SpeedRestriction
+
+// MaxSpeed is used as the upper bound for "at or above" speed restrictions.
+const MaxSpeed float32 = 1000
+
+type SpeedRestriction struct {
+	NavigationRestriction
+}
+
+func MakeAtSpeedRestriction(speed float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction{Range: [2]float32{speed, speed}}}
+}
+
+func MakeAtOrAboveSpeedRestriction(speed float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction{Range: [2]float32{speed, MaxSpeed}}}
+}
+
+func MakeAtOrBelowSpeedRestriction(speed float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction{Range: [2]float32{0, speed}}}
+}
+
+func MakeRangeSpeedRestriction(low, high float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction{Range: [2]float32{low, high}}}
+}
+
+func (s *SpeedRestriction) UnmarshalJSON(b []byte) error {
+	// null: leave as zero value (no restriction).
+	if string(b) == "null" {
+		return nil
+	}
+	// Plain number: treat as "at" restriction (backwards compat with existing JSON).
+	if spd, err := strconv.Atoi(string(b)); err == nil {
+		s.Range = [2]float32{float32(spd), float32(spd)}
+		return nil
+	}
+	// String form: "250-", "210+", "180-210", "210".
+	var str string
+	if err := json.Unmarshal(b, &str); err == nil {
+		sr, err := ParseSpeedRestriction(str)
+		if err != nil {
+			return err
 		}
-	} else if a.Range[1] != 0 && a.Range[1] != MaxAltitude {
-		return fmt.Sprintf("%.0f-", a.Range[1])
+		*s = *sr
+		return nil
+	}
+	// Struct form: {"Range": [lo, hi]}.
+	ar := struct{ Range [2]float32 }{}
+	if err := json.Unmarshal(b, &ar); err == nil {
+		s.Range = ar.Range
+		return nil
 	} else {
-		return ""
+		return err
+	}
+}
+
+// Encoded returns the restriction in compact text form, e.g. "210+", "250-", "210".
+func (s SpeedRestriction) Encoded() string {
+	return s.encoded(MaxSpeed)
+}
+
+// CheckJSON implements util.JSONChecker so the JSON type checker accepts
+// plain numbers and strings in addition to the struct form.
+func (s SpeedRestriction) CheckJSON(json any) bool {
+	switch json.(type) {
+	case float64, string, map[string]any, nil:
+		return true
+	}
+	return false
+}
+
+// IsZero returns true if the speed restriction is unset.
+func (s SpeedRestriction) IsZero() bool {
+	return s.Range[0] == 0 && s.Range[1] == 0
+}
+
+// ParseSpeedRestriction parses a speed restriction from compact text form:
+// "210", "210+", "210-", "180-210".
+func ParseSpeedRestriction(s string) (*SpeedRestriction, error) {
+	if s == "" {
+		return nil, fmt.Errorf("empty speed restriction")
+	}
+
+	if low, high, ok := strings.Cut(s, "-"); ok {
+		// Either a range or at-or-below
+		min, err := strconv.Atoi(low)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+		}
+		if high != "" {
+			max, err := strconv.Atoi(high)
+			if err != nil {
+				return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+			}
+			sr := MakeRangeSpeedRestriction(float32(min), float32(max))
+			return &sr, nil
+
+		} else {
+			sr := MakeAtOrBelowSpeedRestriction(float32(min))
+			return &sr, nil
+		}
+	} else {
+		// Single speed or at-or-above
+		low, aoa := strings.CutSuffix(s, "+")
+		min, err := strconv.Atoi(low)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+		}
+		if aoa {
+			sr := MakeAtOrAboveSpeedRestriction(float32(min))
+			return &sr, nil
+		} else {
+			sr := MakeAtSpeedRestriction(float32(min))
+			return &sr, nil
+		}
 	}
 }
 
@@ -1903,7 +2071,7 @@ type Overflight struct {
 	AssignedAltitude    float32                 `json:"assigned_altitude"`
 	InitialSpeed        float32                 `json:"initial_speed"`
 	AssignedSpeed       float32                 `json:"assigned_speed"`
-	SpeedRestriction    float32                 `json:"speed_restriction"`
+	SpeedRestriction    SpeedRestriction        `json:"speed_restriction"`
 	InitialController   ControlPosition         `json:"initial_controller"`
 	Scratchpad          string                  `json:"scratchpad"`
 	SecondaryScratchpad string                  `json:"secondary_scratchpad"`

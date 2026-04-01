@@ -435,10 +435,10 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 			ar := *wp.AltitudeRestriction()
 			nav.Altitude.Restriction = &ar
 		}
-		if wp.Speed != 0 && !wp.OnSID() {
+		if sr := wp.SpeedRestriction(); sr != nil && !wp.OnSID() {
 			// Carry on the speed restriction unless it's a SID
-			spd := float32(wp.Speed)
-			nav.Speed.Restriction = &spd
+			srCopy := *sr
+			nav.Speed.Restriction = &srCopy
 		}
 
 		if wp.ClimbAltitude() != 0 {

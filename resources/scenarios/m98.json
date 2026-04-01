@@ -7496,20 +7496,11 @@
         }
       ]
     },
-    "KKILR3.30s": {
+    "KKILR4.30s": {
       "arrivals": [
         {
-          "waypoints": "CMAAC/a14000+/s280 N044.48.19.649,W092.00.34.112/ho KKILR/a12000+/s280 HUGGI/a10000+ KRISP",
-          "runway_waypoints": {
-            "KMSP": {
-              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
-              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
-              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
-              "30L": "KRISP GEEQU/a7000/s210/h243",
-              "30R": "KRISP GEEQU/a7000/s210/h243"
-            }
-          },
-          "star": "KKILR3",
+          "spawn": "CMAAC",
+          "star": "KKILR4",
           "initial_controller": "C06",
           "initial_altitude": 21000,
           "initial_speed": 280,
@@ -7750,20 +7741,11 @@
         }
       ]
     },
-    "KKILR3.12s": {
+    "KKILR4.12s": {
       "arrivals": [
         {
-          "waypoints": "CMAAC/a14000+/s280 N044.48.19.649,W092.00.34.112/ho KKILR/a12000+/s280 HUGGI/a10000+ KRISP",
-          "runway_waypoints": {
-            "KMSP": {
-              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
-              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
-              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
-              "30L": "KRISP GEEQU/a7000/s210/h243",
-              "30R": "KRISP GEEQU/a7000/s210/h243"
-            }
-          },
-          "star": "KKILR3",
+          "spawn": "CMAAC",
+          "star": "KKILR4",
           "initial_controller": "C06",
           "initial_altitude": 21000,
           "initial_speed": 280,
@@ -8004,20 +7986,11 @@
         }
       ]
     },
-    "KKILR3.35": {
+    "KKILR4.35": {
       "arrivals": [
         {
-          "waypoints": "CMAAC/a14000+/s280 N044.48.19.649,W092.00.34.112/ho KKILR/a12000+/s280 HUGGI/a10000+ KRISP",
-          "runway_waypoints": {
-            "KMSP": {
-              "35": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
-              "12L": "KRISP AFTYN/a10000+/s250 CMMOE/a8000/s230 FSCOT/a8000/s230/h301",
-              "12R": "KRISP AFTYN/a10000+/s250 JONZY/a9000+ GREAK/a8000/s230 TIETN/a8000/s230/h301",
-              "30L": "KRISP GEEQU/a7000/s210/h243",
-              "30R": "KRISP GEEQU/a7000/s210/h243"
-            }
-          },
-          "star": "KKILR3",
+          "spawn": "CMAAC",
+          "star": "KKILR4",
           "initial_controller": "C06",
           "initial_altitude": 21000,
           "initial_speed": 280,
@@ -10915,7 +10888,7 @@
         "BLUEM5.12s": {
           "KMSP": 2
         },
-        "KKILR3.12s": {
+        "KKILR4.12s": {
           "KMSP": 2
         },
         "MUSCL4.12s": {
@@ -10973,7 +10946,7 @@
         "BLUEM5.30s": {
           "KMSP": 2
         },
-        "KKILR3.30s": {
+        "KKILR4.30s": {
           "KMSP": 2
         },
         "MUSCL4.30s": {
@@ -11031,7 +11004,7 @@
         "BLUEM5.12s": {
           "KMSP": 2
         },
-        "KKILR3.12s": {
+        "KKILR4.12s": {
           "KMSP": 2
         },
         "MUSCL4.12s": {
@@ -11094,7 +11067,7 @@
         "BLUEM5.30s": {
           "KMSP": 2
         },
-        "KKILR3.30s": {
+        "KKILR4.30s": {
           "KMSP": 2
         },
         "MUSCL4.30s": {
@@ -11153,7 +11126,7 @@
         "BLUEM5.35": {
           "KMSP": 2
         },
-        "KKILR3.35": {
+        "KKILR4.35": {
           "KMSP": 2
         },
         "MUSCL4.35": {
@@ -11215,7 +11188,7 @@
         "BLUEM5.35": {
           "KMSP": 2
         },
-        "KKILR3.30s": {
+        "KKILR4.30s": {
           "KMSP": 2
         },
         "MUSCL4.30s": {

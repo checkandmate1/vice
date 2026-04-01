@@ -1338,23 +1338,23 @@ func (s *Sim) AssignMach(tcw TCW, callsign av.ADSBCallsign, mach float32, afterA
 		})
 }
 
-func (s *Sim) AssignSpeed(tcw TCW, callsign av.ADSBCallsign, speed int, afterAltitude bool) (av.CommandIntent, error) {
+func (s *Sim) AssignSpeed(tcw TCW, callsign av.ADSBCallsign, sr *av.SpeedRestriction, afterAltitude bool) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.AssignSpeed(speed, afterAltitude)
+			return ac.AssignSpeed(sr, afterAltitude)
 		})
 }
 
-func (s *Sim) AssignSpeedUntil(tcw TCW, callsign av.ADSBCallsign, speed int, until *av.SpeedUntil) (av.CommandIntent, error) {
+func (s *Sim) AssignSpeedUntil(tcw TCW, callsign av.ADSBCallsign, sr *av.SpeedRestriction, until *av.SpeedUntil) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.AssignSpeedUntil(speed, until)
+			return ac.AssignSpeedUntil(sr, until)
 		})
 }
 
@@ -1510,13 +1510,13 @@ func (s *Sim) DepartFixHeading(tcw TCW, callsign av.ADSBCallsign, fix string, he
 		})
 }
 
-func (s *Sim) CrossFixAt(tcw TCW, callsign av.ADSBCallsign, fix string, ar *av.AltitudeRestriction, speed int, mach float32) (av.CommandIntent, error) {
+func (s *Sim) CrossFixAt(tcw TCW, callsign av.ADSBCallsign, fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction, mach float32) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.CrossFixAt(fix, ar, speed, mach)
+			return ac.CrossFixAt(fix, ar, sr, mach)
 		})
 }
 
@@ -2853,15 +2853,15 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		} else if components := strings.Split(command, "/"); len(components) > 1 {
 			fix := components[0][1:]
 			var ar *av.AltitudeRestriction
-			speed := 0
+			var sr *av.SpeedRestriction
 			mach := float32(0)
 			for _, cmd := range components[1:] {
 				if len(cmd) == 0 {
 					return nil, ErrInvalidCommandSyntax
 				}
 
-				var err error
 				if cmd[0] == 'A' && len(cmd) > 1 {
+					var err error
 					if ar, err = av.ParseAltitudeRestriction(cmd[1:]); err != nil {
 						return nil, err
 					}
@@ -2870,11 +2870,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 						ar.Range[1] *= 100
 					}
 				} else if cmd[0] == 'S' {
-					speedStr := cmd[1:]
-					// Strip +/- suffix for now (treat as regular speed)
-					speedStr = strings.TrimSuffix(speedStr, "+")
-					speedStr = strings.TrimSuffix(speedStr, "-")
-					if speed, err = strconv.Atoi(speedStr); err != nil {
+					var err error
+					if sr, err = av.ParseSpeedRestriction(cmd[1:]); err != nil {
 						return nil, err
 					}
 				} else if cmd[0] == 'M' {
@@ -2894,7 +2891,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				}
 			}
 
-			return s.CrossFixAt(tcw, callsign, fix, ar, speed, mach)
+			return s.CrossFixAt(tcw, callsign, fix, ar, sr, mach)
 		} else if strings.HasPrefix(command, "CT") && len(command) > 2 {
 			// Only treat as contact command if the TCP exists as a valid controller;
 			// otherwise treat as cleared approach (e.g., "CTTL" -> cleared for TTL approach)
@@ -3087,7 +3084,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 
 	case 'S':
 		if len(command) == 1 {
-			return s.AssignSpeed(tcw, callsign, 0, false)
+			return s.AssignSpeed(tcw, callsign, nil, false)
 		} else if command == "SPRES" {
 			return s.MaintainPresentSpeed(tcw, callsign)
 		} else if command == "SMIN" {
@@ -3100,22 +3097,6 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			return s.SayIndicatedSpeed(tcw, callsign)
 		} else if command == "SM" {
 			return s.SayMach(tcw, callsign)
-		} else if strings.HasSuffix(command, "+") {
-			// Speed floor: S180+
-			kts, err := strconv.Atoi(command[1 : len(command)-1])
-			if err != nil {
-				return nil, err
-			}
-			// For now treat as regular speed assignment
-			return s.AssignSpeed(tcw, callsign, kts, false)
-		} else if strings.HasSuffix(command, "-") {
-			// Speed ceiling: S180-
-			kts, err := strconv.Atoi(command[1 : len(command)-1])
-			if err != nil {
-				return nil, err
-			}
-			// For now treat as regular speed assignment
-			return s.AssignSpeed(tcw, callsign, kts, false)
 		} else if command == "SQS" {
 			return s.ChangeTransponderMode(tcw, callsign, av.TransponderModeStandby)
 		} else if command == "SQA" {
@@ -3134,22 +3115,19 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			return s.SayAltitude(tcw, callsign)
 		} else if strings.HasPrefix(command, "SAYAGAIN/") {
 			return s.SayAgainCommand(tcw, callsign, command[9:])
-		} else if idx := strings.Index(command, "/U"); idx > 0 {
-			// Speed until specification: S180/UROSLY, S180/U5DME, S180/U6
-			speedStr := command[1:idx]
-			untilStr := command[idx+2:] // after "/U"
-			kts, err := strconv.Atoi(speedStr)
+		} else if speedStr, untilStr, ok := strings.Cut(command[1:], "/U"); ok {
+			sr, err := av.ParseSpeedRestriction(speedStr)
 			if err != nil {
 				return nil, err
 			}
 			until := parseSpeedUntil(untilStr)
-			return s.AssignSpeedUntil(tcw, callsign, kts, until)
+			return s.AssignSpeedUntil(tcw, callsign, sr, until)
 		} else {
-			kts, err := strconv.Atoi(command[1:])
+			sr, err := av.ParseSpeedRestriction(command[1:])
 			if err != nil {
 				return nil, err
 			}
-			return s.AssignSpeed(tcw, callsign, kts, false)
+			return s.AssignSpeed(tcw, callsign, sr, false)
 		}
 
 	case 'T':
@@ -3176,11 +3154,11 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 
 			switch command[:2] {
 			case "TS":
-				kts, err := strconv.Atoi(command[2:])
+				sr, err := av.ParseSpeedRestriction(command[2:])
 				if err != nil {
 					return nil, err
 				}
-				return s.AssignSpeed(tcw, callsign, kts, true)
+				return s.AssignSpeed(tcw, callsign, sr, true)
 			case "TM":
 				mach, err := strconv.ParseFloat(command[2:], 32)
 				if err != nil {

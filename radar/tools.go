@@ -438,7 +438,7 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 			p = td.AddText(strings.Join(s, "/")+"\n", p, style)
 		}
 
-		if wp.Speed != 0 || wp.AltitudeRestriction() != nil {
+		if wp.SpeedRestriction() != nil || wp.AltitudeRestriction() != nil {
 			p[1] -= 0.25 * float32(style.Font.Size) // extra space for lines above if needed
 
 			if ar := wp.AltitudeRestriction(); ar != nil {
@@ -475,14 +475,30 @@ func DrawWaypoints(ctx *panes.Context, waypoints []av.Waypoint, drawnWaypoints m
 				p[0] += w + 4
 			}
 
-			if wp.Speed != 0 {
+			if sr := wp.SpeedRestriction(); sr != nil {
 				p0 := p
-				p1 := td.AddText(fmt.Sprintf("%dK", wp.Speed), p, style)
+				// Display the effective target speed with 'K' suffix
+				var speedText string
+				if sr.Range[0] == sr.Range[1] {
+					speedText = fmt.Sprintf("%.0fK", sr.Range[0])
+				} else if sr.Range[0] == 0 {
+					speedText = fmt.Sprintf("%.0fK", sr.Range[1])
+				} else if sr.Range[1] == av.MaxSpeed {
+					speedText = fmt.Sprintf("%.0fK", sr.Range[0])
+				} else {
+					speedText = fmt.Sprintf("%.0fK", sr.Range[1])
+				}
+				p1 := td.AddText(speedText, p, style)
 				p1[1] -= float32(style.Font.Size)
 
-				// All speed restrictions are currently 'at'...
-				ldr.AddLine([2]float32{p0[0], p0[1] + 2}, [2]float32{p1[0], p0[1] + 2}, color)
-				ldr.AddLine([2]float32{p0[0], p1[1] - 2}, [2]float32{p1[0], p1[1] - 2}, color)
+				if sr.Range[1] != av.MaxSpeed {
+					// At or below (or at): line above
+					ldr.AddLine([2]float32{p0[0], p0[1] + 2}, [2]float32{p1[0], p0[1] + 2}, color)
+				}
+				if sr.Range[0] != 0 {
+					// At or above (or at): line below
+					ldr.AddLine([2]float32{p0[0], p1[1] - 2}, [2]float32{p1[0], p1[1] - 2}, color)
+				}
 			}
 		}
 	}

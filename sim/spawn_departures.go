@@ -911,14 +911,14 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 					Location: mid,
 				})
 				descentWps[0].SetAltitudeRestriction(av.MakeAtAltitudeRestriction(midAlt))
-				descentWps[0].Speed = 90
+				descentWps[0].SetSpeedRestriction(av.MakeAtSpeedRestriction(90))
 
 				endWp := av.Waypoint{
 					Fix:      "_descent_end",
 					Location: dest,
 				}
 				endWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(patternAlt))
-				endWp.Speed = 70
+				endWp.SetSpeedRestriction(av.MakeAtSpeedRestriction(70))
 				endWp.SetDelete(true)
 				descentWps = append(descentWps, endWp)
 

@@ -192,6 +192,8 @@ const (
 	SpeedMaximumForward
 	SpeedPresentSpeed
 	SpeedUntilFinal // speed restriction until 5 mile final
+	SpeedAtOrAbove  // "maintain X or greater"
+	SpeedAtOrBelow  // "do not exceed X"
 )
 
 // SpeedUntil specifies when a speed restriction ends.
@@ -256,6 +258,10 @@ func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		} else {
 			rt.Add("[speed {spd}|maintain {spd}|{spd}]", s.Speed)
 		}
+	case SpeedAtOrAbove:
+		rt.Add("[maintain {spd} or greater|{spd} or greater|{spd} or above]", s.Speed)
+	case SpeedAtOrBelow:
+		rt.Add("[do not exceed {spd}|not exceeding {spd}|{spd} or less]", s.Speed)
 	}
 }
 

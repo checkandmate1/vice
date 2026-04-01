@@ -35,7 +35,7 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 	// through an altitude for "at alt, reduce speed" sort of assignments.
 	setAltitude := func(next float32) {
 		if nav.Speed.AfterAltitude != nil &&
-			(nav.Speed.Assigned == nil || *nav.Speed.Assigned == nav.FlightState.IAS) {
+			(nav.Speed.Assigned == nil || nav.Speed.Assigned.Satisfied(nav.FlightState.IAS)) {
 			cur := nav.FlightState.Altitude
 			at := *nav.Speed.AfterAltitudeAltitude
 			if (cur > at && next <= at) || (cur < at && next >= at) {
@@ -48,17 +48,29 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 
 		if nav.FlightState.Altitude >= 10000 && next < 10000 {
 			// Descending through 10,000'
-			if nav.Speed.Assigned != nil && *nav.Speed.Assigned > 250 {
-				// Cancel any speed assignments >250kts when we are ready
-				// to descend below 10,000'
-				nav.Speed.Assigned = nil
-				next = 10000
+			if sr := nav.Speed.Assigned; sr != nil {
+				// Cancel if the minimum required speed exceeds 250kts.
+				// For "at or below 280" the floor is 0, so the pilot
+				// can comply at 250 — don't cancel.
+				// For "at or above 260", they can't comply at 250.
+				lo := sr.Range[0]
+				if lo == 0 {
+					lo = sr.Range[1]
+				}
+				if lo > 250 {
+					nav.Speed.Assigned = nil
+					next = 10000
+				}
 			}
-			if nav.Speed.Restriction != nil && *nav.Speed.Restriction > 250 {
-				// clear any speed restrictions >250kts we are carrying
-				// from a previous waypoint.
-				nav.Speed.Restriction = nil
-				next = 10000
+			if sr := nav.Speed.Restriction; sr != nil {
+				lo := sr.Range[0]
+				if lo == 0 {
+					lo = sr.Range[1]
+				}
+				if lo > 250 {
+					nav.Speed.Restriction = nil
+					next = 10000
+				}
 			}
 
 			if slowingTo250 {
@@ -504,8 +516,8 @@ func (nav *Nav) findAltitudeTarget() (altitudeTarget, bool) {
 	// But leave arrivals at their current altitude if it's acceptable;
 	// don't climb just because we can.
 	if descending {
-		ar := av.AltitudeRestriction{Range: altRange}
-		if ar.TargetAltitude(nav.FlightState.Altitude) == nav.FlightState.Altitude {
+		ar := av.AltitudeRestriction{NavigationRestriction: av.NavigationRestriction{Range: altRange}}
+		if ar.Target(nav.FlightState.Altitude) == nav.FlightState.Altitude {
 			alt = nav.FlightState.Altitude
 		}
 	} else {

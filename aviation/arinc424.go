@@ -572,7 +572,16 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 	ok = true
 	wp = Waypoint{Fix: r.fix}
 	if speed != 0 {
-		wp.Speed = int16(speed)
+		var sr SpeedRestriction
+		switch r.speedLimitType {
+		case '+':
+			sr = MakeAtOrAboveSpeedRestriction(float32(speed))
+		case '-':
+			sr = MakeAtOrBelowSpeedRestriction(float32(speed))
+		default:
+			sr = MakeAtSpeedRestriction(float32(speed))
+		}
+		wp.SetSpeedRestriction(sr)
 	}
 	if r.waypointDescription[1] == 'Y' {
 		wp.SetFlyOver(true)

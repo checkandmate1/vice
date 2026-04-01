@@ -97,7 +97,7 @@
         "inbound_assignments": {
           "BAINY4.12s": "1I",
           "BLUEM5.12s": "1H",
-          "KKILR3.12s": "1I",
+          "KKILR4.12s": "1I",
           "MUSCL4.12s": "1I",
           "NITZR4.12s": "1H",
           "TORGY4.12s": "1H",
@@ -121,7 +121,7 @@
         "inbound_assignments": {
           "BAINY4.35": "1I",
           "BLUEM5.35": "1N",
-          "KKILR3.35": "1H",
+          "KKILR4.35": "1H",
           "MUSCL4.35": "1H",
           "NITZR4.35": "1N",
           "TORGY4.35": "1I",
@@ -144,7 +144,7 @@
         "inbound_assignments": {
           "BAINY4.30s": "1I",
           "BLUEM5.30s": "1H",
-          "KKILR3.30s": "1I",
+          "KKILR4.30s": "1I",
           "MUSCL4.30s": "1I",
           "NITZR4.30s": "1H",
           "TORGY4.30s": "1H",
@@ -168,7 +168,7 @@
         "inbound_assignments": {
           "BAINY4.30s": "1I",
           "BLUEM5.35": "1J",
-          "KKILR3.30s": "1I",
+          "KKILR4.30s": "1I",
           "MUSCL4.30s": "1I",
           "NITZR4.35": "1J",
           "TORGY4.35": "1H",
@@ -191,7 +191,7 @@
         "inbound_assignments": {
           "BAINY4.12s": "1I",
           "BLUEM5.12s": "1H",
-          "KKILR3.12s": "1I",
+          "KKILR4.12s": "1I",
           "MUSCL4.12s": "1I",
           "NITZR4.12s": "1H",
           "TORGY4.12s": "1H",
@@ -214,7 +214,7 @@
         "inbound_assignments": {
           "BAINY4.30s": "1I",
           "BLUEM5.30s": "1H",
-          "KKILR3.30s": "1I",
+          "KKILR4.30s": "1I",
           "MUSCL4.30s": "1I",
           "NITZR4.30s": "1H",
           "TORGY4.30s": "1H",

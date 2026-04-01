@@ -135,13 +135,13 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 		}
 		return nav.targetAltitudeIAS()
 	}
-	if nav.Speed.Assigned != nil {
+	if sr := nav.Speed.Assigned; sr != nil {
 		if nav.Speed.Mach {
-			tas := av.MachToTAS(*nav.Speed.Assigned, wxs.Temperature())
+			tas := av.MachToTAS(sr.Range[0], wxs.Temperature())
 			return av.TASToIAS(tas, nav.FlightState.Altitude), MaximumRate
-		} else {
-			return *nav.Speed.Assigned, MaximumRate
 		}
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		return nav.restrictedSpeed(sr, naturalIAS), MaximumRate
 	}
 
 	if hold := nav.Heading.Hold; hold != nil && nav.ETA(hold.FixLocation) < 180 /* slow 3 minutes out */ {
@@ -180,10 +180,10 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 
 		// And don't accelerate past any upcoming speed restrictions
 		if nav.Speed.Restriction != nil {
-			targetSpeed = min(targetSpeed, *nav.Speed.Restriction)
+			targetSpeed = nav.restrictedSpeed(nav.Speed.Restriction, targetSpeed)
 		}
-		if _, speed, _, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
-			targetSpeed = min(targetSpeed, speed)
+		if _, sr, _, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
+			targetSpeed = nav.restrictedSpeed(sr, targetSpeed)
 		}
 
 		// However, don't let anything prevent us from taking off!
@@ -193,7 +193,9 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 	}
 
 	pendingDecel := false
-	if onSID, speed, fix, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
+	if onSID, sr, fix, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		speed := nav.restrictedSpeed(sr, naturalIAS)
 		if speed > nav.FlightState.IAS {
 			// Accelerate immediately
 			return speed, MaximumRate
@@ -223,7 +225,8 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 
 	// Something from a previous waypoint; ignore it if we're cleared for the approach.
 	if nav.Speed.Restriction != nil && !nav.Approach.Cleared {
-		return *nav.Speed.Restriction, MaximumRate
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		return nav.restrictedSpeed(nav.Speed.Restriction, naturalIAS), MaximumRate
 	}
 
 	// Regulatory requirement: slow to 250 kts when descending through 10,000 feet
@@ -306,6 +309,42 @@ func (nav *Nav) ETA(p math.Point2LL) float32 {
 	return dist / nav.FlightState.GS * 3600 // seconds
 }
 
+// restrictedSpeed returns the speed a pilot would choose given a speed
+// restriction, accounting for aircraft type. Heavy jets fly close to
+// limits for fuel efficiency; lighter aircraft have more margin.
+func (nav *Nav) restrictedSpeed(sr *av.SpeedRestriction, natural float32) float32 {
+	lo, hi := sr.Range[0], sr.Range[1]
+
+	// "At" restriction: exact compliance required.
+	if lo == hi {
+		return lo
+	}
+
+	// Margin from the boundary depends on aircraft weight class.
+	// Heavies need speed for efficiency and fly close to limits.
+	margin := float32(10)
+	if nav.Perf.WeightClass == "H" || nav.Perf.WeightClass == "J" {
+		margin = 5
+	}
+
+	// Shrink the allowed range by the margin on each real bound.
+	innerLo := lo
+	innerHi := hi
+	if lo > 0 { // lo==0 means no floor
+		innerLo = lo + margin
+	}
+	if hi < av.MaxSpeed { // MaxSpeed means no ceiling
+		innerHi = hi - margin
+	}
+
+	// If margins overlap (very narrow range), just use the midpoint.
+	if innerLo > innerHi {
+		return (lo + hi) / 2
+	}
+
+	return math.Clamp(natural, innerLo, innerHi)
+}
+
 // Compute target airspeed for higher altitudes speed by lerping from 250
 // to cruise speed based on altitude.
 func (nav *Nav) targetAltitudeIAS() (float32, float32) {
@@ -324,16 +363,16 @@ func (nav *Nav) targetAltitudeIAS() (float32, float32) {
 	return math.Lerp(x, min(cruiseIAS, 280), cruiseIAS), 0.8 * maxAccel
 }
 
-func (nav *Nav) getUpcomingSpeedRestrictionWaypoint() (onSID bool, speed float32, fix string, ok bool) {
+func (nav *Nav) getUpcomingSpeedRestrictionWaypoint() (onSID bool, sr *av.SpeedRestriction, fix string, ok bool) {
 	if nav.Prespawn {
-		return false, 0, "", false
+		return false, nil, "", false
 	}
 
 	// Explicit loop avoids slices.ContainsFunc which copies the large
 	// Waypoint struct by value for each element via the closure.
 	haveWaypointSpeedRestriction := false
 	for i := range nav.Waypoints {
-		if nav.Waypoints[i].Speed > 0 {
+		if nav.Waypoints[i].SpeedRestriction() != nil {
 			haveWaypointSpeedRestriction = true
 			break
 		}
@@ -344,17 +383,16 @@ func (nav *Nav) getUpcomingSpeedRestrictionWaypoint() (onSID bool, speed float32
 		for i := range nav.Waypoints {
 			wp := &nav.Waypoints[i]
 
-			spd := float32(wp.Speed)
 			if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Arrive.Speed != nil {
-				spd = *nfa.Arrive.Speed
+				return wp.OnSID(), nfa.Arrive.Speed, wp.Fix, true
 			}
 
-			if spd != 0 {
-				return wp.OnSID(), spd, wp.Fix, true
+			if wsr := wp.SpeedRestriction(); wsr != nil {
+				return wp.OnSID(), wsr, wp.Fix, true
 			}
 		}
 	}
-	return false, 0, "", false
+	return false, nil, "", false
 }
 
 // distanceToEndOfApproach returns the remaining distance to the last

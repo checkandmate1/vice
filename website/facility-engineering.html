@@ -490,7 +490,9 @@
                   default, <i>fly-by</i>). Aircraft must pass directly over flyover
                   fixes before turning to the next fix, while they may turn early with fly-by fixes.</li>
                 <li> <code>/ph</code>: fly present heading (rounded to the nearest 5 degree increment) departing the fix.</li>
-                <li> <code>/s</code><i>speed</i>: cross the fix at the given speed</li>
+                <li> <code>/s</code><i>speed</i>: cross the fix at the given speed. The speed may include a
+                  <code>+</code> suffix for "at or above" (e.g. <code>/s210+</code>) or a <code>-</code> suffix
+                  for "at or below" (e.g. <code>/s250-</code>). A range may also be specified (e.g. <code>/s180-210</code>).</li>
                 <li> <code>/c</code><i>altitude</i>: climb to the specified altitude (in 100s of feet, between 0 and 600) when passing the waypoint, as if the controller issued that instruction. Cannot be combined with <code>/d</code> at the same waypoint.</li>
                 <li> <code>/d</code><i>altitude</i>: descend to the specified altitude (in 100s of feet, between 0 and 600) when passing the waypoint, as if the controller issued that instruction. Cannot be combined with <code>/c</code> at the same waypoint.</li>
               </ul>
@@ -3385,8 +3387,9 @@
                   </tr>
                   <tr>
                     <td>"speed_restriction"</td>
-                    <td>Number</td>
-                    <td><i>(Optional)</i> If present, gives a speed restriction in knots which aircraft will maintain until told otherwise by the controller.</td>
+                    <td>Number or String</td>
+                    <td><i>(Optional)</i> If present, gives a speed restriction which aircraft will maintain until told otherwise by the controller.
+                      May be a plain number (e.g. <code>250</code>) or a string with a suffix: <code>"250-"</code> (at or below), <code>"210+"</code> (at or above).</td>
                   </tr>
                   <tr>
                     <td>"waypoints"</td>
@@ -3612,8 +3615,8 @@
                   </tr>
                   <tr>
                     <td>"speed_restriction"</td>
-                    <td>Number</td>
-                    <td>If present, gives a speed restriction in knots</td>
+                    <td>Number or String</td>
+                    <td>If present, gives a speed restriction in knots. May use <code>"250-"</code> (at or below) or <code>"210+"</code> (at or above) syntax.</td>
                   </tr>
                   <tr>
                     <td>"star"</td>
@@ -3818,9 +3821,9 @@
                   </tr>
                   <tr>
                     <td>"speed_restriction"</td>
-                    <td>Number</td>
-                    <td>(<i>Optional</i>) If specified, gives a speed restriction to the aircraft (e.g., as would
-                      happen after passing a waypoint on a route with a speed restriction.)</td>
+                    <td>Number or String</td>
+                    <td>(<i>Optional</i>) If specified, gives a speed restriction to the aircraft. May use
+                      <code>"250-"</code> (at or below) or <code>"210+"</code> (at or above) syntax.</td>
                   </tr>
                   <tr>
                     <td>"waypoints"</td>

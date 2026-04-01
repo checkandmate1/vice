@@ -100,7 +100,9 @@ func (b patternBuilder) waypoint(name string, along, lateral, deltaAlt float32, 
 		VFRPhase: phase,
 	}
 	wp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(alt))
-	wp.Speed = speed
+	if speed != 0 {
+		wp.SetSpeedRestriction(av.MakeAtSpeedRestriction(float32(speed)))
+	}
 	return wp
 }
 
@@ -537,7 +539,7 @@ func (s *Sim) generateOrbitWaypoints(airport string) []av.Waypoint {
 			VFRPhase: av.VFRPhaseOrbit,
 		}
 		wp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(tpa))
-		wp.Speed = 70
+		wp.SetSpeedRestriction(av.MakeAtSpeedRestriction(70))
 		wps[i] = wp
 	}
 	// When the aircraft completes the orbit and passes the last waypoint,
