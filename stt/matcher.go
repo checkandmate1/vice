@@ -181,8 +181,14 @@ func (m *typedMatcher) match(tokens []Token, pos int, ac Aircraft, skipWords []s
 	}
 
 	// Slack: skip up to 2 unrecognized tokens to find a match.
+	// If the current position is a command boundary keyword, limit slack
+	// to 1 to avoid reaching too far past a likely new command.
 	if allowSlack {
-		for slack := 1; slack <= 2 && pos+slack < len(tokens); slack++ {
+		maxSlack := 2
+		if IsCommandKeyword(strings.ToLower(tokens[pos].Text)) && !slices.Contains(skipWords, strings.ToLower(tokens[pos].Text)) {
+			maxSlack = 1
+		}
+		for slack := 1; slack <= maxSlack && pos+slack < len(tokens); slack++ {
 			checkText := strings.ToLower(tokens[pos+slack].Text)
 			if IsFillerWord(checkText) {
 				continue
