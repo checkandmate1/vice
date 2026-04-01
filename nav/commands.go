@@ -789,10 +789,58 @@ func (nav *Nav) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.CommandInt
 	return av.SpeedIntent{Speed: speed, Type: stype, AfterFix: fix}
 }
 
+func (nav *Nav) AssignCompoundSpeed(segments []av.CompoundSpeedSegment) av.CommandIntent {
+	maxIAS := av.TASToIAS(nav.Perf.Speed.MaxTAS, nav.FlightState.Altitude)
+	maxIAS = 10 * float32(int((maxIAS+5)/10))
+
+	// Validate all segments before applying any state changes.
+	for _, seg := range segments {
+		speed, exact := seg.Speed.ExactValue()
+		if !exact {
+			speed = seg.Speed.Range[0]
+			if speed == 0 {
+				speed = seg.Speed.Range[1]
+			}
+		}
+		if speed < nav.Perf.Speed.Landing {
+			return av.MakeUnableIntent("unable. Our minimum speed is {spd}", nav.Perf.Speed.Landing)
+		} else if speed > maxIAS && speed < av.MaxSpeed {
+			return av.MakeUnableIntent("unable. Our maximum speed is {spd}", maxIAS)
+		}
+
+		if seg.UntilFix != "" && !nav.fixInRoute(seg.UntilFix) {
+			return av.MakeUnableIntent("unable. {fix} isn't in our route", seg.UntilFix)
+		}
+	}
+
+	// Apply: first segment sets the current speed, subsequent segments
+	// set after-fix speed assignments.
+	nav.clearAfterFixSpeeds()
+	nav.Speed = NavSpeed{Assigned: segments[0].Speed}
+
+	for i := 1; i < len(segments); i++ {
+		fix := segments[i-1].UntilFix
+		nfa := nav.FixAssignments[fix]
+		nfa.Depart.Speed = segments[i].Speed
+		nav.FixAssignments[fix] = nfa
+	}
+
+	// If the last segment has an UntilFix (no trailing open-ended speed),
+	// cancel speed restrictions when the aircraft passes that fix.
+	if last := segments[len(segments)-1]; last.UntilFix != "" {
+		nfa := nav.FixAssignments[last.UntilFix]
+		nfa.Depart.CancelSpeed = true
+		nav.FixAssignments[last.UntilFix] = nfa
+	}
+
+	return av.CompoundSpeedIntent{Segments: segments}
+}
+
 func (nav *Nav) clearAfterFixSpeeds() {
 	for fix, nfa := range nav.FixAssignments {
-		if nfa.Depart.Speed != nil {
+		if nfa.Depart.Speed != nil || nfa.Depart.CancelSpeed {
 			nfa.Depart.Speed = nil
+			nfa.Depart.CancelSpeed = false
 			nav.FixAssignments[fix] = nfa
 		}
 	}

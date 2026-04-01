@@ -1358,6 +1358,16 @@ func (s *Sim) AssignSpeedUntil(tcw TCW, callsign av.ADSBCallsign, sr *av.SpeedRe
 		})
 }
 
+func (s *Sim) AssignCompoundSpeed(tcw TCW, callsign av.ADSBCallsign, segments []av.CompoundSpeedSegment) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.AssignCompoundSpeed(segments)
+		})
+}
+
 func (s *Sim) MaintainSlowestPractical(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -2735,6 +2745,65 @@ func parseSpeedUntil(untilStr string) *av.SpeedUntil {
 	return &av.SpeedUntil{Fix: untilStr}
 }
 
+// parseCompoundSpeed parses a compound speed command string like
+// "250+/UFIX1/210-/UFIX2/180+" into CompoundSpeedSegments.
+// The input is the part after 'S' (e.g., "250+/UFIX1/210-/UFIX2/180+").
+func parseCompoundSpeed(s string) ([]av.CompoundSpeedSegment, error) {
+	// Split on "/U" to get alternating speed/fix pairs.
+	// First element is the first speed, then alternating fix+speed pairs.
+	parts := strings.Split(s, "/U")
+	if len(parts) < 2 {
+		return nil, ErrInvalidCommandSyntax
+	}
+
+	var segments []av.CompoundSpeedSegment
+
+	// First part is just the first speed.
+	sr, err := av.ParseSpeedRestriction(parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// For parts[1..n-1], each contains "FIX/SPEED" (the fix for the previous
+	// segment's UntilFix, followed by the next speed after a "/").
+	// The last part may be just "FIX/SPEED" or just "FIX" (if the last
+	// segment has no further speed — but per the plan, the last segment is
+	// always an open-ended speed).
+	for i := 1; i < len(parts); i++ {
+		fix, speedStr, hasSpeed := strings.Cut(parts[i], "/")
+		if fix == "" {
+			return nil, ErrInvalidCommandSyntax
+		}
+
+		// Close out the previous segment with this fix.
+		segments = append(segments, av.CompoundSpeedSegment{
+			Speed:    sr,
+			UntilFix: fix,
+		})
+
+		if hasSpeed {
+			// Parse the next speed.
+			sr, err = av.ParseSpeedRestriction(speedStr)
+			if err != nil {
+				return nil, err
+			}
+		} else if i < len(parts)-1 {
+			// Not the last part but no speed — invalid.
+			return nil, ErrInvalidCommandSyntax
+		} else {
+			// Last part with no trailing speed — no final open-ended segment.
+			return segments, nil
+		}
+	}
+
+	// Add the final open-ended segment (no UntilFix).
+	segments = append(segments, av.CompoundSpeedSegment{
+		Speed: sr,
+	})
+
+	return segments, nil
+}
+
 func parseHold(command string) (string, *av.Hold, bool) {
 	fix, opts, ok := strings.Cut(command, "/")
 	fix = strings.ToUpper(fix)
@@ -3159,6 +3228,17 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		} else if strings.HasPrefix(command, "SAYAGAIN/") {
 			return s.SayAgainCommand(tcw, callsign, command[9:])
 		} else if speedStr, untilStr, ok := strings.Cut(command[1:], "/U"); ok {
+			// Check for compound format: S250/UFIX1/210/UFIX2/180
+			// After the first Cut on "/U", if untilStr contains another "/",
+			// it's compound. This works because current single speed-until
+			// specs (fix names, numbers, NdME) never contain "/".
+			if strings.Contains(untilStr, "/") {
+				segments, err := parseCompoundSpeed(command[1:])
+				if err != nil {
+					return nil, err
+				}
+				return s.AssignCompoundSpeed(tcw, callsign, segments)
+			}
 			sr, err := av.ParseSpeedRestriction(speedStr)
 			if err != nil {
 				return nil, err

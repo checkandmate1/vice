@@ -483,6 +483,7 @@ var secondaryAcCommands = [][3]string{
 	{"*S_kts*+", `"Maintain _kts_ knots or greater" (speed floor). Currently treated as standard speed assignment.`, "*S180+*"},
 	{"*S_kts*-", `"Do not exceed _kts_ knots" (speed ceiling). Currently treated as standard speed assignment.`, "*S180-*"},
 	{"*S_kts*/U_spec", `"Maintain _kts_ knots until _spec_." _spec_ may be a fix name, a number (mile final), or a number followed by DME.`, "*S210/U5*, *S210/U5DME*, *S210/UROSLY*"},
+	{"*S_kts*/U_fix*/_kts*[/U_fix*/_kts*]...", `Compound speed: multiple speed segments separated by fixes. Each speed may have +/- suffix.`, "*S250/UROSLY/210*, *S250+/UFIX1/210-/UFIX2/180+*"},
 	{"*TM_mach", `"After reaching _alt_, maintain mach _mach_", where _alt_ is a previously-assigned altitude.`, "*TM78*"},
 	{"*SS*", `"Say airspeed".`, "*SS*"},
 	{"*SI*", `"Say indicated airspeed" (always responds with indicated airspeed, even above transition altitude).`, "*SI*"},

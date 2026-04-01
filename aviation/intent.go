@@ -318,6 +318,54 @@ func (s SpeedIntent) renderMach(rt *RadioTransmission, r *rand.Rand) {
 	}
 }
 
+// CompoundSpeedSegment represents one segment of a compound speed assignment.
+type CompoundSpeedSegment struct {
+	Speed    *SpeedRestriction
+	UntilFix string // empty for last (open-ended) segment
+}
+
+// CompoundSpeedIntent represents a compound speed assignment readback,
+// e.g., "speed 250 until FIX1, then 210 until FIX2, then 180".
+type CompoundSpeedIntent struct {
+	Segments []CompoundSpeedSegment
+}
+
+func (c CompoundSpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
+	for i, seg := range c.Segments {
+		speed, exact := seg.Speed.ExactValue()
+		if !exact {
+			speed = seg.Speed.Range[0]
+			if speed == 0 {
+				speed = seg.Speed.Range[1]
+			}
+		}
+
+		isAbove := !exact && seg.Speed.Range[0] > 0 && seg.Speed.Range[1] == MaxSpeed
+		isBelow := !exact && seg.Speed.Range[0] == 0
+
+		suffix := ""
+		if isAbove {
+			suffix = " or greater"
+		} else if isBelow {
+			suffix = " or less"
+		}
+
+		if i == 0 {
+			if seg.UntilFix != "" {
+				rt.Add("[speed|] {spd}"+suffix+" until {fix}", speed, seg.UntilFix)
+			} else {
+				rt.Add("[speed|] {spd}"+suffix, speed)
+			}
+		} else {
+			if seg.UntilFix != "" {
+				rt.Add("[then|] {spd}"+suffix+" until {fix}", speed, seg.UntilFix)
+			} else {
+				rt.Add("[then|] {spd}"+suffix, speed)
+			}
+		}
+	}
+}
+
 // ReportSpeedIntent represents "say speed" responses (IAS)
 type ReportSpeedIntent struct {
 	Current  float32

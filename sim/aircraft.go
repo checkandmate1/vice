@@ -333,6 +333,13 @@ func (ac *Aircraft) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.Comman
 	return ac.Nav.AfterFixSpeed(strings.ToUpper(fix), sr)
 }
 
+func (ac *Aircraft) AssignCompoundSpeed(segments []av.CompoundSpeedSegment) av.CommandIntent {
+	for i := range segments {
+		segments[i].UntilFix = strings.ToUpper(segments[i].UntilFix)
+	}
+	return ac.Nav.AssignCompoundSpeed(segments)
+}
+
 func (ac *Aircraft) AfterFixAltitude(fix string, alt float32) av.CommandIntent {
 	return ac.Nav.AfterFixAltitude(strings.ToUpper(fix), alt)
 }

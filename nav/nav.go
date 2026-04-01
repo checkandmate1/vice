@@ -214,11 +214,12 @@ type NavFixAssignment struct {
 		Mach     *float32
 	}
 	Depart struct {
-		Fix      *av.Waypoint
-		Heading  *math.MagneticHeading
-		Turn     *av.TurnDirection
-		Speed    *av.SpeedRestriction
-		Altitude *float32
+		Fix         *av.Waypoint
+		Heading     *math.MagneticHeading
+		Turn        *av.TurnDirection
+		Speed       *av.SpeedRestriction
+		CancelSpeed bool // cancel speed restrictions when passing this fix
+		Altitude    *float32
 	}
 	Hold *av.Hold
 }

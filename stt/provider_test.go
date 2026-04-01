@@ -295,6 +295,71 @@ func TestBasicSpeedCommands(t *testing.T) {
 	}
 }
 
+func TestCompoundSpeedCommands(t *testing.T) {
+	tests := []struct {
+		name       string
+		transcript string
+		aircraft   map[string]Aircraft
+		expected   string
+	}{
+		{
+			name:       "2-segment speed until fix then speed",
+			transcript: "Delta 200 speed two five zero until ROSLY then two one zero",
+			aircraft: map[string]Aircraft{
+				"Delta 200": {Callsign: "DAL200", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY", "CAMRN": "CAMRN"}},
+			},
+			expected: "DAL200 S250/UROSLY/210",
+		},
+		{
+			name:       "2-segment reduce speed until fix then speed",
+			transcript: "Alaska 500 reduce speed to two five zero until CAMRN then one eight zero",
+			aircraft: map[string]Aircraft{
+				"Alaska 500": {Callsign: "ASA500", State: "arrival", Fixes: map[string]string{"CAMRN": "CAMRN", "ROSLY": "ROSLY"}},
+			},
+			expected: "ASA500 S250/UCAMRN/180",
+		},
+		{
+			name:       "2-segment maintain speed until fix then speed",
+			transcript: "United 452 maintain two five zero until ROSLY then two one zero",
+			aircraft: map[string]Aircraft{
+				"United 452": {Callsign: "UAL452", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY"}},
+			},
+			expected: "UAL452 S250/UROSLY/210",
+		},
+		{
+			name:       "2-segment speed until fix speed until fix",
+			transcript: "Delta 200 speed two five zero until ROSLY then two one zero until CAMRN",
+			aircraft: map[string]Aircraft{
+				"Delta 200": {Callsign: "DAL200", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY", "CAMRN": "CAMRN"}},
+			},
+			expected: "DAL200 S250/UROSLY/210/UCAMRN",
+		},
+		{
+			name:       "3-segment speed",
+			transcript: "Alaska 500 speed two five zero until ROSLY two one zero until CAMRN then one eight zero",
+			aircraft: map[string]Aircraft{
+				"Alaska 500": {Callsign: "ASA500", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY", "CAMRN": "CAMRN"}},
+			},
+			expected: "ASA500 S250/UROSLY/210/UCAMRN/180",
+		},
+	}
+
+	provider := NewTranscriber(nil)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := provider.DecodeTranscript(tt.aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestMachSpeedCommands(t *testing.T) {
 	tests := []struct {
 		name       string

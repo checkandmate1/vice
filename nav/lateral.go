@@ -449,9 +449,13 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 			nav.assignAltitude(alt, false)
 		}
 
-		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Speed != nil {
-			sr := *nfa.Depart.Speed
-			nav.Speed = NavSpeed{Assigned: &sr}
+		if nfa, ok := nav.FixAssignments[wp.Fix]; ok {
+			if nfa.Depart.Speed != nil {
+				sr := *nfa.Depart.Speed
+				nav.Speed = NavSpeed{Assigned: &sr}
+			} else if nfa.Depart.CancelSpeed {
+				nav.Speed = NavSpeed{}
+			}
 		}
 
 		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Altitude != nil {

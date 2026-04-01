@@ -777,6 +777,13 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                     <td><code>S210/U5</code>, <code>S210/U5DME</code>, <code>S210/UROSLY</code></td>
                   </tr>
                   <tr>
+                    <td><code>S</code><i>kts</i><code>/U</code><i>fix</i><code>/</code><i>kts</i>[<code>/U</code><i>fix</i><code>/</code><i>kts</i>]...</td>
+                    <td>Compound speed assignment: multiple speed segments separated by fixes.
+                      The aircraft flies the first speed until the first fix, then the next speed until the next fix, and so on.
+                      Each speed may have a <code>+</code> or <code>-</code> suffix for "or greater" or "or less".</td>
+                    <td><code>S250/UROSLY/210</code>, <code>S250/UROSLY/210/UCAMRN/180</code></td>
+                  </tr>
+                  <tr>
                     <td><code>SS</code></td>
                     <td>Directs the aircraft to say its indicated airspeed. If above its transition altitude, it will respond with its
                       Mach number instead.
@@ -1189,6 +1196,13 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                     <i>After (fix), maintain (speed) knots</i> /
                     <i>After (fix), (speed) knots or greater</i> /
                     <i>After (fix), (speed) knots or less</i>
+                  </td>
+                </tr>
+                <tr><td>Compound Speed</td>
+                  <td>
+                    <i>Speed (speed) until (fix), then (speed)</i> /
+                    <i>Speed (speed) until (fix), then (speed) until (fix)</i> /
+                    <i>Speed (speed) until (fix), (speed) until (fix), then (speed)</i>
                   </td>
                 </tr>
                 <tr><td>Altitude after Fix</td>

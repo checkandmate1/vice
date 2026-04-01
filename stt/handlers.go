@@ -513,6 +513,76 @@ func registerAllCommands() {
 		WithPriority(12),
 	)
 
+	// === COMPOUND SPEED COMMANDS ===
+	// 2-segment: speed until fix, then speed (open-ended)
+	registerSTTCommand(
+		"speed [to] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix string, spd2 int) string {
+			return fmt.Sprintf("S%d/U%s/%d", spd1, fix, spd2)
+		},
+		WithName("compound_speed_2seg"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix string, spd2 int) string {
+			return fmt.Sprintf("S%d/U%s/%d", spd1, fix, spd2)
+		},
+		WithName("compound_reduce_speed_2seg"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"maintain [speed] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix string, spd2 int) string {
+			return fmt.Sprintf("S%d/U%s/%d", spd1, fix, spd2)
+		},
+		WithName("compound_maintain_speed_2seg"), WithPriority(16),
+	)
+
+	// 2-segment: speed until fix, speed until fix
+	registerSTTCommand(
+		"speed [to] {speed} until {fix} [,] [then] [speed [to]] {speed} {speed_until}",
+		func(spd1 int, fix string, spd2 int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s", spd1, fix, spd2, until.suffix)
+		},
+		WithName("compound_speed_2seg_until"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} until {fix} [,] [then] [speed [to]] {speed} {speed_until}",
+		func(spd1 int, fix string, spd2 int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s", spd1, fix, spd2, until.suffix)
+		},
+		WithName("compound_reduce_speed_2seg_until"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"maintain [speed] {speed} until {fix} [,] [then] [speed [to]] {speed} {speed_until}",
+		func(spd1 int, fix string, spd2 int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s", spd1, fix, spd2, until.suffix)
+		},
+		WithName("compound_maintain_speed_2seg_until"), WithPriority(16),
+	)
+
+	// 3-segment: speed until fix, speed until fix, then speed
+	registerSTTCommand(
+		"speed [to] {speed} until {fix} [,] [speed [to]] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix1 string, spd2 int, fix2 string, spd3 int) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s/%d", spd1, fix1, spd2, fix2, spd3)
+		},
+		WithName("compound_speed_3seg"), WithPriority(18),
+	)
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} until {fix} [,] [speed [to]] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix1 string, spd2 int, fix2 string, spd3 int) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s/%d", spd1, fix1, spd2, fix2, spd3)
+		},
+		WithName("compound_reduce_speed_3seg"), WithPriority(18),
+	)
+	registerSTTCommand(
+		"maintain [speed] {speed} until {fix} [,] [speed [to]] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix1 string, spd2 int, fix2 string, spd3 int) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s/%d", spd1, fix1, spd2, fix2, spd3)
+		},
+		WithName("compound_maintain_speed_3seg"), WithPriority(18),
+	)
+
 	registerSTTCommand(
 		"reduce|slow [speed] [to] mach [point] {mach}",
 		func(mach int) string { return fmt.Sprintf("M%d", mach) },
