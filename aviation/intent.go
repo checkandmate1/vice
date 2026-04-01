@@ -127,6 +127,7 @@ const (
 type AltitudeIntent struct {
 	Altitude          float32
 	Direction         AltitudeDirection
+	AfterFix          string   // altitude change conditional on passing this fix
 	AfterSpeed        *float32 // changing altitude only after reaching a speed
 	Expedite          bool
 	AlreadyExpediting bool
@@ -137,6 +138,18 @@ type AltitudeIntent struct {
 func (a AltitudeIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	if a.AlreadyExpediting {
 		rt.Add("[we're already expediting|that's our best rate]")
+		return
+	}
+
+	if a.AfterFix != "" {
+		switch a.Direction {
+		case AltitudeClimb:
+			rt.Add("[after {fix} climb-and-maintain|after {fix} up to] {alt}", a.AfterFix, a.Altitude)
+		case AltitudeDescend:
+			rt.Add("[after {fix} descend-and-maintain|after {fix} down to] {alt}", a.AfterFix, a.Altitude)
+		case AltitudeMaintain:
+			rt.Add("[after {fix} maintain|after {fix}] {alt}", a.AfterFix, a.Altitude)
+		}
 		return
 	}
 

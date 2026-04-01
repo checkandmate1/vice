@@ -26,6 +26,11 @@ func (nav *Nav) GoAroundWithProcedure(altitude float32, runwayEndWP av.Waypoint)
 }
 
 func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
+	nav.clearFixAltitudes()
+	return nav.assignAltitude(alt, afterSpeed)
+}
+
+func (nav *Nav) assignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 	if alt > nav.Perf.Ceiling {
 		return av.MakeUnableIntent("unable. That altitude is above our ceiling.")
 	}
@@ -788,6 +793,43 @@ func (nav *Nav) clearAfterFixSpeeds() {
 	for fix, nfa := range nav.FixAssignments {
 		if nfa.Depart.Speed != nil {
 			nfa.Depart.Speed = nil
+			nav.FixAssignments[fix] = nfa
+		}
+	}
+}
+
+func (nav *Nav) AfterFixAltitude(fix string, alt float32) av.CommandIntent {
+	if !nav.fixInRoute(fix) {
+		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
+	}
+	if alt > nav.Perf.Ceiling {
+		return av.MakeUnableIntent("unable. That altitude is above our ceiling.")
+	}
+
+	nfa := nav.FixAssignments[fix]
+	nfa.Depart.Altitude = &alt
+	nav.FixAssignments[fix] = nfa
+
+	var direction av.AltitudeDirection
+	if alt > nav.FlightState.Altitude {
+		direction = av.AltitudeClimb
+	} else if alt < nav.FlightState.Altitude {
+		direction = av.AltitudeDescend
+	} else {
+		direction = av.AltitudeMaintain
+	}
+
+	return av.AltitudeIntent{
+		Altitude:  alt,
+		Direction: direction,
+		AfterFix:  fix,
+	}
+}
+
+func (nav *Nav) clearFixAltitudes() {
+	for fix, nfa := range nav.FixAssignments {
+		if nfa.Depart.Altitude != nil {
+			nfa.Depart.Altitude = nil
 			nav.FixAssignments[fix] = nfa
 		}
 	}

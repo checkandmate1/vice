@@ -443,15 +443,19 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 
 		if wp.ClimbAltitude() != 0 {
 			alt := float32(wp.ClimbAltitude())
-			nav.AssignAltitude(alt, false)
+			nav.assignAltitude(alt, false)
 		} else if wp.DescendAltitude() != 0 {
 			alt := float32(wp.DescendAltitude())
-			nav.AssignAltitude(alt, false)
+			nav.assignAltitude(alt, false)
 		}
 
 		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Speed != nil {
 			sr := *nfa.Depart.Speed
 			nav.Speed = NavSpeed{Assigned: &sr}
+		}
+
+		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Altitude != nil {
+			nav.assignAltitude(*nfa.Depart.Altitude, false)
 		}
 
 		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Heading != nil {

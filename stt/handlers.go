@@ -673,6 +673,20 @@ func registerAllCommands() {
 		WithPriority(14),
 	)
 
+	// === AFTER FIX ALTITUDE COMMANDS ===
+	registerSTTCommand(
+		"after|at {fix} [,] climb [and] maintain {altitude_fl}",
+		func(fix string, alt int) string { return fmt.Sprintf("A%s/C%d", fix, alt) },
+		WithName("after_fix_climb_maintain"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] descend [and] maintain {altitude_fl}",
+		func(fix string, alt int) string { return fmt.Sprintf("A%s/D%d", fix, alt) },
+		WithName("after_fix_descend_maintain"),
+		WithPriority(15),
+	)
+
 	// === APPROACH COMMANDS ===
 	registerSTTCommand(
 		"at {fix} [cleared] [clear] [for] [approach] {approach}",

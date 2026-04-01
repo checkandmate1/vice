@@ -1088,6 +1088,32 @@ func TestNavigationCommands(t *testing.T) {
 			},
 			expected: "UAL300 AJENNY/S250-",
 		},
+		{
+			name:       "after fix climb and maintain",
+			transcript: "American 870 after ROSLY climb and maintain 5000",
+			aircraft: map[string]Aircraft{
+				"American 870": {
+					Callsign: "AAL870",
+					Altitude: 3000,
+					State:    "departure",
+					Fixes:    map[string]string{"rosly": "ROSLY"},
+				},
+			},
+			expected: "AAL870 AROSLY/C50",
+		},
+		{
+			name:       "after fix descend and maintain",
+			transcript: "Delta 450 after CAMRN descend and maintain 3000",
+			aircraft: map[string]Aircraft{
+				"Delta 450": {
+					Callsign: "DAL450",
+					Altitude: 10000,
+					State:    "arrival",
+					Fixes:    map[string]string{"camrn": "CAMRN"},
+				},
+			},
+			expected: "DAL450 ACAMRN/D30",
+		},
 	}
 
 	provider := NewTranscriber(nil)
@@ -1643,6 +1669,8 @@ func TestNormalizeTranscript(t *testing.T) {
 		{"descend and maintain, 9 or 1000", []string{"descend", "and", "maintain", "9", "thousand"}},
 		// "fly heading" sometimes transcribed as "flighting"
 		{"flighting 030", []string{"fly", "heading", "030"}},
+		// "@" should be treated as "at"
+		{"@ cameron descend", []string{"at", "cameron", "descend"}},
 	}
 
 	for _, tt := range tests {

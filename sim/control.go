@@ -1530,6 +1530,16 @@ func (s *Sim) AfterFixSpeed(tcw TCW, callsign av.ADSBCallsign, fix string, sr *a
 		})
 }
 
+func (s *Sim) AfterFixAltitude(tcw TCW, callsign av.ADSBCallsign, fix string, alt int) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.AfterFixAltitude(fix, float32(alt))
+		})
+}
+
 func (s *Sim) AtFixCleared(tcw TCW, callsign av.ADSBCallsign, fix, approach string) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -2844,8 +2854,25 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			fix := strings.ToUpper(components[0][1:])
 			switch components[1][0] {
 			case 'C':
-				approach := components[1][1:]
-				return s.AtFixCleared(tcw, callsign, fix, approach)
+				rest := components[1][1:]
+				if util.IsAllNumbers(rest) && len(rest) > 0 {
+					alt, err := strconv.Atoi(rest)
+					if err != nil {
+						return nil, err
+					}
+					return s.AfterFixAltitude(tcw, callsign, fix, alt*100)
+				}
+				return s.AtFixCleared(tcw, callsign, fix, rest)
+			case 'D':
+				rest := components[1][1:]
+				if !util.IsAllNumbers(rest) || len(rest) == 0 {
+					return nil, ErrInvalidCommandSyntax
+				}
+				alt, err := strconv.Atoi(rest)
+				if err != nil {
+					return nil, err
+				}
+				return s.AfterFixAltitude(tcw, callsign, fix, alt*100)
 			case 'I':
 				return s.AtFixIntercept(tcw, callsign, fix)
 			case 'S':

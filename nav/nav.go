@@ -214,10 +214,11 @@ type NavFixAssignment struct {
 		Mach     *float32
 	}
 	Depart struct {
-		Fix     *av.Waypoint
-		Heading *math.MagneticHeading
-		Turn    *av.TurnDirection
-		Speed   *av.SpeedRestriction
+		Fix      *av.Waypoint
+		Heading  *math.MagneticHeading
+		Turn     *av.TurnDirection
+		Speed    *av.SpeedRestriction
+		Altitude *float32
 	}
 	Hold *av.Hold
 }
@@ -746,6 +747,14 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 			} else {
 				lines = append(lines, fmt.Sprintf("After %s maintain %.0f kts or less", fix, sr.Range[1]))
 			}
+		}
+		if nfa.Depart.Altitude != nil {
+			alt := *nfa.Depart.Altitude
+			verb := "climb"
+			if alt < nav.FlightState.Altitude {
+				verb = "descend"
+			}
+			lines = append(lines, fmt.Sprintf("After %s %s and maintain %s", fix, verb, av.FormatAltitude(alt)))
 		}
 	}
 

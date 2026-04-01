@@ -812,6 +812,8 @@ func NormalizeTranscript(transcript string) []string {
 
 	// Replace hyphens with spaces so "1-1-thousand" becomes "1 1 thousand"
 	transcript = strings.ReplaceAll(transcript, "-", " ")
+	// Replace "@" with "at" so "@ CAMRN" is treated as "at CAMRN"
+	transcript = strings.ReplaceAll(transcript, "@", "at")
 
 	words := strings.Fields(transcript)
 	if len(words) == 0 {

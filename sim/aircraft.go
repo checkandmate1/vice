@@ -333,6 +333,10 @@ func (ac *Aircraft) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.Comman
 	return ac.Nav.AfterFixSpeed(strings.ToUpper(fix), sr)
 }
 
+func (ac *Aircraft) AfterFixAltitude(fix string, alt float32) av.CommandIntent {
+	return ac.Nav.AfterFixAltitude(strings.ToUpper(fix), alt)
+}
+
 func (ac *Aircraft) ExpectApproach(id string, ap *av.Airport, lahsoRunway string, lg *log.Logger) av.CommandIntent {
 	return ac.Nav.ExpectApproach(ap, id, ac.STARRunwayWaypoints, lahsoRunway, lg)
 }
