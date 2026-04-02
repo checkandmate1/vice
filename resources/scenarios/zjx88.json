@@ -1136,7 +1136,7 @@
           "assigned_altitude": 23000,
           "initial_controller": "17",
           "initial_speed": 350,
-          "waypoints": "GOJOE/ho AAHOY MAATY ROOKR",
+          "waypoints": "HEVVN/ho LEGGT GOJOE AAHOY MAATY ROOKR",
           "runway_waypoints": {
             "KTPA": {
               "1L": "ROOKR BLOUT CBASS/delete",
@@ -1161,7 +1161,7 @@
           "assigned_altitude": 23000,
           "initial_controller": "17",
           "initial_speed": 350,
-          "waypoints": "GOJOE/ho AAHOY MAATY GOOFS/delete",
+          "waypoints": "HEVVN/ho LEGGT GOJOE AAHOY MAATY GOOFS/delete",
           "route": "MAATY5"
         }
       ]
@@ -1206,11 +1206,11 @@
               { "icao": "SCX", "airport": "KMSP" }
             ]
           },
-          "initial_altitude": 22000,
-          "assigned_altitude": 22000,
+          "initial_altitude": 21000,
+          "assigned_altitude": 21000,
           "initial_controller": "17",
           "initial_speed": 350,
-          "waypoints": "CLAMP/ho LALAA CORRL BANGZ KIDLE BOLTS/delete",
+          "waypoints": "HEVVN/ho CLAMP LALAA CORRL BANGZ KIDLE BOLTS/delete",
           "route": "BANGZ2"
         },
         {
@@ -1331,10 +1331,10 @@
       ]
     }
   },
-  "default_scenario": "ZJX 88 DARBS TPA Complex South GNVE",
+  "default_scenario": "ZJX 88 DARBS TPA South GNV East",
   "magnetic_adjustment": -6.0,
   "scenarios": {
-    "ZJX 88 DARBS TPA Complex South GNVE": {
+    "ZJX 88 DARBS TPA South GNV East": {
       "configuration": "J88",
       "default_maps": ["ZJX LO"],
       "default_map_group": "ZJX",
@@ -1415,7 +1415,7 @@
         "flight_rules": "VMC"
       }
     },
-    "ZJX 88 DARBS TPA Complex North GNVW": {
+    "ZJX 88 DARBS TPA North GNV West": {
       "configuration": "J88",
       "default_maps": ["ZJX LO"],
       "default_map_group": "ZJX",
