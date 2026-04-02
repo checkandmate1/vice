@@ -155,13 +155,22 @@ func (fs FlightState) LogValue() slog.Value {
 	)
 }
 
+type RateQualifier int
+
+const (
+	RateNormal   RateQualifier = iota
+	RateGood                   // faster than normal, not maximum
+	RateExpedite               // maximum rate
+)
+
 type NavAltitude struct {
-	Assigned           *float32 // controller assigned
-	Cleared            *float32 // from initial clearance
-	AfterSpeed         *float32
-	AfterSpeedSpeed    *float32
-	Expedite           bool
-	ExpediteAfterSpeed bool
+	Assigned        *float32 // controller assigned
+	Cleared         *float32 // from initial clearance
+	AfterSpeed      *float32
+	AfterSpeedSpeed *float32
+	Rate            RateQualifier
+	RateThrough     *float32      // revert to RateNormal after passing this altitude; nil = all the way
+	RateAfterSpeed  RateQualifier // preserved across speed transitions
 
 	// Carried after passing a waypoint if we were unable to meet the
 	// restriction at the way point; we keep trying until we get there (or
@@ -618,15 +627,19 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		} else {
 			line := "At " + av.FormatAltitude(nav.FlightState.Altitude) + " for " +
 				av.FormatAltitude(*nav.Altitude.Assigned)
-			if nav.Altitude.Expedite {
-				line += ", expediting"
-			}
+			line += nav.rateSummary()
 			lines = append(lines, line)
 		}
 	} else if nav.Altitude.AfterSpeed != nil {
 		dir := util.Select(*nav.Altitude.AfterSpeed > nav.FlightState.Altitude, "climb", "descend")
-		exped := util.Select(nav.Altitude.ExpediteAfterSpeed, ", expediting", "")
-		lines = append(lines, fmt.Sprintf("At %.0f kts, %s to %s"+exped,
+		rateSuffix := ""
+		switch nav.Altitude.RateAfterSpeed {
+		case RateGood:
+			rateSuffix = ", good rate"
+		case RateExpedite:
+			rateSuffix = ", expediting"
+		}
+		lines = append(lines, fmt.Sprintf("At %.0f kts, %s to %s"+rateSuffix,
 			*nav.Altitude.AfterSpeedSpeed, dir, av.FormatAltitude(*nav.Altitude.AfterSpeed)))
 	} else if target, ok := nav.findAltitudeTarget(); ok {
 		dir := util.Select(target.altitude > nav.FlightState.Altitude, "Climbing", "Descending")
@@ -642,9 +655,7 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 		} else {
 			line := "At " + av.FormatAltitude(nav.FlightState.Altitude) + " for " +
 				av.FormatAltitude(*nav.Altitude.Cleared)
-			if nav.Altitude.Expedite {
-				line += ", expediting"
-			}
+			line += nav.rateSummary()
 			lines = append(lines, line)
 		}
 	} else if nav.Altitude.Restriction != nil {
@@ -982,6 +993,20 @@ func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, fixNam
 	} else {
 		rt.Add("[at|] {alt}", cur)
 	}
+}
+
+func (nav *Nav) rateSummary() string {
+	var s string
+	switch nav.Altitude.Rate {
+	case RateGood:
+		s = ", good rate"
+	case RateExpedite:
+		s = ", expediting"
+	}
+	if s != "" && nav.Altitude.RateThrough != nil {
+		s += " through " + av.FormatAltitude(*nav.Altitude.RateThrough)
+	}
+	return s
 }
 
 func (nav *Nav) DivertToAirport(airport string) {

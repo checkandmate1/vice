@@ -1894,6 +1894,125 @@ func TestParseCommandsBasic(t *testing.T) {
 			expected: []string{"ED"},
 		},
 		{
+			name: "expedite descent through altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "expedite climb through altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "climb", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "100", Type: TokenAltitude, Value: 100},
+			},
+			ac:       Aircraft{State: "departure"},
+			expected: []string{"EC100"},
+		},
+		{
+			name: "expedite descend through altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "descend", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "expedite descent to altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+				// "to" is a filler word and gets stripped; the bare pattern matches
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "best rate descent",
+			tokens: []Token{
+				{Text: "best", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED"},
+		},
+		{
+			name: "best rate climb",
+			tokens: []Token{
+				{Text: "best", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "climb", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "departure"},
+			expected: []string{"EC"},
+		},
+		{
+			name: "best rate descent through altitude",
+			tokens: []Token{
+				{Text: "best", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "good rate descent",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"GRD"},
+		},
+		{
+			name: "good rate of climb",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "of", Type: TokenWord},
+				{Text: "climb", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "departure"},
+			expected: []string{"GRC"},
+		},
+		{
+			name: "good rate through altitude",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"GR50"},
+		},
+		{
+			name: "good rate to altitude",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				// "to" is a filler word and gets stripped; the bare pattern matches
+				{Text: "100", Type: TokenAltitude, Value: 100},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"GR100"},
+		},
+		{
 			name:     "empty tokens",
 			tokens:   []Token{},
 			ac:       Aircraft{State: "arrival"},

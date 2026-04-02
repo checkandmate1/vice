@@ -109,9 +109,9 @@ func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp av.Temperature
 			math.Abs(targetIAS-nav.FlightState.IAS) >= 20 {
 			alt := *nav.Altitude.Assigned
 			nav.Altitude = NavAltitude{
-				AfterSpeed:         &alt,
-				AfterSpeedSpeed:    &targetIAS,
-				ExpediteAfterSpeed: nav.Altitude.Expedite,
+				AfterSpeed:      &alt,
+				AfterSpeedSpeed: &targetIAS,
+				RateAfterSpeed:  nav.Altitude.Rate,
 			}
 		}
 		if mach < nav.Mach(temp) {
@@ -178,9 +178,9 @@ func (nav *Nav) AssignSpeed(sr *av.SpeedRestriction, afterAltitude bool) av.Comm
 			speedDelta > 20 {
 			alt := *nav.Altitude.Assigned
 			nav.Altitude = NavAltitude{
-				AfterSpeed:         &alt,
-				AfterSpeedSpeed:    &speed,
-				ExpediteAfterSpeed: nav.Altitude.Expedite,
+				AfterSpeed:      &alt,
+				AfterSpeedSpeed: &speed,
+				RateAfterSpeed:  nav.Altitude.Rate,
 			}
 		}
 		nav.Speed = NavSpeed{Assigned: sr}
@@ -306,60 +306,77 @@ func (nav *Nav) SayAltitude() av.CommandIntent {
 }
 
 func (nav *Nav) ExpediteDescent() av.CommandIntent {
-	alt, _, _ := nav.TargetAltitude()
-	if alt >= nav.FlightState.Altitude {
-		if nav.Altitude.AfterSpeed != nil {
-			nav.Altitude.ExpediteAfterSpeed = true
-			return av.AltitudeIntent{
-				Direction:  av.AltitudeDescend,
-				Altitude:   *nav.Altitude.AfterSpeed,
-				AfterSpeed: nav.Altitude.AfterSpeedSpeed,
-			}
-		} else {
-			return av.MakeUnableIntent("unable. We're not descending")
-		}
-	} else if nav.Altitude.Expedite {
-		return av.AltitudeIntent{
-			Direction:         av.AltitudeDescend,
-			Altitude:          alt,
-			AlreadyExpediting: true,
-		}
-	} else {
-		nav.Altitude.Expedite = true
-		return av.AltitudeIntent{
-			Direction: av.AltitudeDescend,
-			Altitude:  alt,
-			Expedite:  true,
-		}
-	}
+	return nav.setRate(RateExpedite, nil, av.AltitudeDescend)
 }
 
 func (nav *Nav) ExpediteClimb() av.CommandIntent {
+	return nav.setRate(RateExpedite, nil, av.AltitudeClimb)
+}
+
+func (nav *Nav) ExpediteDescentThrough(throughAlt float32) av.CommandIntent {
+	return nav.setRate(RateExpedite, &throughAlt, av.AltitudeDescend)
+}
+
+func (nav *Nav) ExpediteClimbThrough(throughAlt float32) av.CommandIntent {
+	return nav.setRate(RateExpedite, &throughAlt, av.AltitudeClimb)
+}
+
+func (nav *Nav) GoodRateDescent() av.CommandIntent {
+	return nav.setRate(RateGood, nil, av.AltitudeDescend)
+}
+
+func (nav *Nav) GoodRateClimb() av.CommandIntent {
+	return nav.setRate(RateGood, nil, av.AltitudeClimb)
+}
+
+func (nav *Nav) GoodRateThrough(throughAlt float32) av.CommandIntent {
+	// Infer direction from current state
+	dir := av.AltitudeDescend
+	if throughAlt > nav.FlightState.Altitude {
+		dir = av.AltitudeClimb
+	}
+	return nav.setRate(RateGood, &throughAlt, dir)
+}
+
+func (nav *Nav) setRate(rate RateQualifier, throughAlt *float32, direction av.AltitudeDirection) av.CommandIntent {
 	alt, _, _ := nav.TargetAltitude()
-	if alt <= nav.FlightState.Altitude {
+
+	wrongDir := (direction == av.AltitudeDescend && alt >= nav.FlightState.Altitude) ||
+		(direction == av.AltitudeClimb && alt <= nav.FlightState.Altitude)
+
+	if wrongDir {
 		if nav.Altitude.AfterSpeed != nil {
-			nav.Altitude.ExpediteAfterSpeed = true
+			nav.Altitude.RateAfterSpeed = rate
 			return av.AltitudeIntent{
-				Direction:  av.AltitudeClimb,
+				Direction:  direction,
 				Altitude:   *nav.Altitude.AfterSpeed,
 				AfterSpeed: nav.Altitude.AfterSpeedSpeed,
 			}
-		} else {
-			return av.MakeUnableIntent("unable. We're not climbing")
 		}
-	} else if nav.Altitude.Expedite {
+		dir := "descending"
+		if direction == av.AltitudeClimb {
+			dir = "climbing"
+		}
+		return av.MakeUnableIntent("unable. We're not " + dir)
+	}
+
+	if nav.Altitude.Rate >= rate {
 		return av.AltitudeIntent{
-			Direction:         av.AltitudeClimb,
+			Direction:         direction,
 			Altitude:          alt,
 			AlreadyExpediting: true,
+			GoodRate:          nav.Altitude.Rate == RateGood,
 		}
-	} else {
-		nav.Altitude.Expedite = true
-		return av.AltitudeIntent{
-			Direction: av.AltitudeClimb,
-			Altitude:  alt,
-			Expedite:  true,
-		}
+	}
+
+	nav.Altitude.Rate = rate
+	nav.Altitude.RateThrough = throughAlt
+	return av.AltitudeIntent{
+		Direction:   direction,
+		Altitude:    alt,
+		Expedite:    rate == RateExpedite,
+		GoodRate:    rate == RateGood,
+		RateThrough: throughAlt,
 	}
 }
 

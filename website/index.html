@@ -663,16 +663,29 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                     <td><code>A120</code></td>
                   </tr>
                   <tr>
-                    <td><code>ED</code></td>
+                    <td><code>ED</code>[<i>alt</i>]</td>
                     <td>Directs the aircraft to expedite the descent to its
-                    assigned altitude.</td>
-                    <td><code>ED</code></td>
+                    assigned altitude. Optionally specify an altitude to expedite through
+                    (e.g., <code>ED50</code> to expedite through 5,000).</td>
+                    <td><code>ED</code>, <code>ED50</code></td>
                   </tr>
                   <tr>
-                    <td><code>EC</code></td>
+                    <td><code>EC</code>[<i>alt</i>]</td>
                     <td>Directs the aircraft to expedite the climb to its
-                    assigned altitude.</td>
-                    <td><code>EC</code></td>
+                    assigned altitude. Optionally specify an altitude to expedite through
+                    (e.g., <code>EC100</code> to expedite through 10,000).</td>
+                    <td><code>EC</code>, <code>EC100</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>GRD</code>, <code>GRC</code></td>
+                    <td>"Good rate" descent or climb. Faster than normal rate but
+                    not as fast as expedite.</td>
+                    <td><code>GRD</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>GR</code><i>alt</i></td>
+                    <td>"Good rate" through an altitude. Direction is inferred from current state.</td>
+                    <td><code>GR50</code></td>
                   </tr>
                   <tr>
                     <td><code>C</code><i>fix</i><code>/A</code><i>altitude</i><code>/S</code><i>speed</i><code>/M</code><i>mach</i></td>
@@ -1107,7 +1120,16 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                 </tr>
                 <tr><td>Expedite Altitude</td>
                   <td>
-                    <i>Expedite descent</i> /  <i>Expedite climb</i>
+                    <i>Expedite descent</i> /  <i>Expedite climb</i> /
+                    <i>Expedite descent through (altitude)</i> /  <i>Expedite climb through (altitude)</i> /
+                    <i>Best rate descent</i> / <i>Best rate climb</i> /
+                    <i>Best rate descent through (altitude)</i> / <i>Best rate climb through (altitude)</i>
+                  </td>
+                </tr>
+                <tr><td>Good Rate</td>
+                  <td>
+                    <i>Good rate (of) descent</i> / <i>Good rate (of) climb</i> /
+                    <i>Good rate through/to (altitude)</i>
                   </td>
                 </tr>
                 <tr><td>Say Altitude</td>

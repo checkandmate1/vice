@@ -1470,6 +1470,56 @@ func (s *Sim) ExpediteClimb(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent
 		})
 }
 
+func (s *Sim) ExpediteDescentThrough(tcw TCW, callsign av.ADSBCallsign, alt float32) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.ExpediteDescentThrough(alt)
+		})
+}
+
+func (s *Sim) ExpediteClimbThrough(tcw TCW, callsign av.ADSBCallsign, alt float32) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.ExpediteClimbThrough(alt)
+		})
+}
+
+func (s *Sim) GoodRateDescent(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.GoodRateDescent()
+		})
+}
+
+func (s *Sim) GoodRateClimb(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.GoodRateClimb()
+		})
+}
+
+func (s *Sim) GoodRateThrough(tcw TCW, callsign av.ADSBCallsign, alt float32) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.GoodRateThrough(alt)
+		})
+}
+
 func (s *Sim) ExpectDirect(tcw TCW, callsign av.ADSBCallsign, fix string) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -3043,9 +3093,23 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 	case 'E':
 		if command == "ED" {
 			return s.ExpediteDescent(tcw, callsign)
-		} else if command == "EC" {
+		} else if strings.HasPrefix(command, "ED") && len(command) > 2 {
+			alt, err := strconv.Atoi(command[2:])
+			if err == nil {
+				return s.ExpediteDescentThrough(tcw, callsign, float32(alt*100))
+			}
+			// Fall through to expect-approach parsing below
+		}
+		if command == "EC" {
 			return s.ExpediteClimb(tcw, callsign)
-		} else if strings.HasPrefix(command, "EXPDIR") && len(command) > 6 {
+		} else if strings.HasPrefix(command, "EC") && len(command) > 2 {
+			alt, err := strconv.Atoi(command[2:])
+			if err == nil {
+				return s.ExpediteClimbThrough(tcw, callsign, float32(alt*100))
+			}
+			// Fall through
+		}
+		if strings.HasPrefix(command, "EXPDIR") && len(command) > 6 {
 			return s.ExpectDirect(tcw, callsign, command[6:])
 		} else if len(command) > 1 {
 			// Parse: "EI22L/LAHSO26" -> approach="I22L", lahsoRunway="26"
@@ -3085,6 +3149,16 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				return nil, err
 			}
 			return nil, nil // GoAhead returns no intent
+		} else if command == "GRD" {
+			return s.GoodRateDescent(tcw, callsign)
+		} else if command == "GRC" {
+			return s.GoodRateClimb(tcw, callsign)
+		} else if strings.HasPrefix(command, "GR") && len(command) > 2 {
+			alt, err := strconv.Atoi(command[2:])
+			if err != nil {
+				return nil, ErrInvalidCommandSyntax
+			}
+			return s.GoodRateThrough(tcw, callsign, float32(alt*100))
 		} else {
 			return nil, ErrInvalidCommandSyntax
 		}

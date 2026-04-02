@@ -277,6 +277,26 @@ func (ac *Aircraft) ExpediteClimb() av.CommandIntent {
 	return ac.Nav.ExpediteClimb()
 }
 
+func (ac *Aircraft) ExpediteDescentThrough(alt float32) av.CommandIntent {
+	return ac.Nav.ExpediteDescentThrough(alt)
+}
+
+func (ac *Aircraft) ExpediteClimbThrough(alt float32) av.CommandIntent {
+	return ac.Nav.ExpediteClimbThrough(alt)
+}
+
+func (ac *Aircraft) GoodRateDescent() av.CommandIntent {
+	return ac.Nav.GoodRateDescent()
+}
+
+func (ac *Aircraft) GoodRateClimb() av.CommandIntent {
+	return ac.Nav.GoodRateClimb()
+}
+
+func (ac *Aircraft) GoodRateThrough(alt float32) av.CommandIntent {
+	return ac.Nav.GoodRateThrough(alt)
+}
+
 func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
 	return ac.Nav.AssignHeading(math.MagneticHeading(heading), turn, simTime)
 }

@@ -130,6 +130,8 @@ type AltitudeIntent struct {
 	AfterFix          string   // altitude change conditional on passing this fix
 	AfterSpeed        *float32 // changing altitude only after reaching a speed
 	Expedite          bool
+	GoodRate          bool
+	RateThrough       *float32 // "through/to" altitude for expedite or good rate
 	AlreadyExpediting bool
 	ThenSpeed         *float32 // speed once we reach the altitude
 	ThenSpeedType     SpeedType
@@ -137,7 +139,11 @@ type AltitudeIntent struct {
 
 func (a AltitudeIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	if a.AlreadyExpediting {
-		rt.Add("[we're already expediting|that's our best rate]")
+		if a.GoodRate {
+			rt.Add("[we're already at a good rate|that's already our good rate]")
+		} else {
+			rt.Add("[we're already expediting|that's our best rate]")
+		}
 		return
 	}
 
@@ -159,10 +165,28 @@ func (a AltitudeIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	}
 
 	if a.Expedite {
-		if a.Direction == AltitudeClimb {
+		if a.RateThrough != nil {
+			rt.Add("[expedite through|expediting through] {alt}", *a.RateThrough)
+			// After the through-altitude, just read back the target without repeating "expediting"
+			rt.Add("[up to|] {alt}", a.Altitude)
+		} else if a.Direction == AltitudeClimb {
 			rt.Add("[expediting up to|expedite] {alt}", a.Altitude)
 		} else {
 			rt.Add("[expediting down to|expedite] {alt}", a.Altitude)
+		}
+	} else if a.GoodRate {
+		if a.RateThrough != nil {
+			rt.Add("[good rate through|good rate to] {alt}", *a.RateThrough)
+		} else {
+			rt.Add("[good rate|we'll give you a good rate]")
+		}
+		switch a.Direction {
+		case AltitudeClimb:
+			rt.Add("[climb-and-maintain|up to|] {alt}", a.Altitude)
+		case AltitudeDescend:
+			rt.Add("[descend-and-maintain|down to|] {alt}", a.Altitude)
+		case AltitudeMaintain:
+			rt.Add("[maintain|we'll keep it at|] {alt}", a.Altitude)
 		}
 	} else {
 		switch a.Direction {
@@ -962,12 +986,14 @@ restart:
 }
 
 // mergeAltitudeExpedite merges an AltitudeIntent representing an altitude assignment followed by
-// AltitudeIntent with an expedite command into a single AltitudeIntent with Expedite=true.
+// AltitudeIntent with an expedite or good-rate command into a single AltitudeIntent.
 func mergeAltitudeExpedite(alt AltitudeIntent, exp AltitudeIntent) ([]CommandIntent, bool) {
 	// Leave the second one if we're going to say we're already expediting so that we still have a
 	// read-back of the altitude for the first one.
-	if exp.Expedite && !exp.AlreadyExpediting {
+	if (exp.Expedite || exp.GoodRate) && !exp.AlreadyExpediting {
 		alt.Expedite = exp.Expedite
+		alt.GoodRate = exp.GoodRate
+		alt.RateThrough = exp.RateThrough
 		return []CommandIntent{alt}, true
 	}
 	return nil, false

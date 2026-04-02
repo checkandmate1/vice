@@ -19,15 +19,16 @@ const rateMaxDeltaPercent = 0.075
 func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float32, geometricDescent bool, deltaKts float32, slowingTo250 bool, wxs wx.Sample, simTime time.Time) {
 	nav.FlightState.PrevAltitude = nav.FlightState.Altitude
 
-	NavLog(callsign, simTime, NavLogAltitude, "target=%.0f current=%.0f rate=%.0f targetRate=%.0f expedite=%v slowingTo250=%v",
-		targetAltitude, nav.FlightState.Altitude, nav.FlightState.AltitudeRate, targetRate, nav.Altitude.Expedite, slowingTo250)
+	NavLog(callsign, simTime, NavLogAltitude, "target=%.0f current=%.0f rate=%.0f targetRate=%.0f rate_qual=%d slowingTo250=%v",
+		targetAltitude, nav.FlightState.Altitude, nav.FlightState.AltitudeRate, targetRate, nav.Altitude.Rate, slowingTo250)
 
 	if targetAltitude == nav.FlightState.Altitude {
 		if nav.IsAirborne() && nav.FlightState.InitialDepartureClimb {
 			nav.FlightState.InitialDepartureClimb = false
 		}
 		nav.FlightState.AltitudeRate = 0
-		nav.Altitude.Expedite = false
+		nav.Altitude.Rate = RateNormal
+		nav.Altitude.RateThrough = nil
 		return
 	}
 
@@ -79,6 +80,15 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 			}
 		}
 
+		if nav.Altitude.RateThrough != nil {
+			cur := nav.FlightState.Altitude
+			at := *nav.Altitude.RateThrough
+			if (cur > at && next <= at) || (cur < at && next >= at) {
+				nav.Altitude.Rate = RateNormal
+				nav.Altitude.RateThrough = nil
+			}
+		}
+
 		nav.FlightState.Altitude = next
 	}
 
@@ -94,13 +104,19 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 	atmosFactor := nav.atmosClimbFactor(wxs)
 	climb *= atmosFactor
 	// Reduce rates from highest possible to be more realistic.
-	if !nav.Altitude.Expedite {
-		// For high performing aircraft, reduce climb rate after 5,000'
+	switch nav.Altitude.Rate {
+	case RateNormal:
 		if climb >= 2500 && nav.FlightState.Altitude > 5000 {
 			climb -= 500
 		}
 		climb = min(climb, targetRate)
 		descent = min(descent, targetRate)
+	case RateGood:
+		// Skip the 500fpm reduction, but still cap at targetRate
+		climb = min(climb, targetRate)
+		descent = min(descent, targetRate)
+	case RateExpedite:
+		// No reduction
 	}
 
 	NavLog(callsign, simTime, NavLogAltitude, "atmosFactor=%.3f climb=%.0f descent=%.0f pressure=%.1f temp=%.1f",
@@ -127,7 +143,10 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 
 			// Gradually transition to the target climb rate
 			maxRateChange := nav.Perf.Rate.Climb * rateMaxDeltaPercent
-			if nav.Altitude.Expedite {
+			switch nav.Altitude.Rate {
+			case RateGood:
+				maxRateChange *= 1.5
+			case RateExpedite:
 				maxRateChange *= 2
 			}
 			rateDiff := climb - nav.FlightState.AltitudeRate
@@ -160,7 +179,10 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 
 		// Gradually transition to the target descent rate
 		maxRateChange := nav.Perf.Rate.Descent * rateMaxDeltaPercent
-		if nav.Altitude.Expedite {
+		switch nav.Altitude.Rate {
+		case RateGood:
+			maxRateChange *= 1.5
+		case RateExpedite:
 			maxRateChange *= 2
 		}
 

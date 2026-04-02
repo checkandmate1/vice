@@ -1,7 +1,9 @@
-- Added multiple new control instructions:
+- STT: added multiple new control instructions:
   - "after FIX, climb/descend and maintain ALT"
   - "after FIX, reduce/maintain/increase SPEED"
   - "speed SPEED1 until FIX1, then SPEED2 until FIX2, then SPEED3", etc.
+  - "good rate" for climbs/descents: "descend and maintain 3,000, good rate through 5,000", etc.
+  - optional altitudes to expedite to: "expedite through 5,000", etc.
 - Facility engineering:
   - Support "at or above/at or below" speed restrictions
 - Navigation / flight model:

@@ -75,6 +75,35 @@ func registerAllCommands() {
 		WithPriority(25),
 	)
 
+	// Expedite through/to altitude (descent) - higher priority than plain expedite.
+	// Two patterns: one with explicit "through", one without (handles "to" stripped as filler).
+	registerSTTCommand(
+		"expedite descent|descend through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("expedite_descent_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"expedite descent|descend {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("expedite_descent_to"),
+		WithPriority(15),
+	)
+
+	// Expedite through/to altitude (climb)
+	registerSTTCommand(
+		"expedite climb through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("expedite_climb_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"expedite climb {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("expedite_climb_to"),
+		WithPriority(15),
+	)
+
 	registerSTTCommand(
 		"expedite descent|descend|your",
 		func() string { return "ED" },
@@ -87,6 +116,77 @@ func registerAllCommands() {
 		func() string { return "EC" },
 		WithName("expedite_climb"),
 		WithPriority(10),
+	)
+
+	// Best rate = synonym for expedite (no altitude)
+	registerSTTCommand(
+		"best rate descent|descend",
+		func() string { return "ED" },
+		WithName("best_rate_descent"),
+		WithPriority(10),
+	)
+
+	registerSTTCommand(
+		"best rate climb",
+		func() string { return "EC" },
+		WithName("best_rate_climb"),
+		WithPriority(10),
+	)
+
+	// Best rate through/to altitude (descent)
+	registerSTTCommand(
+		"best rate descent|descend through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("best_rate_descent_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"best rate descent|descend {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("best_rate_descent_to"),
+		WithPriority(15),
+	)
+
+	// Best rate through/to altitude (climb)
+	registerSTTCommand(
+		"best rate climb through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("best_rate_climb_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"best rate climb {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("best_rate_climb_to"),
+		WithPriority(15),
+	)
+
+	// Good rate without altitude (direction explicit)
+	registerSTTCommand(
+		"good rate [of] descent|descend",
+		func() string { return "GRD" },
+		WithName("good_rate_descent"),
+		WithPriority(10),
+	)
+	registerSTTCommand(
+		"good rate [of] climb",
+		func() string { return "GRC" },
+		WithName("good_rate_climb"),
+		WithPriority(10),
+	)
+
+	// Good rate through/to altitude (direction inferred)
+	registerSTTCommand(
+		"good rate through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("GR%d", alt) },
+		WithName("good_rate_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"good rate {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("GR%d", alt) },
+		WithName("good_rate_to"),
+		WithPriority(15),
 	)
 
 	registerSTTCommand(

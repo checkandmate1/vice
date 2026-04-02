@@ -32,7 +32,7 @@ func (nav *Nav) updateAirspeed(callsign string, alt float32, geometricDescent bo
 			// after which an altitude assignment should be followed.
 			if (cur > at && next <= at) || (cur < at && next >= at) {
 				nav.Altitude.Assigned = nav.Altitude.AfterSpeed
-				nav.Altitude.Expedite = nav.Altitude.ExpediteAfterSpeed
+				nav.Altitude.Rate = nav.Altitude.RateAfterSpeed
 				nav.Altitude.AfterSpeed = nil
 				nav.Altitude.AfterSpeedSpeed = nil
 				nav.Altitude.Restriction = nil
@@ -56,7 +56,7 @@ func (nav *Nav) updateAirspeed(callsign string, alt float32, geometricDescent bo
 		}
 	}
 
-	if nav.Altitude.Expedite {
+	if nav.Altitude.Rate == RateExpedite {
 		// Don't accelerate or decelerate if we're expediting
 		return 0, false
 	}
