@@ -323,9 +323,14 @@ func (s *Sim) CreateFlightPlan(tcw TCW, spec FlightPlanSpecifier) error {
 
 	fp.OwningTCW = tcw
 
-	if util.SeqContainsFunc(maps.Values(s.Aircraft),
-		func(ac *Aircraft) bool { return ac.IsAssociated() && ac.NASFlightPlan.ACID == fp.ACID }) {
-		return ErrDuplicateACID
+	// Interfacility VFR plans (5.5.13) intentionally duplicate the ACID of an
+	// existing associated track, so skip the associated-aircraft check for them.
+	isInterfacilityVFR := fp.PlanType == LocalEnroute && fp.Rules == av.FlightRulesVFR
+	if !isInterfacilityVFR {
+		if util.SeqContainsFunc(maps.Values(s.Aircraft),
+			func(ac *Aircraft) bool { return ac.IsAssociated() && ac.NASFlightPlan.ACID == fp.ACID }) {
+			return ErrDuplicateACID
+		}
 	}
 	if slices.ContainsFunc(s.STARSComputer.FlightPlans,
 		func(fp2 *NASFlightPlan) bool { return fp.ACID == fp2.ACID }) {
@@ -338,6 +343,58 @@ func (s *Sim) CreateFlightPlan(tcw TCW, spec FlightPlanSpecifier) error {
 		err = s.postCheckFlightPlanSpecifier(spec)
 	}
 
+	return err
+}
+
+// CreateInterfacilityVFR creates a NAS VFR flight plan from an existing
+// associated local VFR track (5.5.13). The new plan gets a NAS beacon code
+// and will auto-associate with the track after a delay, creating a beacon
+// mismatch until the pilot squawks the new code.
+func (s *Sim) CreateInterfacilityVFR(tcw TCW, acid ACID, isIntermediate bool, requestedAlt int) error {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	s.lastControlCommandTime = time.Now()
+
+	fp, ac, _ := s.getFlightPlanForACID(acid)
+	if ac == nil || !ac.IsAssociated() {
+		return av.ErrNoAircraftForCallsign
+	}
+	if fp.PlanType != LocalNonEnroute || fp.Rules != av.FlightRulesVFR {
+		return ErrIllegalFunction
+	}
+	if fp.OwningTCW != tcw {
+		return ErrIllegalFunction
+	}
+	if fp.AircraftType == "" {
+		return ErrNoACType
+	}
+	if fp.Scratchpad == "" {
+		return ErrNoScratchpad
+	}
+
+	var spec FlightPlanSpecifier
+	spec.ACID.Set(fp.ACID)
+	spec.Rules.Set(av.FlightRulesVFR)
+	spec.PlanType.Set(LocalEnroute)
+	spec.TypeOfFlight.Set(av.FlightTypeArrival)
+	spec.AircraftType.Set(fp.AircraftType)
+	spec.ExitFix.Set(fp.Scratchpad)
+	spec.ExitFixIsIntermediate.Set(isIntermediate)
+	spec.DisableMSAW.Set(true)
+	spec.TrackingController.Set(fp.TrackingController)
+	spec.CoordinationTime.Set(s.State.SimTime)
+	if requestedAlt > 0 {
+		spec.RequestedAltitude.Set(requestedAlt)
+	}
+
+	newFP, err := spec.GetFlightPlan(s.LocalCodePool, s.ERAMComputer.SquawkCodePool)
+	if err != nil {
+		return err
+	}
+	newFP.OwningTCW = tcw
+
+	_, err = s.STARSComputer.CreateFlightPlan(newFP)
 	return err
 }
 

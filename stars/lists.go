@@ -834,6 +834,12 @@ func (sp *STARSPane) drawVFRList(ctx *panes.Context, paneExtent math.Extent2D, s
 			sp.VFRFPFirstSeen[fp.ACID] = ctx.Now
 		}
 	}
+	// Prune entries for plans no longer in the unassociated list.
+	for acid := range sp.VFRFPFirstSeen {
+		if !slices.ContainsFunc(vfr, func(fp *sim.NASFlightPlan) bool { return fp.ACID == acid }) {
+			delete(sp.VFRFPFirstSeen, acid)
+		}
+	}
 	slices.SortFunc(vfr, func(a, b *sim.NASFlightPlan) int {
 		return sp.VFRFPFirstSeen[a.ACID].Compare(sp.VFRFPFirstSeen[b.ACID])
 	})
@@ -847,7 +853,14 @@ func (sp *STARSPane) drawVFRList(ctx *panes.Context, paneExtent math.Extent2D, s
 			fp := vfr[idx]
 			format := ctx.FacilityAdaptation.Lists.VFR.Format
 			// TODO: default after INDEX: + in-out-in flight, / dupe acid, * DM message on departure
-			sb.WriteString(sp.formatListEntry(ctx, format, fp, nil))
+			sb.WriteString(sp.formatListEntry(ctx, format, fp, map[string]func() string{
+				"VFR_STATUS": func() string {
+					if seen, ok := sp.VFRFPFirstSeen[fp.ACID]; ok && ctx.Now.Sub(seen) > 2*time.Second {
+						return "VFR"
+					}
+					return "   "
+				},
+			}))
 		},
 	})
 }

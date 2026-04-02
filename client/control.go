@@ -77,6 +77,17 @@ func (c *ControlClient) CreateFlightPlan(spec sim.FlightPlanSpecifier, callback 
 		}, &update, nil), &update, callback))
 }
 
+func (c *ControlClient) CreateInterfacilityVFR(acid sim.ACID, isIntermediate bool, requestedAlt int, callback func(error)) {
+	var update server.SimStateUpdate
+	c.addCall(
+		makeStateUpdateRPCCall(c.client.Go(server.CreateInterfacilityVFRRPC, &server.CreateInterfacilityVFRArgs{
+			ControllerToken: c.controllerToken,
+			ACID:            acid,
+			IsIntermediate:  isIntermediate,
+			RequestedAlt:    requestedAlt,
+		}, &update, nil), &update, callback))
+}
+
 func (c *ControlClient) ModifyFlightPlan(acid sim.ACID, spec sim.FlightPlanSpecifier, callback func(error)) {
 	var update server.SimStateUpdate
 	c.addCall(

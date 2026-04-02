@@ -750,11 +750,36 @@ func registerOpsCommands() {
 		return quickFPFromSquawk(sp, ctx, sq, av.FlightRulesVFR)
 	})
 
-	// 5.5.13 Create interfacility VFR flight plan from active local track
-	// registerCommand(CommandModeVFRPlan, "[SLEW]", ...)
-	// registerCommand(CommandModeVFRPlan, "*[SLEW]", ...)
-	// registerCommand(CommandModeVFRPlan, "*[FP_ALT_R][SLEW]", ...)
-	// registerCommand(CommandModeVFRPlan, "[FP_ALT_R][SLEW]", ...)
+	// 5.5.13 Create interfacility VFR flight plan from active local track (p. 5-143)
+	createInterfacilityVFR := func(sp *STARSPane, ctx *panes.Context, trk *sim.Track, isIntermediate bool, requestedAlt int) error {
+		if !trk.IsAssociated() {
+			return ErrSTARSIllegalTrack
+		}
+		acid := trk.FlightPlan.ACID
+		ctx.Client.CreateInterfacilityVFR(acid, isIntermediate, requestedAlt,
+			func(err error) {
+				if err == nil {
+					if fp := ctx.Client.State.GetFlightPlanForACID(acid); fp != nil {
+						sp.previewAreaOutput = formatFlightPlan(sp, ctx, fp, nil)
+					}
+				} else {
+					sp.displayError(err, ctx, "")
+				}
+			})
+		return nil
+	}
+	registerCommand(CommandModeVFRPlan, "[SLEW]", func(sp *STARSPane, ctx *panes.Context, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, false, 0)
+	})
+	registerCommand(CommandModeVFRPlan, "*[SLEW]", func(sp *STARSPane, ctx *panes.Context, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, true, 0)
+	})
+	registerCommand(CommandModeVFRPlan, "[FP_ALT_R][SLEW]", func(sp *STARSPane, ctx *panes.Context, altSpec sim.FlightPlanSpecifier, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, false, altSpec.RequestedAltitude.GetOr(0))
+	})
+	registerCommand(CommandModeVFRPlan, "*[FP_ALT_R][SLEW]", func(sp *STARSPane, ctx *panes.Context, altSpec sim.FlightPlanSpecifier, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, true, altSpec.RequestedAltitude.GetOr(0))
+	})
 
 	// 5.5.14 Create quick ACID flight plan (Implied command) (p. 5-145)
 	registerCommand(CommandModeNone, "Y[SLEW]", func(sp *STARSPane, ctx *panes.Context, trk *sim.Track) error {

@@ -1,3 +1,3 @@
 - Scenario updates: ZNY (Ryan G), SCT (Ketan K), ZJX (manaphy)
-
-
+- STARS
+  - Added support for "Create interfacility VFR flight plan from active local track"

@@ -1689,9 +1689,9 @@ func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, e *util.ErrorLogge
 
 	e.Push(`"vfr"`)
 	if fa.Lists.VFR.Format == "" {
-		fa.Lists.VFR.Format = "[INDEX] [ACID_MSAWCA][BEACON]"
+		fa.Lists.VFR.Format = "[INDEX] [ACID_MSAWCA][VFR_STATUS] [BEACON]"
 	}
-	if err := validateListFormat(fa.Lists.VFR.Format); err != nil {
+	if err := validateListFormat(fa.Lists.VFR.Format, "VFR_STATUS"); err != nil {
 		e.ErrorString("Invalid format string %q: %v", fa.Lists.VFR.Format, err)
 	}
 	e.Pop()

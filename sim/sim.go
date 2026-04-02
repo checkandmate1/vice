@@ -1612,6 +1612,8 @@ func (s *Sim) updateState() {
 		s.ERAMComputer.Update(s)
 		s.STARSComputer.Update(s)
 
+		s.processInterfacilityVFR(s.State.SimTime)
+
 		// Advance METAR: drop old entries when sim time passes the next one's report time
 		for ap, metar := range s.METAR {
 			for len(metar) > 1 && s.State.SimTime.After(metar[1].Time) {
@@ -1631,6 +1633,52 @@ func (s *Sim) updateState() {
 				}
 				s.State.METAR[ap] = metar[0]
 			}
+		}
+	}
+}
+
+// processInterfacilityVFR handles auto-association of interfacility VFR
+// plans (5.5.13). When an unassociated LocalEnroute VFR plan shares an
+// ACID with an associated track, it means the interfacility VFR command
+// created a NAS VFR plan for that track. After a delay simulating ARTCC
+// processing, the VFR plan auto-associates with the track, replacing the
+// old local plan and transferring the NAS beacon code.
+func (s *Sim) processInterfacilityVFR(now time.Time) {
+	for i := len(s.STARSComputer.FlightPlans) - 1; i >= 0; i-- {
+		vfrFP := s.STARSComputer.FlightPlans[i]
+		if vfrFP.PlanType != LocalEnroute || vfrFP.Rules != av.FlightRulesVFR {
+			continue
+		}
+		if vfrFP.CoordinationTime.IsZero() || now.Sub(vfrFP.CoordinationTime) < 4*time.Second {
+			continue
+		}
+
+		// Find the associated track with matching ACID.
+		for _, ac := range s.Aircraft {
+			if !ac.IsAssociated() || ac.NASFlightPlan.ACID != vfrFP.ACID {
+				continue
+			}
+
+			// Clean up old local plan: return its local squawk to the pool.
+			oldFP := ac.NASFlightPlan
+			s.LocalCodePool.Return(oldFP.AssignedSquawk)
+			s.STARSComputer.returnListIndex(oldFP.ListIndex)
+			if s.CIDAllocator != nil && oldFP.CID != "" {
+				s.CIDAllocator.Release(oldFP.CID)
+			}
+			if oldFP.StripOwner != "" {
+				s.freeStripCID(oldFP.StripCID)
+			}
+
+			// Remove VFR plan from unassociated list and associate with track.
+			s.STARSComputer.FlightPlans = slices.Delete(s.STARSComputer.FlightPlans, i, i+1)
+			ac.AssociateFlightPlan(vfrFP)
+
+			s.eventStream.Post(Event{
+				Type: FlightPlanAssociatedEvent,
+				ACID: vfrFP.ACID,
+			})
+			break
 		}
 	}
 }
