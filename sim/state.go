@@ -186,6 +186,7 @@ func makeDerivedState(s *Sim) DerivedState {
 			MissingFlightPlan:         ac.MissingFlightPlan,
 			ATPAVolume:                ac.ATPAVolume(),
 			IsTentative:               s.State.SimTime.Sub(ac.FirstSeen) < 5*time.Second,
+			RequestedFlightFollowing:  ac.RequestedFlightFollowing,
 		}
 
 		if perf, ok := av.DB.AircraftPerformance[ac.FlightPlan.AircraftType]; ok {

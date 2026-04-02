@@ -169,6 +169,7 @@ type Track struct {
 	Route                     []math.Point2LL
 	IsTentative               bool   // first 5 seconds after first contact
 	CWTCategory               string // True CWT from aircraft performance DB, not from NAS flight plan
+	RequestedFlightFollowing  bool   // VFR aircraft that has requested flight following
 }
 
 type DepartureRunway struct {

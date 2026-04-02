@@ -434,6 +434,8 @@ func (p *Transcriber) BuildAircraftContext(
 			sttAc.STAR = trk.STAR
 		} else if trk.IsOverflight() {
 			sttAc.State = "overflight"
+		} else if trk.RequestedFlightFollowing {
+			sttAc.State = "vfr flight following"
 		}
 
 		// Build candidate approaches for arrivals and local departures
