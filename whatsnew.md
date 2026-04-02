@@ -1,1 +1,2 @@
-- Scenario updates: ZNY (Ryan G)
+- Scenario updates: ZNY (Ryan G), SCT (Ketan K)
+
