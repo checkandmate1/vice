@@ -121,103 +121,86 @@
         "18L": {
           "RDU,TYI,NUTZE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BARMY5",
             "waypoints": "_CLT_18L_183_2/h140 MESHY GULFY BARMY BATTA"
           },
           "AUDII": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KILNS5",
             "waypoints": "_CLT_18L_183_2/h140 MUNBE LILIC KILNS DURST"
           },
           "LILLS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "LILLS3",
             "waypoints": "_CLT_18L_183_2/h140 LAMDE"
           },
           "NOOKS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ICONS5",
             "waypoints": "_CLT_36R/h183 GILFN ICONS"
           },
           "PITRW": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_36R/h183 HMMPY KWEEN UNJAM TASTY"
           },
           "UNJAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_36R/h183 HMMPY KWEEN"
           },
           "JENDO,GANDT": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BEAVY6",
             "waypoints": "_CLT_36R/h183 UGANG BEAVY ANDYS"
           },
           "TNSLY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_36R/h183 LACHN YNGUN BOBZY"
           },
           "BOBZY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_36R/h183 LACHN YNGUN"
           },
           "BNA": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_36R/h183 LACHN YNGUN BOBZY BRAYN REWET N35.30.21.805,W83.40.13.558 N35.34.23.264,W83.58.12.992 HALLS BAZOO"
           },
           "PITTY, HARAY, BUCKL, RUNIE, GANTS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "CLT3",
             "waypoints": "_CLT_36R/h183"
           },
           "IPTAY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ESTRR5",
             "waypoints": "_CLT_36R/h183 GINNN ESTRR DEBIE"
           },
           "CUBIM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_36R/h183 WAYDS LONEE JOJJO WLLGO BENBY N35.59.16.749,W82.09.07.761 N36.18.34.759,W82.08.06.608 TIELR"
           },
           "DOOGE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_36R/h183 WAYDS LONEE JOJJO MTCHL"
           },
           "NOONN": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_36R/h183 WAYDS LONEE JOJJO WLLGO BENBY SLEPP"
           },
           "FILDS,SMIAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KRITR6",
             "waypoints": "_CLT_36R/h183 JDEAN KRITR"
           },
           "CLAWD": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "WEAZL5",
             "waypoints": "_CLT_36R/h183 WHFRD WEAZL"
           }
@@ -262,103 +245,86 @@
         "36R": {
           "RDU,TYI,NUTZE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BARMY5",
             "waypoints": "_CLT_18L/h025 MESHY GULFY BARMY BATTA"
           },
           "AUDII": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KILNS5",
             "waypoints": "_CLT_18L/h025 MUNBE LILIC KILNS DURST"
           },
           "LILLS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "LILLS3",
             "waypoints": "_CLT_18L/h025 LAMDE LILLS"
           },
           "NOOKS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ICONS5",
             "waypoints": "_CLT_18L/h025 GILFN ICONS NOOKS"
           },
           "PITRW": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_18L/h025 HMMPY KWEEN UNJAM TASTY"
           },
           "UNJAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_18L/h025 HMMPY KWEEN"
           },
           "JENDO,GANDT": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BEAVY6",
             "waypoints": "_CLT_18L/h025 UGANG BEAVY ANDYS"
           },
           "TNSLY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18L/h025 LACHN YNGUN BOBZY"
           },
           "BOBZY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18L/h025 LACHN YNGUN"
           },
           "BNA": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18L/h025 LACHN YNGUN BOBZY BRAYN REWET N35.30.21.805,W83.40.13.558 N35.34.23.264,W83.58.12.992 HALLS BAZOO"
           },
           "PITTY, HARAY, BUCKL, RUNIE, GANTS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "CLT3",
             "waypoints": "_CLT_18L/h025"
           },
           "IPTAY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ESTRR5",
             "waypoints": "_CLT_18L/h025 GINNN ESTRR DEBIE IPTAY"
           },
           "CUBIM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18L/h025 WAYDS LONEE JOJJO WLLGO BENBY N35.59.16.749,W82.09.07.761 N36.18.34.759,W82.08.06.608 TIELR"
           },
           "DOOGE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18L/h025 WAYDS LONEE JOJJO MTCHL"
           },
           "NOONN": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18L/h025 WAYDS LONEE JOJJO WLLGO BENBY SLEPP"
           },
           "FILDS,SMIAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KRITR6",
             "waypoints": "_CLT_18L/h025 JDEAN KRITR"
           },
           "CLAWD": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "WEAZL5",
             "waypoints": "_CLT_18L/h025 WHFRD WEAZL"
           }
@@ -393,103 +359,86 @@
         "18C": {
           "JENDO,GANDT": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BEAVY6",
             "waypoints": "_CLT_36C/h183 UGANG BEAVY ANDYS"
           },
           "TNSLY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18C_183_2/h240 LACHN YNGUN BOBZY"
           },
           "BOBZY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18C_183_2/h240 LACHN YNGUN"
           },
           "BNA": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18C_183_2/h240 LACHN YNGUN BOBZY BRAYN REWET N35.30.21.805,W83.40.13.558 N35.34.23.264,W83.58.12.992 HALLS BAZOO"
           },
           "PITTY, HARAY, BUCKL, RUNIE, GANTS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "CLT3",
             "waypoints": "_CLT_18C_183_2/h200"
           },
           "IPTAY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ESTRR5",
             "waypoints": "_CLT_18C_183_2/h240 GINNN ESTRR DEBIE"
           },
           "CUBIM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18C_183_2/h240 WAYDS LONEE JOJJO WLLGO BENBY N35.59.16.749,W82.09.07.761 N36.18.34.759,W82.08.06.608 TIELR"
           },
           "DOOGE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18C_183_2/h240 WAYDS LONEE JOJJO MTCHL"
           },
           "NOONN": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18C_183_2/h240 WAYDS LONEE JOJJO WLLGO BENBY SLEPP"
           },
           "FILDS,SMIAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KRITR6",
             "waypoints": "_CLT_18C_183_2/h240 JDEAN KRITR"
           },
           "CLAWD": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "WEAZL5",
             "waypoints": "_CLT_18C_183_2/h240 WHFRD WEAZL"
           },
           "RDU,TYI,NUTZE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BARMY5",
             "waypoints": "_CLT_36C/h183 MESHY GULFY BARMY BATTA"
           },
           "AUDII": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KILNS5",
             "waypoints": "_CLT_36C/h183 MUNBE LILIC KILNS DURST"
           },
           "LILLS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "LILLS3",
             "waypoints": "_CLT_36C/h183 LAMDE"
           },
           "NOOKS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ICONS5",
             "waypoints": "_CLT_36C/h183 GILFN ICONS"
           },
           "PITRW": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_36C/h183 HMMPY KWEEN UNJAM TASTY"
           },
           "UNJAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_36C/h183 HMMPY KWEEN"
           }
@@ -552,7 +501,6 @@
           },
           "PITRW": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_36C/ho1E N035.02.49.738,W080.56.15.741/a8000- KWEEN/a12000+/hoJ30 UNJAM TASTY"
           },
@@ -565,103 +513,86 @@
         "36C": {
           "JENDO,GANDT": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BEAVY6",
             "waypoints": "_CLT_18C/h330 UGANG BEAVY ANDYS"
           },
           "TNSLY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18C/h330 LACHN YNGUN BOBZY"
           },
           "BOBZY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18C/h330 LACHN YNGUN"
           },
           "BNA": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BOBZY5",
             "waypoints": "_CLT_18C/h330 LACHN YNGUN BOBZY BRAYN REWET N35.30.21.805,W83.40.13.558 N35.34.23.264,W83.58.12.992 HALLS BAZOO"
           },
           "PITTY, HARAY, BUCKL, RUNIE, GANTS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "CLT3",
             "waypoints": "_CLT_36C_330_2/h330"
           },
           "IPTAY": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ESTRR5",
             "waypoints": "_CLT_18C/h330 GINNN ESTRR DEBIE IPTAY"
           },
           "CUBIM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18C/h330 WAYDS LONEE JOJJO WLLGO BENBY N35.59.16.749,W82.09.07.761 N36.18.34.759,W82.08.06.608 TIELR"
           },
           "DOOGE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18C/h330 WAYDS LONEE JOJJO MTCHL"
           },
           "NOONN": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "JOJJO5",
             "waypoints": "_CLT_18C/h330 WAYDS LONEE JOJJO WLLGO BENBY SLEPP"
           },
           "FILDS,SMIAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KRITR6",
             "waypoints": "_CLT_36C_330_2/h360 JDEAN KRITR"
           },
           "CLAWD": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "WEAZL5",
             "waypoints": "_CLT_36C_330_2/h360 WHFRD WEAZL"
           },
           "RDU,TYI,NUTZE": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "BARMY5",
             "waypoints": "_CLT_18C/h330 MESHY GULFY BARMY BATTA"
           },
           "AUDII": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KILNS5",
             "waypoints": "_CLT_18C/h330 MUNBE LILIC KILNS DURST"
           },
           "LILLS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "LILLS3",
             "waypoints": "_CLT_18C/h330 LAMDE LILLS"
           },
           "NOOKS": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "ICONS5",
             "waypoints": "_CLT_18C/h330 GILFN ICONS NOOKS"
           },
           "PITRW": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_18C/h330 HMMPY KWEEN UNJAM TASTY"
           },
           "UNJAM": {
             "cleared_altitude": 8000,
-            "speed_restriction": 250,
             "sid": "KWEEN5",
             "waypoints": "_CLT_18C/h330 HMMPY KWEEN"
           }

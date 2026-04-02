@@ -748,7 +748,6 @@ type ExitRoute struct {
 	SID              string        `json:"sid"`
 	AssignedAltitude int           `json:"assigned_altitude"`
 	ClearedAltitude  int           `json:"cleared_altitude"`
-	SpeedRestriction int           `json:"speed_restriction"`
 	Waypoints        WaypointArray `json:"waypoints"`
 	Description      string        `json:"description"`
 	IsRNAV           bool          `json:"is_rnav"`

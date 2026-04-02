@@ -278,7 +278,7 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 }
 
 func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerformance,
-	assignedAlt, clearedAlt, speedRestriction int, wp []av.Waypoint, randomizeAltitudeRange bool,
+	assignedAlt, clearedAlt int, wp []av.Waypoint, randomizeAltitudeRange bool,
 	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
 	if nav := makeNav(callsign, fp, perf, wp, randomizeAltitudeRange, nmPerLongitude, magneticVariation,
 		lg); nav != nil {
@@ -288,10 +288,6 @@ func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.Aircra
 		} else {
 			alt := float32(min(clearedAlt, fp.Altitude))
 			nav.Altitude.Cleared = &alt
-		}
-		if speedRestriction != 0 {
-			speed := float32(max(speedRestriction, int(perf.Speed.Min)))
-			nav.Speed.Restriction = &speed
 		}
 		nav.FlightState.InitialDepartureClimb = true
 		nav.FlightState.Altitude = nav.FlightState.DepartureAirportElevation
