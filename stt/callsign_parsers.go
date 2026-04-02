@@ -96,12 +96,15 @@ func (m *flightMatcher) match(ctx *callsignMatchContext) []callsignMatchResult {
 		}
 
 		exact, consumed, score := matchFlightNumber(remaining, flightNum)
-		if consumed == 0 && len(remaining) > 1 &&
-			remaining[0].Type == TokenWord &&
-			!IsCommandKeyword(remaining[0].Text) {
-			exact, consumed, score = matchFlightNumber(remaining[1:], flightNum)
+		// Try skipping up to 3 garbage words before the flight number
+		// (whisper may insert extra words between the airline and flight number)
+		for skip := 1; consumed == 0 && skip <= 3 && skip < len(remaining); skip++ {
+			if remaining[skip-1].Type != TokenWord || IsCommandKeyword(remaining[skip-1].Text) {
+				break
+			}
+			exact, consumed, score = matchFlightNumber(remaining[skip:], flightNum)
 			if consumed > 0 {
-				consumed++ // account for skipped garbage token
+				consumed += skip // account for skipped garbage tokens
 			}
 		}
 		if consumed == 0 {
