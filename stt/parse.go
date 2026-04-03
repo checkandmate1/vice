@@ -1,6 +1,7 @@
 package stt
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -114,6 +115,7 @@ func ParseCommands(tokens []Token, ac Aircraft) ([]string, float64) {
 
 	// Post-processing: if "knots" appears in the transcript, convert altitude commands to speed
 	commands = convertAltitudeToSpeedIfKnots(tokens, commands)
+	commands = coalesceAfterFixAltitudes(commands)
 
 	avgConf := totalConf / float64(len(commands))
 	logLocalStt("ParseCommands: result=%v (avgConf=%.2f)", commands, avgConf)
@@ -355,4 +357,99 @@ func tryImplicitApproachMatch(tokens []Token, ac Aircraft) (string, int) {
 	}
 
 	return prefix + appr, consumed
+}
+
+// coalesceAfterFixAltitudes transforms bare altitude commands that follow a
+// cross-fix command into after-fix commands. When a controller says "cross FIX
+// at ALT1, descend and maintain ALT2" as a single utterance, the parser
+// independently matches "CFIX/AALT1" and "DALT2". The bare "DALT2" should
+// become "AFIX/DALT2" (after fix, descend and maintain) rather than a direct
+// altitude assignment.
+func coalesceAfterFixAltitudes(commands []string) []string {
+	for i := 0; i+1 < len(commands); i++ {
+		fix := extractFixFromCrossCommand(commands[i])
+		if fix == "" {
+			continue
+		}
+		crossAlt := extractCrossAltitude(commands[i])
+		if transformed := transformToAfterFix(fix, commands[i+1], crossAlt); transformed != "" {
+			logLocalStt("  coalesced after-fix altitude: %s + %s -> %s", commands[i], commands[i+1], transformed)
+			commands[i+1] = transformed
+			i++ // skip the transformed command
+		}
+	}
+	return commands
+}
+
+// extractFixFromCrossCommand extracts the fix name from a cross-fix command
+// like "CROSLY/A60". Returns "" if the command is not a cross-fix command.
+func extractFixFromCrossCommand(cmd string) string {
+	if len(cmd) < 2 || cmd[0] != 'C' {
+		return ""
+	}
+	fix, _, found := strings.Cut(cmd[1:], "/")
+	if !found || fix == "" {
+		return ""
+	}
+	// Exclude pure-number "fixes" — those are climb commands like "C90"
+	if IsNumber(fix) {
+		return ""
+	}
+	return fix
+}
+
+// extractCrossAltitude returns the altitude from a cross-fix command like
+// "CROSLY/A60" → 60, "CROSLY/A57+" → 57. Returns 0 if no altitude found.
+func extractCrossAltitude(cmd string) int {
+	_, after, found := strings.Cut(cmd, "/")
+	if !found || len(after) < 2 || after[0] != 'A' {
+		return 0
+	}
+	// Strip trailing +/- modifier
+	numStr := after[1:]
+	numStr = strings.TrimRight(numStr, "+-")
+	if IsNumber(numStr) {
+		return ParseNumber(numStr)
+	}
+	return 0
+}
+
+// transformToAfterFix converts a bare altitude command to an after-fix form.
+// crossAlt is the altitude from the preceding cross-fix command, used to
+// disambiguate bare "maintain" (A) commands into climb vs descend.
+// Returns "" if the command is not a bare altitude command.
+func transformToAfterFix(fix, cmd string, crossAlt int) string {
+	if len(cmd) < 2 {
+		return ""
+	}
+
+	// Strip "then" prefix if present
+	inner := cmd
+	if inner[0] == 'T' && len(inner) > 1 {
+		inner = inner[1:]
+	}
+
+	if len(inner) < 2 {
+		return ""
+	}
+
+	switch inner[0] {
+	case 'D':
+		if IsNumber(inner[1:]) {
+			return fmt.Sprintf("A%s/D%s", fix, inner[1:])
+		}
+	case 'C':
+		if IsNumber(inner[1:]) {
+			return fmt.Sprintf("A%s/C%s", fix, inner[1:])
+		}
+	case 'A':
+		if IsNumber(inner[1:]) {
+			alt := ParseNumber(inner[1:])
+			if crossAlt > 0 && alt > crossAlt {
+				return fmt.Sprintf("A%s/C%s", fix, inner[1:])
+			}
+			return fmt.Sprintf("A%s/D%s", fix, inner[1:])
+		}
+	}
+	return ""
 }
