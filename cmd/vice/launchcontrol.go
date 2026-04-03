@@ -38,14 +38,14 @@ type LaunchAircraft struct {
 	Aircraft           sim.Aircraft
 	Airport            string
 	LastLaunchCallsign av.ADSBCallsign
-	LastLaunchTime     time.Time
+	LastLaunchTime     sim.Time
 	TotalLaunches      int
 	Spawning           bool // true when a Create RPC is in-flight
 }
 
 func (la *LaunchAircraft) Reset() {
 	la.LastLaunchCallsign = ""
-	la.LastLaunchTime = time.Time{}
+	la.LastLaunchTime = sim.Time{}
 	la.TotalLaunches = 0
 	la.Spawning = false
 }
@@ -161,7 +161,7 @@ func (lc *LaunchControlWindow) spawnArrivalOverflight(lac *LaunchArrivalOverflig
 	}
 }
 
-func (lc *LaunchControlWindow) getLastDeparture(airport string, runway av.RunwayID) (callsign av.ADSBCallsign, launch time.Time) {
+func (lc *LaunchControlWindow) getLastDeparture(airport string, runway av.RunwayID) (callsign av.ADSBCallsign, launch sim.Time) {
 	match := func(dep *LaunchDeparture) bool {
 		return dep.Airport == airport && dep.Runway == runway
 	}
@@ -365,7 +365,7 @@ func (lc *LaunchControlWindow) Draw(eventStream *sim.EventStream, p platform.Pla
 
 		// Helper function for manual launch UI to show MIT and time since last launch
 		mitAndTime := func(ac *sim.Aircraft, launchPosition math.Point2LL,
-			lastLaunchCallsign av.ADSBCallsign, lastLaunchTime time.Time) {
+			lastLaunchCallsign av.ADSBCallsign, lastLaunchTime sim.Time) {
 
 			imgui.TableNextColumn()
 			if prev, ok := lc.client.State.GetTrackByCallsign(lastLaunchCallsign); ok {
@@ -374,7 +374,7 @@ func (lc *LaunchControlWindow) Draw(eventStream *sim.EventStream, p platform.Pla
 
 				imgui.TableNextColumn()
 
-				delta := lc.client.CurrentTime().Sub(lastLaunchTime).Round(time.Second).Seconds()
+				delta := lc.client.InterpolatedSimTime().Sub(lastLaunchTime).Round(time.Second).Seconds()
 				m, s := int(delta)/60, int(delta)%60
 				imgui.Text(fmt.Sprintf("%02d:%02d", m, s))
 			} else {
@@ -484,7 +484,7 @@ func (lc *LaunchControlWindow) Draw(eventStream *sim.EventStream, p platform.Pla
 							if imgui.Button(renderer.FontAwesomeIconPlaneDeparture) {
 								lc.client.LaunchDeparture(dep.Aircraft, string(dep.Runway))
 								dep.LastLaunchCallsign = dep.Aircraft.ADSBCallsign
-								dep.LastLaunchTime = lc.client.CurrentTime()
+								dep.LastLaunchTime = lc.client.InterpolatedSimTime()
 								dep.TotalLaunches++
 
 								dep.Aircraft = sim.Aircraft{}
@@ -593,7 +593,7 @@ func (lc *LaunchControlWindow) Draw(eventStream *sim.EventStream, p platform.Pla
 							if imgui.Button(renderer.FontAwesomeIconPlaneDeparture) {
 								lc.client.LaunchDeparture(dep.Aircraft, string(dep.Runway))
 								dep.LastLaunchCallsign = dep.Aircraft.ADSBCallsign
-								dep.LastLaunchTime = lc.client.CurrentTime()
+								dep.LastLaunchTime = lc.client.InterpolatedSimTime()
 								dep.TotalLaunches++
 
 								dep.Aircraft = sim.Aircraft{}
@@ -718,7 +718,7 @@ func (lc *LaunchControlWindow) Draw(eventStream *sim.EventStream, p platform.Pla
 							if imgui.Button(renderer.FontAwesomeIconPlaneDeparture) {
 								lc.client.LaunchArrivalOverflight(arr.Aircraft)
 								arr.LastLaunchCallsign = arr.Aircraft.ADSBCallsign
-								arr.LastLaunchTime = lc.client.CurrentTime()
+								arr.LastLaunchTime = lc.client.InterpolatedSimTime()
 								arr.TotalLaunches++
 
 								arr.Aircraft = sim.Aircraft{}
@@ -808,7 +808,7 @@ func (lc *LaunchControlWindow) Draw(eventStream *sim.EventStream, p platform.Pla
 							if imgui.Button(renderer.FontAwesomeIconPlaneDeparture) {
 								lc.client.LaunchArrivalOverflight(of.Aircraft)
 								of.LastLaunchCallsign = of.Aircraft.ADSBCallsign
-								of.LastLaunchTime = lc.client.CurrentTime()
+								of.LastLaunchTime = lc.client.InterpolatedSimTime()
 								of.TotalLaunches++
 
 								of.Aircraft = sim.Aircraft{}

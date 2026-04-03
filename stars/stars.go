@@ -75,7 +75,7 @@ type STARSPane struct {
 	// 'display weather history' command was entered.
 	wxHistoryDraw int
 	// Time at which to step to the next history snapshot (5s intervals).
-	wxNextHistoryStepTime time.Time
+	wxNextHistoryStepTime sim.Time
 
 	systemFontA, systemFontB               [6]*renderer.Font
 	systemOutlineFontA, systemOutlineFontB [6]*renderer.Font
@@ -130,12 +130,12 @@ type STARSPane struct {
 	FontSelection int32
 
 	DisplayBeaconCode        av.Squawk
-	DisplayBeaconCodeEndTime time.Time
+	DisplayBeaconCodeEndTime sim.Time
 
 	DisplayRequestedAltitude bool
 
 	// When VFR flight plans were first seen (used for sorting in VFR list)
-	VFRFPFirstSeen map[sim.ACID]time.Time
+	VFRFPFirstSeen map[sim.ACID]sim.Time
 
 	transientCommandHandlers []userCommand // handlers for next keyboard Enter or scope click
 	activeSpinner            dcbSpinner
@@ -160,8 +160,8 @@ type STARSPane struct {
 	previewAreaInput  string
 	dcbShowAux        bool
 
-	lastTrackUpdate        time.Time
-	lastHistoryTrackUpdate time.Time
+	lastTrackUpdate        sim.Time
+	lastHistoryTrackUpdate sim.Time
 	discardTracks          bool
 
 	// The start of a RBL--one click received, waiting for the second.
@@ -171,7 +171,7 @@ type STARSPane struct {
 	testAudioEndTime time.Time
 
 	highlightedLocation        math.Point2LL
-	highlightedLocationEndTime time.Time
+	highlightedLocationEndTime sim.Time
 
 	// Built-in screenshots / video captures
 	capture struct {
@@ -274,8 +274,8 @@ func (ae AudioType) String() string {
 type CAAircraft struct {
 	ADSBCallsigns [2]av.ADSBCallsign // sorted alphabetically
 	Acknowledged  bool
-	SoundEnd      time.Time
-	Start         time.Time
+	SoundEnd      sim.Time
+	Start         sim.Time
 }
 
 type CRDAMode int
@@ -699,13 +699,13 @@ func (sp *STARSPane) Activate(r renderer.Renderer, p platform.Platform, eventStr
 		sp.TrackState = make(map[av.ADSBCallsign]*TrackState)
 	}
 	if sp.VFRFPFirstSeen == nil {
-		sp.VFRFPFirstSeen = make(map[sim.ACID]time.Time)
+		sp.VFRFPFirstSeen = make(map[sim.ACID]sim.Time)
 	}
 
 	sp.events = eventStream.Subscribe()
 
-	sp.lastTrackUpdate = time.Time{} // force immediate update at start
-	sp.lastHistoryTrackUpdate = time.Time{}
+	sp.lastTrackUpdate = sim.Time{} // force immediate update at start
+	sp.lastHistoryTrackUpdate = sim.Time{}
 
 	if sp.TgtGenKey == 0 {
 		sp.TgtGenKey = ';'
@@ -789,8 +789,8 @@ func (sp *STARSPane) ResetSim(client *client.ControlClient, pl platform.Platform
 		sp.Colors = monitorColorSets[sp.Monitor]
 	}
 
-	sp.lastTrackUpdate = time.Time{} // force update
-	sp.lastHistoryTrackUpdate = time.Time{}
+	sp.lastTrackUpdate = sim.Time{} // force update
+	sp.lastHistoryTrackUpdate = sim.Time{}
 
 	sp.atmosGrid = nil
 	sp.mvaGrid = av.MakeMVAGrid(av.DB.MVAs[client.State.Facility])
@@ -1215,8 +1215,8 @@ func (sp *STARSPane) Draw(ctx *panes.Context, cb *renderer.CommandBuffer) {
 		for _, state := range sp.TrackState {
 			state.historyTracksIndex = 0
 		}
-		sp.lastTrackUpdate = time.Time{} // force update
-		sp.lastHistoryTrackUpdate = time.Time{}
+		sp.lastTrackUpdate = sim.Time{} // force update
+		sp.lastHistoryTrackUpdate = sim.Time{}
 		sp.discardTracks = false
 	}
 
@@ -1269,12 +1269,12 @@ func (sp *STARSPane) drawPauseOverlay(ctx *panes.Context, cb *renderer.CommandBu
 func (sp *STARSPane) drawWX(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
 	ps := sp.currentPrefs()
 
-	if !sp.wxNextHistoryStepTime.IsZero() && ctx.Now.After(sp.wxNextHistoryStepTime) {
+	if !sp.wxNextHistoryStepTime.IsZero() && ctx.SimTime.After(sp.wxNextHistoryStepTime) {
 		sp.wxHistoryDraw--
 		if sp.wxHistoryDraw > 0 {
-			sp.wxNextHistoryStepTime = ctx.Now.Add(5 * time.Second)
+			sp.wxNextHistoryStepTime = ctx.SimTime.Add(5 * time.Second)
 		} else {
-			sp.wxNextHistoryStepTime = time.Time{}
+			sp.wxNextHistoryStepTime = sim.Time{}
 			if sp.previewAreaOutput == "IN PROGRESS" {
 				sp.previewAreaOutput = ""
 			}
@@ -1537,7 +1537,7 @@ func (sp *STARSPane) drawRestrictionAreas(ctx *panes.Context, transforms radar.S
 	td := renderer.GetTextDrawBuilder()
 	defer renderer.ReturnTextDrawBuilder(td)
 	font := sp.systemFont(ctx, ps.CharSize.Lists)
-	halfSeconds := ctx.Now.UnixMilli() / 500
+	halfSeconds := time.Now().UnixMilli() / 500
 	blinkDim := halfSeconds&1 == 0
 	color := ps.Brightness.VideoGroupB.ScaleRGB(sp.Colors.RestrictionAreaText)
 
@@ -1745,7 +1745,6 @@ func (sp *STARSPane) updateVisibleTracks(ctx *panes.Context) {
 
 	ps := sp.currentPrefs()
 	single := sp.radarMode(ctx.FacilityAdaptation.RadarSites) == RadarModeSingle
-	now := ctx.Client.CurrentTime()
 
 	for _, trk := range ctx.Client.State.Tracks {
 		visible := false
@@ -1775,7 +1774,7 @@ func (sp *STARSPane) updateVisibleTracks(ctx *panes.Context) {
 
 			// Is this the first we've seen it?
 			if state.FirstRadarTrackTime.IsZero() {
-				state.FirstRadarTrackTime = now
+				state.FirstRadarTrackTime = ctx.SimTime
 			}
 		}
 	}
@@ -1884,7 +1883,7 @@ const AlertAudioDuration = 5 * time.Second
 func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 	ps := sp.currentPrefs()
 
-	if !sp.testAudioEndTime.IsZero() && ctx.Now.After(sp.testAudioEndTime) {
+	if !sp.testAudioEndTime.IsZero() && time.Now().After(sp.testAudioEndTime) {
 		ctx.Platform.StopPlayAudio(sp.audioEffects[AudioTest])
 		sp.testAudioEndTime = time.Time{}
 	}
@@ -1912,7 +1911,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 				}
 				return trk0.IsAssociated() && !trk0.FlightPlan.DisableCA &&
 					trk1.IsAssociated() && !trk1.FlightPlan.DisableCA &&
-					ctx.Now.Before(ca.SoundEnd)
+					ctx.SimTime.Before(ca.SoundEnd)
 			})
 		playCASound = playCASound || slices.ContainsFunc(sp.MCIAircraft,
 			func(ca CAAircraft) bool {
@@ -1921,7 +1920,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 				}
 				trk0, ok := ctx.GetTrackByCallsign(ca.ADSBCallsigns[0])
 				return ok && trk0.IsAssociated() && !trk0.FlightPlan.DisableCA &&
-					ctx.Now.Before(ca.SoundEnd)
+					ctx.SimTime.Before(ca.SoundEnd)
 			})
 	}
 	updateContinuous(playCASound, AudioConflictAlert)
@@ -1933,7 +1932,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 			}
 			state := sp.TrackState[trk.ADSBCallsign]
 			if state.MSAW && !state.MSAWAcknowledged && !state.InhibitMSAW &&
-				ctx.Now.Before(state.MSAWSoundEnd) {
+				ctx.SimTime.Before(state.MSAWSoundEnd) {
 				return true
 			}
 		}
@@ -1949,7 +1948,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 		for _, trk := range sp.visibleTracks {
 			state := sp.TrackState[trk.ADSBCallsign]
 			ok, _ := trk.Squawk.IsSPC()
-			if ok && !state.SPCAcknowledged && ctx.Now.Before(state.SPCSoundEnd) {
+			if ok && !state.SPCAcknowledged && ctx.SimTime.Before(state.SPCSoundEnd) {
 				return true
 			}
 		}

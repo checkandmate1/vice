@@ -259,7 +259,7 @@
   },
   "facility_adaptations": {
     "configurations": {
-      "CF2": {
+      "B8": {
         "inbound_assignments": {
           "EDWP4": "1F",
           "FERN7": "1M",
@@ -285,7 +285,7 @@
           "1X": ["1J"]
         }
       },
-      "CF1": {
+      "B1": {
         "inbound_assignments": {
           "EDWP4": "1F",
           "FERN7": "1M",
@@ -311,7 +311,7 @@
           "1X": ["1J"]
         }
       },
-      "CF4": {
+      "B6": {
         "inbound_assignments": {
           "EDWP4": "1F",
           "FERN7": "1M",
@@ -333,7 +333,7 @@
           "1X": ["1J"]
         }
       },
-      "CF3": {
+      "B5": {
         "inbound_assignments": {
           "EDWP4": "1F",
           "FERN7": "1M",
@@ -355,7 +355,7 @@
           "1X": ["1J"]
         }
       },
-      "DEL": {
+      "6E3": {
         "inbound_assignments": {
           "KARLB3/GOATZ2.E": "6K",
           "LEGOZ4": "6K",
@@ -374,7 +374,7 @@
           "6X": ["6K"]
         }
       },
-      "DE1": {
+      "6E1": {
         "inbound_assignments": {
           "KARLB3/GOATZ2.E": "6K",
           "LEGOZ4": "6K",
@@ -393,7 +393,7 @@
           "6X": ["6K"]
         }
       },
-      "DE2": {
+      "6W3": {
         "inbound_assignments": {
           "KARLB3/GOATZ2": "6K",
           "LEGOZ4": "6K",
@@ -421,7 +421,7 @@
           "6X": ["6K"]
         }
       },
-      "DE3": {
+      "6W1": {
         "inbound_assignments": {
           "KARLB3/GOATZ2": "6K",
           "LEGOZ4": "6K",
@@ -440,7 +440,7 @@
           "6X": ["6K"]
         }
       },
-      "DE4": {
+      "DLM": {
         "departure_assignments": {
           "KLAX": "6S"
         },
@@ -809,7 +809,7 @@
           "2Z": ["2U"]
         }
       },
-      "COA": {
+      "NEE": {
         "inbound_assignments": {
           "BAUBB3/RUKKI1/PCIFC3/OHSEA3 East": "4R",
           "GOATZ2/KALRB3": "4Y",
@@ -829,7 +829,7 @@
           "4Y": ["4R", "4S"]
         }
       },
-      "CO1": {
+      "NEW": {
         "inbound_assignments": {
           "BAUBB3/RUKKI1/PCIFC3/OHSEA3 East": "4R",
           "GOATZ2/KALRB3": "4Y",
@@ -850,7 +850,7 @@
           "4Y": ["4R", "4S"]
         }
       },
-      "CO2": {
+      "FIN": {
         "inbound_assignments": {
           "DSNEE6": "4T",
           "OHSEA3.FINAL": "4T"
@@ -859,7 +859,7 @@
           "4T": []
         }
       },
-      "CO3": {
+      "SWE": {
         "inbound_assignments": {
           "BAUBB3/RUKKI1/PCIFC3/OHSEA3": "4R",
           "DSNEE6": "4A",
@@ -879,7 +879,7 @@
           "4Y": ["4R", "4S"]
         }
       },
-      "CO4": {
+      "SWW": {
         "inbound_assignments": {
           "BAUBB3/RUKKI1/PCIFC3/OHSEA3": "4R",
           "DSNEE6": "4A",
@@ -970,7 +970,8 @@
         }
       }
     },
-    "center": "JAZEE",
+    "center": "PIGGN",
+    "max_distance": 200,
     "controllers": {
       "1M": {
         "flight_following_airspace": [
@@ -979,280 +980,122 @@
             "ceiling": 13000,
             "vertices": "N034.12.32.124,W118.48.57.551 N034.22.38.349,W118.59.38.961 N034.30.50.234,W119.06.17.023 N034.32.13.003,W118.51.13.809 N034.30.42.434,W118.49.56.987 N034.31.31.419,W118.37.57.108 N034.35.55.435,W118.25.53.686 N034.30.45.510,W118.21.41.275 N034.32.45.715,W118.15.39.852 N034.20.38.804,W118.06.28.366 N034.16.19.129,W118.09.09.206 N034.14.16.274,W118.05.57.604 N034.05.23.052,W118.06.06.723 N034.05.10.075,W118.32.32.572 N034.06.06.297,W118.31.55.164 N034.05.57.344,W118.41.03.217 N034.12.07.761,W118.43.08.378"
           }
-        ],
-        "video_maps": [
-          "701S FUS 3NM MVA SCT",
-          "711S EOVM SCT",
-          "721S FREEWAY SCT",
-          "121S BUR GPS SCT",
-          "130S BUR B-C SCT",
-          "720S MEDFLY SCT",
-          "100S BURB LW SCT",
-          "102S BURB LO SCT",
-          "723S B-C A-S SCT",
-          "740S EMERGENCY SCT",
-          "325S RNAV VISUAL APPROACHES SCT",
-          "720S MEDFLY SCT",
-          "121S BUR GPS SCT",
-          "200S LAAB LW SCT",
-          "400S CB LWSS SCT",
-          "600S DB LW SCT",
-          "140S B8-15W SCT",
-          "141S B26-33W SCT",
-          "142S B8-15E SCT",
-          "143S B26-33E SCT",
-          "144S BOO SCT",
-          "",
-          "101S BURB LE SCT",
-          "701S FUS 3NM MVA SCT",
-          "722S D-E A-S SCT",
-          "",
-          "130S BUR B-C SCT",
-          "721S FREEWAY SCT",
-          "711S EOVM SCT",
-          "300S EMPB LW SCT",
-          "500S SB WEST SCT"
         ]
       },
       "5W": {
-        "center": "ZOKOS",
-        "range": 40,
-        "default_maps": ["500S SB WEST SCT"],
-        "video_maps": [
-          "701S FUS 3NM MVA SCT",
-          "711S EOVM SCT",
-          "722S D-E A-S SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "521S SAN GPS WEST SCT",
-          "500S SB WEST SCT",
-          "724S AIRWAY SCT",
-          "701S FUS 3NM MVA SCT",
-          "722S D-E A-S SCT",
-          "450S ZLA ASW SCT",
-          "561S AIRSHOW SCT",
-          "721S FREEWAY SCT",
-          "711S EOVM SCT",
-          "563S SAN 1 SCT",
-          "565S SAN 3 SCT",
-          "",
-          "562S NFG GOLF AIRSPACE SCT",
-          "",
-          "",
-          "",
-          "",
-          "501S SB EAST SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "740S EMERGENCY SCT",
-          "",
-          "567S SAN DROP ZONES SCT",
-          "521S SAN GPS WEST SCT",
-          "",
-          "564S SAN 2 SCT",
-          "",
-          "560S SAN 296 SCT"
-        ]
-      },
-      "5E": {
-        "center": "ZOKOS",
-        "range": 40,
-        "default_maps": ["500S SB WEST SCT"],
-        "video_maps": [
-          "701S FUS 3NM MVA SCT",
-          "711S EOVM SCT",
-          "722S D-E A-S SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "521S SAN GPS WEST SCT",
-          "500S SB WEST SCT",
-          "724S AIRWAY SCT",
-          "701S FUS 3NM MVA SCT",
-          "722S D-E A-S SCT",
-          "450S ZLA ASW SCT",
-          "561S AIRSHOW SCT",
-          "721S FREEWAY SCT",
-          "711S EOVM SCT",
-          "563S SAN 1 SCT",
-          "565S SAN 3 SCT",
-          "",
-          "562S NFG GOLF AIRSPACE SCT",
-          "",
-          "",
-          "",
-          "",
-          "501S SB EAST SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "740S EMERGENCY SCT",
-          "",
-          "567S SAN DROP ZONES SCT",
-          "521S SAN GPS WEST SCT",
-          "",
-          "564S SAN 2 SCT",
-          "",
-          "560S SAN 296 SCT"
-        ]
-      },
-      "5M": {
-        "center": "ZOKOS",
-        "range": 40,
-        "default_maps": ["500S SB WEST SCT"],
-        "video_maps": [
-          "701S FUS 3NM MVA SCT",
-          "711S EOVM SCT",
-          "722S D-E A-S SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "521S SAN GPS WEST SCT",
-          "500S SB WEST SCT",
-          "724S AIRWAY SCT",
-          "701S FUS 3NM MVA SCT",
-          "722S D-E A-S SCT",
-          "450S ZLA ASW SCT",
-          "561S AIRSHOW SCT",
-          "721S FREEWAY SCT",
-          "711S EOVM SCT",
-          "563S SAN 1 SCT",
-          "565S SAN 3 SCT",
-          "",
-          "562S NFG GOLF AIRSPACE SCT",
-          "",
-          "",
-          "",
-          "",
-          "501S SB EAST SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "740S EMERGENCY SCT",
-          "",
-          "567S SAN DROP ZONES SCT",
-          "521S SAN GPS WEST SCT",
-          "",
-          "564S SAN 2 SCT",
-          "",
-          "560S SAN 296 SCT"
-        ]
-      },
-      "5N": {
-        "center": "ZOKOS",
-        "range": 40,
-        "default_maps": ["500S SB WEST SCT"],
-        "video_maps": [
-          "701S FUS 3NM MVA SCT",
-          "711S EOVM SCT",
-          "722S D-E A-S SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "521S SAN GPS WEST SCT",
-          "500S SB WEST SCT",
-          "724S AIRWAY SCT",
-          "701S FUS 3NM MVA SCT",
-          "722S D-E A-S SCT",
-          "450S ZLA ASW SCT",
-          "561S AIRSHOW SCT",
-          "721S FREEWAY SCT",
-          "711S EOVM SCT",
-          "563S SAN 1 SCT",
-          "565S SAN 3 SCT",
-          "",
-          "562S NFG GOLF AIRSPACE SCT",
-          "",
-          "",
-          "",
-          "",
-          "501S SB EAST SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "740S EMERGENCY SCT",
-          "",
-          "567S SAN DROP ZONES SCT",
-          "521S SAN GPS WEST SCT",
-          "",
-          "564S SAN 2 SCT",
-          "",
-          "560S SAN 296 SCT"
-        ]
-      },
-      "5Z": {
-        "center": "ZOKOS",
-        "range": 40,
-        "default_maps": ["500S SB WEST SCT"],
-        "video_maps": [
-          "701S FUS 3NM MVA SCT",
-          "711S EOVM SCT",
-          "722S D-E A-S SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "521S SAN GPS WEST SCT",
-          "500S SB WEST SCT",
-          "724S AIRWAY SCT",
-          "701S FUS 3NM MVA SCT",
-          "722S D-E A-S SCT",
-          "450S ZLA ASW SCT",
-          "561S AIRSHOW SCT",
-          "721S FREEWAY SCT",
-          "711S EOVM SCT",
-          "563S SAN 1 SCT",
-          "565S SAN 3 SCT",
-          "",
-          "562S NFG GOLF AIRSPACE SCT",
-          "",
-          "",
-          "",
-          "",
-          "501S SB EAST SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "740S EMERGENCY SCT",
-          "",
-          "567S SAN DROP ZONES SCT",
-          "521S SAN GPS WEST SCT",
-          "",
-          "564S SAN 2 SCT",
-          "",
-          "560S SAN 296 SCT"
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 15000,
+            "vertices": "N032.25.28.541,W117.21.47.730 N032.29.15.381,W117.31.02.924 N032.52.15.031,W117.43.42.079 N033.04.38.118,W117.54.29.668 N033.12.34.019,W117.40.28.198 N033.19.21.460,W117.33.14.897 N033.20.49.392,W117.26.46.365 N033.28.03.476,W117.16.59.778 N033.27.15.562,W116.46.42.639 N033.16.05.629,W116.33.10.228 N032.58.18.239,W116.26.14.450 N032.34.45.493,W116.26.41.037 N032.31.16.300,W117.07.04.594 N032.25.28.541,W117.21.47.730"
+          }
         ]
       },
       "5D": {
-        "center": "ZOKOS",
-        "range": 40,
-        "default_maps": ["500S SB WEST SCT"],
-        "video_maps": [
-          "701S FUS 3NM MVA SCT",
-          "711S EOVM SCT",
-          "722S D-E A-S SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "521S SAN GPS WEST SCT",
-          "500S SB WEST SCT",
-          "724S AIRWAY SCT",
-          "701S FUS 3NM MVA SCT",
-          "722S D-E A-S SCT",
-          "450S ZLA ASW SCT",
-          "561S AIRSHOW SCT",
-          "721S FREEWAY SCT",
-          "711S EOVM SCT",
-          "563S SAN 1 SCT",
-          "565S SAN 3 SCT",
-          "",
-          "562S NFG GOLF AIRSPACE SCT",
-          "",
-          "",
-          "",
-          "",
-          "501S SB EAST SCT",
-          "520S SAN FIX SCT",
-          "723S B-C A-S SCT",
-          "740S EMERGENCY SCT",
-          "",
-          "567S SAN DROP ZONES SCT",
-          "521S SAN GPS WEST SCT",
-          "",
-          "564S SAN 2 SCT",
-          "",
-          "560S SAN 296 SCT"
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 8000,
+            "vertices": "N033.10.50.706,W117.39.50.185 N033.22.47.317,W117.38.25.892 N033.28.17.085,W117.34.42.513 N033.32.50.521,W117.28.36.586 N033.25.31.741,W117.14.46.129"
+          }
         ]
+      },
+      "4Y": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 13000,
+            "vertices": "N033.11.01.871,W117.59.15.917 N033.14.00.838,W118.17.37.928 N033.24.10.277,W118.09.53.865 N033.26.36.286,W118.10.31.961 N033.31.05.917,W118.21.02.109 N033.35.06.916,W118.25.40.612 N033.42.46.845,W118.26.02.942 N033.43.25.311,W118.22.06.654 N033.49.34.150,W118.21.33.173 N033.53.38.293,W118.15.44.165 N033.53.41.699,W118.03.17.012 N033.57.01.060,W118.02.27.711 N033.56.42.575,W117.45.09.118 N033.50.46.357,W117.33.29.674 N033.43.57.364,W117.32.46.497 N033.40.56.117,W117.25.57.751 N033.28.40.404,W117.13.48.451 N033.19.51.934,W117.20.47.772 N033.10.11.718,W117.14.15.258 N033.12.11.867,W117.36.13.837 N033.03.08.442,W117.53.31.221"
+          }
+        ]
+      },
+      "6S": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 15000,
+            "vertices": "N034.07.11.295,W118.26.12.143 N034.00.00.617,W118.38.35.945 N033.45.15.010,W118.36.45.120 N033.40.39.788,W118.32.15.983 N033.41.36.107,W118.19.56.493 N033.50.00.050,W118.20.25.991 N033.51.45.477,W118.15.46.609 N033.51.46.109,W118.11.54.770 N033.55.41.876,W118.18.35.991 N033.58.55.070,W118.15.24.389 N034.07.46.452,W118.23.34.901"
+          }
+        ]
+      },
+      "6X": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "floor": 8000,
+            "ceiling": 14000,
+            "vertices": "N033.25.19.258,W118.06.18.012 N033.27.30.956,W118.17.25.184 N033.34.04.445,W118.32.25.431 N033.41.33.333,W118.37.30.714 N033.45.43.121,W118.37.21.952 N033.47.51.771,W118.22.51.093 N033.52.51.052,W118.14.42.449 N033.53.22.281,W117.56.00.058 N033.49.39.959,W117.57.03.284 N033.43.44.606,W117.50.47.003 N033.42.18.858,W117.52.22.337 N033.39.25.740,W117.47.32.545 N033.35.23.519,W117.50.34.313 N033.25.19.244,W118.02.43.806"
+          }
+        ]
+      },
+      "6K": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 14000,
+            "vertices": "  N033.46.36.514,W118.55.47.973 N033.46.59.819,W118.35.57.577 N033.39.35.491,W118.29.10.643 N033.32.05.106,W118.23.35.148 N033.28.56.183,W118.09.42.769 N033.26.58.066,W118.03.29.536 N033.18.03.828,W118.08.57.203 N033.11.36.766,W118.12.03.861 N033.15.01.318,W118.23.32.512 N033.10.16.442,W118.30.14.556 N033.25.09.123,W118.49.54.653 N033.38.56.476,W118.47.28.699"
+          }
+        ]
+      },
+      "6N": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 13000,
+            "vertices": "  N033.52.31.483,W118.56.40.845 N033.50.35.083,W118.52.03.385 N033.53.58.810,W118.24.33.486 N034.05.51.315,W118.28.42.875 N034.07.42.290,W118.48.09.102 N034.09.55.829,W118.58.01.512 N033.55.13.380,W118.57.54.838"
+          }
+        ]
+      },
+      "3P": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 14000,
+            "vertices": "N034.12.20.670,W116.52.25.440 N033.25.00.045,W116.45.53.970 N033.25.23.240,W117.18.04.652 N033.38.41.562,W117.29.15.560 N033.39.29.874,W117.36.48.361 N033.48.14.897,W117.36.54.349 N033.50.25.003,W117.43.53.505 N033.52.06.571,W117.48.00.203 N033.50.46.357,W117.54.27.608 N033.51.01.766,W117.58.41.420 N033.58.39.552,W117.55.50.555 N034.03.18.014,W118.10.07.434 N034.19.07.274,W118.10.07.022 N034.24.29.187,W118.03.31.541 N034.29.37.835,W117.50.37.554 N034.29.27.466,W117.41.55.759 N034.35.21.611,W117.41.15.823 N034.28.19.145,W117.18.12.755 N034.23.42.908,W117.05.18.136"
+          }
+        ]
+      },
+      "3S": {
+        "flight_following_airspace": [
+          {
+            "type": "polygon",
+            "ceiling": 15000,
+            "vertices": "N033.24.53.344,W116.49.50.643 N034.12.44.648,W116.55.20.837 N034.11.36.107,W116.17.16.669 N033.46.58.336,W115.46.49.094 N033.36.41.962,W115.54.00.774 N033.30.56.785,W115.43.26.094 N033.24.27.471,W116.10.12.405 N033.32.39.576,W116.19.27.352 N033.35.41.976,W116.46.15.942 N033.24.05.663,W116.43.56.389"
+          }
+        ]
+      }
+    },
+    "ssr_codes": {
+      "auto_assignable_codes": {
+        "ifr": {
+          "ranges": ["5201-5277"],
+          "backup_pool_list": "4"
+        },
+        "vfr": {
+          "ranges": ["0201-0277"],
+          "backup_pool_list": "1"
+        },
+        "1": {
+          "ranges": ["0301-0377"],
+          "flight_rules": "v",
+          "backup_pool_list": "2"
+        },
+        "2": {
+          "ranges": ["4201-4277"],
+          "flight_rules": "v",
+          "backup_pool_list": "3"
+        },
+        "3": {
+          "ranges": ["4301-4377"],
+          "flight_rules": "v",
+          "backup_pool_list": "4"
+        },
+        "4": {
+          "ranges": ["5501-5577"]
+        }
+      },
+      "beacon_code_table": {
+        "vfr_codes": ["1200-1202"]
       }
     },
     "radar_sites": {
@@ -1483,7 +1326,7 @@
         }
       ]
     },
-    "range": 25,
+    "range": 70,
     "scratchpads": {
       "COREZ": "ORB",
       "CSTRO": "ORH",
@@ -1885,7 +1728,21 @@
           "500S SB WEST SCT"
         ],
         "center": "JAZEE",
-        "range": 25
+        "range": 25,
+        "scratchpads": {
+          "COREZ": "ORB",
+          "CSTRO": "ORH",
+          "HAILO": "SLP",
+          "LAS": "SLP",
+          "MISEN": "SLP",
+          "HEC": "SLP",
+          "BLH": "SLP",
+          "DAG": "VRA",
+          "LAX": "LAX",
+          "SLI": "SLI",
+          "GMN": "GMN"
+        },
+        "altimeters": ["KBUR", "KVNY", "KWHP", "KSMO"]
       },
       "2": {
         "video_maps": [
@@ -1927,12 +1784,20 @@
           "221S LAA GPS SCT"
         ],
         "scratchpads": {
+          "LAS": "LAS",
+          "HAILO": "HAL",
           "BEALE": "BEL",
+          "AVE": "AVE",
+          "EHF": "EHF",
+          "CLEEE": "CLE",
           "CNERY": "CNR",
-          "EHF": "EHF"
+          "CSTRO": "CTO",
+          "COREZ": "COZ",
+          "SCTRR": "SCT"
         },
         "center": "N034.01.46.059,W117.57.17.869",
-        "range": 35
+        "range": 35,
+        "altimeters": ["KHHR", "KLAX", "KSMO"]
       },
       "3": {
         "video_maps": [
@@ -1973,14 +1838,26 @@
         ],
         "scratchpads": {
           "AVRRY": "MTB",
-          "BEALE": "NVY",
-          "EED": "MYK",
-          "FUSBL": "MYK",
           "MTBAL": "MTB",
+          "DINTY": "SHL",
           "OTAYY": "OTY",
+          "COREZ": "LND",
+          "LAS": "NVY",
+          "BEALE": "NVY",
+          "ZELMA": "MYK",
           "PMD": "YUC",
           "TRM": "TRE",
-          "ZELMA": "MYK"
+          "FUSBL": "MYK",
+          "EED": "MYK",
+          "BLH": "TEG",
+          "PDZ": "PDZ",
+          "RAVON": "RVN",
+          "RRIZE": "RZE",
+          "CIVET": "CIV",
+          "TIFNI": "TIF",
+          "POM": "POM",
+          "NIKKL": "NIK",
+          "SXC": "DTY"
         },
         "airspace_awareness": [
           {
@@ -2005,7 +1882,8 @@
           }
         ],
         "center": "N033.59.51.732,W116.58.48.726",
-        "range": 40
+        "range": 40,
+        "altimeters": ["KCNO", "KEMT", "KONT", "KPSP", "KRAL", "KSBD"]
       },
       "4": {
         "video_maps": [
@@ -2046,22 +1924,34 @@
           "724S AIRWAY SCT"
         ],
         "scratchpads": {
+          "BEALE": "FIN",
+          "MISEN": "FIN",
+          "EHF": "HRC",
+          "IKAYE": "HRY",
+          "OROSZ": "HRC",
           "AVRRY": "PIG",
-          "AVRRY.S": "STY",
-          "BEALE.N": "HOB",
-          "BLCKD": "FRT",
           "CNERY": "PIG",
-          "CNERY.S": "STY",
-          "HHERO": "MIK",
-          "MISEN.N": "HOB",
-          "OTAYY": "PIG",
-          "OTAYY.S": "STY",
-          "PEELR": "FRT",
           "TCATE": "PIG",
-          "TCATE.S": "STY"
+          "OTAYY": "PIG",
+          "HHERO": "MIK",
+          "AVRRY.S": "STY",
+          "CNERY.S": "STY",
+          "TCATE.S": "STY",
+          "OTAYY.S": "STY",
+          "BEALE.N": "HOB",
+          "MISEN.N": "HOB",
+          "PEELR": "FRT",
+          "BLCKD": "FRT",
+          "CSTRO": "TPO",
+          "COREZ": "TPO",
+          "ARRMY": "ZMM",
+          "BLAZN": "ZMM",
+          "YELAH": "ZMM",
+          "WYZEE": "ZMM"
         },
         "center": "N033.35.35.426,W117.48.13.524",
-        "range": 30
+        "range": 30,
+        "altimeters": ["KLGB", "KLAX", "KSNA", "KTOA"]
       },
       "5": {
         "video_maps": [
@@ -2100,24 +1990,30 @@
           "560S SAN 296 SCT"
         ],
         "scratchpads": {
-          "BAKEL": "BAK",
-          "CENZA": "ZOM",
+          "SLI": "LAX",
           "CHKNN": "PAD",
-          "DINTY": "PAD",
+          "OROSZ": "PAD",
           "EHF": "PAD",
-          "GBN": "ZOI",
-          "HOGGZ": "ZOI",
-          "IKAYE": "PAD",
-          "IPL": "SAI",
           "MALIT": "PAD",
           "MTBAL": "ZOP",
-          "OROSZ": "PAD",
-          "ROBNN": "RBN",
+          "IPL": "SAI",
+          "LAX": "LAX",
+          "CENZA": "ZOM",
+          "HOGGZ": "ZOI",
+          "TGOLD": "ZOI",
+          "GBN": "ZOI",
           "SXC": "SXC",
-          "TGOLD": "ZOI"
+          "JLI": "JLI",
+          "IKAYE": "PAD",
+          "DINTY": "PAD",
+          "MZB": "MZB",
+          "OCN": "OCN",
+          "ROBNN": "RBN",
+          "BAKEL": "BAK"
         },
         "center": "ZOKOS",
-        "range": 40
+        "range": 40,
+        "altimeters": ["KCRQ", "KMYF", "KSAN", "KSDM", "KSEE"]
       },
       "6": {
         "video_maps": [
@@ -2155,24 +2051,24 @@
           ""
         ],
         "scratchpads": {
-          "AVE": "GMN",
+          "LAS": "CLP",
+          "MISEN": "CLP",
           "BEALE": "OSH",
+          "AVE": "GMN",
+          "EHF": "GMN",
           "CLEEE": "DOT",
           "CNERY": "DOT",
-          "EHF": "GMN",
+          "CSTRO": "LDH",
+          "COREZ": "LDB",
           "SCTRR": "SMR"
         },
         "center": "N033.41.38.744,W118.21.53.717",
-        "range": 30
+        "range": 30,
+        "altimeters": ["KHHR", "KLAX", "KLGB", "KSMO", "KTOA"]
       }
     },
     "lists": {
       "coordination": [
-        {
-          "name": "SAN BERNADINO",
-          "id": "P",
-          "airports": ["KSBD"]
-        },
         {
           "name": "HAWTHORNE",
           "id": "65",
@@ -2192,6 +2088,11 @@
           "name": "VAN NUYS",
           "id": "12",
           "airports": ["KVNY"]
+        },
+        {
+          "name": "WHITEMAN",
+          "id": "1B",
+          "airports": ["KWHP"]
         },
         {
           "name": "PALM SPRINGS",

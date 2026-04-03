@@ -41,11 +41,11 @@ func (rd *RedirectedHandoff) GetLastRedirector() ControlPosition {
 	}
 }
 
-func (rd *RedirectedHandoff) ShowRDIndicator(pos ControlPosition, RDIndicatorEnd time.Time) bool {
+func (rd *RedirectedHandoff) ShowRDIndicator(pos ControlPosition, RDIndicatorEnd, simTime Time) bool {
 	// Show "RD" to the redirect target, last redirector until the RD is accepted.
 	// Show "RD" to the original owner up to 30 seconds after the RD is accepted.
 	return pos != "" && (rd.RedirectedTo == pos || rd.GetLastRedirector() == pos ||
-		rd.OriginalOwner == pos || time.Until(RDIndicatorEnd) > 0)
+		rd.OriginalOwner == pos || RDIndicatorEnd.After(simTime))
 }
 
 func (rd *RedirectedHandoff) ShouldFallbackToHandoff(ctrl, octrl ControlPosition) bool {
@@ -1097,7 +1097,7 @@ type NASFlightPlan struct {
 	ArrivalAirport        string // Technically not a string, but until the NAS system is fully integrated, we'll need this.
 	ExitFixIsIntermediate bool
 	Rules                 av.FlightRules
-	CoordinationTime      time.Time
+	CoordinationTime      Time
 	PlanType              NASFlightPlanType
 
 	AssignedSquawk av.Squawk
@@ -1161,12 +1161,12 @@ type NASFlightPlan struct {
 	RedirectedHandoff   RedirectedHandoff
 
 	InhibitACTypeDisplay      bool
-	ForceACTypeDisplayEndTime time.Time
+	ForceACTypeDisplayEndTime Time
 	CWTCategory               string
 
 	// After fps are dropped, we hold on to them for a bit before they're
 	// actually deleted.
-	DeleteTime time.Time
+	DeleteTime Time
 
 	// Used so that such FPs can associate regardless of acquisition filters.
 	ManuallyCreated bool
@@ -1195,7 +1195,7 @@ type FlightPlanSpecifier struct {
 	ExitFix               util.Optional[string]
 	ExitFixIsIntermediate util.Optional[bool]
 	Rules                 util.Optional[av.FlightRules]
-	CoordinationTime      util.Optional[time.Time]
+	CoordinationTime      util.Optional[Time]
 	PlanType              util.Optional[NASFlightPlanType]
 
 	SquawkAssignment         util.Optional[string]
@@ -1239,7 +1239,7 @@ type FlightPlanSpecifier struct {
 	CoastSuspendIndex           util.Optional[int]
 
 	InhibitACTypeDisplay      util.Optional[bool]
-	ForceACTypeDisplayEndTime util.Optional[time.Time]
+	ForceACTypeDisplayEndTime util.Optional[Time]
 }
 
 func (s FlightPlanSpecifier) GetFlightPlan(localPool *av.LocalSquawkCodePool,
@@ -1250,7 +1250,7 @@ func (s FlightPlanSpecifier) GetFlightPlan(localPool *av.LocalSquawkCodePool,
 		ExitFix:               s.ExitFix.GetOr(""),
 		ExitFixIsIntermediate: s.ExitFixIsIntermediate.GetOr(false),
 		Rules:                 s.Rules.GetOr(av.FlightRulesVFR),
-		CoordinationTime:      s.CoordinationTime.GetOr(time.Time{}),
+		CoordinationTime:      s.CoordinationTime.GetOr(Time{}),
 		PlanType:              s.PlanType.GetOr(UnknownFlightPlanType),
 
 		AircraftCount:   s.AircraftCount.GetOr(1),
@@ -1284,7 +1284,7 @@ func (s FlightPlanSpecifier) GetFlightPlan(localPool *av.LocalSquawkCodePool,
 		CoastSuspendIndex:           s.CoastSuspendIndex.GetOr(0),
 
 		InhibitACTypeDisplay:      s.InhibitACTypeDisplay.GetOr(false),
-		ForceACTypeDisplayEndTime: s.ForceACTypeDisplayEndTime.GetOr(time.Time{}),
+		ForceACTypeDisplayEndTime: s.ForceACTypeDisplayEndTime.GetOr(Time{}),
 
 		ManuallyCreated: true, // Always for ones created via a fp specifier
 	}
@@ -1689,9 +1689,9 @@ func (fa *FacilityAdaptation) PostDeserialize(loc av.Locator, e *util.ErrorLogge
 
 	e.Push(`"vfr"`)
 	if fa.Lists.VFR.Format == "" {
-		fa.Lists.VFR.Format = "[INDEX] [ACID_MSAWCA][BEACON]"
+		fa.Lists.VFR.Format = "[INDEX] [ACID_MSAWCA][VFR_STATUS] [BEACON]"
 	}
-	if err := validateListFormat(fa.Lists.VFR.Format); err != nil {
+	if err := validateListFormat(fa.Lists.VFR.Format, "VFR_STATUS"); err != nil {
 		e.ErrorString("Invalid format string %q: %v", fa.Lists.VFR.Format, err)
 	}
 	e.Pop()

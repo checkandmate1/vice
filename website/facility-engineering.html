@@ -3296,14 +3296,14 @@
                 as their exit fix.  Here is an excerpt from the KJFK departure routes:
               </p>
               <pre>
-                "departure_routes": {
-                "13R": {
-                "ARD,DIXIE,RBV,WHITE": {
-                "cleared_altitude": 5000,
-                "sid": "JFK5",
-                "waypoints": "KJFK-31L/h185"
-                },
-                ...
+"departure_routes": {
+  "13R": {
+    "ARD,DIXIE,RBV,WHITE": {
+      "cleared_altitude": 5000,
+      "sid": "JFK5",
+      "waypoints": "KJFK-31L/h185"
+    },
+    ...
               </pre>
               <p>The members of "departure_routes" are strings identifying the departure runway; each departure runway's routes
                 are then represented by an object with one or more members that specify comma-separated lists of exit fixes.
@@ -3386,12 +3386,6 @@
                     <td><i>(Optional)</i> A string naming the SID that the aircraft is flying.</td>
                   </tr>
                   <tr>
-                    <td>"speed_restriction"</td>
-                    <td>Number or String</td>
-                    <td><i>(Optional)</i> If present, gives a speed restriction which aircraft will maintain until told otherwise by the controller.
-                      May be a plain number (e.g. <code>250</code>) or a string with a suffix: <code>"250-"</code> (at or below), <code>"210+"</code> (at or above).</td>
-                  </tr>
-                  <tr>
                     <td>"waypoints"</td>
                     <td>String</td>
                     <td>The initial series of waypoints that the aircraft follows. <i>vice</i> automatically
@@ -3408,18 +3402,18 @@
               </p>
               <pre>
                 {
-                "airlines": [
-                {
-                "fleet": "long",
-                "icao": "AFR"
-                }
-                ],
-                "destination": "LPFG",
-                "exit": "HAPIE",
-                "route": "HAPIE YAHOO WHALE N251A JOOPY NATZ MALOT NATZ GISTI LESLU M142 LND N160 NAKID M25 ANNET UM25 UVSUV UM25 INGOR UM25 LUKIP LUKIP9E",
-                "scratchpad": "HAP",
-                },
-                ...
+  "airlines": [
+    {
+      "fleet": "long",
+      "icao": "AFR"
+    }
+  ],
+  "destination": "LPFG",
+  "exit": "HAPIE",
+  "route": "HAPIE YAHOO WHALE N251A JOOPY NATZ MALOT NATZ GISTI LESLU M142 LND N160 NAKID M25 ANNET UM25 UVSUV UM25 INGOR UM25 LUKIP LUKIP9E",
+  "scratchpad": "HAP",
+  },
+  ...
               </pre>
               <p>A few additional things must be specified with each departure:</p>
               <table class="table">
@@ -3733,16 +3727,16 @@
                 Note that all start with JIIMS, the same fix at the end of "waypoints".
               </p>
               <pre>
-                "runway_waypoints": {
-                "KPHL": {
-                "27L": "JIIMS/a8000 ZMRMN CHPMN PSOUT MKORD/h087",
-                "27R": "JIIMS/a8000 ZMRMN CHPMN PSOUT MKORD/h087",
-                "17": "JIIMS/a8000 SNEDE/h312",
-                "35": "JIIMS/a8000 SNEDE/h312",
-                "9L": "JIIMS/a8000 WUDRR WEVVE ERNYY/h268",
-                "9R": "JIIMS/a8000 WUDRR WEVVE ERNYY/h268"
-                }
-                },
+  "runway_waypoints": {
+    "KPHL": {
+      "27L": "JIIMS/a8000 ZMRMN CHPMN PSOUT MKORD/h087",
+      "27R": "JIIMS/a8000 ZMRMN CHPMN PSOUT MKORD/h087",
+      "17": "JIIMS/a8000 SNEDE/h312",
+      "35": "JIIMS/a8000 SNEDE/h312",
+      "9L": "JIIMS/a8000 WUDRR WEVVE ERNYY/h268",
+      "9R": "JIIMS/a8000 WUDRR WEVVE ERNYY/h268"
+     }
+  },
               </pre>
               <h4 id="fe-overflights">Overflights</h4>
               <p>An overflight is an aircraft that enters the TRACON already airborne, and flies through it
@@ -4044,13 +4038,13 @@
                 Here is an example from the KPHL airspace:
               </p>
               <pre>
-                "PHL_DQO27_33": [
-                "N039.21.58.949,W075.28.55.977",
-                "N039.25.56.240,W075.29.47.255",
-                "N039.26.20.204,W075.27.28.196",
-                "N039.22.24.699,W075.26.48.535",
-                "N039.21.58.949,W075.28.55.977"
-                ]
+  "PHL_DQO27_33": [
+    "N039.21.58.949,W075.28.55.977",
+    "N039.25.56.240,W075.29.47.255",
+    "N039.26.20.204,W075.27.28.196",
+    "N039.22.24.699,W075.26.48.535",
+    "N039.21.58.949,W075.28.55.977"
+  ]
               </pre>
               <p>Note that the first point and the last point are at the same location and thus, "PHL_DQO27_33" is a closed polygon.
                 Airspace boundaries do not have to be polygons like this; because boundaries are generally shared between different

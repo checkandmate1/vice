@@ -3027,10 +3027,10 @@
     "SPUDS7 - DNY": {
       "arrivals": [
         {
-          "waypoints": "DNY/ho51 HARVA CORLE LVZ SLATT/delete",
+          "waypoints": "DNY/ho51 HARVA CORLE LVZ SLATT ETX SPUDS ANMAR BOJID HIFAL/delete",
           "cruise_altitude": 35000,
           "star": "SPUDS7",
-          "route": "/. DNY HARVA CORLE LVZ SLATT",
+          "route": "/. DNY HARVA CORLE LVZ SLATT ETX SPUDS ANMAR BOJID HIFAL",
           "initial_controller": "B10",
           "initial_altitude": 19000,
           "assigned_altitude": 19000,
@@ -3053,10 +3053,10 @@
     "SPUDS7 - CFB": {
       "arrivals": [
         {
-          "waypoints": "CFB/ho51 LECOR LVZ SLATT/delete",
+          "waypoints": "CFB/ho51 LECOR LVZ SLATT ETX SPUDS ANMAR BOJID HIFAL/delete",
           "cruise_altitude": 35000,
           "star": "SPUDS7",
-          "route": "/. CFB LECOR LVZ SLATT",
+          "route": "/. CFB LECOR LVZ SLATT ETX SPUDS ANMAR BOJID HIFAL",
           "initial_controller": "34",
           "initial_altitude": 19000,
           "assigned_altitude": 19000,

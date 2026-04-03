@@ -153,7 +153,7 @@ func (sp *STARSPane) drawRangeRings(ctx *panes.Context, transforms radar.ScopeTr
 // run the "find" command to highlight a point in the world, draw a blinking
 // square at that point for a few seconds.
 func (sp *STARSPane) drawHighlighted(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
-	remaining := time.Until(sp.highlightedLocationEndTime)
+	remaining := sp.highlightedLocationEndTime.Sub(ctx.SimTime)
 	if remaining < 0 {
 		return
 	}
@@ -162,7 +162,7 @@ func (sp *STARSPane) drawHighlighted(ctx *panes.Context, transforms radar.ScopeT
 	// data block information"(?)
 	ps := sp.currentPrefs()
 	color := ps.Brightness.FullDatablocks.ScaleRGB(sp.Colors.UnownedDatablock)
-	halfSeconds := ctx.Now.UnixMilli() / 500
+	halfSeconds := time.Now().UnixMilli() / 500
 	blinkDim := halfSeconds&1 == 0
 	if blinkDim {
 		color = color.Scale(0.5)
@@ -982,7 +982,7 @@ func (rbl STARSRangeBearingLine) GetPoints(ctx *panes.Context, sp *STARSPane) (m
 	return getLoc(0), getLoc(1)
 }
 
-func (sp *STARSPane) displaySignificantPointInfo(p0, p1 math.Point2LL, nmPerLongitude, magneticVariation float32) CommandStatus {
+func (sp *STARSPane) displaySignificantPointInfo(p0, p1 math.Point2LL, nmPerLongitude, magneticVariation float32, now sim.Time) CommandStatus {
 	// Find the closest significant point to p1.
 	minDist := float32(1000000)
 	var closest *sim.SignificantPoint
@@ -1001,7 +1001,7 @@ func (sp *STARSPane) displaySignificantPointInfo(p0, p1 math.Point2LL, nmPerLong
 
 	// Display a blinking square at the point
 	sp.highlightedLocation = closest.Location
-	sp.highlightedLocationEndTime = time.Now().Add(5 * time.Second)
+	sp.highlightedLocationEndTime = now.Add(5 * time.Second)
 
 	// 6-148
 	format := func(sig sim.SignificantPoint) string {

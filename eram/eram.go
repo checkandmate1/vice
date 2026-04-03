@@ -227,7 +227,7 @@ func (ep *ERAMPane) updateCursorOverride(ctx *panes.Context) {
 
 	desiredCursor := ""
 	if ep.cursorOverrideSelection != "" {
-		if !ep.cursorOverrideUntil.IsZero() && ctx.Now.After(ep.cursorOverrideUntil) {
+		if !ep.cursorOverrideUntil.IsZero() && time.Now().After(ep.cursorOverrideUntil) {
 			// Temporary cursor is over. Check the rollback cursor (if it exists).
 			if ep.cursorRollbackSelection != "" { // If there is a rollback selected
 				ep.cursorOverrideSelection = ep.cursorRollbackSelection

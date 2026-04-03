@@ -25,15 +25,15 @@ func (s *Sim) spawnArrivalsAndOverflights() {
 	if !s.NextPushStart.IsZero() && now.After(s.NextPushStart) {
 		// party time
 		s.PushEnd = now.Add(time.Duration(s.State.LaunchConfig.ArrivalPushLengthMinutes) * time.Minute)
-		s.lg.Debug("arrival push starting", slog.Time("end_time", s.PushEnd))
-		s.NextPushStart = time.Time{}
+		s.lg.Debug("arrival push starting", slog.Time("end_time", s.PushEnd.Time()))
+		s.NextPushStart = Time{}
 	}
 	if !s.PushEnd.IsZero() && now.After(s.PushEnd) {
 		// end push
 		m := -2 + s.Rand.Intn(4) + s.State.LaunchConfig.ArrivalPushFrequencyMinutes
 		s.NextPushStart = now.Add(time.Duration(m) * time.Minute)
-		s.lg.Debug("arrival push ending", slog.Time("next_start", s.NextPushStart))
-		s.PushEnd = time.Time{}
+		s.lg.Debug("arrival push ending", slog.Time("next_start", s.NextPushStart.Time()))
+		s.PushEnd = Time{}
 	}
 
 	pushActive := now.Before(s.PushEnd)

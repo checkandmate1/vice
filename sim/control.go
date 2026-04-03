@@ -323,9 +323,14 @@ func (s *Sim) CreateFlightPlan(tcw TCW, spec FlightPlanSpecifier) error {
 
 	fp.OwningTCW = tcw
 
-	if util.SeqContainsFunc(maps.Values(s.Aircraft),
-		func(ac *Aircraft) bool { return ac.IsAssociated() && ac.NASFlightPlan.ACID == fp.ACID }) {
-		return ErrDuplicateACID
+	// Interfacility VFR plans (5.5.13) intentionally duplicate the ACID of an
+	// existing associated track, so skip the associated-aircraft check for them.
+	isInterfacilityVFR := fp.PlanType == LocalEnroute && fp.Rules == av.FlightRulesVFR
+	if !isInterfacilityVFR {
+		if util.SeqContainsFunc(maps.Values(s.Aircraft),
+			func(ac *Aircraft) bool { return ac.IsAssociated() && ac.NASFlightPlan.ACID == fp.ACID }) {
+			return ErrDuplicateACID
+		}
 	}
 	if slices.ContainsFunc(s.STARSComputer.FlightPlans,
 		func(fp2 *NASFlightPlan) bool { return fp.ACID == fp2.ACID }) {
@@ -338,6 +343,58 @@ func (s *Sim) CreateFlightPlan(tcw TCW, spec FlightPlanSpecifier) error {
 		err = s.postCheckFlightPlanSpecifier(spec)
 	}
 
+	return err
+}
+
+// CreateInterfacilityVFR creates a NAS VFR flight plan from an existing
+// associated local VFR track (5.5.13). The new plan gets a NAS beacon code
+// and will auto-associate with the track after a delay, creating a beacon
+// mismatch until the pilot squawks the new code.
+func (s *Sim) CreateInterfacilityVFR(tcw TCW, acid ACID, isIntermediate bool, requestedAlt int) error {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	s.lastControlCommandTime = time.Now()
+
+	fp, ac, _ := s.getFlightPlanForACID(acid)
+	if ac == nil || !ac.IsAssociated() {
+		return av.ErrNoAircraftForCallsign
+	}
+	if fp.PlanType != LocalNonEnroute || fp.Rules != av.FlightRulesVFR {
+		return ErrIllegalFunction
+	}
+	if fp.OwningTCW != tcw {
+		return ErrIllegalFunction
+	}
+	if fp.AircraftType == "" {
+		return ErrNoACType
+	}
+	if fp.Scratchpad == "" {
+		return ErrNoScratchpad
+	}
+
+	var spec FlightPlanSpecifier
+	spec.ACID.Set(fp.ACID)
+	spec.Rules.Set(av.FlightRulesVFR)
+	spec.PlanType.Set(LocalEnroute)
+	spec.TypeOfFlight.Set(av.FlightTypeArrival)
+	spec.AircraftType.Set(fp.AircraftType)
+	spec.ExitFix.Set(fp.Scratchpad)
+	spec.ExitFixIsIntermediate.Set(isIntermediate)
+	spec.DisableMSAW.Set(true)
+	spec.TrackingController.Set(fp.TrackingController)
+	spec.CoordinationTime.Set(s.State.SimTime)
+	if requestedAlt > 0 {
+		spec.RequestedAltitude.Set(requestedAlt)
+	}
+
+	newFP, err := spec.GetFlightPlan(s.LocalCodePool, s.ERAMComputer.SquawkCodePool)
+	if err != nil {
+		return err
+	}
+	newFP.OwningTCW = tcw
+
+	_, err = s.STARSComputer.CreateFlightPlan(newFP)
 	return err
 }
 
@@ -1333,7 +1390,7 @@ func (s *Sim) AssignMach(tcw TCW, callsign av.ADSBCallsign, mach float32, afterA
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime.Time()).Temperature()
 			return ac.AssignMach(mach, afterAltitude, temp)
 		})
 }
@@ -1404,7 +1461,7 @@ func (s *Sim) SaySpeed(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, err
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime.Time()).Temperature()
 			return ac.SaySpeed(temp)
 		})
 }
@@ -1425,7 +1482,7 @@ func (s *Sim) SayMach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, erro
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime.Time()).Temperature()
 			return ac.SayMach(temp)
 		})
 }
@@ -1869,7 +1926,7 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 func (s *Sim) checkDelayedTrafficInSight(ac *Aircraft) {
 	// Only check if we're within the looking window
 	if ac.TrafficLookingUntil.IsZero() || s.State.SimTime.After(ac.TrafficLookingUntil) {
-		ac.TrafficLookingUntil = time.Time{} // Clear expired window
+		ac.TrafficLookingUntil = Time{} // Clear expired window
 		return
 	}
 
@@ -1883,7 +1940,7 @@ func (s *Sim) checkDelayedTrafficInSight(ac *Aircraft) {
 		// Report traffic in sight
 		ac.TrafficInSight = true
 		ac.TrafficInSightTime = s.State.SimTime
-		ac.TrafficLookingUntil = time.Time{} // Clear the looking window
+		ac.TrafficLookingUntil = Time{} // Clear the looking window
 
 		// Queue the transmission
 		s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionTrafficInSight)
@@ -2047,14 +2104,14 @@ const (
 type PendingFrequencyChange struct {
 	ADSBCallsign av.ADSBCallsign
 	TCP          TCP
-	Time         time.Time
+	Time         Time
 }
 
 // PendingContact represents a pilot-initiated transmission waiting to be played.
 type PendingContact struct {
 	ADSBCallsign           av.ADSBCallsign
 	TCP                    TCP
-	ReadyTime              time.Time               // When pilot is ready to transmit
+	ReadyTime              Time                    // When pilot is ready to transmit
 	Type                   PendingTransmissionType // What kind of transmission
 	ReportDepartureHeading bool                    // For departures: include assigned heading
 	HasQueuedEmergency     bool                    // For departures: trigger emergency after contact
@@ -2498,7 +2555,7 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 
 type FutureOnCourse struct {
 	ADSBCallsign av.ADSBCallsign
-	Time         time.Time
+	Time         Time
 }
 
 func (s *Sim) enqueueDepartOnCourse(callsign av.ADSBCallsign) {
@@ -2511,7 +2568,7 @@ type FutureChangeSquawk struct {
 	ADSBCallsign av.ADSBCallsign
 	Code         av.Squawk
 	Mode         av.TransponderMode
-	Time         time.Time
+	Time         Time
 }
 
 func (s *Sim) enqueueTransponderChange(callsign av.ADSBCallsign, code av.Squawk, mode av.TransponderMode) {

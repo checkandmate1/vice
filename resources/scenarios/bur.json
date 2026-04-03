@@ -725,8 +725,17 @@
     "KSMO": {
       "vfr": {
         "random_routes": {
-          "rate": 10
-        }
+          "rate": 5
+        },
+        "routes": [
+          {
+            "destination": "KSMO",
+            "rate": 3,
+            "fleet": "GAsinglepiston",
+            "waypoints": "N034.00.14.749,W118.27.55.909 N033.59.49.192,W118.29.09.078 N034.01.45.249,W118.30.52.569 N034.02.02.044,W118.38.06.364 N034.02.56.811,W118.39.56.118/airwork2nm/a500-4500 N034.03.13.908,W118.36.01.560 N034.02.49.683,W118.29.55.742 N034.02.11.176,W118.27.16.386 N034.03.47.925,W118.25.23.721 N034.02.56.989,W118.24.30.080/land",
+            "name": "Malibu Practice Area"
+          }
+        ]
       },
       "approaches": {
         "R21": {
@@ -897,8 +906,17 @@
       "departure_runways_as_one": ["16L,16R", "34L,34R"],
       "vfr": {
         "random_routes": {
-          "rate": 10
-        }
+          "rate": 15
+        },
+        "routes": [
+          {
+            "destination": "KVNY",
+            "rate": 4,
+            "fleet": "GAsinglepiston",
+            "waypoints": "N034.13.05.151,W118.29.21.767 N034.11.55.992,W118.29.03.365 N034.10.40.159,W118.27.49.015 N034.09.56.997,W118.27.46.543/radius2 N034.08.57.094,W118.30.16.918/radius2 N034.09.26.152,W118.39.33.156/radius2 N034.13.30.983,W118.41.28.760/radius2 GINNA/airwork20m5nm/a900-4500 N034.15.37.847,W118.37.48.374 N034.15.55.810,W118.30.54.547/land",
+            "name": "Simi Valley Practice Area"
+          }
+        ]
       },
       "approaches": {
         "IYR": {
@@ -1188,8 +1206,8 @@
         {
           "waypoints": "PMD N034.34.23.548,W118.19.27.984/ho LYNXX VNY",
           "cruise_altitude": 8000,
-          "star": "EDWP4",
-          "initial_controller": "1J",
+          "route": "EDWP4",
+          "initial_controller": "11J",
           "initial_altitude": 8000,
           "initial_speed": 250,
           "expect_approach": null,
@@ -1252,7 +1270,7 @@
           "waypoints": "CHKNZ KOPLE/a14000 PMD/a13000-/s250 N034.35.38.845,W118.13.52.791/ho JANNY/a8000 PUCCK/a8000 ELMRR/a7000+ WABBT/a6000/h201",
           "cruise_altitude": 30000,
           "star": "JANNY5",
-          "initial_controller": "1J",
+          "initial_controller": "11J",
           "initial_altitude": 14000,
           "initial_speed": 250,
           "expect_approach": null,
@@ -1289,7 +1307,7 @@
           "waypoints": "CHKNZ KOPLE/a14000 PMD/a13000-/s250 N034.35.38.845,W118.13.52.791/ho JANNY/a8000 PUCCK/a8000 EIFEL/a7000+ UMBER/a6000",
           "cruise_altitude": 30000,
           "star": "JANNY5",
-          "initial_controller": "1J",
+          "initial_controller": "11J",
           "initial_altitude": 14000,
           "initial_speed": 250,
           "expect_approach": null,
@@ -1307,7 +1325,7 @@
           "waypoints": "CHKNZ KOPLE/a14000 PMD/a13000- N034.35.38.845,W118.13.52.791/ho JANNY/a8000 ALYSN/a7100+ GUERA SESPE/a5300 DOOBY/a5000/h200",
           "cruise_altitude": 35000,
           "star": "GUERA2",
-          "initial_controller": "1J",
+          "initial_controller": "11J",
           "initial_altitude": 14000,
           "initial_speed": 250,
           "expect_approach": null,
@@ -1710,15 +1728,40 @@
             "KBUR": [
               {
                 "icao": "AAL",
+                "fleet": "short",
                 "airport": "KDFW"
               },
               {
+                "icao": "ENY",
+                "airport": "KPHX"
+              },
+              {
+                "icao": "SKW",
+                "airport": "KPHX"
+              },
+              {
                 "icao": "EJA",
-                "airport": "KNYL"
+                "airport": "KSDL"
               },
               {
                 "icao": "SWA",
                 "airport": "KPHX"
+              },
+              {
+                "icao": "SWA",
+                "airport": "KDAL"
+              },
+              {
+                "icao": "SWA",
+                "airport": "KABQ"
+              },
+              {
+                "icao": "SWA",
+                "airport": "KPHX"
+              },
+              {
+                "icao": "SWA",
+                "airport": "KAUS"
               },
               {
                 "icao": "N",
@@ -1727,6 +1770,7 @@
               },
               {
                 "icao": "N",
+                "fleet": "fastGA",
                 "airport": "KDAL"
               }
             ]
@@ -1754,6 +1798,16 @@
               {
                 "icao": "LXJ",
                 "airport": "KDAL"
+              },
+              {
+                "icao": "N",
+                "fleet": "fastGA",
+                "airport": "KHOU"
+              },
+              {
+                "icao": "N",
+                "fleet": "fastGA",
+                "airport": "KADS"
               }
             ]
           }
@@ -1798,19 +1852,41 @@
       ]
     }
   },
+  "vfr_reporting_points": [
+    {
+      "description": "Santa Susana Pass",
+      "location": "VPLSS"
+    },
+    {
+      "description": "Sepulveda Pass",
+      "location": "N034.06.18.314,W118.28.35.130"
+    },
+    {
+      "description": "Pacific Palisades",
+      "location": "VPLPP"
+    },
+    {
+      "description": "Griffith Observatory",
+      "location": "VPLGP"
+    },
+    {
+      "description": "Dodger Stadium",
+      "location": "VPLDS"
+    },
+    {
+      "description": "Santa Anita Racetrack",
+      "location": "VPLRT"
+    },
+    {
+      "description": "Rose Bowl",
+      "location": "VPLRB"
+    },
+    {
+      "description": "Thousand Oaks",
+      "location": "N034.11.29.076,W118.50.56.066"
+    }
+  ],
   "default_scenario": "Burbank - 08/15 LAW",
-  "fixes": {
-    "_BUR_15": "N034.12.44.440,W118.21.37.660",
-    "_BUR_8": "N034.11.52.479,W118.22.08.914",
-    "_BUR_33": "N034.11.38.058,W118.21.19.333",
-    "_BUR_26": "N034.11.51.541,W118.20.59.855",
-    "_VNY_16R": "N034.13.08.077,W118.29.28.463",
-    "_VNY_16L": "N034.13.08.387,W118.29.24.013",
-    "_VNY_34R": "N034.12.28.819,W118.29.20.274",
-    "_VNY_34L": "N034.11.49.179,W118.29.21.007",
-    "_WHP_12": "N034.15.48.700,W118.25.04.530",
-    "_WHP_30": "N034.15.18.060,W118.24.32.150"
-  },
   "name": "Burbank Area",
   "primary_airport": "KBUR",
   "scenarios": {
@@ -1844,7 +1920,7 @@
       "inbound_rates": {
         "JANNY5/GUERA2": {
           "KBUR": 7,
-          "KCMA": 2,
+          "KCMA": 1,
           "KVNY": 3
         },
         "ROKKR3/IVINS2/BONJO3": {
@@ -1853,10 +1929,11 @@
           "KSMO": 2
         },
         "THRNE4": {
-          "KVNY": 3
+          "KVNY": 2,
+          "KBUR": 4
         },
         "WEESL1": {
-          "KVNY": 2
+          "KVNY": 1
         },
         "FERN7": {
           "KVNY": 1
@@ -1868,13 +1945,13 @@
           "KWHP": 1
         },
         "LADYJ4": {
-          "overflights": 9
+          "overflights": 5
         },
         "IRNMN2": {
-          "overflights": 25
+          "overflights": 15
         }
       },
-      "configuration": "CF1",
+      "configuration": "B1",
       "default_maps": ["100S BURB LW SCT"],
       "departure_runways": [
         {
@@ -1929,7 +2006,7 @@
       "inbound_rates": {
         "JANNY5/GUERA2": {
           "KBUR": 7,
-          "KCMA": 2,
+          "KCMA": 1,
           "KVNY": 3
         },
         "ROKKR3/IVINS2/BONJO3": {
@@ -1938,10 +2015,11 @@
           "KSMO": 2
         },
         "THRNE4": {
-          "KVNY": 3
+          "KVNY": 2,
+          "KBUR": 4
         },
         "WEESL1": {
-          "KVNY": 2
+          "KVNY": 1
         },
         "FERN7": {
           "KVNY": 1
@@ -1953,10 +2031,10 @@
           "KWHP": 1
         },
         "ZUUMA4": {
-          "overflights": 25
+          "overflights": 15
         }
       },
-      "configuration": "CF2",
+      "configuration": "B8",
       "default_maps": ["101S BURB LE SCT"],
       "departure_runways": [
         {
@@ -2022,7 +2100,7 @@
       "inbound_rates": {
         "JANNY5/GUERA2": {
           "KBUR": 7,
-          "KCMA": 2,
+          "KCMA": 1,
           "KVNY": 3
         },
         "ROKKR3/IVINS2/BONJO3": {
@@ -2031,10 +2109,11 @@
           "KSMO": 2
         },
         "THRNE4": {
-          "KVNY": 3
+          "KVNY": 2,
+          "KBUR": 4
         },
         "WEESL1": {
-          "KVNY": 3
+          "KVNY": 1
         },
         "FERN7": {
           "KVNY": 3
@@ -2046,13 +2125,13 @@
           "KWHP": 5
         },
         "LADYJ4": {
-          "overflights": 9
+          "overflights": 5
         },
         "IRNMN2": {
-          "overflights": 25
+          "overflights": 15
         }
       },
-      "configuration": "CF3",
+      "configuration": "B5",
       "default_maps": ["100S BURB LW SCT"],
       "departure_runways": [
         {
@@ -2103,7 +2182,7 @@
       "inbound_rates": {
         "JANNY5/GUERA2": {
           "KBUR": 7,
-          "KCMA": 2,
+          "KCMA": 1,
           "KVNY": 3
         },
         "ROKKR3/IVINS2/BONJO3": {
@@ -2112,10 +2191,11 @@
           "KSMO": 2
         },
         "THRNE4": {
-          "KVNY": 3
+          "KVNY": 2,
+          "KBUR": 4
         },
         "WEESL1": {
-          "KVNY": 3
+          "KVNY": 1
         },
         "FERN7": {
           "KVNY": 3
@@ -2127,10 +2207,10 @@
           "KWHP": 5
         },
         "ZUUMA4": {
-          "overflights": 25
+          "overflights": 15
         }
       },
-      "configuration": "CF4",
+      "configuration": "B6",
       "default_maps": ["101S BURB LE SCT"],
       "departure_runways": [
         {
@@ -2165,7 +2245,7 @@
         },
         {
           "airport": "KLAX",
-          "rate": 15,
+          "rate": 12,
           "runway": "6R"
         }
       ]

@@ -3038,7 +3038,7 @@
           "KLAX": 15
         }
       },
-      "configuration": "CO4",
+      "configuration": "SWW",
       "default_maps": ["400S CB LWSS SCT"],
       "departure_runways": [
         {
@@ -3111,7 +3111,7 @@
           "KSNA": 9
         }
       },
-      "configuration": "CO3",
+      "configuration": "SWE",
       "default_maps": ["401S CB LESS SCT"],
       "departure_runways": [
         {
@@ -3202,7 +3202,7 @@
           "KLAX": 15
         }
       },
-      "configuration": "CO1",
+      "configuration": "NEW",
       "default_maps": ["402S CB LWSN SCT"],
       "departure_runways": [
         {
@@ -3275,7 +3275,7 @@
           "KSNA": 9
         }
       },
-      "configuration": "COA",
+      "configuration": "NEE",
       "default_maps": ["403S CB LESN SCT"],
       "departure_runways": [
         {
@@ -3309,7 +3309,7 @@
           "KSNA": 9
         }
       },
-      "configuration": "CO2",
+      "configuration": "FIN",
       "default_maps": ["400S CB LWSS SCT"],
       "wind": {
         "direction": "180-290",

@@ -221,6 +221,29 @@ func (sd *dispatcher) CreateFlightPlan(cfp *CreateFlightPlanArgs, update *SimSta
 	return err
 }
 
+type CreateInterfacilityVFRArgs struct {
+	ControllerToken string
+	ACID            sim.ACID
+	IsIntermediate  bool
+	RequestedAlt    int
+}
+
+const CreateInterfacilityVFRRPC = "Sim.CreateInterfacilityVFR"
+
+func (sd *dispatcher) CreateInterfacilityVFR(args *CreateInterfacilityVFRArgs, update *SimStateUpdate) error {
+	defer sd.sm.lg.CatchAndReportCrash()
+
+	c := sd.sm.LookupController(args.ControllerToken)
+	if c == nil {
+		return ErrNoSimForControllerToken
+	}
+	err := c.sim.CreateInterfacilityVFR(c.tcw, args.ACID, args.IsIntermediate, args.RequestedAlt)
+	if err == nil {
+		*update = c.GetStateUpdate()
+	}
+	return err
+}
+
 type ModifyFlightPlanArgs struct {
 	ControllerToken     string
 	FlightPlanSpecifier sim.FlightPlanSpecifier

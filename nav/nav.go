@@ -73,7 +73,7 @@ type Nav struct {
 // seconds after the controller issues it in order to model the delay
 // before pilots start to follow assignments.
 type DeferredNavHeading struct {
-	Time    time.Time
+	Time    Time
 	Heading *math.MagneticHeading
 	Turn    *av.TurnDirection
 	Hold    *FlyHold
@@ -259,7 +259,7 @@ const (
 )
 
 func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan, perf av.AircraftPerformance,
-	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
+	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime Time, lg *log.Logger) *Nav {
 	randomizeAltitudeRange := fp.Rules == av.FlightRulesVFR
 	if nav := makeNav(callsign, fp, perf, arr.Waypoints, randomizeAltitudeRange, nmPerLongitude,
 		magneticVariation, lg); nav != nil {
@@ -292,8 +292,8 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 }
 
 func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.AircraftPerformance,
-	assignedAlt, clearedAlt int, speedRestriction av.SpeedRestriction, wp []av.Waypoint, randomizeAltitudeRange bool,
-	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
+	assignedAlt, clearedAlt int, wp []av.Waypoint, randomizeAltitudeRange bool,
+	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime Time, lg *log.Logger) *Nav {
 	if nav := makeNav(callsign, fp, perf, wp, randomizeAltitudeRange, nmPerLongitude, magneticVariation,
 		lg); nav != nil {
 		if assignedAlt != 0 {
@@ -303,17 +303,6 @@ func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.Aircra
 			alt := float32(min(clearedAlt, fp.Altitude))
 			nav.Altitude.Cleared = &alt
 		}
-		if !speedRestriction.IsZero() {
-			sr := speedRestriction
-			// Ensure we don't go below aircraft minimum speed
-			if sr.Range[0] < perf.Speed.Min {
-				sr.Range[0] = perf.Speed.Min
-			}
-			if sr.Range[1] < perf.Speed.Min {
-				sr.Range[1] = perf.Speed.Min
-			}
-			nav.Speed.Restriction = &sr
-		}
 		nav.FlightState.InitialDepartureClimb = true
 		nav.FlightState.Altitude = nav.FlightState.DepartureAirportElevation
 		return nav
@@ -322,7 +311,7 @@ func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.Aircra
 }
 
 func MakeOverflightNav(callsign av.ADSBCallsign, of *av.Overflight, fp av.FlightPlan, perf av.AircraftPerformance,
-	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) *Nav {
+	nmPerLongitude float32, magneticVariation float32, model *wx.Model, simTime Time, lg *log.Logger) *Nav {
 	randomizeAltitudeRange := fp.Rules == av.FlightRulesVFR
 	if nav := makeNav(callsign, fp, perf, of.Waypoints, randomizeAltitudeRange, nmPerLongitude,
 		magneticVariation, lg); nav != nil {
@@ -504,7 +493,7 @@ func (nav *Nav) DepartureHeading() (int, DepartureHeadingState) {
 // few seconds in the future. It should only be called for heading changes
 // due to controller instructions to the pilot and never in cases where the
 // autopilot is changing the heading assignment.
-func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, approachCleared bool, simTime time.Time) {
+func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, approachCleared bool, simTime Time) {
 	var delay float32
 	if approachCleared {
 		// Minimal delay if the aircraft has been cleared for an approach.
@@ -535,7 +524,7 @@ func (nav *Nav) AssignedWaypoints() []av.Waypoint {
 	return nav.Waypoints
 }
 
-func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTime time.Time) {
+func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTime Time) {
 	var delay float32
 	if len(wps) > 0 && nav.ExpectedDirectFix == wps[0].Fix {
 		// Pilot was told to expect this fix; shorter delay
@@ -559,7 +548,7 @@ func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTi
 	nav.DeferredNavHeading = dh
 }
 
-func (nav *Nav) EnqueueOnCourse(simTime time.Time) {
+func (nav *Nav) EnqueueOnCourse(simTime Time) {
 	delay := 8 + 5*nav.Rand.Float32()
 	nav.DeferredNavHeading = &DeferredNavHeading{
 		Time: simTime.Add(time.Duration(delay * float32(time.Second))),
@@ -616,7 +605,7 @@ func (nav *Nav) OnExtendedCenterline(maxNmDeviation float32) bool {
 
 // Full human-readable summary of nav state for use when paused and mouse
 // hover on the scope
-func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg *log.Logger) string {
+func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime Time, lg *log.Logger) string {
 	var lines []string
 	lines = append(lines, "Departure from "+fp.DepartureAirport+" to "+fp.ArrivalAirport)
 
@@ -704,7 +693,7 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime time.Time, lg
 	}
 
 	// weather
-	wxs := model.Lookup(nav.FlightState.Position, nav.FlightState.Altitude, simTime)
+	wxs := model.Lookup(nav.FlightState.Position, nav.FlightState.Altitude, simTime.Time())
 	lines = append(lines, wxs.String())
 	if nav.FlightState.Altitude > nav.FlightState.PrevAltitude {
 		lines = append(lines, fmt.Sprintf("Weather-based climb rate factor %.2fx", nav.atmosClimbFactor(wxs)))

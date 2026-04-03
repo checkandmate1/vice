@@ -8,7 +8,6 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/client"
@@ -135,7 +134,7 @@ type Context struct {
 	Mouse     *platform.MouseState
 	Keyboard  *platform.KeyboardState
 	HaveFocus bool
-	Now       time.Time
+	SimTime   sim.Time
 	Lg        *log.Logger
 
 	MenuBarHeight float32
@@ -177,7 +176,7 @@ func NewFuzzContext(p platform.Platform, r renderer.Renderer, c *client.ControlC
 		DPIScale:           p.DPIScale(),
 		Renderer:           r,
 		HaveFocus:          true,
-		Now:                time.Now(),
+		SimTime:            c.InterpolatedSimTime(),
 		Lg:                 lg,
 		Client:             c,
 		UserTCW:            c.State.UserTCW,

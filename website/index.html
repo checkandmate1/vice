@@ -4736,6 +4736,28 @@ SBA, SNA, SCTLA, DCA, Del Rey, SAN, PCT SHD (Ketan K), TPA (Nelson T), AAC, BOS 
                       the beacon code: <code>E</code> for enroute IFR, <code>V</code> for VFR, or <code>P</code> for VFR on top.
                       If no suffix is given, a local non-enroute IFR flight plan is created.</td>
                   </tr>
+                  <tr>
+                    <td><code>[VP][SLEW]</code></td>
+                    <td>Create an interfacility VFR flight plan from an active local VFR track,
+                      using the scratchpad as the destination. The track must have an aircraft type
+                      assigned and a destination in the scratchpad. The new plan appears in the VFR
+                      list; after a few seconds, the NAS-assigned beacon code is transferred to the
+                      track, creating a beacon code mismatch until the pilot squawks the new code.</td>
+                  </tr>
+                  <tr>
+                    <td><code>[VP]*[SLEW]</code></td>
+                    <td>Same as above, but the scratchpad is treated as an intermediate fix rather
+                      than a destination.</td>
+                  </tr>
+                  <tr>
+                    <td><code>[VP](REQ ALT)[SLEW]</code></td>
+                    <td>Same as <code>[VP][SLEW]</code>, with a requested altitude (three digits,
+                      giving hundreds of feet).</td>
+                  </tr>
+                  <tr>
+                    <td><code>[VP]*(REQ ALT)[SLEW]</code></td>
+                    <td>Same as <code>[VP]*[SLEW]</code>, with a requested altitude.</td>
+                  </tr>
                 </tbody>
               </table>
 

@@ -7,7 +7,6 @@ package nav
 import (
 	"fmt"
 	"slices"
-	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
@@ -380,7 +379,7 @@ func (nav *Nav) setRate(rate RateQualifier, throughAlt *float32, direction av.Al
 	}
 }
 
-func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
+func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. {hdg} isn't a valid heading", hdg)
 	}
@@ -408,7 +407,7 @@ func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, s
 	return intent
 }
 
-func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime time.Time) {
+func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time) {
 	approachCleared := nav.Approach.Cleared
 
 	if _, ok := nav.AssignedHeading(); !ok {
@@ -436,7 +435,7 @@ func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, s
 	nav.EnqueueHeading(hdg, turn, approachCleared, simTime)
 }
 
-func (nav *Nav) FlyPresentHeading(simTime time.Time) av.CommandIntent {
+func (nav *Nav) FlyPresentHeading(simTime Time) av.CommandIntent {
 	nav.assignHeading(nav.FlightState.Heading, av.TurnClosest, simTime)
 	return av.HeadingIntent{
 		Heading: nav.FlightState.Heading,
@@ -582,7 +581,7 @@ func (nav *Nav) ExpectDirect(fix string) av.CommandIntent {
 	return nil
 }
 
-func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
+func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime Time) av.CommandIntent {
 	if wps, source, err := nav.directFixWaypoints(fix); err == nil {
 		if hold := nav.Heading.Hold; hold != nil {
 			// We'll finish our lap and then depart the holding fix direct to the fix
@@ -685,7 +684,7 @@ func (nav *Nav) makeFlyHold(callsign string, hold av.Hold) *FlyHold {
 	hdg := math.TrueToMagnetic(math.Heading2LL(nav.FlightState.Position, pHold, nav.FlightState.NmPerLongitude),
 		nav.FlightState.MagneticVariation)
 
-	NavLog(callsign, time.Time{}, NavLogHold, "makeFlyHold: headingToFix=%.1f hold_inbound=%.1f turn=%s -> %s",
+	NavLog(callsign, Time{}, NavLogHold, "makeFlyHold: headingToFix=%.1f hold_inbound=%.1f turn=%s -> %s",
 		hdg, hold.InboundCourse, hold.TurnDirection, hold.Entry(hdg).String())
 
 	return &FlyHold{
@@ -912,7 +911,7 @@ func (nav *Nav) CancelApproachClearance() av.CommandIntent {
 	return av.ApproachIntent{Type: av.ApproachCancel}
 }
 
-func (nav *Nav) ClimbViaSID(simTime time.Time) av.CommandIntent {
+func (nav *Nav) ClimbViaSID(simTime Time) av.CommandIntent {
 	if wps := nav.AssignedWaypoints(); len(wps) == 0 || !wps[0].OnSID() {
 		return av.MakeUnableIntent("unable. We're not flying a departure procedure")
 	}
@@ -923,7 +922,7 @@ func (nav *Nav) ClimbViaSID(simTime time.Time) av.CommandIntent {
 	return av.ProcedureIntent{Type: av.ProcedureClimbViaSID}
 }
 
-func (nav *Nav) DescendViaSTAR(simTime time.Time) av.CommandIntent {
+func (nav *Nav) DescendViaSTAR(simTime Time) av.CommandIntent {
 	if wps := nav.AssignedWaypoints(); len(wps) == 0 || !wps[0].OnSTAR() {
 		return av.MakeUnableIntent("unable. We're not on a STAR")
 	}

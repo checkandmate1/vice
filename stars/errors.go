@@ -69,7 +69,9 @@ var (
 	ErrSTARSIllegalTrackLocalFP        = NewSTARSError("ILL TRK - LCL FP")
 	ErrSTARSIllegalValue               = NewSTARSError("ILL VALUE")
 	ErrSTARSMultipleFlights            = NewSTARSError("MULTIPLE FLIGHT")
+	ErrSTARSNoACType                   = NewSTARSError("NO ACTYP")
 	ErrSTARSNoFlight                   = NewSTARSError("NO FLIGHT")
+	ErrSTARSNoScratchpad               = NewSTARSError("NO SCR")
 	ErrSTARSNoTrack                    = NewSTARSError("NO TRK")
 	ErrSTARSRangeLimit                 = NewSTARSError("RANGE LIMIT")
 )
@@ -117,8 +119,10 @@ var starsErrorRemap = map[error]*STARSError{
 	sim.ErrInvalidDepartureController:      ErrSTARSIllegalFunction,
 	sim.ErrInvalidRestrictionAreaIndex:     ErrSTARSIllegalGeoId,
 	sim.ErrInvalidVolumeId:                 ErrSTARSIllegalFunction,
+	sim.ErrNoACType:                        ErrSTARSNoACType,
 	sim.ErrNoMatchingFlight:                ErrSTARSNoFlight,
 	sim.ErrNoMatchingFlightPlan:            ErrSTARSNoFlight,
+	sim.ErrNoScratchpad:                    ErrSTARSNoScratchpad,
 	sim.ErrNoVFRAircraftForFlightFollowing: ErrSTARSNoFlight,
 	sim.ErrNotLaunchController:             ErrSTARSIllegalTrack,
 	sim.ErrTCPAlreadyConsolidated:          ErrSTARSIllegalTCPDeconsolFirst,

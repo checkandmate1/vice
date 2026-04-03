@@ -3164,8 +3164,17 @@
     "KSMO": {
       "vfr": {
         "random_routes": {
-          "rate": 3
-        }
+          "rate": 5
+        },
+        "routes": [
+          {
+            "destination": "KSMO",
+            "rate": 3,
+            "fleet": "GAsinglepiston",
+            "waypoints": "N034.00.14.749,W118.27.55.909 N033.59.49.192,W118.29.09.078 N034.01.45.249,W118.30.52.569 N034.02.02.044,W118.38.06.364 N034.02.56.811,W118.39.56.118/airwork2nm/a500-4500 N034.03.13.908,W118.36.01.560 N034.02.49.683,W118.29.55.742 N034.02.11.176,W118.27.16.386 N034.03.47.925,W118.25.23.721 N034.02.56.989,W118.24.30.080/land",
+            "name": "Malibu Practice Area"
+          }
+        ]
       },
       "departure_routes": {
         "21": {
@@ -4088,6 +4097,56 @@
       ]
     }
   },
+  "vfr_reporting_points": [
+    {
+      "description": "Sepulveda Pass",
+      "location": "N034.06.18.314,W118.28.35.130"
+    },
+    {
+      "description": "Pacific Palisades",
+      "location": "VPLPP"
+    },
+    {
+      "description": "Point Dume",
+      "location": "N034.00.18.855,W118.48.28.877"
+    },
+    {
+      "description": "Malibu Beach",
+      "location": "N034.02.08.485,W118.41.08.051"
+    },
+    {
+      "description": "Griffith Observatory",
+      "location": "VPLGP"
+    },
+    {
+      "description": "Dodger Stadium",
+      "location": "VPLDS"
+    },
+    {
+      "description": "Santa Monica Pier",
+      "location": "N034.00.46.224,W118.29.49.920"
+    },
+    {
+      "description": "Marina Del Rey",
+      "location": "N033.58.06.003,W118.26.55.924"
+    },
+    {
+      "description": "Manhattan Beach Pier",
+      "location": "VPLMB"
+    },
+    {
+      "description": "Hawthorne and the 405",
+      "location": "VPLSR"
+    },
+    {
+      "description": "Redondo Beach",
+      "location": "N033.48.59.117,W118.23.31.276"
+    },
+    {
+      "description": "Hawthorne and the 405",
+      "location": "VPLSR"
+    }
+  ],
   "default_scenario": "Del Rey - LAW/SNAS",
   "fixes": {
     "_LAX": "33.942501,-118.407997",
@@ -4134,7 +4193,7 @@
           "overflights": 4
         }
       },
-      "configuration": "DE1",
+      "configuration": "6E1",
       "default_maps": ["603S DB LE SCT"],
       "departure_runways": [
         {
@@ -4206,7 +4265,7 @@
           "overflights": 4
         }
       },
-      "configuration": "DEL",
+      "configuration": "6E3",
       "default_maps": ["603S DB LE SCT"],
       "departure_runways": [
         {
@@ -4268,7 +4327,7 @@
           "overflights": 4
         }
       },
-      "configuration": "DE3",
+      "configuration": "6W1",
       "default_maps": ["600S DB LW SCT"],
       "departure_runways": [
         {
@@ -4343,7 +4402,7 @@
           "overflights": 4
         }
       },
-      "configuration": "DE2",
+      "configuration": "6W3",
       "default_maps": ["602S DB LWSN SCT"],
       "departure_runways": [
         {
@@ -4389,7 +4448,7 @@
         }
       },
       "vfr_rate_scale": 0.3,
-      "configuration": "DE4",
+      "configuration": "DLM",
       "default_maps": ["601S DB LO SCT"],
       "departure_runways": [
         {

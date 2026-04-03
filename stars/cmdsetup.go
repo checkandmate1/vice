@@ -422,7 +422,7 @@ func registerSetupCommands() {
 
 	// 4.13.1 Test audio alarm (p. 4-96)
 	registerCommand(CommandModeMultiFunc, "ZA", func(sp *STARSPane, ctx *panes.Context) {
-		sp.testAudioEndTime = ctx.Now.Add(5 * time.Second)
+		sp.testAudioEndTime = time.Now().Add(5 * time.Second)
 		ctx.Platform.StartPlayAudioContinuous(sp.audioEffects[AudioTest])
 	})
 
