@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
-	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
@@ -737,7 +736,7 @@ func registerOpsCommands() {
 		spec.ACID.Set(acid)
 		spec.SquawkAssignment.Set(sq.String())
 		spec.TypeOfFlight.Set(av.FlightTypeOverflight)
-		spec.CoordinationTime.Set(ctx.Now)
+		spec.CoordinationTime.Set(ctx.SimTime)
 		spec.Rules.Set(rules)
 		spec.PlanType.Set(sim.LocalNonEnroute)
 		createFlightPlan(sp, ctx, spec)
@@ -1057,7 +1056,7 @@ func associateFlightPlan(sp *STARSPane, ctx *panes.Context, callsign av.ADSBCall
 		spec.TrackingController.Set(ctx.UserPrimaryPosition())
 	}
 	if !spec.CoordinationTime.IsSet {
-		spec.CoordinationTime.Set(ctx.Now)
+		spec.CoordinationTime.Set(ctx.SimTime)
 	}
 
 	ctx.Client.AssociateFlightPlan(callsign, spec,
@@ -1077,7 +1076,7 @@ func createFlightPlan(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpec
 		spec.TrackingController.Set(ctx.UserPrimaryPosition())
 	}
 	if !spec.CoordinationTime.IsSet {
-		spec.CoordinationTime.Set(ctx.Now)
+		spec.CoordinationTime.Set(ctx.SimTime)
 	}
 
 	ctx.Client.CreateFlightPlan(spec,
@@ -1128,7 +1127,7 @@ func formatFlightPlan(sp *STARSPane, ctx *panes.Context, fp *sim.NASFlightPlan, 
 		return "NO PLAN"
 	}
 
-	fmtTime := func(t time.Time) string {
+	fmtTime := func(t sim.Time) string {
 		return t.UTC().Format("1504")
 	}
 

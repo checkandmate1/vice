@@ -35,7 +35,7 @@ type PatternAircraft struct {
 // PatternState tracks pattern aircraft at a single airport.
 type PatternState struct {
 	Aircraft  []PatternAircraft // max 2
-	NextSpawn time.Time
+	NextSpawn Time
 }
 
 // patternSpawnRate is the nominal rate (aircraft per hour) for pattern spawns.
@@ -60,7 +60,7 @@ func (s *Sim) currentVFRRunway(airport string) (rwy, opp av.Runway, ok bool) {
 		return av.Runway{}, av.Runway{}, false
 	}
 
-	as := s.wxModel.Lookup(faaAP.Location, float32(faaAP.Elevation), s.State.SimTime)
+	as := s.wxModel.Lookup(faaAP.Location, float32(faaAP.Elevation), s.State.SimTime.Time())
 	r, o := faaAP.SelectBestRunway(as.WindDirection(), s.State.MagneticVariation)
 	if r == nil || o == nil {
 		return av.Runway{}, av.Runway{}, false
@@ -380,7 +380,7 @@ func (s *Sim) resetPatternLap(ac *Aircraft) {
 	// Reset FirstSeen so that when the aircraft climbs back out of the
 	// surface tracking filter, it goes through the tentative track stage
 	// again (just a position symbol for 1-2 sweeps before the full track).
-	ac.FirstSeen = time.Time{}
+	ac.FirstSeen = Time{}
 }
 
 // recordPatternTouchAndGo records a touch-and-go for departure sequencing.

@@ -28,8 +28,8 @@ type RunwayLaunchState struct {
 	// on the runway departure rate. The actual time an aircraft is
 	// launched may be later, e.g. if we need longer for wake turbulence
 	// separation, etc.
-	NextIFRSpawn time.Time
-	NextVFRSpawn time.Time
+	NextIFRSpawn Time
+	NextVFRSpawn Time
 
 	// Aircraft follow the following flows:
 	// VFR: ReleasedVFR -> Sequenced
@@ -47,12 +47,12 @@ type RunwayLaunchState struct {
 	Sequenced []DepartureAircraft
 
 	LastDeparture          *DepartureAircraft
-	LastArrivalLandingTime time.Time      // when the last arrival landed on this runway
+	LastArrivalLandingTime Time           // when the last arrival landed on this runway
 	LastArrivalFlightRules av.FlightRules // flight rules of the last arrival that landed
 
 	// GoAroundHoldUntil is the time until which departures should be held
 	// after a go-around. Departures auto-resume after this time.
-	GoAroundHoldUntil time.Time
+	GoAroundHoldUntil Time
 
 	VFRAttempts  int
 	VFRSuccesses int
@@ -63,16 +63,16 @@ type RunwayLaunchState struct {
 type DepartureAircraft struct {
 	ADSBCallsign  av.ADSBCallsign
 	MinSeparation time.Duration // How long after takeoff it will be at ~6000' and airborne
-	SpawnTime     time.Time     // when it was first spawned
-	LaunchTime    time.Time     // when it was actually launched; used for wake turbulence separation, etc.
+	SpawnTime     Time          // when it was first spawned
+	LaunchTime    Time          // when it was actually launched; used for wake turbulence separation, etc.
 
 	// When they're ready to leave the gate
-	ReadyDepartGateTime time.Time
+	ReadyDepartGateTime Time
 
 	// HFR-only.
 	ReleaseRequested   bool
 	ReleaseDelay       time.Duration // minimum wait after release before the takeoff roll
-	RequestReleaseTime time.Time
+	RequestReleaseTime Time
 }
 
 const (
@@ -304,7 +304,7 @@ func (s *Sim) SetLaunchConfig(tcw TCW, lc LaunchConfig) error {
 			delay := max(5*time.Minute, randomInitialWait(lc.EmergencyAircraftRate, s.Rand))
 			s.NextEmergencyTime = s.State.SimTime.Add(delay)
 		} else {
-			s.NextEmergencyTime = time.Time{} // zero time = disabled
+			s.NextEmergencyTime = Time{} // zero time = disabled
 		}
 	}
 
@@ -401,7 +401,7 @@ func (s *Sim) addAircraftNoLock(ac Aircraft) {
 	ac.Nav.Check(s.lg)
 
 	// Log initial route for navigation debugging
-	nav.LogRoute(string(ac.ADSBCallsign), s.State.SimTime, ac.Nav.Waypoints)
+	nav.LogRoute(string(ac.ADSBCallsign), s.State.SimTime.NavTime(), ac.Nav.Waypoints)
 
 	if ac.FlightPlan.Rules == av.FlightRulesIFR {
 		s.TotalIFR++
@@ -478,12 +478,12 @@ func (s *Sim) Prespawn() {
 	godump.Dump(s.State.LaunchConfig)
 }
 
-func (s *Sim) setInitialSpawnTimes(now time.Time) {
+func (s *Sim) setInitialSpawnTimes(now Time) {
 	// Randomize next spawn time for departures and arrivals; may be before
 	// or after the current time.
-	randomDelay := func(rate float32) time.Time {
+	randomDelay := func(rate float32) Time {
 		if rate == 0 {
-			return time.Now().Add(365 * 24 * time.Hour)
+			return now.Add(365 * 24 * time.Hour)
 		}
 		avgWait := int(3600 / rate)
 		delta := s.Rand.Intn(avgWait) - avgWait/2
@@ -616,7 +616,7 @@ func (s *Sim) spawnAircraft() {
 	s.updateDepartureSequence()
 }
 
-func getAircraftTime(now time.Time, r *rand.Rand) time.Time {
+func getAircraftTime(now Time, r *rand.Rand) Time {
 	// Hallucinate a random time around the present for the aircraft.
 	delta := time.Duration(-20 + r.Intn(40))
 	t := now.Add(delta * time.Minute)

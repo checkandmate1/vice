@@ -5,8 +5,6 @@
 package nav
 
 import (
-	"time"
-
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/util"
@@ -16,7 +14,7 @@ import (
 const MaximumRate = 100000
 const rateMaxDeltaPercent = 0.075
 
-func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float32, geometricDescent bool, deltaKts float32, slowingTo250 bool, wxs wx.Sample, simTime time.Time) {
+func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float32, geometricDescent bool, deltaKts float32, slowingTo250 bool, wxs wx.Sample, simTime Time) {
 	nav.FlightState.PrevAltitude = nav.FlightState.Altitude
 
 	NavLog(callsign, simTime, NavLogAltitude, "target=%.0f current=%.0f rate=%.0f targetRate=%.0f expedite=%v slowingTo250=%v",

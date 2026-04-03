@@ -28,7 +28,7 @@ type DynamicState struct {
 
 	CurrentConsolidation map[TCW]*TCPConsolidation
 
-	SimTime time.Time // this is our fake time--accounting for pauses & simRate..
+	SimTime Time // this is our fake time--accounting for pauses & simRate..
 
 	METAR      map[string]wx.METAR
 	ATISLetter map[string]string // airport ICAO -> single letter "A"-"Z"
@@ -233,7 +233,7 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, model *wx.M
 			LaunchConfig: config.LaunchConfig,
 
 			SimRate: 1,
-			SimTime: startTime,
+			SimTime: NewSimTime(startTime),
 
 			ATPAEnabled:     true,
 			ATPAVolumeState: initATPAVolumeState(config.Airports),

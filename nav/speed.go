@@ -5,14 +5,12 @@
 package nav
 
 import (
-	"time"
-
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/wx"
 )
 
-func (nav *Nav) updateAirspeed(callsign string, alt float32, geometricDescent bool, fp *av.FlightPlan, wxs wx.Sample, simTime time.Time, bravo *av.AirspaceGrid) (float32, bool) {
+func (nav *Nav) updateAirspeed(callsign string, alt float32, geometricDescent bool, fp *av.FlightPlan, wxs wx.Sample, simTime Time, bravo *av.AirspaceGrid) (float32, bool) {
 	// Figure out what speed we're supposed to be going. The following is
 	// prioritized, so once targetSpeed has been set, nothing should
 	// override it.

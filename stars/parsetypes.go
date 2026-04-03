@@ -1662,7 +1662,7 @@ func (h *fpCoordTimeParser) Parse(sp *STARSPane, ctx *panes.Context, input *Comm
 	}
 
 	var spec sim.FlightPlanSpecifier
-	spec.CoordinationTime.Set(t)
+	spec.CoordinationTime.Set(sim.NewSimTime(t))
 	return spec, remaining, true, nil
 }
 

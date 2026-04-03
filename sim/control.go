@@ -1390,7 +1390,7 @@ func (s *Sim) AssignMach(tcw TCW, callsign av.ADSBCallsign, mach float32, afterA
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime.Time()).Temperature()
 			return ac.AssignMach(mach, afterAltitude, temp)
 		})
 }
@@ -1451,7 +1451,7 @@ func (s *Sim) SaySpeed(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, err
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime.Time()).Temperature()
 			return ac.SaySpeed(temp)
 		})
 }
@@ -1472,7 +1472,7 @@ func (s *Sim) SayMach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, erro
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime).Temperature()
+			temp := s.wxModel.Lookup(ac.Nav.FlightState.Position, ac.Nav.FlightState.Altitude, s.State.SimTime.Time()).Temperature()
 			return ac.SayMach(temp)
 		})
 }
@@ -1846,7 +1846,7 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 func (s *Sim) checkDelayedTrafficInSight(ac *Aircraft) {
 	// Only check if we're within the looking window
 	if ac.TrafficLookingUntil.IsZero() || s.State.SimTime.After(ac.TrafficLookingUntil) {
-		ac.TrafficLookingUntil = time.Time{} // Clear expired window
+		ac.TrafficLookingUntil = Time{} // Clear expired window
 		return
 	}
 
@@ -1860,7 +1860,7 @@ func (s *Sim) checkDelayedTrafficInSight(ac *Aircraft) {
 		// Report traffic in sight
 		ac.TrafficInSight = true
 		ac.TrafficInSightTime = s.State.SimTime
-		ac.TrafficLookingUntil = time.Time{} // Clear the looking window
+		ac.TrafficLookingUntil = Time{} // Clear the looking window
 
 		// Queue the transmission
 		s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionTrafficInSight)
@@ -2024,14 +2024,14 @@ const (
 type PendingFrequencyChange struct {
 	ADSBCallsign av.ADSBCallsign
 	TCP          TCP
-	Time         time.Time
+	Time         Time
 }
 
 // PendingContact represents a pilot-initiated transmission waiting to be played.
 type PendingContact struct {
 	ADSBCallsign           av.ADSBCallsign
 	TCP                    TCP
-	ReadyTime              time.Time               // When pilot is ready to transmit
+	ReadyTime              Time                    // When pilot is ready to transmit
 	Type                   PendingTransmissionType // What kind of transmission
 	ReportDepartureHeading bool                    // For departures: include assigned heading
 	HasQueuedEmergency     bool                    // For departures: trigger emergency after contact
@@ -2475,7 +2475,7 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 
 type FutureOnCourse struct {
 	ADSBCallsign av.ADSBCallsign
-	Time         time.Time
+	Time         Time
 }
 
 func (s *Sim) enqueueDepartOnCourse(callsign av.ADSBCallsign) {
@@ -2488,7 +2488,7 @@ type FutureChangeSquawk struct {
 	ADSBCallsign av.ADSBCallsign
 	Code         av.Squawk
 	Mode         av.TransponderMode
-	Time         time.Time
+	Time         Time
 }
 
 func (s *Sim) enqueueTransponderChange(callsign av.ADSBCallsign, code av.Squawk, mode av.TransponderMode) {

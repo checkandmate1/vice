@@ -42,14 +42,14 @@ type Aircraft struct {
 	Squawk av.Squawk
 	Mode   av.TransponderMode
 
-	IdentStartTime, IdentEndTime time.Time
+	IdentStartTime, IdentEndTime Time
 
 	FlightPlan   av.FlightPlan
 	TypeOfFlight av.TypeOfFlight
 	// For departures, after we first see them in the departure acquisition
 	// volume, we set a time a bit in the future for the flight plan to
 	// actually acquire to simulate the delay in that.
-	DepartureFPAcquisitionTime time.Time
+	DepartureFPAcquisitionTime Time
 
 	// State related to navigation.
 	Nav nav.Nav
@@ -72,7 +72,7 @@ type Aircraft struct {
 
 	HoldForRelease    bool
 	Released          bool // only used for hold for release
-	ReleaseTime       time.Time
+	ReleaseTime       Time
 	WaitingForLaunch  bool // for departures
 	MissingFlightPlan bool
 
@@ -96,7 +96,7 @@ type Aircraft struct {
 	// The controller who gave approach clearance
 	ApproachTCP TCP
 
-	FirstSeen time.Time
+	FirstSeen Time
 
 	RequestedFlightFollowing bool
 	// WaitingForGoAhead is set when a VFR aircraft has made an abbreviated
@@ -106,7 +106,7 @@ type Aircraft struct {
 
 	EmergencyState *EmergencyState
 
-	LastRadioTransmission time.Time
+	LastRadioTransmission Time
 
 	// LastAddressingForm tracks how the controller last addressed this aircraft.
 	// Used for readbacks to match the controller's style.
@@ -117,14 +117,14 @@ type Aircraft struct {
 	ReportedATIS string
 
 	// Traffic advisory state
-	TrafficInSight      bool      // True if aircraft has reported traffic in sight
-	TrafficInSightTime  time.Time // When traffic was reported in sight
-	TrafficLookingUntil time.Time // If non-zero, aircraft may report traffic in sight before this time
+	TrafficInSight      bool // True if aircraft has reported traffic in sight
+	TrafficInSightTime  Time // When traffic was reported in sight
+	TrafficLookingUntil Time // If non-zero, aircraft may report traffic in sight before this time
 
 	TouchAndGosRemaining int // >0 means pattern aircraft; decremented each lap
 }
 
-func (ac *Aircraft) GetRadarTrack(now time.Time) av.RadarTrack {
+func (ac *Aircraft) GetRadarTrack(now Time) av.RadarTrack {
 	return av.RadarTrack{
 		ADSBCallsign:        ac.ADSBCallsign,
 		Squawk:              util.Select(ac.Mode != av.TransponderModeStandby, ac.Squawk, av.Squawk(0)),
@@ -195,12 +195,12 @@ func (ac *Aircraft) TAS(temp av.Temperature) float32 {
 ///////////////////////////////////////////////////////////////////////////
 // Navigation and simulation
 
-func (ac *Aircraft) Update(model *wx.Model, simTime time.Time, bravo *av.AirspaceGrid, lg *log.Logger) *av.Waypoint {
+func (ac *Aircraft) Update(model *wx.Model, simTime Time, bravo *av.AirspaceGrid, lg *log.Logger) *av.Waypoint {
 	if lg != nil {
 		lg = lg.With(slog.String("adsb_callsign", string(ac.ADSBCallsign)))
 	}
 
-	passedWaypoint := ac.Nav.Update(string(ac.ADSBCallsign), model, &ac.FlightPlan, simTime, bravo)
+	passedWaypoint := ac.Nav.Update(string(ac.ADSBCallsign), model, &ac.FlightPlan, simTime.NavTime(), bravo)
 	if passedWaypoint != nil {
 		lg.Debug("passed", slog.Any("waypoint", passedWaypoint))
 	}
@@ -215,7 +215,7 @@ func (ac *Aircraft) PilotMixUp() av.CommandIntent {
 	}
 }
 
-func (ac *Aircraft) Ident(now time.Time) av.CommandIntent {
+func (ac *Aircraft) Ident(now Time) av.CommandIntent {
 	ac.IdentStartTime = now.Add(time.Duration(2+ac.Nav.Rand.Intn(3)) * time.Second) // delay the start a bit
 	ac.IdentEndTime = ac.IdentStartTime.Add(10 * time.Second)
 	return av.TransponderIntent{Ident: true}
@@ -277,13 +277,13 @@ func (ac *Aircraft) ExpediteClimb() av.CommandIntent {
 	return ac.Nav.ExpediteClimb()
 }
 
-func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
-	return ac.Nav.AssignHeading(math.MagneticHeading(heading), turn, simTime)
+func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime Time) av.CommandIntent {
+	return ac.Nav.AssignHeading(math.MagneticHeading(heading), turn, simTime.NavTime())
 }
 
-func (ac *Aircraft) TurnLeft(deg int, simTime time.Time) av.CommandIntent {
+func (ac *Aircraft) TurnLeft(deg int, simTime Time) av.CommandIntent {
 	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(-deg))
-	ac.Nav.AssignHeading(hdg, av.TurnLeft, simTime)
+	ac.Nav.AssignHeading(hdg, av.TurnLeft, simTime.NavTime())
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnLeft,
 		Heading: hdg,
@@ -291,9 +291,9 @@ func (ac *Aircraft) TurnLeft(deg int, simTime time.Time) av.CommandIntent {
 	}
 }
 
-func (ac *Aircraft) TurnRight(deg int, simTime time.Time) av.CommandIntent {
+func (ac *Aircraft) TurnRight(deg int, simTime Time) av.CommandIntent {
 	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(deg))
-	ac.Nav.AssignHeading(hdg, av.TurnRight, simTime)
+	ac.Nav.AssignHeading(hdg, av.TurnRight, simTime.NavTime())
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnRight,
 		Heading: hdg,
@@ -301,16 +301,16 @@ func (ac *Aircraft) TurnRight(deg int, simTime time.Time) av.CommandIntent {
 	}
 }
 
-func (ac *Aircraft) FlyPresentHeading(simTime time.Time) av.CommandIntent {
-	return ac.Nav.FlyPresentHeading(simTime)
+func (ac *Aircraft) FlyPresentHeading(simTime Time) av.CommandIntent {
+	return ac.Nav.FlyPresentHeading(simTime.NavTime())
 }
 
 func (ac *Aircraft) ExpectDirect(fix string) av.CommandIntent {
 	return ac.Nav.ExpectDirect(strings.ToUpper(fix))
 }
 
-func (ac *Aircraft) DirectFix(fix string, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
-	return ac.Nav.DirectFix(strings.ToUpper(fix), turn, simTime)
+func (ac *Aircraft) DirectFix(fix string, turn av.TurnDirection, simTime Time) av.CommandIntent {
+	return ac.Nav.DirectFix(strings.ToUpper(fix), turn, simTime.NavTime())
 }
 
 func (ac *Aircraft) HoldAtFix(fix string, hold *av.Hold) av.CommandIntent {
@@ -341,24 +341,24 @@ func (ac *Aircraft) AtFixIntercept(fix string, lg *log.Logger) av.CommandIntent 
 	return ac.Nav.AtFixIntercept(fix, ac.FlightPlan.ArrivalAirport, lg)
 }
 
-func (ac *Aircraft) ClearedApproach(id string, simTime time.Time, lg *log.Logger) (av.CommandIntent, bool) {
-	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, false, simTime)
+func (ac *Aircraft) ClearedApproach(id string, simTime Time, lg *log.Logger) (av.CommandIntent, bool) {
+	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, false, simTime.NavTime())
 }
 
-func (ac *Aircraft) ClearedStraightInApproach(id string, simTime time.Time, lg *log.Logger) (av.CommandIntent, bool) {
-	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, true, simTime)
+func (ac *Aircraft) ClearedStraightInApproach(id string, simTime Time, lg *log.Logger) (av.CommandIntent, bool) {
+	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, true, simTime.NavTime())
 }
 
 func (ac *Aircraft) CancelApproachClearance() av.CommandIntent {
 	return ac.Nav.CancelApproachClearance()
 }
 
-func (ac *Aircraft) ClimbViaSID(simTime time.Time) av.CommandIntent {
-	return ac.Nav.ClimbViaSID(simTime)
+func (ac *Aircraft) ClimbViaSID(simTime Time) av.CommandIntent {
+	return ac.Nav.ClimbViaSID(simTime.NavTime())
 }
 
-func (ac *Aircraft) DescendViaSTAR(simTime time.Time) av.CommandIntent {
-	return ac.Nav.DescendViaSTAR(simTime)
+func (ac *Aircraft) DescendViaSTAR(simTime Time) av.CommandIntent {
+	return ac.Nav.DescendViaSTAR(simTime.NavTime())
 }
 
 func (ac *Aircraft) ResumeOwnNavigation() av.CommandIntent {
@@ -401,7 +401,7 @@ func (ac *Aircraft) InterceptApproach(lg *log.Logger) av.CommandIntent {
 }
 
 func (ac *Aircraft) InitializeArrival(ap *av.Airport, arr *av.Arrival, nmPerLongitude float32, magneticVariation float32,
-	model *wx.Model, simTime time.Time, lg *log.Logger) error {
+	model *wx.Model, simTime Time, lg *log.Logger) error {
 	ac.STAR = arr.STAR
 	ac.STARRunwayWaypoints = arr.RunwayWaypoints[ac.FlightPlan.ArrivalAirport]
 
@@ -424,7 +424,7 @@ func (ac *Aircraft) InitializeArrival(ap *av.Airport, arr *av.Arrival, nmPerLong
 	ac.TypeOfFlight = av.FlightTypeArrival
 
 	nav := nav.MakeArrivalNav(ac.ADSBCallsign, arr, ac.FlightPlan, perf, nmPerLongitude, magneticVariation, model,
-		simTime, lg)
+		simTime.NavTime(), lg)
 	if nav == nil {
 		return fmt.Errorf("error initializing Nav")
 	}
@@ -445,7 +445,7 @@ func (ac *Aircraft) InitializeArrival(ap *av.Airport, arr *av.Arrival, nmPerLong
 
 func (ac *Aircraft) InitializeDeparture(ap *av.Airport, departureAirport string, dep *av.Departure,
 	runway string, exitRoute av.ExitRoute, nmPerLongitude float32, magneticVariation float32,
-	model *wx.Model, simTime time.Time, lg *log.Logger) error {
+	model *wx.Model, simTime Time, lg *log.Logger) error {
 	wp := util.DuplicateSlice(exitRoute.Waypoints)
 	wp = append(wp, dep.RouteWaypoints...)
 	wp = util.FilterSliceInPlace(wp, func(wp av.Waypoint) bool { return !wp.Location.IsZero() })
@@ -480,7 +480,7 @@ func (ac *Aircraft) InitializeDeparture(ap *av.Airport, departureAirport string,
 	randomizeAltitudeRange := ac.FlightPlan.Rules == av.FlightRulesVFR
 	nav := nav.MakeDepartureNav(ac.ADSBCallsign, ac.FlightPlan, perf, exitRoute.AssignedAltitude,
 		exitRoute.ClearedAltitude, wp, randomizeAltitudeRange,
-		nmPerLongitude, magneticVariation, model, simTime, lg)
+		nmPerLongitude, magneticVariation, model, simTime.NavTime(), lg)
 	if nav == nil {
 		return fmt.Errorf("error initializing Nav")
 	}
@@ -493,7 +493,7 @@ func (ac *Aircraft) InitializeDeparture(ap *av.Airport, departureAirport string,
 
 func (ac *Aircraft) InitializeVFRDeparture(ap *av.Airport, wps av.WaypointArray,
 	randomizeAltitudeRange bool, nmPerLongitude float32, magneticVariation float32, model *wx.Model,
-	simTime time.Time, lg *log.Logger) error {
+	simTime Time, lg *log.Logger) error {
 	wp := util.DuplicateSlice(wps)
 
 	perf, ok := av.DB.AircraftPerformance[ac.FlightPlan.AircraftType]
@@ -506,7 +506,7 @@ func (ac *Aircraft) InitializeVFRDeparture(ap *av.Airport, wps av.WaypointArray,
 
 	nav := nav.MakeDepartureNav(ac.ADSBCallsign, ac.FlightPlan, perf, 0, /* assigned alt */
 		ac.FlightPlan.Altitude /* cleared alt */, wp,
-		randomizeAltitudeRange, nmPerLongitude, magneticVariation, model, simTime, lg)
+		randomizeAltitudeRange, nmPerLongitude, magneticVariation, model, simTime.NavTime(), lg)
 	if nav == nil {
 		return fmt.Errorf("error initializing Nav")
 	}
@@ -517,7 +517,7 @@ func (ac *Aircraft) InitializeVFRDeparture(ap *av.Airport, wps av.WaypointArray,
 }
 
 func (ac *Aircraft) InitializeOverflight(of *av.Overflight, nmPerLongitude float32,
-	magneticVariation float32, model *wx.Model, simTime time.Time, lg *log.Logger) error {
+	magneticVariation float32, model *wx.Model, simTime Time, lg *log.Logger) error {
 	perf, ok := av.DB.AircraftPerformance[ac.FlightPlan.AircraftType]
 	if !ok {
 		lg.Errorf("%s: unable to get performance model", ac.FlightPlan.AircraftType)
@@ -533,7 +533,7 @@ func (ac *Aircraft) InitializeOverflight(of *av.Overflight, nmPerLongitude float
 	ac.TypeOfFlight = av.FlightTypeOverflight
 
 	nav := nav.MakeOverflightNav(ac.ADSBCallsign, of, ac.FlightPlan, perf, nmPerLongitude,
-		magneticVariation, model, simTime, lg)
+		magneticVariation, model, simTime.NavTime(), lg)
 	if nav == nil {
 		return fmt.Errorf("error initializing Nav")
 	}
@@ -542,8 +542,8 @@ func (ac *Aircraft) InitializeOverflight(of *av.Overflight, nmPerLongitude float
 	return nil
 }
 
-func (ac *Aircraft) NavSummary(model *wx.Model, simTime time.Time, lg *log.Logger) string {
-	return ac.Nav.Summary(ac.FlightPlan, model, simTime, lg)
+func (ac *Aircraft) NavSummary(model *wx.Model, simTime Time, lg *log.Logger) string {
+	return ac.Nav.Summary(ac.FlightPlan, model, simTime.NavTime(), lg)
 }
 
 func (ac *Aircraft) ContactMessage(reportingPoints []av.ReportingPoint) *av.RadioTransmission {
@@ -557,11 +557,11 @@ func (ac *Aircraft) ContactMessage(reportingPoints []av.ReportingPoint) *av.Radi
 	return ac.Nav.ContactMessage(reportingPoints, ac.STAR, runway, reportHeading, ac.IsDeparture())
 }
 
-func (ac *Aircraft) DepartOnCourse(simTime time.Time, lg *log.Logger) {
+func (ac *Aircraft) DepartOnCourse(simTime Time, lg *log.Logger) {
 	if ac.FlightPlan.Exit == "" {
 		lg.Warn(`unset "exit" for departure`, slog.String("adsb_callsign", string(ac.ADSBCallsign)))
 	}
-	ac.Nav.DepartOnCourse(float32(ac.FlightPlan.Altitude), string(ac.FlightPlan.Exit), simTime)
+	ac.Nav.DepartOnCourse(float32(ac.FlightPlan.Altitude), string(ac.FlightPlan.Exit), simTime.NavTime())
 }
 
 func (ac *Aircraft) Check(lg *log.Logger) {

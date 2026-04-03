@@ -51,7 +51,7 @@ type ControlClient struct {
 	mu sync.Mutex
 
 	lastUpdateRequest time.Time
-	lastReturnedTime  time.Time
+	lastReturnedTime  sim.Time
 	updateCall        *pendingCall
 	lastUpdateLatency time.Duration
 
@@ -208,7 +208,7 @@ func NewControlClient(ss server.SimState, controllerToken string, disableTTSPtr 
 		sttTranscriber:    stt.NewTranscriber(lg),
 	}
 
-	cc.SessionStats.SignOnTime = ss.SimTime
+	cc.SessionStats.SignOnTime = ss.SimTime.Time()
 	cc.SessionStats.Initials = initials
 	cc.SessionStats.seenCallsigns = make(map[av.ADSBCallsign]any)
 
@@ -396,11 +396,11 @@ func (c *ControlClient) GetSimRate() float32 {
 	return c.State.SimRate
 }
 
-// CurrentTime returns an extrapolated value that models the current Sim's time.
-// (Because the Sim may be running remotely, we have to make some approximations,
-// though they shouldn't cause much trouble since we get an update from the Sim
-// at least once a second...)
-func (c *ControlClient) CurrentTime() time.Time {
+// InterpolatedSimTime returns an extrapolated value that models the current
+// Sim's time. (Because the Sim may be running remotely, we have to make some
+// approximations, though they shouldn't cause much trouble since we get an
+// update from the Sim at least once a second...)
+func (c *ControlClient) InterpolatedSimTime() sim.Time {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -478,16 +478,16 @@ func (c *ControlClient) LastTTSCallsign() av.ADSBCallsign {
 	return c.transmissions.LastTransmissionCallsign()
 }
 
-func (c *ControlClient) GetPrecipURL(t time.Time, callback func(url string, nextTime time.Time, err error)) {
+func (c *ControlClient) GetPrecipURL(t sim.Time, callback func(url string, nextTime sim.Time, err error)) {
 	args := server.PrecipURLArgs{
 		Facility: c.State.Facility,
-		Time:     t,
+		Time:     t.Time(),
 	}
 	var result server.PrecipURL
 	c.addCall(makeRPCCall(c.client.Go(server.GetPrecipURLRPC, args, &result, nil),
 		func(err error) {
 			if callback != nil {
-				callback(result.URL, result.NextTime, err)
+				callback(result.URL, sim.NewSimTime(result.NextTime), err)
 			}
 		}))
 }

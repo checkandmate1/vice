@@ -25,9 +25,9 @@ type TrackState struct {
 	// freshest possible information for things like calculating headings,
 	// rates of altitude change, etc.
 	track             av.RadarTrack
-	trackTime         time.Time
+	trackTime         sim.Time
 	previousTrack     av.RadarTrack
-	previousTrackTime time.Time
+	previousTrackTime sim.Time
 
 	// Radar track history is maintained with a ring buffer where
 	// historyTracksIndex is the index of the next track to be written.
@@ -37,8 +37,8 @@ type TrackState struct {
 	historyTracks      [10]av.RadarTrack
 	historyTracksIndex int
 
-	FullLDBEndTime           time.Time // If the LDB displays the groundspeed. When to stop
-	DisplayRequestedAltitude *bool     // nil if unspecified
+	FullLDBEndTime           sim.Time // If the LDB displays the groundspeed. When to stop
+	DisplayRequestedAltitude *bool    // nil if unspecified
 
 	IsSelected bool // middle click
 
@@ -64,14 +64,14 @@ type TrackState struct {
 	ATPALeadAircraftCallsign  av.ADSBCallsign
 	DrawATPAGraphics          bool
 
-	POFlashingEndTime time.Time
-	UNFlashingEndTime time.Time
+	POFlashingEndTime sim.Time
+	UNFlashingEndTime sim.Time
 	IFFlashing        bool // Will continue to flash unless slewed or a successful handoff
 
-	SuspendedShowAltitudeEndTime time.Time
+	SuspendedShowAltitudeEndTime sim.Time
 
 	AcceptedHandoffSector     string
-	AcceptedHandoffDisplayEnd time.Time
+	AcceptedHandoffDisplayEnd sim.Time
 
 	// These are only set if a leader line direction was specified for this
 	// aircraft individually:
@@ -88,14 +88,14 @@ type TrackState struct {
 	DisplayPTL           bool
 
 	MSAW             bool // minimum safe altitude warning
-	MSAWStart        time.Time
+	MSAWStart        sim.Time
 	InhibitMSAW      bool // only applies if in an alert. clear when alert is over?
 	MSAWAcknowledged bool
-	MSAWSoundEnd     time.Time
+	MSAWSoundEnd     sim.Time
 
 	SPCAlert        bool
 	SPCAcknowledged bool
-	SPCSoundEnd     time.Time
+	SPCSoundEnd     sim.Time
 
 	MissingFlightPlanAcknowledged bool
 
@@ -103,13 +103,13 @@ type TrackState struct {
 	// a different code, we get a flashing DB in the datablock.
 	DBAcknowledged av.Squawk
 
-	FirstRadarTrackTime time.Time
+	FirstRadarTrackTime sim.Time
 	EnteredOurAirspace  bool
 
 	OutboundHandoffAccepted bool
-	OutboundHandoffFlashEnd time.Time
+	OutboundHandoffFlashEnd sim.Time
 
-	RDIndicatorEnd time.Time
+	RDIndicatorEnd sim.Time
 
 	// Set when the user enters a command to clear the primary scratchpad,
 	// but it is already empty. (In turn, this causes the exit
@@ -134,7 +134,7 @@ type TrackState struct {
 	// applies locally; for owned tracks, the flight plan is modified so it
 	// applies globally.
 	InhibitACTypeDisplay      *bool
-	ForceACTypeDisplayEndTime time.Time
+	ForceACTypeDisplayEndTime sim.Time
 
 	// Draw the datablock in yellow (until cleared); currently only used for
 	// [MF]Y[SLEW] quick flight plans
@@ -228,7 +228,7 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 			state := sp.TrackState[trk.ADSBCallsign]
 			state.SPCAlert = true
 			state.SPCAcknowledged = false
-			state.SPCSoundEnd = ctx.Now.Add(AlertAudioDuration)
+			state.SPCSoundEnd = ctx.SimTime.Add(AlertAudioDuration)
 		}
 	}
 
@@ -299,7 +299,7 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 			if tcps, ok := sp.PointOuts[event.ACID]; ok {
 				if state, ok := sp.trackStateForACID(ctx, event.ACID); ok {
 					if ctx.UserControlsPosition(tcps.From) {
-						state.POFlashingEndTime = time.Now().Add(5 * time.Second)
+						state.POFlashingEndTime = ctx.SimTime.Add(5 * time.Second)
 					} else if ctx.UserControlsPosition(tcps.To) {
 						state.PointOutAcknowledged = true
 					}
@@ -314,7 +314,7 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 			if tcps, ok := sp.PointOuts[event.ACID]; ok && ctx.UserControlsPosition(tcps.From) {
 				sp.RejectedPointOuts[event.ACID] = nil
 				if state, ok := sp.trackStateForACID(ctx, event.ACID); ok {
-					state.UNFlashingEndTime = time.Now().Add(5 * time.Second)
+					state.UNFlashingEndTime = ctx.SimTime.Add(5 * time.Second)
 				}
 			}
 			delete(sp.PointOuts, event.ACID)
@@ -345,11 +345,11 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 					sp.playOnce(ctx.Platform, AudioHandoffAccepted)
 					state.OutboundHandoffAccepted = true
 					dur := time.Duration(ctx.FacilityAdaptation.Datablocks.FDB.AcceptFlashDuration) * time.Second
-					state.OutboundHandoffFlashEnd = time.Now().Add(dur)
+					state.OutboundHandoffFlashEnd = ctx.SimTime.Add(dur)
 					state.DisplayFDB = true
 
 					if event.Type == sim.AcceptedRedirectedHandoffEvent {
-						state.RDIndicatorEnd = time.Now().Add(30 * time.Second)
+						state.RDIndicatorEnd = ctx.SimTime.Add(30 * time.Second)
 					}
 				}
 				if outbound || inbound {
@@ -357,7 +357,7 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 					if otherCtrl := ctx.GetResolvedController(otherPos); otherCtrl != nil && otherCtrl.IsExternal() {
 						state.AcceptedHandoffSector = string(otherPos)
 						dur := time.Duration(ctx.FacilityAdaptation.Datablocks.FDB.SectorDisplayDuration) * time.Second
-						state.AcceptedHandoffDisplayEnd = time.Now().Add(dur)
+						state.AcceptedHandoffDisplayEnd = ctx.SimTime.Add(dur)
 					}
 				}
 			}
@@ -457,8 +457,8 @@ func (sp *STARSPane) updateMSAWs(ctx *panes.Context) {
 		if warn && !state.MSAW {
 			// It's a new alert
 			state.MSAWAcknowledged = false
-			state.MSAWSoundEnd = time.Now().Add(AlertAudioDuration)
-			state.MSAWStart = time.Now()
+			state.MSAWSoundEnd = ctx.SimTime.Add(AlertAudioDuration)
+			state.MSAWStart = ctx.SimTime
 		}
 		state.MSAW = warn
 	}
@@ -466,18 +466,17 @@ func (sp *STARSPane) updateMSAWs(ctx *panes.Context) {
 
 func (sp *STARSPane) updateRadarTracks(ctx *panes.Context) {
 	// FIXME: all aircraft radar tracks are updated at the same time.
-	now := ctx.Client.CurrentTime()
 	fa := ctx.Client.State.FacilityAdaptation
 	if sp.radarMode(fa.RadarSites) == RadarModeFused {
-		if now.Sub(sp.lastTrackUpdate) < 1*time.Second {
+		if ctx.SimTime.Sub(sp.lastTrackUpdate) < 1*time.Second {
 			return
 		}
 	} else {
-		if now.Sub(sp.lastTrackUpdate) < 5*time.Second {
+		if ctx.SimTime.Sub(sp.lastTrackUpdate) < 5*time.Second {
 			return
 		}
 	}
-	sp.lastTrackUpdate = now
+	sp.lastTrackUpdate = ctx.SimTime
 
 	for _, trk := range sp.visibleTracks {
 		state := sp.TrackState[trk.ADSBCallsign]
@@ -491,7 +490,7 @@ func (sp *STARSPane) updateRadarTracks(ctx *panes.Context) {
 		state.previousTrack = state.track
 		state.previousTrackTime = state.trackTime
 		state.track = trk.RadarTrack
-		state.trackTime = now
+		state.trackTime = ctx.SimTime
 
 		sp.checkUnreasonableModeC(state)
 	}
@@ -505,8 +504,8 @@ func (sp *STARSPane) updateRadarTracks(ctx *panes.Context) {
 	// History tracks are updated after a radar track update, only if
 	// H_RATE seconds have elapsed (4-94).
 	ps := sp.currentPrefs()
-	if now.Sub(sp.lastHistoryTrackUpdate).Seconds() >= float64(ps.RadarTrackHistoryRate) {
-		sp.lastHistoryTrackUpdate = now
+	if ctx.SimTime.Sub(sp.lastHistoryTrackUpdate).Seconds() >= float64(ps.RadarTrackHistoryRate) {
+		sp.lastHistoryTrackUpdate = ctx.SimTime
 		for _, trk := range sp.visibleTracks { // We only get radar tracks for visible aircraft
 			state := sp.TrackState[trk.ADSBCallsign]
 			if trk.IsTentative {
@@ -792,8 +791,8 @@ func (sp *STARSPane) drawGhosts(ctx *panes.Context, ghosts []*av.GhostTrack, tra
 		vll := sp.getLeaderLineVector(ctx, ghost.LeaderLineDirection)
 		pll := math.Add2f(pac, vll)
 
-		halfSeconds := ctx.Now.UnixMilli() / 500
-		clockPhase := ctx.FacilityAdaptation.CurrentDatablockClockPhase(ctx.Now)
+		halfSeconds := time.Now().UnixMilli() / 500
+		clockPhase := ctx.FacilityAdaptation.CurrentDatablockClockPhase(time.Now())
 		db.draw(td, pll, datablockFont, &strBuilder, brightness, ghost.LeaderLineDirection, clockPhase, halfSeconds)
 
 		// Leader line
@@ -1163,8 +1162,8 @@ func (sp *STARSPane) updateCAAircraft(ctx *panes.Context) {
 			if caConflict(cs0, cs1) {
 				sp.CAAircraft = append(sp.CAAircraft, CAAircraft{
 					ADSBCallsigns: [2]av.ADSBCallsign{cs0, cs1},
-					SoundEnd:      ctx.Now.Add(AlertAudioDuration),
-					Start:         time.Now(), // this rather than ctx.Now so they are unique and sort consistently for the list.
+					SoundEnd:      ctx.SimTime.Add(AlertAudioDuration),
+					Start:         ctx.SimTime,
 				})
 			}
 		}
@@ -1178,8 +1177,8 @@ func (sp *STARSPane) updateCAAircraft(ctx *panes.Context) {
 			if mciConflict(cs0, cs1) {
 				sp.MCIAircraft = append(sp.MCIAircraft, CAAircraft{
 					ADSBCallsigns: [2]av.ADSBCallsign{cs0, cs1},
-					SoundEnd:      ctx.Now.Add(AlertAudioDuration),
-					Start:         time.Now(), // this rather than ctx.Now so they are unique and sort consistently for the list.
+					SoundEnd:      ctx.SimTime.Add(AlertAudioDuration),
+					Start:         ctx.SimTime,
 				})
 			}
 		}

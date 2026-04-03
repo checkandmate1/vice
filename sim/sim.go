@@ -56,7 +56,7 @@ type Sim struct {
 	wxProvider wx.Provider
 	METAR      map[string][]wx.METAR
 
-	ATISChangedTime map[string]time.Time
+	ATISChangedTime map[string]Time
 
 	eventStream *EventStream
 	lg          *log.Logger
@@ -66,8 +66,8 @@ type Sim struct {
 	// Airport -> pattern state
 	PatternState map[string]*PatternState
 	// Key is inbound flow group name
-	NextInboundSpawn map[string]time.Time
-	NextVFFRequest   time.Time
+	NextInboundSpawn map[string]Time
+	NextVFFRequest   Time
 
 	Handoffs  map[ACID]Handoff
 	PointOuts map[ACID]PointOut
@@ -87,12 +87,12 @@ type Sim struct {
 	FutureSquawkChanges     []FutureChangeSquawk
 	FutureEmergencyUpdates  []FutureEmergencyUpdate
 
-	NextEmergencyTime time.Time
+	NextEmergencyTime Time
 
 	PilotErrorInterval time.Duration
-	LastPilotError     time.Time
+	LastPilotError     Time
 
-	lastSimUpdate  time.Time
+	lastSimUpdate  Time
 	updateTimeSlop time.Duration
 	lastUpdateTime time.Time // this is w.r.t. true wallclock time
 
@@ -104,8 +104,8 @@ type Sim struct {
 	prespawnUncontrolledOnly bool
 	prespawnPatternEligible  bool
 
-	NextPushStart time.Time // both w.r.t. sim time
-	PushEnd       time.Time
+	NextPushStart Time // both w.r.t. sim time
+	PushEnd       Time
 
 	Rand *rand.Rand
 
@@ -195,21 +195,21 @@ type ArrivalRunway struct {
 }
 
 type Handoff struct {
-	AutoAcceptTime    time.Time
+	AutoAcceptTime    Time
 	ReceivingFacility string // only for auto accept
 }
 
 type PointOut struct {
 	FromController ControlPosition
 	ToController   ControlPosition
-	AcceptTime     time.Time
+	AcceptTime     Time
 }
 
 type PilotSpeech struct {
 	Callsign av.ADSBCallsign
 	Type     av.RadioTransmissionType
 	Text     string
-	SimTime  time.Time // Virtual simulation time when transmission was made
+	SimTime  Time // Virtual simulation time when transmission was made
 }
 
 // NewSimConfiguration collects all of the information required to create a new Sim
@@ -266,7 +266,7 @@ func NewSim(config NewSimConfiguration, lg *log.Logger) *Sim {
 
 		DepartureState:   make(map[string]map[av.RunwayID]*RunwayLaunchState),
 		PatternState:     make(map[string]*PatternState),
-		NextInboundSpawn: make(map[string]time.Time),
+		NextInboundSpawn: make(map[string]Time),
 
 		ControlPositions:     config.ControlPositions,
 		InboundAssignments:   config.ControllerConfiguration.InboundAssignments,
@@ -284,7 +284,7 @@ func NewSim(config NewSimConfiguration, lg *log.Logger) *Sim {
 		wxModel: wx.MakeModel(config.WXProvider, config.Facility, config.PrimaryAirport, config.StartTime.UTC(), lg),
 		METAR:   make(map[string][]wx.METAR),
 
-		ATISChangedTime: make(map[string]time.Time),
+		ATISChangedTime: make(map[string]Time),
 
 		eventStream: NewEventStream(lg),
 		lg:          lg,
@@ -294,9 +294,9 @@ func NewSim(config NewSimConfiguration, lg *log.Logger) *Sim {
 		EnforceUniqueCallsignSuffix: config.EnforceUniqueCallsignSuffix,
 
 		PilotErrorInterval: time.Duration(config.PilotErrorInterval * float32(time.Minute)),
-		LastPilotError:     time.Now(),
+		LastPilotError:     NewSimTime(config.StartTime),
 
-		NextEmergencyTime: util.Select(config.LaunchConfig.EmergencyAircraftRate > 0, config.StartTime, time.Time{}),
+		NextEmergencyTime: util.Select(config.LaunchConfig.EmergencyAircraftRate > 0, NewSimTime(config.StartTime), Time{}),
 
 		lastUpdateTime: time.Now(),
 
@@ -339,7 +339,7 @@ func NewSim(config NewSimConfiguration, lg *log.Logger) *Sim {
 				// METAR <= the start time
 				idx--
 			}
-			s.ATISChangedTime[ap] = metar[idx].Time
+			s.ATISChangedTime[ap] = NewSimTime(metar[idx].Time)
 			for idx < len(metar) && metar[idx].Time.Sub(config.StartTime) < 24*time.Hour {
 				s.METAR[ap] = append(s.METAR[ap], metar[idx])
 				idx++
@@ -499,7 +499,7 @@ func (s *Sim) Activate(lg *log.Logger, provider wx.Provider) {
 
 	s.wxProvider = provider
 	if s.wxModel == nil {
-		s.wxModel = wx.MakeModel(provider, s.State.Facility, s.State.PrimaryAirport, s.State.SimTime, s.lg)
+		s.wxModel = wx.MakeModel(provider, s.State.Facility, s.State.PrimaryAirport, s.State.SimTime.Time(), s.lg)
 	}
 
 	// Restore json:"-" fields that are lost during JSON config save/load.
@@ -556,8 +556,8 @@ func (s *Sim) LogValue() slog.Value {
 		slog.Any("next_inbound_spawn", s.NextInboundSpawn),
 		slog.Any("automatic_handoffs", s.Handoffs),
 		slog.Any("automatic_pointouts", s.PointOuts),
-		slog.Time("next_push_start", s.NextPushStart),
-		slog.Time("push_end", s.PushEnd))
+		slog.Time("next_push_start", s.NextPushStart.Time()),
+		slog.Time("push_end", s.PushEnd.Time()))
 }
 
 func (s *Sim) TogglePause() {
@@ -603,7 +603,7 @@ func (s *Sim) IdleTime() time.Duration {
 }
 
 // SimTime returns the current simulation time.
-func (s *Sim) SimTime() time.Time {
+func (s *Sim) SimTime() Time {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
@@ -1320,20 +1320,20 @@ func (s *Sim) updateState() {
 						s.mu.Unlock(s.lg)
 
 						// Execute waypoint commands using the waypoint commands controller (typically an instructor)
-						nav.NavLog(string(callsign), s.State.SimTime, nav.NavLogCommand, "aircraft=%s fix=%s commands=%s", callsign, passedWaypoint.Fix, cmds)
+						nav.NavLog(string(callsign), s.State.SimTime.NavTime(), nav.NavLogCommand, "aircraft=%s fix=%s commands=%s", callsign, passedWaypoint.Fix, cmds)
 						s.lg.Infof("Waypoint commands: Aircraft %s passed %s, executing: %s", callsign, passedWaypoint.Fix, cmds)
 						result := s.RunAircraftControlCommands(TCW(tcp), callsign, cmds)
 						if result.Error != nil {
-							nav.NavLog(string(callsign), s.State.SimTime, nav.NavLogCommand, "aircraft=%s error=%v remaining=%s", callsign, result.Error,
+							nav.NavLog(string(callsign), s.State.SimTime.NavTime(), nav.NavLogCommand, "aircraft=%s error=%v remaining=%s", callsign, result.Error,
 								result.RemainingInput)
 							s.lg.Errorf("Waypoint command execution failed: %v (remaining: %s)", result.Error, result.RemainingInput)
 						} else {
-							nav.NavLog(string(callsign), s.State.SimTime, nav.NavLogCommand, "aircraft=%s success", callsign)
+							nav.NavLog(string(callsign), s.State.SimTime.NavTime(), nav.NavLogCommand, "aircraft=%s success", callsign)
 						}
 
 						// Log updated route and waypoint state after commands
-						nav.LogRoute(string(callsign), s.State.SimTime, ac.Nav.Waypoints)
-						nav.NavLog(string(callsign), s.State.SimTime, nav.NavLogCommand,
+						nav.LogRoute(string(callsign), s.State.SimTime.NavTime(), ac.Nav.Waypoints)
+						nav.NavLog(string(callsign), s.State.SimTime.NavTime(), nav.NavLogCommand,
 							"aircraft=%s post-cmd nwaypoints=%d approach_cleared=%v approach_id=%s",
 							callsign, len(ac.Nav.Waypoints), ac.Nav.Approach.Cleared, ac.Nav.Approach.AssignedId)
 
@@ -1397,7 +1397,7 @@ func (s *Sim) updateState() {
 					sfp := ac.NASFlightPlan
 					if sfp == nil {
 						if sfp = s.STARSComputer.takeFlightPlanByACID(ACID(ac.ADSBCallsign)); sfp != nil {
-							sfp.DeleteTime = time.Time{}
+							sfp.DeleteTime = Time{}
 							sfp.OwningTCW = s.tcwForPosition(sfp.TrackingController)
 							ac.AssociateFlightPlan(sfp)
 							s.eventStream.Post(Event{
@@ -1617,7 +1617,7 @@ func (s *Sim) updateState() {
 
 		// Advance METAR: drop old entries when sim time passes the next one's report time
 		for ap, metar := range s.METAR {
-			for len(metar) > 1 && s.State.SimTime.After(metar[1].Time) {
+			for len(metar) > 1 && s.State.SimTime.Time().After(metar[1].Time) {
 				metar = metar[1:]
 			}
 			s.METAR[ap] = metar
@@ -1644,7 +1644,7 @@ func (s *Sim) updateState() {
 // created a NAS VFR plan for that track. After a delay simulating ARTCC
 // processing, the VFR plan auto-associates with the track, replacing the
 // old local plan and transferring the NAS beacon code.
-func (s *Sim) processInterfacilityVFR(now time.Time) {
+func (s *Sim) processInterfacilityVFR(now Time) {
 	for i := len(s.STARSComputer.FlightPlans) - 1; i >= 0; i-- {
 		vfrFP := s.STARSComputer.FlightPlans[i]
 		if vfrFP.PlanType != LocalEnroute || vfrFP.Rules != av.FlightRulesVFR {

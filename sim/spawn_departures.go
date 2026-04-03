@@ -108,7 +108,7 @@ func (s *Sim) updateDepartureSequence() {
 	}
 }
 
-func (s *Sim) processGateDepartures(depState *RunwayLaunchState, now time.Time) {
+func (s *Sim) processGateDepartures(depState *RunwayLaunchState, now Time) {
 	for i, dep := range depState.Gate {
 		if now.Before(dep.ReadyDepartGateTime) {
 			continue
@@ -128,7 +128,7 @@ func (s *Sim) processGateDepartures(depState *RunwayLaunchState, now time.Time) 
 	}
 }
 
-func (s *Sim) processHeldDepartures(depState *RunwayLaunchState, now time.Time) {
+func (s *Sim) processHeldDepartures(depState *RunwayLaunchState, now Time) {
 	for i, held := range depState.Held {
 		if now.Before(held.RequestReleaseTime) {
 			break // FIFO
@@ -157,7 +157,7 @@ func (s *Sim) processHeldDepartures(depState *RunwayLaunchState, now time.Time) 
 	}
 }
 
-func (s *Sim) sequenceReleasedDepartures(depState *RunwayLaunchState, now time.Time) {
+func (s *Sim) sequenceReleasedDepartures(depState *RunwayLaunchState, now Time) {
 	wait := func(dep DepartureAircraft) time.Duration {
 		ac := s.Aircraft[dep.ADSBCallsign]
 		return now.Sub(ac.ReleaseTime)
@@ -198,7 +198,7 @@ func (s *Sim) sequenceReleasedDepartures(depState *RunwayLaunchState, now time.T
 	}
 }
 
-func (s *Sim) launchSequencedDeparture(depState *RunwayLaunchState, airport string, depRunway av.RunwayID, now time.Time) {
+func (s *Sim) launchSequencedDeparture(depState *RunwayLaunchState, airport string, depRunway av.RunwayID, now Time) {
 	if len(depState.Sequenced) == 0 {
 		return
 	}
@@ -501,7 +501,7 @@ func (rls *RunwayLaunchState) setVFRRate(s *Sim, r float32) {
 	rls.cullDepartures(s)
 }
 
-func (rls RunwayLaunchState) Dump(airport string, runway av.RunwayID, now time.Time) {
+func (rls RunwayLaunchState) Dump(airport string, runway av.RunwayID, now Time) {
 	callsign := func(dep DepartureAircraft) string {
 		return string(dep.ADSBCallsign)
 	}
@@ -700,7 +700,7 @@ func (s *Sim) CreateVFRDeparture(departureAirport string) (*Aircraft, error) {
 	return nil, nil
 }
 
-func makeDepartureAircraft(ac *Aircraft, simTime time.Time, model *wx.Model, r *rand.Rand) DepartureAircraft {
+func makeDepartureAircraft(ac *Aircraft, simTime Time, model *wx.Model, r *rand.Rand) DepartureAircraft {
 	d := DepartureAircraft{
 		ADSBCallsign:        ac.ADSBCallsign,
 		SpawnTime:           simTime,
@@ -724,7 +724,7 @@ func makeDepartureAircraft(ac *Aircraft, simTime time.Time, model *wx.Model, r *
 	return d
 }
 
-func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, routeWps []av.Waypoint, simTime time.Time) (*Aircraft, string, error) {
+func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, routeWps []av.Waypoint, simTime Time) (*Aircraft, string, error) {
 	depap, arrap := av.DB.Airports[depart], av.DB.Airports[arrive]
 	rwy, _, ok := s.currentVFRRunway(depart)
 	if !ok {
@@ -883,10 +883,10 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 	simNav.Prespawn = true
 	simFP := ac.FlightPlan
 	prespawnWxs := s.wxModel.Lookup(simNav.FlightState.Position,
-		simNav.FlightState.Altitude, simTime)
+		simNav.FlightState.Altitude, simTime.Time())
 	for i := range 3 * 60 * 60 { // limit to 3 hours of sim time, just in case
 		if wp := simNav.UpdateWithWeather("", prespawnWxs, &simFP,
-			simTime, nil); wp != nil {
+			simTime.NavTime(), nil); wp != nil {
 			if wp.Delete() {
 				return ac, rwy.Id, nil
 			}
@@ -952,7 +952,7 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 					wpName = wp.Fix
 					break
 				}
-				nav.NavLog(string(ac.ADSBCallsign), simTime, "state",
+				nav.NavLog(string(ac.ADSBCallsign), simTime.NavTime(), "state",
 					"rejected at %.0f' (MVA %d, need %d) heading to wp %d %q, pos %v, %.1fnm from dep, %.1fnm from arr",
 					simNav.FlightState.Altitude, mva, mva-vfrMVABuffer, wpIdx, wpName, pos, distFromDeparture, distToArrival)
 				return nil, "", ErrVFRBelowMVA

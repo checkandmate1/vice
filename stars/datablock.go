@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
@@ -317,7 +318,7 @@ func (sp *STARSPane) datablockType(ctx *panes.Context, trk sim.Track) DatablockT
 			return FullDatablock
 		}
 
-		if ctx.Now.Before(sp.DisplayBeaconCodeEndTime) && trk.Squawk == sp.DisplayBeaconCode {
+		if ctx.SimTime.Before(sp.DisplayBeaconCodeEndTime) && trk.Squawk == sp.DisplayBeaconCode {
 			// 6-117
 			return FullDatablock
 		}
@@ -423,7 +424,7 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, trk sim.Track, sfp *sim.NA
 	altitude, pilotReportedAltitude := formatAltitude(trk, sfp,
 		state != nil && state.UnreasonableModeC)
 
-	displayBeaconCode := ctx.Now.Before(sp.DisplayBeaconCodeEndTime) && trk.Squawk == sp.DisplayBeaconCode
+	displayBeaconCode := ctx.SimTime.Before(sp.DisplayBeaconCodeEndTime) && trk.Squawk == sp.DisplayBeaconCode
 
 	groundspeed := fmt.Sprintf("%02d", int(trk.Groundspeed+5)/10)
 	if state != nil {
@@ -458,7 +459,7 @@ func (sp *STARSPane) getDatablock(ctx *panes.Context, trk sim.Track, sfp *sim.NA
 
 		s := strconv.Itoa(sfp.CoastSuspendIndex)
 		if sp.currentPrefs().DisplaySuspendedTrackAltitude ||
-			state.SuspendedShowAltitudeEndTime.After(ctx.Now) && trk.Mode == av.TransponderModeAltitude {
+			state.SuspendedShowAltitudeEndTime.After(ctx.SimTime) && trk.Mode == av.TransponderModeAltitude {
 			s += " " + altitude
 		}
 		formatDBText(db.field0[:], s, color, false)
@@ -518,7 +519,7 @@ func (sp *STARSPane) resolveHandoff(ctx *panes.Context, sfp *sim.NASFlightPlan,
 			}
 		}
 	}
-	if state != nil && handoffTCP == "" && ctx.Now.Before(state.AcceptedHandoffDisplayEnd) {
+	if state != nil && handoffTCP == "" && ctx.SimTime.Before(state.AcceptedHandoffDisplayEnd) {
 		handoffTCP = state.AcceptedHandoffSector
 	}
 	return
@@ -650,7 +651,7 @@ func (sp *STARSPane) buildLimitedDatablock(ctx *panes.Context, trk sim.Track,
 	alerts := sp.getDatablockAlerts(ctx, trk, LimitedDatablock)
 	copy(db.field0[:], alerts[:])
 
-	extended := state.FullLDBEndTime.After(ctx.Now)
+	extended := state.FullLDBEndTime.After(ctx.SimTime)
 	sqspc, _ := trk.Squawk.IsSPC()
 	extended = extended || (trk.Mode != av.TransponderModeStandby && sqspc)
 
@@ -834,11 +835,11 @@ func (sp *STARSPane) buildFullDatablock(ctx *panes.Context, trk sim.Track, sfp *
 				id = id[1:]
 			}
 			formatDBText(db.field8[:], "PO"+string(id), color, false)
-		} else if ctx.Now.Before(state.UNFlashingEndTime) {
+		} else if ctx.SimTime.Before(state.UNFlashingEndTime) {
 			formatDBText(db.field8[:], "UN", color, true)
-		} else if state.POFlashingEndTime.After(ctx.Now) {
+		} else if state.POFlashingEndTime.After(ctx.SimTime) {
 			formatDBText(db.field8[:], "PO", color, true)
-		} else if sfp.RedirectedHandoff.ShowRDIndicator(ctx.UserPrimaryPosition(), state.RDIndicatorEnd) {
+		} else if sfp.RedirectedHandoff.ShowRDIndicator(ctx.UserPrimaryPosition(), state.RDIndicatorEnd, ctx.SimTime) {
 			formatDBText(db.field8[:], "RD", color, false)
 		}
 	}
@@ -925,8 +926,8 @@ func (sp *STARSPane) fillFDBField5(ctx *panes.Context, trk sim.Track, sfp *sim.N
 
 	inhibitACType := sfp.InhibitACTypeDisplay ||
 		(state != nil && state.InhibitACTypeDisplay != nil && *state.InhibitACTypeDisplay)
-	forceACType := ctx.Now.Before(sfp.ForceACTypeDisplayEndTime) ||
-		(state != nil && ctx.Now.Before(state.ForceACTypeDisplayEndTime))
+	forceACType := ctx.SimTime.Before(sfp.ForceACTypeDisplayEndTime) ||
+		(state != nil && ctx.SimTime.Before(state.ForceACTypeDisplayEndTime))
 	hasForceACType := forceACType && !inhibitACType && actype != "" && !trk.Ident
 	showACType := !trk.Ident && actype != "" && !inhibitACType
 
@@ -1215,7 +1216,7 @@ func (sp *STARSPane) trackDatablockColorBrightness(ctx *panes.Context, trk sim.T
 			forceFDB = true
 			inboundPointOut = true
 		} else {
-			forceFDB = forceFDB || (state.OutboundHandoffAccepted && ctx.Now.Before(state.OutboundHandoffFlashEnd))
+			forceFDB = forceFDB || (state.OutboundHandoffAccepted && ctx.SimTime.Before(state.OutboundHandoffFlashEnd))
 			forceFDB = forceFDB || ctx.IsHandoffToUser(&trk)
 		}
 	}
@@ -1242,7 +1243,7 @@ func (sp *STARSPane) trackDatablockColorBrightness(ctx *panes.Context, trk sim.T
 	}
 
 	// Possibly adjust brightness if it should be flashing.
-	halfSeconds := ctx.Now.UnixMilli() / 500
+	halfSeconds := time.Now().UnixMilli() / 500
 	if forceFDB && halfSeconds&1 == 0 { // half-second cycle
 		dbBrightness /= 2
 		posBrightness /= 2
@@ -1300,13 +1301,13 @@ func (sp *STARSPane) datablockVisible(ctx *panes.Context, trk sim.Track) bool {
 
 	af := sp.currentPrefs().AltitudeFilters
 
-	if ctx.Now.Before(sp.DisplayBeaconCodeEndTime) && trk.Squawk == sp.DisplayBeaconCode {
+	if ctx.SimTime.Before(sp.DisplayBeaconCodeEndTime) && trk.Squawk == sp.DisplayBeaconCode {
 		// beacon code display 6-117
 		return true
 	}
 
 	if trk.IsUnassociated() {
-		if ctx.Now.Before(state.FullLDBEndTime) {
+		if ctx.SimTime.Before(state.FullLDBEndTime) {
 			return true
 		}
 		if trk.IsTentative {
@@ -1371,7 +1372,6 @@ func (sp *STARSPane) drawDatablocks(dbs map[av.ADSBCallsign]datablock, ctx *pane
 	td := renderer.GetTextDrawBuilder()
 	defer renderer.ReturnTextDrawBuilder(td)
 
-	realNow := ctx.Now // for flashing rate...
 	ps := sp.currentPrefs()
 	font := sp.systemFont(ctx, ps.CharSize.Datablocks)
 
@@ -1457,8 +1457,8 @@ func (sp *STARSPane) drawDatablocks(dbs map[av.ADSBCallsign]datablock, ctx *pane
 			leaderLineDirection := sp.getLeaderLineDirection(ctx, trk)
 			pll := leaderLineEndpoint(pac, trk, leaderLineDirection)
 
-			halfSeconds := realNow.UnixMilli() / 500
-			clockPhase := ctx.FacilityAdaptation.CurrentDatablockClockPhase(realNow)
+			halfSeconds := time.Now().UnixMilli() / 500
+			clockPhase := ctx.FacilityAdaptation.CurrentDatablockClockPhase(time.Now())
 			db.draw(td, pll, font, &strBuilder, brightness, leaderLineDirection, clockPhase, halfSeconds)
 		}
 	}

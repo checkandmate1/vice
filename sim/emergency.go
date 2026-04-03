@@ -97,7 +97,7 @@ var cwtFuelPounds = map[string]int{
 // FutureEmergencyUpdate represents a scheduled emergency progression update.
 type FutureEmergencyUpdate struct {
 	ADSBCallsign av.ADSBCallsign
-	Time         time.Time
+	Time         Time
 }
 
 type EmergencyApplicability int
@@ -173,7 +173,7 @@ type EmergencyStage struct {
 type EmergencyState struct {
 	Emergency      *Emergency
 	CurrentStage   int
-	NextUpdateTime time.Time
+	NextUpdateTime Time
 }
 
 func (s *Sim) triggerEmergency(idx int) bool {
@@ -246,7 +246,7 @@ func (s *Sim) updateEmergencies() {
 	}
 }
 
-func (s *Sim) enqueueEmergencyUpdate(callsign av.ADSBCallsign, t time.Time) {
+func (s *Sim) enqueueEmergencyUpdate(callsign av.ADSBCallsign, t Time) {
 	s.FutureEmergencyUpdates = append(s.FutureEmergencyUpdates,
 		FutureEmergencyUpdate{
 			ADSBCallsign: callsign,

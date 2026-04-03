@@ -16,7 +16,7 @@ import (
 	"github.com/mmp/vice/wx"
 )
 
-func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Time) (heading math.MagneticHeading, turn av.TurnDirection) {
+func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (heading math.MagneticHeading, turn av.TurnDirection) {
 	// Baseline
 	heading, turn = *nav.Heading.Assigned, av.TurnClosest
 
@@ -481,7 +481,7 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	return av.MakeUnableIntent("unable. We are not on course to intercept the approach")
 }
 
-func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simTime time.Time) (av.CommandIntent, bool) {
+func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simTime Time) (av.CommandIntent, bool) {
 	ap := nav.Approach.Assigned
 	if ap == nil {
 		return av.MakeUnableIntent("unable. We haven't been told to expect an approach"), false

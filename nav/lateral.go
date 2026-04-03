@@ -7,7 +7,6 @@ package nav
 import (
 	"fmt"
 	"slices"
-	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/log"
@@ -24,7 +23,7 @@ func (nav *Nav) headingForTrack(hdg math.MagneticHeading, wxs wx.Sample) math.Ma
 	return math.TrueToMagnetic(math.OffsetHeading(trueHdg, -wxs.Deflection(v)), nav.FlightState.MagneticVariation)
 }
 
-func (nav *Nav) updateHeading(callsign string, wxs wx.Sample, simTime time.Time) {
+func (nav *Nav) updateHeading(callsign string, wxs wx.Sample, simTime Time) {
 	targetHeading, turnDirection, turnRate := nav.TargetHeading(callsign, wxs, simTime)
 
 	headingDiff := math.HeadingDifference(nav.FlightState.Heading, targetHeading)
@@ -81,7 +80,7 @@ func (nav *Nav) updatePositionAndGS(wxs wx.Sample) {
 	nav.FlightState.GS = math.Length2f(math.Add2f(flightVector, windVector)) * 3600
 }
 
-func (nav *Nav) DepartOnCourse(alt float32, exit string, simTime time.Time) {
+func (nav *Nav) DepartOnCourse(alt float32, exit string, simTime Time) {
 	if _, ok := nav.AssignedHeading(); !ok {
 		// Don't do anything if they are not on a heading; let them fly the
 		// regular route and don't (potentially) skip waypoints and go
@@ -122,14 +121,14 @@ func (nav *Nav) Check(lg *log.Logger) {
 }
 
 // returns passed waypoint if any
-func (nav *Nav) Update(callsign string, model *wx.Model, fp *av.FlightPlan, simTime time.Time, bravo *av.AirspaceGrid) *av.Waypoint {
+func (nav *Nav) Update(callsign string, model *wx.Model, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) *av.Waypoint {
 	// Perform single weather lookup at the start
-	wxs := model.Lookup(nav.FlightState.Position, nav.FlightState.Altitude, simTime)
+	wxs := model.Lookup(nav.FlightState.Position, nav.FlightState.Altitude, simTime.Time())
 	return nav.UpdateWithWeather(callsign, wxs, fp, simTime, bravo)
 }
 
 // UpdateWithWeather is a helper for simulations that use pre-fetched weather
-func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime time.Time, bravo *av.AirspaceGrid) *av.Waypoint {
+func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) *av.Waypoint {
 	// Log current state every tick
 	NavLog(callsign, simTime, NavLogState, "pos=%.4f,%.4f alt=%.0f hdg=%.0f ias=%.0f gs=%.0f bank=%.1f rate=%.0f",
 		nav.FlightState.Position[0], nav.FlightState.Position[1],
@@ -154,7 +153,7 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 	return nil
 }
 
-func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time) (heading math.MagneticHeading, turn av.TurnDirection, rate float32) {
+func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime Time) (heading math.MagneticHeading, turn av.TurnDirection, rate float32) {
 	if nav.Airwork != nil {
 		return nav.Airwork.TargetHeading()
 	}
@@ -316,7 +315,7 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime time.Time)
 
 	return
 }
-func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime time.Time) *av.Waypoint {
+func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time) *av.Waypoint {
 	if len(nav.Waypoints) == 0 {
 		return nil
 	}
@@ -632,7 +631,7 @@ func (nav *Nav) shouldTurnForOutbound(p math.Point2LL, hdg math.MagneticHeading,
 	// Don't simulate the turn longer than it will take to do it.
 	n := int(1 + turnAngle/3)
 	for range n {
-		nav2.UpdateWithWeather("", wxs, nil, time.Time{}, nil)
+		nav2.UpdateWithWeather("", wxs, nil, Time{}, nil)
 		curDist := math.SignedPointLineDistance(math.LL2NM(nav2.FlightState.Position,
 			nav2.FlightState.NmPerLongitude),
 			p0, p1)
@@ -678,7 +677,7 @@ func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg math.MagneticHeading
 
 	n := int(1 + turnAngle)
 	for range n {
-		nav2.UpdateWithWeather("", wxs, nil, time.Time{}, nil)
+		nav2.UpdateWithWeather("", wxs, nil, Time{}, nil)
 		curDist := math.SignedPointLineDistance(math.LL2NM(nav2.FlightState.Position, nav2.FlightState.NmPerLongitude), p0nm, p1)
 
 		// Allow heading tolerance to account for the crab angle needed in crosswind.

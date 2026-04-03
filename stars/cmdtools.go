@@ -28,7 +28,7 @@ func registerToolsCommands() {
 	// 6.2 Display weather history
 	registerCommand(CommandModeMultiFunc, "W"+STARSTriangleCharacter, func(sp *STARSPane, ctx *panes.Context) CommandStatus {
 		sp.wxHistoryDraw = 2
-		sp.wxNextHistoryStepTime = ctx.Now.Add(5 * time.Second)
+		sp.wxNextHistoryStepTime = ctx.SimTime.Add(5 * time.Second)
 		return CommandStatus{Output: "IN PROGRESS"}
 	})
 
@@ -895,12 +895,12 @@ func registerToolsCommands() {
 			}
 
 			fp := trk.FlightPlan
-			extendTime := ctx.Now.Add(5 * time.Second)
+			extendTime := ctx.SimTime.Add(5 * time.Second)
 
 			if ctx.UserOwnsFlightPlan(fp) {
 				// Owned track - modify the flight plan globally
 				spec := sim.FlightPlanSpecifier{}
-				if !fp.InhibitACTypeDisplay && ctx.Now.Before(fp.ForceACTypeDisplayEndTime) {
+				if !fp.InhibitACTypeDisplay && ctx.SimTime.Before(fp.ForceACTypeDisplayEndTime) {
 					spec.ForceACTypeDisplayEndTime.Set(extendTime)
 				} else {
 					spec.InhibitACTypeDisplay.Set(!fp.InhibitACTypeDisplay)
@@ -913,7 +913,7 @@ func registerToolsCommands() {
 				// Non-owned track - local state only
 				state := sp.TrackState[trk.ADSBCallsign]
 				inhibit := state.InhibitACTypeDisplay != nil && *state.InhibitACTypeDisplay
-				if !inhibit && ctx.Now.Before(state.ForceACTypeDisplayEndTime) {
+				if !inhibit && ctx.SimTime.Before(state.ForceACTypeDisplayEndTime) {
 					state.ForceACTypeDisplayEndTime = extendTime
 				} else {
 					newInhibit := !inhibit
@@ -1046,7 +1046,7 @@ func registerToolsCommands() {
 			}
 
 			sp.DisplayBeaconCode = beacon
-			sp.DisplayBeaconCodeEndTime = ctx.Now.Add(15 * time.Second)
+			sp.DisplayBeaconCodeEndTime = ctx.SimTime.Add(15 * time.Second)
 			return nil
 		})
 
@@ -1072,11 +1072,11 @@ func registerToolsCommands() {
 					if sig, ok := sp.significantPoints[sigpt]; !ok {
 						return CommandStatus{}, ErrSTARSCommandFormat
 					} else {
-						return sp.displaySignificantPointInfo(pos, sig.Location, ctx.NmPerLongitude, ctx.MagneticVariation), nil
+						return sp.displaySignificantPointInfo(pos, sig.Location, ctx.NmPerLongitude, ctx.MagneticVariation, ctx.SimTime), nil
 					}
 				},
 				"*F [POS]", func(sp *STARSPane, pos2 math.Point2LL) CommandStatus {
-					return sp.displaySignificantPointInfo(pos, pos2, ctx.NmPerLongitude, ctx.MagneticVariation)
+					return sp.displaySignificantPointInfo(pos, pos2, ctx.NmPerLongitude, ctx.MagneticVariation, ctx.SimTime)
 				},
 			),
 		}
