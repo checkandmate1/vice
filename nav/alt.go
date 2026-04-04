@@ -329,6 +329,9 @@ func (nav *Nav) TargetAltitude() (float32, float32, bool) {
 			if ar := nav.Altitude.Restriction; ar != nil {
 				return ar.TargetAltitude(nav.FlightState.Altitude), MaximumRate, false
 			}
+			if nav.Altitude.Cleared != nil && *nav.Altitude.Cleared < nav.FlightState.Altitude {
+				return *nav.Altitude.Cleared, MaximumRate, false
+			}
 			return nav.FlightState.Altitude, 0, false
 		}
 	}
@@ -549,4 +552,19 @@ func (nav *Nav) findAltitudeTarget() (altitudeTarget, bool) {
 	}
 
 	return altitudeTarget{altitude: alt, fix: fix}, true
+}
+
+// clearAltitudeForApproach resets altitude state when an approach-cleared
+// aircraft transitions to following approach restrictions. If the controller
+// assigned a descent altitude that the aircraft hasn't yet reached, it is
+// preserved as a Cleared altitude so the descent continues.
+func (nav *Nav) clearAltitudeForApproach() {
+	var cleared *float32
+	if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned < nav.FlightState.Altitude {
+		alt := *nav.Altitude.Assigned
+		cleared = &alt
+	} else if nav.Altitude.Cleared != nil && *nav.Altitude.Cleared < nav.FlightState.Altitude {
+		cleared = nav.Altitude.Cleared
+	}
+	nav.Altitude = NavAltitude{Cleared: cleared}
 }

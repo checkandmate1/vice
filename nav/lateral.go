@@ -402,7 +402,7 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		if nav.Approach.Cleared {
 			// The aircraft has made it to the approach fix they
 			// were cleared to, so they can start to descend.
-			nav.Altitude = NavAltitude{}
+			nav.clearAltitudeForApproach()
 			nav.Approach.PassedApproachFix = true
 			if wp.FAF() {
 				nav.Approach.PassedFAF = true

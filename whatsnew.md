@@ -7,6 +7,7 @@
   - "speed SPEED1 until FIX1, then SPEED2 until FIX2, then SPEED3", etc.
   - "good rate" for climbs/descents: "descend and maintain 3,000, good rate through 5,000", etc.
   - optional altitudes to expedite to: "expedite through 5,000", etc.
+  - Fixed bugs with aircraft on approach not descending as much as they should.
 - STARS
   - Added support for "Create interfacility VFR flight plan from active local track"
 - Facility engineering:

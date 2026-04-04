@@ -99,7 +99,7 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (h
 		// Ignore the approach altitude constraints if the aircraft is only
 		// intercepting but isn't cleared.
 		if nav.Approach.Cleared {
-			nav.Altitude = NavAltitude{}
+			nav.clearAltitudeForApproach()
 		}
 		// As with the heading assignment above under the InitialHeading
 		// case, do this immediately.
@@ -498,11 +498,11 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 	nav.Approach.StandbyApproach = false
 	if nav.Approach.PassedApproachFix {
 		// We've already passed an approach fix, so allow it to start descending.
-		nav.Altitude = NavAltitude{}
+		nav.clearAltitudeForApproach()
 	} else if nav.Approach.InterceptState == OnApproachCourse {
 		// First intercepted then cleared or otherwise passed an
 		// approach fix, so allow it to start descending.
-		nav.Altitude = NavAltitude{}
+		nav.clearAltitudeForApproach()
 		// No procedure turn needed if we were vectored to intercept.
 		nav.Approach.NoPT = true
 	}
