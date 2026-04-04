@@ -439,6 +439,21 @@ func sayAltitude(alt int, r *rand.Rand) string {
 	}
 }
 
+// intArg converts a numeric any value to int, handling int, float32, and float64.
+// (float64 values arise when RadioTransmission args are round-tripped through JSON.)
+func intArg(arg any) int {
+	switch v := arg.(type) {
+	case int:
+		return v
+	case float32:
+		return int(v)
+	case float64:
+		return int(v)
+	default:
+		panic(fmt.Sprintf("unexpected numeric arg type %T", arg))
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // AltSnippetFormatter
 
@@ -446,22 +461,11 @@ func sayAltitude(alt int, r *rand.Rand) string {
 type AltSnippetFormatter struct{}
 
 func (a *AltSnippetFormatter) Written(arg any) string {
-	if alt, ok := arg.(float32); ok {
-		return FormatAltitude(alt)
-	} else if alt, ok := arg.(int); ok {
-		return FormatAltitude(float32(alt))
-	} else {
-		return "???"
-	}
+	return FormatAltitude(float32(intArg(arg)))
 }
 
 func (a *AltSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
-	alt, ok := arg.(int)
-	if !ok {
-		alt = int(arg.(float32))
-	}
-
-	return sayAltitude(alt, r)
+	return sayAltitude(intArg(arg), r)
 }
 
 func (a *AltSnippetFormatter) Validate(arg any) error {
@@ -701,22 +705,26 @@ func (AppControllerSnippetFormatter) Validate(arg any) error {
 type MachSnippetFormatter struct{}
 
 func (MachSnippetFormatter) Written(arg any) string {
-	mach, ok := arg.(int)
-	if !ok {
-		// float32 like 0.75 → convert to int 75
-		f := arg.(float32)
-		mach = int(f * 100)
-	}
-	return fmt.Sprintf("mach .%d", mach)
+	return fmt.Sprintf("mach .%d", machIntArg(arg))
 }
 
 func (MachSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
-	mach, ok := arg.(int)
-	if !ok {
-		f := arg.(float32)
-		mach = int(f * 100)
+	return "mach point " + sayDigits(machIntArg(arg), 2)
+}
+
+// machIntArg converts a mach argument to an integer (e.g., 0.75 → 75).
+// int values are used directly; float values are multiplied by 100.
+func machIntArg(arg any) int {
+	switch v := arg.(type) {
+	case int:
+		return v
+	case float32:
+		return int(v * 100)
+	case float64:
+		return int(v * 100)
+	default:
+		panic(fmt.Sprintf("unexpected mach arg type %T", arg))
 	}
-	return "mach point " + sayDigits(mach, 2)
 }
 
 func (MachSnippetFormatter) Validate(arg any) error {
@@ -734,18 +742,11 @@ func (MachSnippetFormatter) Validate(arg any) error {
 type SpeedSnippetFormatter struct{}
 
 func (SpeedSnippetFormatter) Written(arg any) string {
-	spd, ok := arg.(int)
-	if !ok {
-		spd = int(arg.(float32))
-	}
-	return fmt.Sprintf("%d knots", spd)
+	return fmt.Sprintf("%d knots", intArg(arg))
 }
 
 func (SpeedSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
-	spd, ok := arg.(int)
-	if !ok {
-		spd = int(arg.(float32))
-	}
+	spd := intArg(arg)
 
 	knots := util.Select(r.Bool(), " knots", "")
 	if r.Bool() {
@@ -804,6 +805,8 @@ func headingArg(arg any) int {
 		return v
 	case float32:
 		return int(v)
+	case float64:
+		return int(v)
 	case math.MagneticHeading:
 		return int(v)
 	default:
@@ -840,19 +843,11 @@ func (HeadingSnippetFormatter) Validate(arg any) error {
 type BasicNumberSnippetFormatter struct{}
 
 func (BasicNumberSnippetFormatter) Written(arg any) string {
-	hdg, ok := arg.(int)
-	if !ok {
-		hdg = int(arg.(float32))
-	}
-	return strconv.Itoa(hdg)
+	return strconv.Itoa(intArg(arg))
 }
 
 func (BasicNumberSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
-	hdg, ok := arg.(int)
-	if !ok {
-		hdg = int(arg.(float32))
-	}
-	return strconv.Itoa(hdg)
+	return strconv.Itoa(intArg(arg))
 }
 
 func (BasicNumberSnippetFormatter) Validate(arg any) error {
@@ -1459,13 +1454,11 @@ func (FrequencySnippetFormatter) Validate(arg any) error {
 type GroupFormSnippetFormatter struct{}
 
 func (GroupFormSnippetFormatter) Written(arg any) string {
-	v := arg.(int)
-	return fmt.Sprintf("%d", v)
+	return fmt.Sprintf("%d", intArg(arg))
 }
 
 func (GroupFormSnippetFormatter) Spoken(r *rand.Rand, arg any) string {
-	v := arg.(int)
-	return groupForm(v)
+	return groupForm(intArg(arg))
 }
 
 func (GroupFormSnippetFormatter) Validate(arg any) error {
