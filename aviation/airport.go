@@ -270,42 +270,15 @@ func (ap *Airport) PostDeserialize(icao string, loc Locator, nmPerLongitude floa
 				e.ErrorString(`Must specify "waypoints"`)
 			}
 		}
-		rwy, ok := LookupRunway(icao, appr.Runway)
-		if !ok {
-			e.ErrorString(`"runway" %q is unknown. Options: %s`, appr.Runway,
-				DB.Airports[icao].ValidRunways())
-		}
-		appr.Threshold = rwy.Threshold
-
-		if opp, ok := LookupOppositeRunway(icao, appr.Runway); ok {
-			appr.OppositeThreshold = opp.Threshold
-		} else {
-			e.ErrorString("no opposite runway found for %q\n", appr.Runway)
-		}
+		appr.InitializeWaypoints(icao, loc, nmPerLongitude, magneticVariation, e)
 
 		for i := range appr.Waypoints {
-			appr.Waypoints[i] =
-				appr.Waypoints[i].InitializeLocations(loc, nmPerLongitude, magneticVariation, false, e)
-
-			// Add the final fix at the runway threshold.
-			alt := rwy.Elevation + rwy.ThresholdCrossingHeight
-			threshold := math.Offset2LL(rwy.Threshold, math.MagneticToTrue(rwy.Heading, magneticVariation),
-				rwy.DisplacedThresholdDistance, nmPerLongitude)
-
-			thresholdWP := Waypoint{
-				Fix:      "_" + appr.Runway + "_THRESHOLD",
-				Location: threshold,
-				Flags:    WaypointFlagLand | WaypointFlagFlyOver,
-			}
-			thresholdWP.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt)))
-			appr.Waypoints[i] = append(appr.Waypoints[i], thresholdWP)
 			n := len(appr.Waypoints[i])
 
 			if appr.Waypoints[i][n-1].ProcedureTurn() != nil {
 				e.ErrorString("ProcedureTurn cannot be specified at the final waypoint")
 			}
 			for j, wp := range appr.Waypoints[i] {
-				appr.Waypoints[i][j].SetOnApproach(true)
 				e.Push("Fix " + wp.Fix)
 				if wp.NoPT() {
 					if !slices.ContainsFunc(appr.Waypoints[i][j+1:],
@@ -863,6 +836,47 @@ type Approach struct {
 	// Set in Airport PostDeserialize()
 	Threshold         math.Point2LL
 	OppositeThreshold math.Point2LL
+}
+
+// InitializeWaypoints resolves waypoint locations and adds the runway
+// threshold waypoint to each route. It also sets the OnApproach flag,
+// Threshold, and OppositeThreshold fields.
+func (ap *Approach) InitializeWaypoints(icao string, loc Locator, nmPerLongitude float32,
+	magneticVariation float32, e *util.ErrorLogger) {
+	rwy, ok := LookupRunway(icao, ap.Runway)
+	if !ok {
+		e.ErrorString(`"runway" %q is unknown. Options: %s`, ap.Runway,
+			DB.Airports[icao].ValidRunways())
+	}
+	ap.Threshold = rwy.Threshold
+
+	if opp, ok := LookupOppositeRunway(icao, ap.Runway); ok {
+		ap.OppositeThreshold = opp.Threshold
+	} else {
+		e.ErrorString("no opposite runway found for %q\n", ap.Runway)
+	}
+
+	for i := range ap.Waypoints {
+		ap.Waypoints[i] =
+			ap.Waypoints[i].InitializeLocations(loc, nmPerLongitude, magneticVariation, false, e)
+
+		// Add the final fix at the runway threshold.
+		alt := rwy.Elevation + rwy.ThresholdCrossingHeight
+		threshold := math.Offset2LL(rwy.Threshold, math.MagneticToTrue(rwy.Heading, magneticVariation),
+			rwy.DisplacedThresholdDistance, nmPerLongitude)
+
+		thresholdWP := Waypoint{
+			Fix:      "_" + ap.Runway + "_THRESHOLD",
+			Location: threshold,
+			Flags:    WaypointFlagLand | WaypointFlagFlyOver,
+		}
+		thresholdWP.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt)))
+		ap.Waypoints[i] = append(ap.Waypoints[i], thresholdWP)
+
+		for j := range ap.Waypoints[i] {
+			ap.Waypoints[i][j].SetOnApproach(true)
+		}
+	}
 }
 
 // Find the FAF: return the corresponding waypoint array and the index of the FAF within it.
