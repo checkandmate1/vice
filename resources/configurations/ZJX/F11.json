@@ -3,7 +3,7 @@
     "1W": {
       "callsign": "MCO_W_DEP",
       "frequency": 120150,
-      "radio_name": "Orlando departure"
+      "radio_name": "Orlando Departure"
     },
     "1N": {
       "callsign": "MCO_N_APP",
@@ -13,32 +13,32 @@
     "3E": {
       "callsign": "MCO_E_TWR",
       "frequency": 118450,
-      "radio_name": "Orlando tower"
+      "radio_name": "Orlando Tower"
     },
     "1D": {
       "callsign": "MCO_D_APP",
       "frequency": 119400,
-      "radio_name": "Orlando approach"
+      "radio_name": "Orlando Approach"
     },
     "3W": {
       "callsign": "MCO_W_TWR",
       "frequency": 126400,
-      "radio_name": "Orlando tower"
+      "radio_name": "Orlando Tower"
     },
     "3F": {
       "callsign": "SFB_N_TWR",
       "frequency": 120300,
-      "radio_name": "Sanford tower"
+      "radio_name": "Sanford Tower"
     },
     "3J": {
       "callsign": "SFB_S_TWR",
       "frequency": 135250,
-      "radio_name": "Sanford tower"
+      "radio_name": "Sanford Tower"
     },
     "3L": {
       "callsign": "LEE_TWR",
       "frequency": 119350,
-      "radio_name": "Leesburg tower"
+      "radio_name": "Leesburg Tower"
     },
     "3P": {
       "callsign": "COF_TWR",
@@ -48,32 +48,32 @@
     "3B": {
       "callsign": "MLB_TWR",
       "frequency": 118200,
-      "radio_name": "Melbourne Orlando tower"
+      "radio_name": "Melbourne Tower"
     },
     "3S": {
       "callsign": "TIX_TWR",
       "frequency": 118900,
-      "radio_name": "Space Coast Tower"
+      "radio_name": "Titusville Tower"
     },
     "3K": {
       "callsign": "ISM_TWR",
       "frequency": 124450,
-      "radio_name": "Kissimee Gateway tower"
+      "radio_name": "Kissimmee Tower"
     },
     "3T": {
       "callsign": "ORL_TWR",
       "frequency": 118700,
-      "radio_name": "Orlando Executive tower"
+      "radio_name": "Executive Tower"
     },
     "1E": {
       "callsign": "MCO_E_DEP",
       "frequency": 124800,
-      "radio_name": "Orlando approach"
+      "radio_name": "Orlando Approach"
     },
     "1B": {
       "callsign": "MCO_B_APP",
       "frequency": 128375,
-      "radio_name": "Orlando approach"
+      "radio_name": "Orlando Approach"
     },
     "1J": {
       "callsign": "MCO_J_APP",
@@ -123,27 +123,27 @@
     "3M": {
       "callsign": "MLB_M_TWR",
       "frequency": 118200,
-      "radio_name": "Melbourne Orlando tower"
+      "radio_name": "Melbourne Tower"
     },
     "MG": {
       "callsign": "MCO_MG_APP",
       "frequency": 124300,
-      "radio_name": "Orlando approach"
+      "radio_name": "Orlando Approach"
     },
     "1G": {
       "callsign": "MCO_G_APP",
       "frequency": 123850,
-      "radio_name": "Orlando approach"
+      "radio_name": "Orlando Approach"
     },
     "MM": {
       "callsign": "MCO_MM_APP",
       "frequency": 118450,
-      "radio_name": "Orlando approach"
+      "radio_name": "Orlando Approach"
     },
     "1L": {
       "callsign": "MCO_L_APP",
       "frequency": 134050,
-      "radio_name": "Orlando approach"
+      "radio_name": "Orlando Approach"
     }
   },
   "facility_adaptations": {
@@ -152,7 +152,7 @@
         "inbound_assignments": {
           "ALYNA4_BNU": "1L",
           "GRNCH5_LNU": "1L",
-          "PRICY4_LNU": "1L",
+          "PRICY5_LNU": "1L",
           "MUNGI1_BNU": "1L",
           "SNFLD3_BNU": "1L"
         },
@@ -165,7 +165,7 @@
           "ALYNA4_BSU": "1B",
           "GRNCH5_LSU": "1B",
           "GTOUT1_BSU": "1B",
-          "PRICY4_LSU": "1B",
+          "PRICY5_LSU": "1B",
           "MUNGI1_BSU": "1B"
         },
         "default_consolidation": {
@@ -194,19 +194,19 @@
       },
       "MC5": {
         "departure_assignments": {
-          "KISM": "1W",
-          "KMCO": "1W",
-          "KORL": "1W",
-          "KSFB": "1W"
+          "KISM": "1E",
+          "KMCO": "1E",
+          "KORL": "1E",
+          "KSFB": "1E"
         },
         "default_consolidation": {
-          "1W": []
+          "1E": []
         }
       },
       "MC6": {
         "inbound_assignments": {
           "GRNCH_NFINAL": "1M",
-          "PRICY4_NFINAL": "1M",
+          "PRICY5_NFINAL": "1M",
           "MUNGI1_NFINAL": "1M",
           "SNFLD3_NFINAL": "1M"
         },
@@ -220,12 +220,12 @@
           "BITHO7": "1B",
           "DADES1": "1R",
           "East_coast/T208 ": "1A",
-          "GOOFY7": "1D",
+          "SLOAO1": "1D",
           "GRNCH5": "1L",
           "JOKRS3": "1D",
           "JOKRS3.MCO": "1L",
           "MINEE6.N": "1L",
-          "PRICY4": "1L",
+          "PRICY5": "1L",
           "MUNGI1": "1B",
           "SHREK2.MCO": "1L",
           "SHREK2E": "1L",
@@ -244,16 +244,23 @@
           "KCOI": "1A",
           "KISM": "1D",
           "KLEE": "1N",
-          "KMCO/CITR2W": "1D",
-          "KMCO/CITR2E": "1A",
           "KMCO/DDANY3": "1E",
-          "KMCO/FATHE3": "1E",
+          "KMCO/FATHE4": "1W",
           "KMCO/MZULO3": "1E",
           "KMCO/FSHUN4": "1W",
-          "KMCO/JEEMY4": "1E",
+          "KMCO/JEEMY4": "1W",
           "KMCO/RDSOX1": "1W",
           "KMCO/OSPRY1": "1W",
-          "KMCO/ORLA6": "1W",
+          "KMCO/KNEED": "1E",
+          "KMCO/TPSTR": "1E",
+          "KMCO/VIZTA": "1D",
+          "KMCO/CITR.FSHUN": "1D",
+          "KMCO/CITR.WORMS": "1D",
+          "KMCO/ATLAS": "1E",
+          "KMCO/MICKI": "1E",
+          "KMCO/CAMAN": "1E",
+          "KMCO/ORLA.FSHUN": "1W",
+          "KMCO/ORLA.WORMS": "1E",
           "KMLB": "1A",
           "KORL": "1V",
           "KSFB": "1V",
@@ -277,13 +284,13 @@
           "BITHO7": "1B",
           "DADES1": "1R",
           "East_coast/T208 ": "1A",
-          "GOOFY7": "1D",
+          "SLOAO1": "1D",
           "GRNCH5": "1L",
           "GTOUT1": "1B",
           "JOKRS3": "1D",
           "JOKRS3.MCO": "1L",
           "MINEE6": "1L",
-          "PRICY4": "1L",
+          "PRICY5": "1L",
           "MUNGI1": "1B",
           "SHREK2.MCO": "1L",
           "SHREK2W": "1L",
@@ -302,16 +309,23 @@
           "KCOI": "1A",
           "KISM": "1D",
           "KLEE": "1N",
-          "KMCO/CITR2W": "1D",
-          "KMCO/CITR2E": "1A",
           "KMCO/DDANY3": "1E",
-          "KMCO/FATHE3": "1E",
+          "KMCO/FATHE4": "1E",
           "KMCO/MZULO3": "1E",
           "KMCO/FSHUN4": "1W",
-          "KMCO/JEEMY4": "1W",
+          "KMCO/JEEMY4": "1E",
           "KMCO/RDSOX1": "1W",
           "KMCO/OSPRY1": "1W",
-          "KMCO/ORLA6": "1W",
+          "KMCO/KNEED": "1W",
+          "KMCO/TPSTR": "1D",
+          "KMCO/VIZTA": "1D",
+          "KMCO/CITR.FSHUN": "1D",
+          "KMCO/CITR.WORMS": "1D",
+          "KMCO/ATLAS": "1E",
+          "KMCO/MICKI": "1W",
+          "KMCO/CAMAN": "1W",
+          "KMCO/ORLA.FSHUN": "1W",
+          "KMCO/ORLA.WORMS": "1E",
           "KMLB": "1A",
           "KORL": "1D",
           "KSFB": "1N",
@@ -331,12 +345,12 @@
       },
       "MC8": {
         "departure_assignments": {
-          "KMCO": "1W",
-          "KORL": "1W",
-          "KSFB": "1W"
+          "KMCO": "1E",
+          "KORL": "1E",
+          "KSFB": "1E"
         },
         "default_consolidation": {
-          "1W": []
+          "1E": []
         }
       },
       "MC9": {
@@ -344,7 +358,7 @@
           "ALYNA4_SFINAL": "1M",
           "FINAL_S_GRNCH5": "1M",
           "GTOUT1_SFINAL": "1M",
-          "PRICY4_SFINAL": "1M",
+          "PRICY5_SFINAL": "1M",
           "MUNGI1_SFINAL": "1M"
         },
         "default_consolidation": {
@@ -354,7 +368,7 @@
       "MCA": {
         "inbound_assignments": {
           "GRNCH5_LNU": "1L",
-          "PRICY4_LNU": "1L"
+          "PRICY5_LNU": "1L"
         },
         "default_consolidation": {
           "1L": []
@@ -363,7 +377,7 @@
       "MCB": {
         "inbound_assignments": {
           "GRNCH5_LSU": "1L",
-          "PRICY4_LSU": "1L"
+          "PRICY5_LSU": "1L"
         },
         "default_consolidation": {
           "1L": []
@@ -640,37 +654,28 @@
     },
     "scratchpads": {
       "BORRD": "DDA",
-      "LENDS": "MZU",
-      "MZULO": "M",
-      "RDSOX": "C",
-      "VARZE": "V",
-      "MALET": "W",
       "VALKA": "DDA",
       "JIPOD": "DDA",
       "ZALEN": "DDA",
       "VIYAP": "FAT",
-      "ETECK": "MZU",
-      "FAROV": "MZU",
-      "LAL": "F",
-      "FSHUN": "F",
-      "RSW": "F",
       "PLUMR": "FSH",
       "PAINN": "JEE",
+      "LENDS": "MZU",
+      "ETECK": "MZU",
+      "FAROV": "MZU",
       "REMIS": "OSP",
-      "OSPRY": "C",
       "CIGAR": "OSP",
       "JFRYS": "RDS",
-      "OCF": "C",
-      "SZW": "C",
-      "WORMS": "W",
-      "GUANO": "W",
-      "CRG": "W",
-      "OMN": "W",
-      "PIE": "C",
-      "MLB": "A",
-      "KIZER": "",
-      "DDANY": "T",
-      "VIZTA": "V"
+      "VIZTA": "V",
+      "KNEED": "K",
+      "CITR.WORMS": "W",
+      "TPSTR": "T",
+      "CITR.FSHUN": "F",
+      "ORLA.WORMS": "W",
+      "CAMAN": "C",
+      "ORLA.FSHUN": "F",
+      "ATLAS": "A",
+      "MICKI": "M"
     },
     "significant_points": {
       "BORRD": {},
@@ -1008,7 +1013,8 @@
         "accept_flash_duration": 10,
         "sector_display_duration": 10
       },
-      "force_ql_self": true
+      "force_ql_self": true,
+      "display_rnav_symbol": true
     },
     "lists": {
       "coordination": [

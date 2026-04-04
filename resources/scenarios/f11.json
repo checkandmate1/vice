@@ -6,8 +6,11 @@
         "I7L": {
           "cifp_id": "I17L"
         },
-        "R7L": {
+        "RY7L": {
           "cifp_id": "RY17L"
+        },
+        "RZ7L": {
+          "cifp_id": "RZ17L"
         },
         "I7R": {
           "cifp_id": "I17R"
@@ -21,8 +24,11 @@
         "I8R": {
           "cifp_id": "I18R"
         },
-        "R8R": {
+        "RY8R": {
           "cifp_id": "RY18R"
+        },
+        "RZ8R": {
+          "cifp_id": "RZ18R"
         },
         "I5L": {
           "cifp_id": "I35L"
@@ -33,273 +39,263 @@
         "I5R": {
           "cifp_id": "I35R"
         },
-        "R5R": {
+        "RY5R": {
           "cifp_id": "RY35R"
+        },
+        "RZ5R": {
+          "cifp_id": "RZ35R"
+        },
+        "RY6L": {
+          "cifp_id": "RY36L"
+        },
+        "RZ6L": {
+          "cifp_id": "RZ36L"
+        },
+        "I6L": {
+          "cifp_id": "I36L"
         },
         "I6R": {
           "cifp_id": "I36R"
         },
         "R6R": {
           "cifp_id": "R36R"
-        },
-        "R6L": {
-          "runway": "36L",
-          "type": "RNAV",
-          "waypoints": ["LORRA/a4000 EXBAN/a4000 AMEBE/a3000 BERDY/a1600/faf RUTNE/a780"]
-        },
-        "I6L": {
-          "runway": "36L",
-          "type": "ILS",
-          "waypoints": ["LORRA/a4000 EXBAN/a4000 AMEBE/a3000 BERDY/a1600/faf RUTNE/a780"]
         }
       },
       "departure_routes": {
         "17R": {
-          "BORRD,VALKA,JIPOD,ZALEN": {
+          "BORRD,VALKA,JIPOD,ZALEN,DDANY": {
             "cleared_altitude": 7000,
             "sid": "DDANY3",
-            "waypoints": "KAAPE/a1500+/h140 UKAYY"
+            "waypoints": "KAAPE/a1500+/h140 UKAYY",
+            "is_rnav": true
           },
           "VIYAP": {
             "cleared_altitude": 7000,
-            "sid": "FATHE3",
-            "waypoints": "KAAPE/a1500+/h140 BUFFI"
-          },
-          "ETECK,FAROV,LENDS": {
-            "cleared_altitude": 7000,
-            "sid": "MZULO3",
-            "waypoints": "KAAPE/a1500+/h140 GERCK"
-          },
-          "LAL,RSW": {
-            "cleared_altitude": 7000,
-            "sid": "ORLA6",
-            "waypoints": "_MCO_35L/h220"
+            "sid": "FATHE4",
+            "waypoints": "KAAPE/a1500+/h140 BUFFI",
+            "is_rnav": true
           },
           "PLUMR": {
             "cleared_altitude": 7000,
             "sid": "FSHUN4",
-            "waypoints": "BAAIT/a1500+/h185 FSHUN PLUMR"
+            "waypoints": "BAAIT/a1500+/h185 FSHUN PLUMR",
+            "is_rnav": true
           },
           "PAINN": {
             "cleared_altitude": 7000,
             "sid": "JEEMY4",
-            "waypoints": "KAAPE/a1500+/h140 MDUSA"
-          },
-          "REMIS,CIGAR": {
-            "cleared_altitude": 7000,
-            "sid": "OSPRY1",
-            "waypoints": "VILNS/a1500+/h237 OSPRY"
-          },
-          "JFRYS": {
-            "cleared_altitude": 7000,
-            "sid": "RDSOX1",
-            "waypoints": "VILNS/a1500+/h237 RDSOX"
-          },
-          "DDANY": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_35L/h090 DDANY"
-          },
-          "FSHUN": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_35L/h270 FSHUN"
-          },
-          "VIZTA": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_35L/h270 VIZTA"
-          },
-          "WORMS": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_35L/h090 WORMS"
-          }
-        },
-        "35L": {
-          "BORRD,VALKA,JIPOD,ZALEN": {
-            "cleared_altitude": 7000,
-            "sid": "DDANY3",
-            "waypoints": "GOHOM/a2600+ MIEGS/a5000- LAPUU/a7000+ UKAYY DDANY"
-          },
-          "VIYAP": {
-            "cleared_altitude": 7000,
-            "sid": "FATHE3",
-            "waypoints": "JWOLF/a2600+ JIRAN/a3000+ BIGSE FATHE/a14000+ MDBOG/a16000+ BKENI FEMON"
+            "waypoints": "KAAPE/a1500+/h140 MDUSA",
+            "is_rnav": true
           },
           "ETECK,FAROV,LENDS": {
             "cleared_altitude": 7000,
             "sid": "MZULO3",
-            "waypoints": "GOHOM/a2600+ MIEGS/a5000- ASKUE/a7000+ GERCK MZULO"
-          },
-          "LAL,RSW": {
-            "cleared_altitude": 7000,
-            "sid": "ORLA6",
-            "waypoints": "_MCO_17R/h160"
-          },
-          "PLUMR": {
-            "cleared_altitude": 7000,
-            "sid": "FSHUN4",
-            "waypoints": "SAWZZ/a2300+ HANDD/a3000+/s230 LEFTI/a4000+/s230 BLOSM/a7000- DADTI FSHUN PLUMR"
-          },
-          "PAINN": {
-            "cleared_altitude": 7000,
-            "sid": "JEEMY4",
-            "waypoints": "JWOLF/a2600+ JIRAN/a3000+ BIGSE SNOBE MDUSA JEEMY/a16000+ ACCHE PAINN"
+            "waypoints": "KAAPE/a1500+/h140 GERCK",
+            "is_rnav": true
           },
           "REMIS,CIGAR": {
             "cleared_altitude": 7000,
             "sid": "OSPRY1",
-            "waypoints": "SAWZZ/a2300+ HANDD/a3000+ LEFTI/a4000+ BLOSM/a7000- OSPRY GDUNN KNOST"
+            "waypoints": "VILNS/a1500+/h237 OSPRY",
+            "is_rnav": true
           },
           "JFRYS": {
             "cleared_altitude": 7000,
             "sid": "RDSOX1",
-            "waypoints": "SAWZZ/a2300+ HANDD/a3000+ LEFTI/a4000+/s230 BLOSM/a7000- RDSOX"
-          },
-          "DDANY": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_17R/h090 DDANY"
-          },
-          "FSHUN": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_17R/h270 FSHUN"
-          },
-          "VIZTA": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_17R/h270 VIZTA"
-          },
-          "WORMS": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_17R/h090 WORMS"
+            "waypoints": "VILNS/a1500+/h237 RDSOX",
+            "is_rnav": true
           }
         },
         "18L": {
+          "BORRD,VALKA,JIPOD,ZALEN,DDANY": {
+            "cleared_altitude": 7000,
+            "sid": "DDANY3",
+            "waypoints": "_MCO_36R KAAPE/a1500+/h140 UKAYY DDANY",
+            "is_rnav": true
+          },
+          "VIYAP": {
+            "cleared_altitude": 7000,
+            "sid": "FATHE4",
+            "waypoints": "_MCO_36R VILNS/a1500+/h237 BUFFI FATHE/a14000+ MDBOG BKENI/a16000+ FEMON",
+            "is_rnav": true
+          },
           "PLUMR": {
             "cleared_altitude": 7000,
             "sid": "FSHUN4",
-            "waypoints": "_MCO_36R/h185 FSHUN"
+            "waypoints": "_MCO_36R BAAIT/a1500+/h185 FSHUN",
+            "is_rnav": true
           },
           "PAINN": {
             "cleared_altitude": 7000,
             "sid": "JEEMY4",
-            "waypoints": "VILNS/a1500+/h237 MDUSA"
-          },
-          "REMIS,CIGAR": {
-            "cleared_altitude": 7000,
-            "sid": "OSPRY1",
-            "waypoints": "VILNS/a1500+/h237 OSPRY"
-          },
-          "JFRYS": {
-            "cleared_altitude": 7000,
-            "sid": "RDSOX1",
-            "waypoints": "VILNS/a1500+/h237 RDSOX"
-          },
-          "BORRD,VALKA,JIPOD,ZALEN": {
-            "cleared_altitude": 7000,
-            "sid": "DDANY3",
-            "waypoints": "VILNS/a1500+/h237 UKAYY"
-          },
-          "VIYAP": {
-            "cleared_altitude": 7000,
-            "sid": "FATHE3",
-            "waypoints": "VILNS/a1500+/h237 BUFFI"
+            "waypoints": "_MCO_36R VILNS/a1500+/h237 MDUSA JEEMY/a16000+ ACCHE",
+            "is_rnav": true
           },
           "ETECK,FAROV,LENDS": {
             "cleared_altitude": 7000,
             "sid": "MZULO3",
-            "waypoints": "KAAPE/a1500+/h140 GERCK"
+            "waypoints": "_MCO_36R KAAPE/a1500+/h140 GERCK MZULO",
+            "is_rnav": true
           },
-          "LAL,RSW": {
+          "REMIS,CIGAR": {
+            "cleared_altitude": 7000,
+            "sid": "OSPRY1",
+            "waypoints": "_MCO_36R VILNS/a1500+/h237 OSPRY GDUNN KNOST",
+            "is_rnav": true
+          },
+          "JFRYS": {
+            "cleared_altitude": 7000,
+            "sid": "RDSOX1",
+            "waypoints": "_MCO_36R VILNS/a1500+/h237 RDSOX",
+            "is_rnav": true
+          },
+          "KNEED": {
+            "cleared_altitude": 2000,
+            "sid": "CITR2",
+            "waypoints": "_MCO_36R/h205"
+          },
+          "MLBSO,TPSTR,CITR.WORMS,VIZTA,CITR.FSHUN": {
+            "cleared_altitude": 2000,
+            "sid": "CITR2",
+            "waypoints": "_MCO_36R/h270"
+          },
+          "MICKI,CAMAN,ORLA.FSHUN": {
             "cleared_altitude": 7000,
             "sid": "ORLA6",
-            "waypoints": "_MCO_36R/h220"
+            "waypoints": "_MCO_36R/h205"
           },
-          "DDANY": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_36R/h090 DDANY"
+          "ATLAS,ORLA.WORMS": {
+            "cleared_altitude": 7000,
+            "sid": "ORLA6",
+            "waypoints": "_MCO_36R/h150"
+          }
+        },
+        "35L": {
+          "BORRD,VALKA,JIPOD,ZALEN,DDANY": {
+            "cleared_altitude": 7000,
+            "sid": "DDANY3",
+            "waypoints": "GOHOM/a2600+ MIEGS/a5000- LAPUU/a7000+ UKAYY DDANY",
+            "is_rnav": true
           },
-          "FSUHN": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_36R/h270 FSHUN"
+          "VIYAP": {
+            "cleared_altitude": 16000,
+            "sid": "FATHE4",
+            "waypoints": "JWOLF/a2600+ JIRAN/a3000+ BIGSE GOTHA/a7000- BUFFI FATHE/a14000+ MDBOG BKENI/a16000+ FEMON",
+            "is_rnav": true
           },
-          "VIZTA": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_36R/h270 VIZTA"
+          "PLUMR": {
+            "cleared_altitude": 7000,
+            "sid": "FSHUN4",
+            "waypoints": "SAWZZ/a2300+ HANDD/a3000+/s230 LEFTI/a4000+/s230 BLOSM/a7000- DADTI FSHUN PLUMR",
+            "is_rnav": true
           },
-          "WORMS": {
+          "PAINN": {
+            "cleared_altitude": 16000,
+            "sid": "JEEMY4",
+            "waypoints": "JWOLF/a2600+ JIRAN/a3000+ BIGSE ALOHH/a7000- SNOBE MDUSA JEEMY/a16000+ ACCHE PAINN",
+            "is_rnav": true
+          },
+          "ETECK,FAROV,LENDS": {
+            "cleared_altitude": 7000,
+            "sid": "MZULO3",
+            "waypoints": "GOHOM/a2600+ MIEGS/a5000- ASKUE/a7000+ GERCK MZULO",
+            "is_rnav": true
+          },
+          "REMIS,CIGAR": {
+            "cleared_altitude": 7000,
+            "sid": "OSPRY1",
+            "waypoints": "SAWZZ/a2300+ HANDD/a3000+ LEFTI/a4000+ BLOSM/a7000- OSPRY GDUNN KNOST",
+            "is_rnav": true
+          },
+          "JFRYS": {
+            "cleared_altitude": 7000,
+            "sid": "RDSOX1",
+            "waypoints": "SAWZZ/a2300+ HANDD/a3000+ LEFTI/a4000+/s230 BLOSM/a7000- RDSOX",
+            "is_rnav": true
+          },
+          "KNEED": {
             "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_36R/h090 WORMS"
+            "sid": "CITR2",
+            "waypoints": "_MCO_17R/h355"
+          },
+          "TPSTR": {
+            "cleared_altitude": 2000,
+            "sid": "CITR2",
+            "waypoints": "_MCO_17R/h040"
+          },
+          "ORLA.FSHUN,CAMAN": {
+            "cleared_altitude": 7000,
+            "sid": "ORLA6",
+            "waypoints": "_MCO_17R/h355"
+          },
+          "MICKI,ORLA.WORMS": {
+            "cleared_altitude": 7000,
+            "sid": "ORLA6",
+            "waypoints": "_MCO_17R/h355"
+          },
+          "VIZTA,CITR.WORMS,MLBSO,CITR.FSHUN": {
+            "cleared_altitude": 2000,
+            "sid": "CITR2",
+            "waypoints": "_MCO_17R/h090"
           }
         },
         "36R": {
           "PLUMR": {
             "cleared_altitude": 7000,
             "sid": "FSHUN4",
-            "waypoints": "FACTS/a2300+ EARRS/a3000+/s230 LEFTI/a4000+/s230 BLOSM/a7000- DADTI FSHUN"
+            "waypoints": "_MCO_18L FACTS/a2300+ EARRS/a3000+/s230 LEFTI/a4000+/s230 BLOSM/a7000- DADTI FSHUN",
+            "is_rnav": true
           },
           "PAINN": {
             "cleared_altitude": 7000,
             "sid": "JEEMY4",
-            "waypoints": "FACTS/a2300+ HANDD/a3000+/s230 SNOBE MDUSA JEEMY/a16000+ ACCHE"
+            "waypoints": "_MCO_18L FACTS/a2300+ HANDD/a3000+/s230 CHUKG/a7000- SNOBE MDUSA JEEMY/a16000+ ACCHE",
+            "is_rnav": true
           },
           "REMIS,CIGAR": {
             "cleared_altitude": 7000,
             "sid": "OSPRY1",
-            "waypoints": "FACTS/a2300+ HANDD/a3000+/s230 LEFTI/a4000+/s230 BLOSM/a7000- OSPRY GDUNN KNOST"
+            "waypoints": "_MCO_18L FACTS/a2300+ HANDD/a3000+/s230 LEFTI/a4000+/s230 BLOSM/a7000- OSPRY GDUNN KNOST",
+            "is_rnav": true
           },
           "JFRYS": {
             "cleared_altitude": 7000,
             "sid": "RDSOX1",
-            "waypoints": "FACTS/a2300 HANDD/a3000+ LEFTI/a4000+/s230 BLOSM/a7000 RDSOX"
+            "waypoints": "_MCO_18L FACTS/a2300 HANDD/a3000+ LEFTI/a4000+/s230 BLOSM/a7000 RDSOX",
+            "is_rnav": true
           },
-          "BORRD,VALKA,JIPOD,ZALEN": {
+          "BORRD,VALKA,JIPOD,ZALEN,DDANY": {
             "cleared_altitude": 7000,
             "sid": "DDANY3",
-            "waypoints": "GOHOM/a2600+ MIEGS/a5000- LAPUU/a7000+ UKAYY DDANY"
+            "waypoints": "_MCO_18L GOHOM/a2600+ MIEGS/a5000- LAPUU/a7000+ UKAYY DDANY",
+            "is_rnav": true
           },
           "VIYAP": {
             "cleared_altitude": 7000,
-            "sid": "FATHE3",
-            "waypoints": "JWOLF/a2600+ JIRAN/a3000+ BIGSE BUFFI FATHE/a14000+ MDBOG/a16000+ BKENI FEMON"
+            "sid": "FATHE4",
+            "waypoints": "_MCO_18L FACTS/a2300+ HANDD/a3000+/s230 TRYNA/a7000- BUFFI FATHE/a14000+ MDBOG/a16000+ BKENI FEMON",
+            "is_rnav": true
           },
           "ETECK,FAROV,LENDS": {
             "cleared_altitude": 7000,
             "sid": "MZULO3",
-            "waypoints": "GOHOM/a2600+ MIEGS/a5000- ASKUE/a7000+ GERCK MZULO"
+            "waypoints": "_MCO_18L GOHOM/a2600+ MIEGS/a5000- ASKUE/a7000+ GERCK MZULO",
+            "is_rnav": true
           },
-          "LAL,RSW": {
+          "KNEED": {
+            "cleared_altitude": 2000,
+            "sid": "CITR2",
+            "waypoints": "_MCO_17R/h010"
+          },
+          "ORLA.FSHUN,CAMAN,MICKI,ORLA.WORMS": {
             "cleared_altitude": 7000,
             "sid": "ORLA6",
-            "waypoints": "_MCO_18L/h340"
+            "waypoints": "_MCO_17R/h010"
           },
-          "DDANY": {
+          "VIZTA,CITR.WORMS,MLBSO,CITR.FSHUN": {
             "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_18L/h090 DDANY"
-          },
-          "FSHUN": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_18L/h270 FSHUN"
-          },
-          "VIZTA": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2W",
-            "waypoints": "_MCO_18L/h270 VIZTA"
-          },
-          "WORMS": {
-            "cleared_altitude": 2000,
-            "sid": "CITR2E",
-            "waypoints": "_MCO_18L/h090 WORMS"
+            "sid": "CITR2",
+            "waypoints": "_MCO_17R/h270"
           }
         }
       },
@@ -323,8 +319,7 @@
           "altitude": 35000,
           "destination": "KATL",
           "exit": "PAINN",
-          "scratchpad": "J35",
-          "route": "PAINN SHRKS LAIRI LARZZ JBPXI3"
+          "route": "JEEMY4 PAINN SHRKS LAIRI LARZZ JBPXI3"
         },
         {
           "airlines": [
@@ -335,7 +330,6 @@
           "altitude": 17000,
           "destination": "KEYW",
           "exit": "FSHUN",
-          "scratchpad": "F17",
           "route": "FSHUN PLUMR EYW"
         },
         {
@@ -347,7 +341,6 @@
           "altitude": 17000,
           "destination": "KEYW",
           "exit": "FSHUN",
-          "scratchpad": "F17",
           "route": "FSHUN PLUMR EYW"
         },
         {
@@ -359,7 +352,6 @@
           "altitude": 18000,
           "destination": "KPNS",
           "exit": "VIZTA",
-          "scratchpad": "V18",
           "route": "VIZTA CTY PENSI"
         },
         {
@@ -371,7 +363,6 @@
           "altitude": 17000,
           "destination": "KGSO",
           "exit": "WORMS",
-          "scratchpad": "W17",
           "route": "WORMS GUANO BKENI VIYAP GSO"
         },
         {
@@ -382,9 +373,8 @@
           ],
           "altitude": 17000,
           "destination": "KFLL",
-          "exit": "DDANY",
-          "scratchpad": "D17",
-          "route": "DDANY JIPOD TARPN3"
+          "exit": "TPSTR",
+          "route": "TPSTR DDANY JIPOD TARPN3"
         },
         {
           "airlines": [
@@ -395,8 +385,7 @@
           "altitude": 39000,
           "destination": "TTPP",
           "exit": "BORRD",
-          "scratchpad": "D39",
-          "route": "BORRD ANGEE BR62V ZFP BR65V PEACH Y421 MEEGL ANADA UG449 PERGA ITRAK NAPKO LEXOR TALUS"
+          "route": "DDANY3 BORRD ANGEE BR62V ZFP BR65V PEACH Y421 MEEGL ANADA UG449 PERGA ITRAK NAPKO LEXOR TALUS"
         },
         {
           "airlines": [
@@ -412,8 +401,7 @@
           "altitude": 39000,
           "destination": "EGLL",
           "exit": "JIPOD",
-          "scratchpad": "D39",
-          "route": "JIPOD SNAGY FLUPS SAVON M327 JIMAC BALOO 3500N/06000W 3800N/05000W 4100N/04000W 4400N/03000W 4700N/02000W 4800N/01500W OMOKO GUNSO GAPLI SIDDI DAWLY OTMET"
+          "route": "DDANY3 JIPOD SNAGY FLUPS SAVON M327 JIMAC BALOO 3500N/06000W 3800N/05000W 4100N/04000W 4400N/03000W 4700N/02000W 4800N/01500W OMOKO GUNSO GAPLI SIDDI DAWLY OTMET"
         },
         {
           "airlines": [
@@ -427,8 +415,7 @@
           "altitude": 35000,
           "destination": "KJFK",
           "exit": "VIYAP",
-          "scratchpad": "W35",
-          "route": "VIYAP Q87 JROSS BARTL J121 SIE CARMN4"
+          "route": "FATHE4 VIYAP Q87 JROSS BARTL J121 SIE CARMN4"
         },
         {
           "airlines": [
@@ -448,8 +435,7 @@
           "altitude": 35000,
           "destination": "KBOS",
           "exit": "VIYAP",
-          "scratchpad": "W35",
-          "route": "VIYAP Q87 JROSS MULLS J79 JFK ROBUC3"
+          "route": "FATHE4 VIYAP Q87 JROSS MULLS J79 JFK ROBUC3"
         },
         {
           "airlines": [
@@ -461,8 +447,7 @@
           "altitude": 31000,
           "destination": "EHAM",
           "exit": "VIYAP",
-          "scratchpad": "W31",
-          "route": " VIYAP Q87 JROSS BARTL J121 SWL J174 RIFLE ACK VITOL N45D NANSO N45D RAFIN NATX BEDRA NATX NASBA GAPLI SIDDI DAWLY GIBSO L620 MID UM185 KOBBI M197 REDFA"
+          "route": "FATHE4 VIYAP Q87 JROSS BARTL J121 SWL J174 RIFLE ACK VITOL N45D NANSO N45D RAFIN NATX BEDRA NATX NASBA GAPLI SIDDI DAWLY GIBSO L620 MID UM185 KOBBI M197 REDFA"
         },
         {
           "airlines": [
@@ -473,8 +458,7 @@
           "altitude": 39000,
           "destination": "TNCA",
           "exit": "VALKA",
-          "scratchpad": "D39",
-          "route": "VALKA TRV BR62V JAKEL BR62V ZFP BR65V ZQA A555 DUKKY A756 KNSLY Y398 JOSES UA315 VESKA VESK2A"
+          "route": "DDANY3 VALKA TRV BR62V JAKEL BR62V ZFP BR65V ZQA A555 DUKKY A756 KNSLY Y398 JOSES UA315 VESKA VESK2A"
         },
         {
           "airlines": [
@@ -488,8 +472,7 @@
           "altitude": 37000,
           "destination": "SKBO",
           "exit": "BORRD",
-          "scratchpad": "D37",
-          "route": "BORRD EBAYY Q97 TOVAR Y297 URSUS UP406 AKPEK UQ121 RNG ISVAT ISVA4W"
+          "route": "DDANY3 BORRD EBAYY Q97 TOVAR Y297 URSUS UP406 AKPEK UQ121 RNG ISVAT ISVA4W"
         },
         {
           "airlines": [
@@ -500,8 +483,7 @@
           "altitude": 30000,
           "destination": "CYYC",
           "exit": "JFRYS",
-          "scratchpad": "R30",
-          "route": "JFRYS PATOY Q116 MICES Q116 JAWJA MGMRY STEIT GAGLE KM33I KK42G KK51E DRABS KD75A KD87Y KIXCO KU21S GGRBI VESDO Q832 EBGAL EBGAL6"
+          "route": "RDSOX1 JFRYS PATOY Q116 MICES Q116 JAWJA MGMRY STEIT GAGLE KM33I KK42G KK51E DRABS KD75A KD87Y KIXCO KU21S GGRBI VESDO Q832 EBGAL EBGAL6"
         },
         {
           "airlines": [
@@ -512,8 +494,7 @@
           "altitude": 37000,
           "destination": "SKCG",
           "exit": "BORRD",
-          "scratchpad": "D37",
-          "route": "BORRD EBAYY Q97 TOVAR Y297 URSUS UP406 UBSUX VARON VARO2B"
+          "route": "DDANY3 BORRD EBAYY Q97 TOVAR Y297 URSUS UP406 UBSUX VARON VARO2B"
         },
         {
           "airlines": [
@@ -530,8 +511,7 @@
           "altitude": 34000,
           "destination": "MMUN",
           "exit": "PLUMR",
-          "scratchpad": "F34",
-          "route": "PLUMR TUNSL Y196 CANOA UB879 NOSAT NOSAT1B"
+          "route": "FSHUN4 PLUMR TUNSL Y196 CANOA UB879 NOSAT NOSAT1B"
         },
         {
           "airlines": [
@@ -543,8 +523,7 @@
           "altitude": 37000,
           "destination": "EIDW",
           "exit": "VIYAP",
-          "scratchpad": "W37",
-          "route": "VIYAP 3808N/07402W VITOL PORTI NATU DINIM NATU ELSOX OSGAR OSGAR3X"
+          "route": "FATHE4 VIYAP  3808N/07402W VITOL PORTI NATU DINIM NATU ELSOX OSGAR OSGAR3X"
         },
         {
           "airlines": [
@@ -555,7 +534,7 @@
           "altitude": 31000,
           "destination": "OMDB",
           "exit": "ETECK",
-          "scratchpad": "G31",
+
           "route": "MZULO3 ETECK M202 UKOKA BEXUM M204 LUNKR 3800N/06000W 4100N/05000W 4300N/04000W 4500N/03000W 4600N/02000W HIDRA STG SUSOS NUBLO NEDUS RATAS DGO VASUM YAKXU ELSAP VAKIN DIRMU LOBAR MECKI ARBEK SADUR BCN UN725 ORKUM UM603 ELSAG ALG GIANO BELIX PLH UM978 AMAXI UM978 SIT UM1 KAVOS EVORA LAKTO L560 SERMA L550 KARIK B411 ULINA UB411 DEESA Y415 LOTOK P559 DAROR P559 NALPO P559 VUTEB"
         },
         {
@@ -568,8 +547,8 @@
           "altitude": 37000,
           "destination": "EDDF",
           "exit": "VIYAP",
-          "scratchpad": "W37",
-          "route": "FATHE3 VIYAP Q87 JROSS BARTL J121 SWL J174 WARNN J174 RIFLE ACK KANNI N139A PORTI NATU DINIM NATU ELSOX LESLU OXLOW M142 ROKKE M140 DVR UL9 KONAN UL607 KOK SPI T180 UNOKO UNOKO3A"
+
+          "route": "FATHE4 VIYAP Q87 JROSS BARTL J121 SWL J174 WARNN J174 RIFLE ACK KANNI N139A PORTI NATU DINIM NATU ELSOX LESLU OXLOW M142 ROKKE M140 DVR UL9 KONAN UL607 KOK SPI T180 UNOKO UNOKO3A"
         },
         {
           "airlines": [
@@ -580,8 +559,7 @@
           "altitude": 38000,
           "destination": "CYEG",
           "exit": "PAINN",
-          "scratchpad": "J38",
-          "route": "PAINN SHRKS THRSR BNA J45 IRK J45 FSD DIK YEA CAMRA IGSOX3"
+          "route": "JEEMY4 PAINN SHRKS THRSR BNA J45 IRK J45 FSD DIK YEA CAMRA IGSOX3"
         },
         {
           "airlines": [
@@ -592,8 +570,7 @@
           "altitude": 38000,
           "destination": "MGGT",
           "exit": "PLUMR",
-          "scratchpad": "F38",
-          "route": "PLUMR RSW KARTR LULLS Y262 MAXIM UG765 IMATA MISOM MISOM1B"
+          "route": "FSHUN4 PLUMR RSW KARTR LULLS Y262 MAXIM UG765 IMATA MISOM MISOM1B"
         },
         {
           "airlines": [
@@ -604,7 +581,6 @@
           "altitude": 38000,
           "destination": "MMGL",
           "exit": "CIGAR",
-          "scratchpad": "O38",
           "route": "OSPRY1 CIGAR IRDOV UM580 COFRE UT23 TAM UJ14 TMN UT147 AGU UT44 MEZCA UT44 LIVRI LIVRI1D"
         },
         {
@@ -620,8 +596,7 @@
           "altitude": 33000,
           "destination": "CYHZ",
           "exit": "VIYAP",
-          "scratchpad": "W33",
-          "route": "VIYAP Q87 JROSS MULLS J79 VILLS J79 JFK FOXWD TUSKY PEGGY5"
+          "route": "FATHE4 VIYAP  Q87 JROSS MULLS J79 VILLS J79 JFK FOXWD TUSKY PEGGY5"
         },
         {
           "airlines": [
@@ -633,8 +608,7 @@
           "altitude": 39000,
           "destination": "EGLL",
           "exit": "VIYAP",
-          "scratchpad": "W39",
-          "route": "VIYAP Q87 TAALN Q87 JROSS BARTL J121 ORF SIE SHLEP PUT EBONY ELSIR 5000N/05000W 5200N/04000W 5300N/03000W 5300N/02000W TOBOR RILED EVRIN INFEC JETZI OGLUN OCTIZ P2 SIRIC"
+          "route": "FATHE4 VIYAP  Q87 TAALN Q87 JROSS BARTL J121 ORF SIE SHLEP PUT EBONY ELSIR 5000N/05000W 5200N/04000W 5300N/03000W 5300N/02000W TOBOR RILED EVRIN INFEC JETZI OGLUN OCTIZ P2 SIRIC"
         },
         {
           "airlines": [
@@ -646,8 +620,7 @@
           "altitude": 35000,
           "destination": "EGKK",
           "exit": "LENDS",
-          "scratchpad": "G35",
-          "route": "LENDS TROUT 3200N/07000W 3600N/06000W 4000N/05000W 4300N/04000W 4500N/03000W 4700N/02000W 4800N/01500W OMOKO GUNSO GAPLI Y8 RIGDI N17 OTMET OTMET1G"
+          "route": "MZULO3 LENDS TROUT 3200N/07000W 3600N/06000W 4000N/05000W 4300N/04000W 4500N/03000W 4700N/02000W 4800N/01500W OMOKO GUNSO GAPLI Y8 RIGDI N17 OTMET OTMET1G"
         },
         {
           "airlines": [
@@ -659,8 +632,7 @@
           "altitude": 35000,
           "destination": "EGCC",
           "exit": "VIYAP",
-          "scratchpad": "W35",
-          "route": "VIYAP Q87 SUSYQ Q87 JROSS BARTL J121 ORF SIE SHLEP PUT EBONY ELSIR 5000N/05000W 5200N/04000W 5300N/03000W 5300N/02000W MALOT GISTI BOFUM Q37 MALUD"
+          "route": "FATHE4 VIYAP  Q87 SUSYQ Q87 JROSS BARTL J121 ORF SIE SHLEP PUT EBONY ELSIR 5000N/05000W 5200N/04000W 5300N/03000W 5300N/02000W MALOT GISTI BOFUM Q37 MALUD"
         },
         {
           "airlines": [
@@ -671,8 +643,7 @@
           "altitude": 37000,
           "destination": "SKRG",
           "exit": "VALKA",
-          "scratchpad": "D37",
-          "route": "VALKA TRV URSUS UP406 AKPEK AKPE3C"
+          "route": "DDANY3 VALKA TRV URSUS UP406 AKPEK AKPE3C"
         },
         {
           "airlines": [
@@ -687,8 +658,7 @@
           "altitude": 38000,
           "destination": "MMMX",
           "exit": "CIGAR",
-          "scratchpad": "O38",
-          "route": "CIGAR M215 MINOW M580 IRDOV UM580 TADET UT154 ENAGA ENAGA2A"
+          "route": "RDSOX1 CIGAR M215 MINOW M580 IRDOV UM580 TADET UT154 ENAGA ENAGA2A"
         },
         {
           "airlines": [
@@ -699,8 +669,7 @@
           "altitude": 35000,
           "destination": "CYQM",
           "exit": "VIYAP",
-          "scratchpad": "W35",
-          "route": "VIYAP RAPZZ ISO J121 ORF J121 SWL J174 HTO BOS BGR DANOL Q951 PUXOP"
+          "route": "FATHE4 VIYAP  RAPZZ ISO J121 ORF J121 SWL J174 HTO BOS BGR DANOL Q951 PUXOP"
         },
         {
           "airlines": [
@@ -720,8 +689,7 @@
           "altitude": 35000,
           "destination": "MKJS",
           "exit": "VALKA",
-          "scratchpad": "D35",
-          "route": "VALKA EBAYY Q97 TOVAR Y297 URSUS UL780 TASNO UM221 NIBEO ADSEL LENAR6"
+          "route": "DDANY3 VALKA EBAYY Q97 TOVAR Y297 URSUS UL780 TASNO UM221 NIBEO ADSEL LENAR6"
         },
         {
           "airlines": [
@@ -736,8 +704,7 @@
           "altitude": 33000,
           "destination": "CYUL",
           "exit": "VIYAP",
-          "scratchpad": "W33",
-          "route": "VIYAP Q87 TAALN Q87 JROSS MULLS J79 JFK LLUND CAM JASDU PBERG CARTR4"
+          "route": "FATHE4 VIYAP  Q87 TAALN Q87 JROSS MULLS J79 JFK LLUND CAM JASDU PBERG CARTR4"
         },
         {
           "airlines": [
@@ -751,8 +718,7 @@
           "altitude": 23000,
           "destination": "MYNN",
           "exit": "VALKA",
-          "scratchpad": "D23",
-          "route": "VALKA TRV BR62V ZFP BR63V MELON BR63V ZQA"
+          "route": "DDANY3 VALKA TRV BR62V ZFP BR63V MELON BR63V ZQA"
         },
         {
           "airlines": [
@@ -763,8 +729,7 @@
           "altitude": 37000,
           "destination": "MPTO",
           "exit": "PLUMR",
-          "scratchpad": "F37",
-          "route": "PLUMR FEMID Q79 VAULT Q79 MCLAW Y442 FUNDI UM335 ARNAL SEKMA OSUPA OSUPA1B"
+          "route": "FSHUN4 PLUMR FEMID Q79 VAULT Q79 MCLAW Y442 FUNDI UM335 ARNAL SEKMA OSUPA OSUPA1B"
         },
         {
           "airlines": [
@@ -775,7 +740,6 @@
           "altitude": 39000,
           "destination": "TTPP",
           "exit": "BORRD",
-          "scratchpad": "D39",
           "route": " BORRD ANGEE BR62V ZFP BR65V PEACH Y421 MEEGL ANADA UG449 PERGA ITRAK NAPKO LEXOR TALUS"
         },
         {
@@ -802,8 +766,7 @@
           "altitude": 36000,
           "destination": "KLAX",
           "exit": "REMIS",
-          "scratchpad": "O36",
-          "route": "REMIS Y280 LEV J86 PEKON SBI IAH JCT ELP WOBUG J184 BXK J4 MESSI ESTWD HLYWD1"
+          "route": "RDSOX1 REMIS Y280 LEV J86 PEKON SBI IAH JCT ELP WOBUG J184 BXK J4 MESSI ESTWD HLYWD1"
         },
         {
           "airlines": [
@@ -817,8 +780,7 @@
           "altitude": 32000,
           "destination": "KLAS",
           "exit": "JFRYS",
-          "scratchpad": "R32",
-          "route": "JFRYS PATOY Q116 JAWJA CABLO MERDN LIT J6 IRW KA33Y GUP HAHAA RKSTR3"
+          "route": "RDSOX1 JFRYS PATOY Q116 JAWJA CABLO MERDN LIT J6 IRW KA33Y GUP HAHAA RKSTR3"
         },
         {
           "airlines": [
@@ -836,8 +798,7 @@
           "altitude": 36000,
           "destination": "KLAS",
           "exit": "JFRYS",
-          "scratchpad": "R36",
-          "route": "JFRYS PATOY Q116 JAWJA CABLO MCB ACT INK EWM DRRVR PINNG1"
+          "route": "RDSOX1 JFRYS PATOY Q116 JAWJA CABLO MCB ACT INK EWM DRRVR PINNG1"
         },
         {
           "airlines": [
@@ -858,36 +819,36 @@
           "altitude": 34000,
           "destination": "KDEN",
           "exit": "JFRYS",
-          "scratchpad": "R34",
-          "route": "JFRYS PATOY Q116 JAWJA MGM SQS KF33E KK39C HALEN NIIXX3"
+          "route": "RDSOX1 JFRYS PATOY Q116 JAWJA MGM SQS KF33E KK39C HALEN NIIXX3"
         }
       ],
       "exit_categories": {
         "BORRD": "DDANY",
-        "CIGAR": "OSPRY",
-        "CRG": "CRG",
+        "VALKA": "DDANY",
+        "ZALEN": "DDANY",
+        "JIPOD": "DDANY",
+        "DDANY": "DDANY",
+        "VIYAP": "FATHE",
+        "PLUMR": "FSHUN",
+        "FSHUN": "FSHUN",
+        "PAINN": "JEEMY",
         "ETECK": "MZULO",
         "FAROV": "MZULO",
-        "JFRYS": "RDSOX",
-        "JIPOD": "DDANY",
-        "LAL": "FSHUN",
-        "OCF": "WORMS",
-        "OMN": "WORMS",
-        "PAINN": "JEEMY",
-        "PIE": "CAMAN",
-        "PLUMR": "FSHUN",
-        "REMIS": "OSPRY",
-        "RSW": "FSHUN",
-        "SZW": "CAMAN",
-        "VALKA": "DDANY",
-        "VIYAP": "FATHE",
-        "ZALEN": "DDANY",
-        "WORMS": "Prop.East",
-        "DDANY": "Prop.East",
-        "FSHUN": "Prop.West",
-        "VIZTA": "Prop.West",
         "LENDS": "MZULO",
-        "FSUHN": "FSHUN"
+        "CIGAR": "OSPRY",
+        "REMIS": "OSPRY",
+        "JFRYS": "RDSOX",
+        "KNEED": "CITR",
+        "MLBSO": "CITR",
+        "TPSTR": "CITR",
+        "CITR.WORMS": "CITR",
+        "VIZTA": "CITR",
+        "CITR.FSHUN": "CITR",
+        "MICKI": "ORLA",
+        "CAMAN": "ORLA",
+        "ORLA.FSHUN": "ORLA",
+        "ATLAS": "ORLA",
+        "ORLA.WORMS": "ORLA"
       },
       "tower_list": 2,
       "atpa_volumes": {
@@ -1043,8 +1004,7 @@
           "altitude": 27000,
           "destination": "KMIA",
           "exit": "DDANY",
-          "scratchpad": "D27",
-          "route": "DDANY CSTAL2"
+          "route": "DDANY3 DDANY CSTAL2"
         },
         {
           "airlines": [
@@ -1065,7 +1025,6 @@
           "altitude": 25000,
           "destination": "KFLL",
           "exit": "MLB",
-          "scratchpad": "D25",
           "route": "MLB BLUFI4"
         },
         {
@@ -1087,7 +1046,6 @@
           "altitude": 33000,
           "destination": "KJQF",
           "exit": "WORMS",
-          "scratchpad": "W33",
           "route": "WORMS GUANO MMKAY CRG"
         },
         {
@@ -1112,7 +1070,6 @@
           "altitude": 38000,
           "destination": "KBNA",
           "exit": "RDSOX",
-          "scratchpad": "R38",
           "route": "RDSOX JFRYS BRUTS Q118 THRSR WESSN JAGIR SWFFT2"
         },
         {
@@ -1137,7 +1094,6 @@
           "altitude": 16000,
           "destination": "KAPF",
           "exit": "FSHUN",
-          "scratchpad": "F16",
           "route": "FSHUN SHFTY SHFTY5"
         }
       ],
@@ -1231,14 +1187,13 @@
           "altitude": 35000,
           "destination": "KORF",
           "exit": "WORMS",
-          "scratchpad": "W35",
           "route": "WORMS GUANO BKENI VIYAP Q87 JROSS BARTL J121 ISO DRONE2"
         },
         {
           "exit": "WORMS",
           "destination": "KBNA",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS THRSR WESSN JAGIR SWFFT2",
           "airlines": [
             {
@@ -1251,7 +1206,7 @@
           "exit": "RDSOX",
           "destination": "KMEM",
           "altitude": 36000,
-          "scratchpad": "R36",
+
           "route": "RDSOX JFRYS BRUTS Q118 JAMIZ OTK VLKNN WASER VANZE3",
           "airlines": [
             {
@@ -1264,7 +1219,7 @@
           "exit": "WORMS",
           "destination": "KABE",
           "altitude": 35000,
-          "scratchpad": "W35",
+
           "route": "WORMS GUANO BKENI VIYAP Q87 ALWZZ OGRAE Q99 SHIRY THEOO COURG BAMMY T299 SCAPE T299 DUMMR",
           "airlines": [
             {
@@ -1277,7 +1232,7 @@
           "exit": "WORMS",
           "destination": "KCKB",
           "altitude": 35000,
-          "scratchpad": "W35",
+
           "route": "WORMS GUANO BKENI VIYAP Q69 GURGE BLAAN Q69 RICCS",
           "airlines": [
             {
@@ -1290,7 +1245,7 @@
           "exit": "RDSOX",
           "destination": "KIND",
           "altitude": 36000,
-          "scratchpad": "R36",
+
           "route": "RDSOX JFRYS BRUTS Q118 THRSR WUDEE RESPE SWAPP HAGAL GIIBS3",
           "airlines": [
             {
@@ -1303,7 +1258,7 @@
           "exit": "WORMS",
           "destination": "KBLV",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS GUANO BKENI VIYAP SAV IRQ GQO BNA J45 DENNI ENL ENL2",
           "airlines": [
             {
@@ -1316,7 +1271,7 @@
           "exit": "WORMS",
           "destination": "KGSP",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 WIGVO PROVN MCHLN2",
           "airlines": [
             {
@@ -1329,7 +1284,7 @@
           "exit": "WORMS",
           "destination": "KACY",
           "altitude": 31000,
-          "scratchpad": "W31",
+
           "route": "WORMS GUANO BKENI VIYAP Q87 JROSS Q135 CUDLE Q117 SAWED Q97 ZJAAY RADDS SIE",
           "airlines": [
             {
@@ -1342,7 +1297,7 @@
           "exit": "WORMS",
           "destination": "KFWA",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 TEUFL IRQ J99 VXV J43 FLM RID",
           "airlines": [
             {
@@ -1355,7 +1310,7 @@
           "exit": "WORMS",
           "destination": "KLIT",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 YANTI MCN VUZ J14 LIT",
           "airlines": [
             {
@@ -1368,7 +1323,7 @@
           "exit": "WORMS",
           "destination": "KTYS",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 TEUFL ODF",
           "airlines": [
             {
@@ -1381,7 +1336,7 @@
           "exit": "WORMS",
           "destination": "KCAK",
           "altitude": 35000,
-          "scratchpad": "W35",
+
           "route": "WORMS GUANO BKENI VIYAP Q69 GURGE Q93 QUIWE SPA J85 HVQ JPU ZZIPS1",
           "airlines": [
             {
@@ -1394,7 +1349,7 @@
           "exit": "WORMS",
           "destination": "KMDT",
           "altitude": 35000,
-          "scratchpad": "W35",
+
           "route": "WORMS GUANO BKENI VIYAP Q69 GURGE BLAAN Q69 ILLSA COURG BAMMY T299 SCAPE T299 HAR",
           "airlines": [
             {
@@ -1407,7 +1362,7 @@
           "exit": "RDSOX",
           "destination": "KAUS",
           "altitude": 36000,
-          "scratchpad": "R36",
+
           "route": "RDSOX JFRYS PATOY CTY MGR EUF LBY LCH IAH LUKKN WLEEE7",
           "airlines": [
             {
@@ -1420,7 +1375,7 @@
           "exit": "WORMS",
           "destination": "KCVG",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 WIGVO IRQ J99 VXV JAKIE6",
           "airlines": [
             {
@@ -1433,7 +1388,7 @@
           "exit": "WORMS",
           "destination": "KABE",
           "altitude": 35000,
-          "scratchpad": "W35",
+
           "route": "WORMS GUANO BKENI VIYAP Q87 ALWZZ OGRAE Q99 SHIRY THEOO COURG BAMMY T299 SCAPE T299 DUMMR",
           "airlines": [
             {
@@ -1446,7 +1401,6 @@
           "exit": "WORMS",
           "destination": "KPIT",
           "altitude": 35000,
-          "scratchpad": "W35",
           "route": "WORMS GUANO BKENI VIYAP Q69 GURGE BLAAN Q69 ILLSA Q69 RICCS LEJOY DEMME5",
           "airlines": [
             {
@@ -1459,7 +1413,6 @@
           "exit": "FSHUN",
           "destination": "KEYW",
           "altitude": 22000,
-          "scratchpad": "F22",
           "route": "FSHUN ROGAN RSW KARTR GIGIH",
           "airlines": [
             {
@@ -1472,7 +1425,7 @@
           "exit": "WORMS",
           "destination": "KOMA",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 YANTI MCN BEATS J151 FAM LMN MARWI4",
           "airlines": [
             {
@@ -1485,7 +1438,7 @@
           "exit": "RDSOX",
           "destination": "KTUL",
           "altitude": 36000,
-          "scratchpad": "R36",
+
           "route": "RDSOX JFRYS PATOY Q116 JAWJA MGMRY LIT",
           "airlines": [
             {
@@ -1498,7 +1451,7 @@
           "exit": "WORMS",
           "destination": "KCVG",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 WIGVO IRQ J99 VXV JAKIE6",
           "airlines": [
             {
@@ -1511,7 +1464,7 @@
           "exit": "RDSOX",
           "destination": "KBMI",
           "altitude": 34000,
-          "scratchpad": "R34",
+
           "route": "RDSOX JFRYS BRUTS Q118 KAILL BNA J73 PXV AXC",
           "airlines": [
             {
@@ -1524,7 +1477,7 @@
           "exit": "WORMS",
           "destination": "KJQF",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 WIGVO WANSA JOOLS1",
           "airlines": [
             {
@@ -1537,7 +1490,7 @@
           "exit": "WORMS",
           "destination": "KFSD",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 YANTI MCN THRSR BNA FAM IRK J45 FSD",
           "airlines": [
             {
@@ -1550,7 +1503,7 @@
           "exit": "WORMS",
           "destination": "KTVC",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 YANTI VXV J43 FLM FWA VIO",
           "airlines": [
             {
@@ -1563,7 +1516,7 @@
           "exit": "WORMS",
           "destination": "KAVL",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 TEUFL TWINS PLYRR",
           "airlines": [
             {
@@ -1576,7 +1529,6 @@
           "exit": "OSPRY",
           "destination": "KLAS",
           "altitude": 34000,
-          "scratchpad": "O34",
           "route": "OSPRY GDUNN KNOST REMIS Y280 REDFN Q105 HRV J58 FUZ TXO J72 ABQ HAHAA RKSTR3",
           "airlines": [
             {
@@ -1589,7 +1541,7 @@
           "exit": "WORMS",
           "destination": "KAVL",
           "altitude": 32000,
-          "scratchpad": "W32",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 TEUFL TWINS PLYRR",
           "airlines": [
             {
@@ -1602,7 +1554,7 @@
           "exit": "WORMS",
           "destination": "KJQF",
           "altitude": 31000,
-          "scratchpad": "W31",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 WIGVO WANSA JOOLS1",
           "airlines": [
             {
@@ -1615,7 +1567,7 @@
           "exit": "WORMS",
           "destination": "KTYS",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 TEUFL ODF",
           "airlines": [
             {
@@ -1628,7 +1580,7 @@
           "exit": "WORMS",
           "destination": "KHTS",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 WIGVO IRQ SPA",
           "airlines": [
             {
@@ -1641,7 +1593,7 @@
           "exit": "WORMS",
           "destination": "KABE",
           "altitude": 35000,
-          "scratchpad": "W35",
+
           "route": "WORMS GUANO BKENI VIYAP Q87 ALWZZ OGRAE Q99 SHIRY THEOO COURG BAMMY T299 SCAPE T299 DUMMR",
           "airlines": [
             {
@@ -1654,7 +1606,7 @@
           "exit": "WORMS",
           "destination": "KGRR",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 YANTI VXV J43 FLM FWA",
           "airlines": [
             {
@@ -1667,7 +1619,7 @@
           "exit": "WORMS",
           "destination": "KEVV",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS YANTI THRSR GQO BWG",
           "airlines": [
             {
@@ -1680,7 +1632,7 @@
           "exit": "WORMS",
           "destination": "KTYS",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 TEUFL ODF",
           "airlines": [
             {
@@ -1693,7 +1645,7 @@
           "exit": "OSPRY",
           "destination": "KMFE",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "OSPRY GDUNN KNOST REMIS Y280 NAITE Y280 LEV PEKON PSX J22 CRP",
           "airlines": [
             {
@@ -1706,7 +1658,7 @@
           "exit": "RDSOX",
           "destination": "KBMI",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "RDSOX JFRYS BRUTS Q118 KAILL BNA J73 PXV AXC",
           "airlines": [
             {
@@ -1719,7 +1671,7 @@
           "exit": "WORMS",
           "destination": "KBNA",
           "altitude": 36000,
-          "scratchpad": "W36",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS THRSR WESSN JAGIR SWFFT2",
           "airlines": [
             {
@@ -1737,7 +1689,7 @@
           "altitude": 34000,
           "destination": "KBNA",
           "exit": "WORMS",
-          "scratchpad": "W34",
+
           "route": "WORMS GUANO JEEMY ACCHE PAINN SHRKS THRSR WESSN JAGIR SWFFT2"
         },
         {
@@ -1749,7 +1701,7 @@
           "destination": "KHGR",
           "altitude": 34000,
           "exit": "WORMS",
-          "scratchpad": "W34",
+
           "route": "WORMS GUANO BKENI VIYAP Q69 GURGE BLAAN SLOJO Q75 GSO ESL ELGEE V377 HGR"
         },
         {
@@ -1761,7 +1713,6 @@
           "destination": "KSGF",
           "exit": "OSPRY",
           "altitude": 32000,
-          "scratchpad": "O32",
           "route": "OSPRY GDUNN KNOST REMIS Y280 REDFN Q105 HRV J58 AEX KF15G TXK"
         },
         {
@@ -1773,7 +1724,7 @@
           "destination": "KSBN",
           "exit": "WORMS",
           "altitude": 32000,
-          "scratchpad": "W32",
+
           "route": " WORMS GUANO ACCHE PAINN SHRKS Q77 TEUFL VXV J43 FLM FWA GSH"
         },
         {
@@ -1785,7 +1736,7 @@
           "destination": "KABE",
           "exit": "WORMS",
           "altitude": 37000,
-          "scratchpad": "W37",
+
           "route": "WORMS GUANO BKENI VIYAP Q87 JROSS FLO RDU FAK COURG LOYDD SCAPE HAR V162 DUMMR"
         },
         {
@@ -1797,7 +1748,7 @@
           "destination": "KTYS",
           "exit": "WORMS",
           "altitude": 37000,
-          "scratchpad": "W37",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q77 TEUFL ODF"
         },
         {
@@ -1809,7 +1760,7 @@
           "destination": "KEYW",
           "exit": "FSHUN",
           "altitude": 22000,
-          "scratchpad": "F22",
+
           "route": "FSHUN FSHUN ROGAN RSW KARTR GIGIH"
         },
         {
@@ -1821,7 +1772,7 @@
           "destination": "KEYW",
           "exit": "FSHUN",
           "altitude": 22000,
-          "scratchpad": "F22",
+
           "route": "FSHUN FSHUN ROGAN RSW KARTR GIGIH"
         },
         {
@@ -1833,7 +1784,7 @@
           "destination": "KEYW",
           "exit": "FSHUN",
           "altitude": 22000,
-          "scratchpad": "F22",
+
           "route": "FSHUN FSHUN ROGAN RSW KARTR GIGIH"
         },
         {
@@ -1845,7 +1796,6 @@
           "destination": "KEYW",
           "exit": "FSHUN",
           "altitude": 22000,
-          "scratchpad": "F22",
           "route": "FSHUN FSHUN ROGAN RSW KARTR GIGIH"
         },
         {
@@ -1857,8 +1807,7 @@
           "destination": "KEYW",
           "exit": "DDANY",
           "altitude": 20000,
-          "scratchpad": "D20",
-          "route": "DDANY CSTAL2"
+          "route": "DDANY3 DDANY CSTAL2"
         }
       ],
       "exit_categories": {
@@ -1969,7 +1918,7 @@
           "destination": "KCLT",
           "exit": "WORMS",
           "altitude": 33000,
-          "scratchpad": "W33",
+
           "route": "WORMS GUANO BKENI VIYAP CHS STOCR3"
         },
         {
@@ -1991,7 +1940,6 @@
           "destination": "KFLL",
           "exit": "MLB",
           "altitude": 22000,
-          "scratchpad": "D22",
           "route": "MLB BLUFI4"
         },
         {
@@ -2013,7 +1961,7 @@
           "destination": "KHOT",
           "exit": "RDSOX",
           "altitude": 34000,
-          "scratchpad": "R34",
+
           "route": "RDSOX JFRYS PATOY Q116 JAWJA CABLO TOOTI MATIE"
         }
       ],
@@ -2095,7 +2043,7 @@
           "altitude": 36000,
           "destination": "KPIT",
           "exit": "WORMS",
-          "scratchpad": "W36",
+
           "route": "WORMS GUANO BKENI VIYAP Q69 OLBEC Q69 ISUZO Q69 RICCS IHD DEMME4"
         },
         {
@@ -2108,14 +2056,14 @@
           "altitude": 31000,
           "destination": "KATL",
           "exit": "WORMS",
-          "scratchpad": "W31",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2"
         },
         {
           "exit": "MZULO",
           "destination": "EGCC",
           "altitude": 41000,
-          "scratchpad": "G41",
+
           "route": "MZULO HESTA LENDS COACH Y494 WHOOS Y494 VIRST M201 CARAC N47C NANSO PORTI 4700N/05000W 5200N/04000W 5400N/03000W 5400N/02000W DOGAL BEXET DEVOL RINUS BOFUM Q37 MALUD MALUD1M",
           "airlines": [
             {
@@ -2128,7 +2076,7 @@
           "exit": "WORMS",
           "destination": "KCLT",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 HESPI BESTT JONZE5",
           "airlines": [
             {
@@ -2141,7 +2089,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2154,7 +2102,6 @@
           "exit": "RDSOX",
           "destination": "KCLT",
           "altitude": 37000,
-          "scratchpad": "R37",
           "route": "RDSOX JFRYS WILON PONZE BANKR5",
           "airlines": [
             {
@@ -2167,7 +2114,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 30000,
-          "scratchpad": "W30",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2180,7 +2127,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2193,7 +2140,7 @@
           "exit": "WORMS",
           "destination": "KCLT",
           "altitude": 37000,
-          "scratchpad": "W37",
+
           "route": "WORMS GUANO BKENI VIYAP CHECR STOCR4",
           "airlines": [
             {
@@ -2206,7 +2153,7 @@
           "exit": "WORMS",
           "destination": "KCLT",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 HESPI BESTT JONZE5",
           "airlines": [
             {
@@ -2219,7 +2166,7 @@
           "exit": "MZULO",
           "destination": "EGKK",
           "altitude": 41000,
-          "scratchpad": "G41",
+
           "route": "MZULO HESTA LENDS ETECK M202 UKOKA M202 JEBBY JAROM RAFIN 4500N/05000W 4800N/04000W 5100N/03000W 5100N/02000W SOMAX ATSUR LULOX SIDDI DAWLY ELRIP OTMET OTMET1G",
           "airlines": [
             {
@@ -2232,7 +2179,7 @@
           "exit": "WORMS",
           "destination": "KCLT",
           "altitude": 37000,
-          "scratchpad": "W37",
+
           "route": "WORMS GUANO BKENI VIYAP CHECR STOCR4",
           "airlines": [
             {
@@ -2245,7 +2192,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2258,7 +2205,7 @@
           "exit": "WORMS",
           "destination": "KCLT",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 HESPI BESTT JONZE5",
           "airlines": [
             {
@@ -2271,7 +2218,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2284,7 +2231,6 @@
           "exit": "RDSOX",
           "destination": "KCLT",
           "altitude": 37000,
-          "scratchpad": "R37",
           "route": "RDSOX JFRYS WILON PONZE BANKR5",
           "airlines": [
             {
@@ -2297,7 +2243,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 30000,
-          "scratchpad": "W30",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2322,7 +2268,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2335,7 +2281,7 @@
           "exit": "WORMS",
           "destination": "KCLT",
           "altitude": 37000,
-          "scratchpad": "W37",
+
           "route": "WORMS GUANO BKENI VIYAP CHECR STOCR4",
           "airlines": [
             {
@@ -2348,7 +2294,7 @@
           "exit": "WORMS",
           "destination": "KCLT",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS Q89 HESPI BESTT JONZE5",
           "airlines": [
             {
@@ -2361,7 +2307,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 30000,
-          "scratchpad": "W30",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2374,7 +2320,7 @@
           "exit": "WORMS",
           "destination": "KATL",
           "altitude": 34000,
-          "scratchpad": "W34",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS LAIRI LARZZ SITTH2",
           "airlines": [
             {
@@ -2471,7 +2417,7 @@
           "exit": "MLB",
           "destination": "KFXE",
           "altitude": 20000,
-          "scratchpad": "D20",
+
           "route": "MLB BLUFI4",
           "airlines": [
             {
@@ -2490,7 +2436,7 @@
           "exit": "MLB",
           "destination": "KFXE",
           "altitude": 20000,
-          "scratchpad": "D20",
+
           "route": "MLB BLUFI4",
           "airlines": [
             {
@@ -2509,7 +2455,7 @@
           "exit": "WORMS",
           "destination": "KPDK",
           "altitude": 33000,
-          "scratchpad": "W33",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS",
           "airlines": [
             {
@@ -2528,7 +2474,7 @@
           "exit": "RDSOX",
           "destination": "KAUS",
           "altitude": 36000,
-          "scratchpad": "R36",
+
           "route": "RDSOX JFRYS PATOY Q116 JAWJA DYEES LLA WEEED WLEEE7",
           "airlines": [
             {
@@ -2547,7 +2493,7 @@
           "exit": "OSPRY",
           "destination": "KAUS",
           "altitude": 36000,
-          "scratchpad": "O36",
+
           "route": "OSPRY JFRYS PATOY Q116 JAWJA DYEES LLA WEEED WLEEE7",
           "airlines": [
             {
@@ -2661,7 +2607,7 @@
           "exit": "MLB",
           "destination": "KFXE",
           "altitude": 20000,
-          "scratchpad": "D20",
+
           "route": "MLB BLUFI4",
           "airlines": [
             {
@@ -2680,7 +2626,7 @@
           "exit": "MLB",
           "destination": "KFXE",
           "altitude": 20000,
-          "scratchpad": "D20",
+
           "route": "MLB BLUFI4",
           "airlines": [
             {
@@ -2699,7 +2645,7 @@
           "exit": "WORMS",
           "destination": "KPDK",
           "altitude": 33000,
-          "scratchpad": "W33",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS",
           "airlines": [
             {
@@ -2718,7 +2664,7 @@
           "exit": "RDSOX",
           "destination": "KAUS",
           "altitude": 36000,
-          "scratchpad": "R36",
+
           "route": "RDSOX JFRYS PATOY Q116 JAWJA DYEES LLA WEEED WLEEE7",
           "airlines": [
             {
@@ -2737,7 +2683,7 @@
           "exit": "OSPRY",
           "destination": "KAUS",
           "altitude": 36000,
-          "scratchpad": "O36",
+
           "route": "OSPRY JFRYS PATOY Q116 JAWJA DYEES LLA WEEED WLEEE7",
           "airlines": [
             {
@@ -2834,7 +2780,7 @@
           "exit": "MLB",
           "destination": "KFXE",
           "altitude": 20000,
-          "scratchpad": "D20",
+
           "route": "MLB BLUFI4",
           "airlines": [
             {
@@ -2853,7 +2799,7 @@
           "exit": "MLB",
           "destination": "KFXE",
           "altitude": 20000,
-          "scratchpad": "D20",
+
           "route": "MLB BLUFI4",
           "airlines": [
             {
@@ -2872,7 +2818,7 @@
           "exit": "WORMS",
           "destination": "KPDK",
           "altitude": 33000,
-          "scratchpad": "W33",
+
           "route": "WORMS JEEMY ACCHE PAINN SHRKS",
           "airlines": [
             {
@@ -2891,7 +2837,7 @@
           "exit": "RDSOX",
           "destination": "KAUS",
           "altitude": 36000,
-          "scratchpad": "R36",
+
           "route": "RDSOX JFRYS PATOY Q116 JAWJA DYEES LLA WEEED WLEEE7",
           "airlines": [
             {
@@ -2910,7 +2856,7 @@
           "exit": "OSPRY",
           "destination": "KAUS",
           "altitude": 36000,
-          "scratchpad": "O36",
+
           "route": "OSPRY JFRYS PATOY Q116 JAWJA DYEES LLA WEEED WLEEE7",
           "airlines": [
             {
@@ -3209,7 +3155,7 @@
           "destination": "KDAB",
           "altitude": 7000,
           "route": "WORMS KIZER GUANO",
-          "scratchpad": "W07",
+
           "airlines": [
             {
               "icao": "N",
@@ -3225,7 +3171,7 @@
           "destination": "KTPA",
           "altitude": 6000,
           "route": "PUNQU T210 VARZE",
-          "scratchpad": "T06",
+
           "airlines": [
             {
               "icao": "N",
@@ -3237,7 +3183,7 @@
           "exit": "FSHUN",
           "destination": "KRSW",
           "altitude": 16000,
-          "scratchpad": "F16",
+
           "route": "FSHUN PUNQU T353 FEBRO",
           "airlines": [
             {
@@ -3250,7 +3196,7 @@
           "exit": "ATLAS",
           "destination": "KMLB",
           "altitude": 7000,
-          "scratchpad": "MLB",
+
           "route": "ATLAS MLB",
           "airlines": [
             {
@@ -3263,7 +3209,7 @@
           "exit": "VIZTA",
           "destination": "KOCF",
           "altitude": 8000,
-          "scratchpad": "V08",
+
           "route": "VIZTA",
           "airlines": [
             {
@@ -3276,7 +3222,7 @@
           "exit": "WORMS",
           "destination": "KJAX",
           "altitude": 11000,
-          "scratchpad": "W09",
+
           "route": "WORMS MDBOG T210 MATEO",
           "airlines": [
             {
@@ -3332,7 +3278,7 @@
           "destination": "KDAB",
           "altitude": 7000,
           "route": "WORMS KIZER GUANO",
-          "scratchpad": "W07",
+
           "airlines": [
             {
               "icao": "N",
@@ -3348,7 +3294,7 @@
           "destination": "KTPA",
           "altitude": 6000,
           "route": "PUNQU T210 VARZE",
-          "scratchpad": "T06",
+
           "airlines": [
             {
               "icao": "N",
@@ -3360,7 +3306,7 @@
           "exit": "FSHUN",
           "destination": "KRSW",
           "altitude": 16000,
-          "scratchpad": "F16",
+
           "route": "FSHUN PUNQU T353 FEBRO",
           "airlines": [
             {
@@ -3373,7 +3319,7 @@
           "exit": "ATLAS",
           "destination": "KMLB",
           "altitude": 7000,
-          "scratchpad": "MLB",
+
           "route": "ATLAS MLB",
           "airlines": [
             {
@@ -3386,7 +3332,7 @@
           "exit": "VIZTA",
           "destination": "KOCF",
           "altitude": 8000,
-          "scratchpad": "V08",
+
           "route": "VIZTA",
           "airlines": [
             {
@@ -3399,7 +3345,7 @@
           "exit": "WORMS",
           "destination": "KJAX",
           "altitude": 11000,
-          "scratchpad": "W09",
+
           "route": "WORMS MDBOG T210 MATEO",
           "airlines": [
             {
@@ -3451,7 +3397,7 @@
           "destination": "KDAB",
           "altitude": 7000,
           "route": "WORMS KIZER GUANO",
-          "scratchpad": "W07",
+
           "airlines": [
             {
               "icao": "N",
@@ -3467,7 +3413,7 @@
           "destination": "KTPA",
           "altitude": 6000,
           "route": "PUNQU T210 VARZE",
-          "scratchpad": "T06",
+
           "airlines": [
             {
               "icao": "N",
@@ -3479,7 +3425,7 @@
           "exit": "FSHUN",
           "destination": "KRSW",
           "altitude": 16000,
-          "scratchpad": "F16",
+
           "route": "FSHUN PUNQU T353 FEBRO",
           "airlines": [
             {
@@ -3492,7 +3438,7 @@
           "exit": "MLB",
           "destination": "KMLB",
           "altitude": 7000,
-          "scratchpad": "MLB",
+
           "route": "MLB",
           "airlines": [
             {
@@ -3505,7 +3451,7 @@
           "exit": "VIZTA",
           "destination": "KOCF",
           "altitude": 8000,
-          "scratchpad": "V08",
+
           "route": "VIZTA",
           "airlines": [
             {
@@ -3518,7 +3464,7 @@
           "exit": "WORMS",
           "destination": "KJAX",
           "altitude": 11000,
-          "scratchpad": "W09",
+
           "route": "WORMS MDBOG T210 MATEO",
           "airlines": [
             {
@@ -3531,7 +3477,7 @@
           "exit": "WORMS",
           "destination": "KJAX",
           "altitude": 11000,
-          "scratchpad": "W09",
+
           "route": "WORMS MDBOG T210 MATEO",
           "airlines": [
             {
@@ -3617,7 +3563,7 @@
           "destination": "KDAB",
           "altitude": 7000,
           "route": "WORMS KIZER GUANO",
-          "scratchpad": "W07",
+
           "airlines": [
             {
               "icao": "N",
@@ -3633,7 +3579,7 @@
           "destination": "KTPA",
           "altitude": 6000,
           "route": "PUNQU T210 VARZE",
-          "scratchpad": "T06",
+
           "airlines": [
             {
               "icao": "N",
@@ -3645,7 +3591,7 @@
           "exit": "FSHUN",
           "destination": "KRSW",
           "altitude": 16000,
-          "scratchpad": "F16",
+
           "route": "FSHUN PUNQU T353 FEBRO",
           "airlines": [
             {
@@ -3658,7 +3604,7 @@
           "exit": "VIZTA",
           "destination": "KOCF",
           "altitude": 8000,
-          "scratchpad": "V08",
+
           "route": "VIZTA",
           "airlines": [
             {
@@ -3671,7 +3617,7 @@
           "exit": "WORMS",
           "destination": "KJAX",
           "altitude": 11000,
-          "scratchpad": "W09",
+
           "route": "WORMS MDBOG T210 MATEO",
           "airlines": [
             {
@@ -3684,7 +3630,7 @@
           "exit": "WORMS",
           "destination": "KJAX",
           "altitude": 11000,
-          "scratchpad": "W09",
+
           "route": "WORMS MDBOG T210 MATEO",
           "airlines": [
             {
@@ -5041,7 +4987,8 @@
             }
           },
           "speed_restriction": 250,
-          "waypoints": "BEAUX/ho SURFR/a14000"
+          "waypoints": "BEAUX/ho SURFR/a14000",
+          "is_rnav": true
         }
       ]
     },
@@ -5103,7 +5050,8 @@
           "initial_speed": 300,
           "star": "ALYNA4",
           "speed_restriction": 250,
-          "waypoints": "BEAUX SURFR/a14000 ALYNA/ho HIGGZ/a10000-12000/s250 VOSSS/a8000+/s230 SUNDE/a6000+ CUBAL/a5000/s210 _MCO_35R_BITHO/a2500 HEWES/a1600 WOLDI/a540 _MCO_35R/a90"
+          "waypoints": "BEAUX SURFR/a14000 ALYNA/ho HIGGZ/a10000-12000/s250 VOSSS/a8000+/s230 SUNDE/a6000+ CUBAL/a5000/s210 _MCO_35R_BITHO/a2500 HEWES/a1600 WOLDI/a540 _MCO_35R/a90",
+          "is_rnav": true
         }
       ]
     },
@@ -5279,7 +5227,8 @@
           "initial_speed": 300,
           "star": "ALYNA4",
           "speed_restriction": 250,
-          "waypoints": "BEAUX SURFR/a14000/ho ALYNA BANYA/a7000/s210 HERVI/a4000 FONIK/a3000 SEEDO/a2500 COCAS/a1500 JAXES/a540"
+          "waypoints": "BEAUX SURFR/a14000/ho ALYNA BANYA/a7000/s210 HERVI/a4000 FONIK/a3000 SEEDO/a2500 COCAS/a1500 JAXES/a540",
+          "is_rnav": true
         }
       ]
     },
@@ -5343,7 +5292,8 @@
           "speed_restriction": 220,
           "star": "AYLNA3",
           "scratchpad": "IE",
-          "waypoints": "BURNE ALYNA/ho BANYA/a7000/s210 HERVI/a4000 FONIK/a3000"
+          "waypoints": "BURNE ALYNA/ho BANYA/a7000/s210 HERVI/a4000 FONIK/a3000",
+          "is_rnav": true
         },
         {
           "airlines": {
@@ -5370,7 +5320,8 @@
           "speed_restriction": 220,
           "star": "AYLNA3",
           "scratchpad": "FI",
-          "waypoints": "BURNE ALYNA/ho BANYA/a7000/s210 HERVI/a4000 FONIK/a3000"
+          "waypoints": "BURNE ALYNA/ho BANYA/a7000/s210 HERVI/a4000 FONIK/a3000",
+          "is_rnav": true
         }
       ]
     },
@@ -5433,7 +5384,8 @@
           "initial_speed": 290,
           "description": "KTPA DADES1 arrivals",
           "speed_restriction": 290,
-          "waypoints": "BEAUX N028.56.53.610,W080.02.46.827/a17000/ho ZINGR WORAK ZOPER CAMKO ROSTR GUURR DADES LZARD LISAF GUZDA BORST/a5000/s210 JSTRM/a5000/s210 KTPA/a5"
+          "waypoints": "BEAUX N028.56.53.610,W080.02.46.827/a17000/ho ZINGR WORAK ZOPER CAMKO ROSTR GUURR DADES LZARD LISAF GUZDA BORST/a5000/s210 JSTRM/a5000/s210 KTPA/a5",
+          "is_rnav": true
         },
         {
           "airlines": [
@@ -5458,11 +5410,12 @@
           "initial_speed": 290,
           "description": "KPIE DADES1 arrivals",
           "speed_restriction": 290,
-          "waypoints": "BEAUX N028.56.53.610,W080.02.46.827/a17000/ho ZINGR WORAK ZOPER CAMKO ROSTR GUURR DADES LZARD LISAF GUZDA BORST/a5000/s210 JSTRM/a5000/s210 KTPA/a5"
+          "waypoints": "BEAUX N028.56.53.610,W080.02.46.827/a17000/ho ZINGR WORAK ZOPER CAMKO ROSTR GUURR DADES LZARD LISAF GUZDA BORST/a5000/s210 JSTRM/a5000/s210 KTPA/a5",
+          "is_rnav": true
         }
       ]
     },
-    "GOOFY7": {
+    "SLOAO1": {
       "arrivals": [
         {
           "airlines": {
@@ -5521,13 +5474,13 @@
               }
             ]
           },
-          "assigned_altitude": 5000,
+          "assigned_altitude": 6000,
           "initial_altitude": 8000,
           "initial_controller": "R22",
           "initial_speed": 250,
-          "star": "GOOFY7",
-          "speed_restriction": 250,
-          "waypoints": "TRV N027.45.37.854,W080.41.03.766/ho BAIRN ODDEL SABOT"
+          "star": "SLOAO1",
+          "waypoints": "CCLUB/ho MATLK SLOAO/a6000+ DORMS/h015",
+          "is_rnav": true
         },
         {
           "airlines": {
@@ -5542,23 +5495,12 @@
               }
             ]
           },
-          "initial_altitude": 13000,
+          "initial_altitude": 10000,
           "initial_controller": "R22",
           "initial_speed": 250,
-          "star": "GOOFY7",
-          "waypoints": "TRV N027.45.37.854,W080.41.03.766/ho N027.49.35.365,W080.49.55.257 BAIRN",
-          "runway_waypoints": {
-            "KMCO": {
-              "36L": "BAIRN/a8000 ODDEL SABOT/h342",
-              "35R": "BAIRN/a8000 ODDEL SABOT/h342",
-              "35L": "BAIRN/a8000 ODDEL SABOT/h342",
-              "36R": "BAIRN/a8000 ODDEL SABOT/h342",
-              "17L": "BAIRN/a11000/h360",
-              "17R": "BAIRN/a11000/h360",
-              "18L": "BAIRN/a11000/h360",
-              "18R": "BAIRN/a11000/h360"
-            }
-          }
+          "star": "SLOAO1",
+          "waypoints": "CCLUB MATLK SLOAO/a6000+ ODDEL/h360",
+          "is_rnav": true
         }
       ]
     },
@@ -5895,7 +5837,8 @@
           "speed_restriction": 220,
           "star": "GRNCH5",
           "scratchpad": "IR",
-          "waypoints": "BLAYK BUNIE/a7000/s230/ho YAGGO/a6000/s210 NAVAL/a4000 ONNER/a000"
+          "waypoints": "BLAYK BUNIE/a7000/s230/ho YAGGO/a6000/s210 NAVAL/a4000 ONNER/a000",
+          "is_rnav": true
         }
       ]
     },
@@ -6224,15 +6167,14 @@
               }
             ]
           },
-          "cruise_altitude": 39000,
-          "expect_approach": "R6L",
+          "expect_approach": "RZ6L",
           "initial_altitude": 11000,
           "initial_controller": "1L",
           "initial_speed": 250,
-          "speed_restriction": 250,
           "star": "GRNCH5",
           "scratchpad": "GL",
-          "waypoints": "WHOVL HARAM/ho DORII/a8000+/s220 BRICE/a5000/s210/h186"
+          "waypoints": "WHOVL HARAM/ho DORII/a8000+/s220 BRICE/a5000/s210/h186",
+          "is_rnav": true
         }
       ]
     },
@@ -6578,7 +6520,8 @@
             }
           },
           "speed_restriction": 290,
-          "waypoints": "MAYYR/a24000+ COAXE/a26000-/ho GRTNG/a17000+/s290 GRNCH BUGGZ/a11000-16000/s280 BLAYK"
+          "waypoints": "MAYYR/a24000+ COAXE/a26000-/ho GRTNG/a17000+/s290 GRNCH BUGGZ/a11000-16000/s280 BLAYK",
+          "is_rnav": true
         }
       ]
     },
@@ -6912,7 +6855,8 @@
           "initial_speed": 290,
           "star": "GRNCH5",
           "speed_restriction": 290,
-          "waypoints": "GRTNG/a17000+/s290/ho GRNCH BUGGZ/a11000-16000/s280 BLAYK BUNIE/a7000/s230 YAGGO/a6000/s210 NAVAL/a4000 ONNER/a3000 HAMMY/a3000 TUFFE/a2200 _MCO_18R/a94"
+          "waypoints": "GRTNG/a17000+/s290/ho GRNCH BUGGZ/a11000-16000/s280 BLAYK BUNIE/a7000/s230 YAGGO/a6000/s210 NAVAL/a4000 ONNER/a3000 HAMMY/a3000 TUFFE/a2200 _MCO_18R/a94",
+          "is_rnav": true
         }
       ]
     },
@@ -7246,7 +7190,8 @@
           "initial_speed": 290,
           "star": "GRNCH5",
           "speed_restriction": 290,
-          "waypoints": "GRTNG/a17000+/s290/ho GRNCH BUGGZ/a11000-16000/s280 BLAYK WHOVL/a9000-14000/s250 HARAM DORII/a8000+/s220 BRICE/a5000/s210 _MCO_36L_GRNCH_FINAL/a2500 BERDY/a1600 _MCO_36L/a93"
+          "waypoints": "GRTNG/a17000+/s290/ho GRNCH BUGGZ/a11000-16000/s280 BLAYK WHOVL/a9000-14000/s250 HARAM DORII/a8000+/s220 BRICE/a5000/s210 _MCO_36L_GRNCH_FINAL/a2500 BERDY/a1600 _MCO_36L/a93",
+          "is_rnav": true
         }
       ]
     },
@@ -7669,7 +7614,8 @@
           "initial_speed": 280,
           "star": "GTOUT1",
           "speed_restriction": 250,
-          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+/s280 NICCK/a12000-14000 BGBBY/a10000+/s250 GTOUT/a9000-11000 TUGLE BANYA/a7000/s210/h250"
+          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+/s280 NICCK/a12000-14000 BGBBY/a10000+/s250 GTOUT/a9000-11000 TUGLE BANYA/a7000/s210/h250",
+          "is_rnav": true
         }
       ]
     },
@@ -8092,7 +8038,8 @@
           "initial_speed": 280,
           "star": "GTOUT1",
           "speed_restriction": 250,
-          "waypoints": "N029.41.47.135,W081.12.09.602 FORYU/a13000+/s280/ho NICCK/a12000-14000 BGBBY/a10000+/s250 GTOUT/a9000-11000 TUGLE BANYA/a7000/s210 HERVI/a4000 FONIK/a3000 SEEDO/a2500 COCAS/a1500 JAXES/a540 _MCO_17L/a90"
+          "waypoints": "N029.41.47.135,W081.12.09.602 FORYU/a13000+/s280/ho NICCK/a12000-14000 BGBBY/a10000+/s250 GTOUT/a9000-11000 TUGLE BANYA/a7000/s210 HERVI/a4000 FONIK/a3000 SEEDO/a2500 COCAS/a1500 JAXES/a540 _MCO_17L/a90",
+          "is_rnav": true
         }
       ]
     },
@@ -8518,7 +8465,8 @@
           "speed_restriction": 220,
           "star": "GTOUT1",
           "scratchpad": "IE",
-          "waypoints": "GTOUT/a9000-11000 TUGLE/ho BANYA/a7000/s210 HERVI/a4000 FONIK/a3000"
+          "waypoints": "GTOUT/a9000-11000 TUGLE/ho BANYA/a7000/s210 HERVI/a4000 FONIK/a3000",
+          "is_rnav": true
         }
       ]
     },
@@ -8558,7 +8506,8 @@
             }
           },
           "speed_restriction": 280,
-          "waypoints": "BRKWL/ho JAFAR CRPIT LAMMP"
+          "waypoints": "BRKWL/ho JAFAR CRPIT LAMMP",
+          "is_rnav": true
         }
       ]
     },
@@ -8674,7 +8623,8 @@
           "initial_speed": 250,
           "star": "JOKRS3",
           "speed_restriction": 250,
-          "waypoints": "SIMIE FAZES/ho MOANS JOKRS ZALEK/h043"
+          "waypoints": "SIMIE FAZES/ho MOANS JOKRS ZALEK/h043",
+          "is_rnav": true
         }
       ]
     },
@@ -8710,7 +8660,8 @@
               "18R": "JOKRS TAYYE/a10000-12000/s250 ARHIP GIRAF/a8000+/s220 DVOLA LYENS/a5000/s210/h006",
               "18L": "JOKRS TAYYE/a10000-12000/s250 ARHIP GIRAF/a8000+/s220 DVOLA LYENS/a5000/s210/h006"
             }
-          }
+          },
+          "is_rnav": true
         }
       ]
     },
@@ -8768,7 +8719,8 @@
           "initial_speed": 250,
           "star": "TTHOR3",
           "speed_restriction": 250,
-          "waypoints": "OWEDN/a9000/s250 THANO/a7000-9000/ho RAGNR/a7000- LOKII/a5000 MUNKZ/a5000/s210/h201"
+          "waypoints": "OWEDN/a9000/s250 THANO/a7000-9000/ho RAGNR/a7000- LOKII/a5000 MUNKZ/a5000/s210/h201",
+          "is_rnav": true
         }
       ]
     },
@@ -8808,7 +8760,8 @@
           "initial_speed": 250,
           "star": "SHREK2",
           "speed_restriction": 250,
-          "waypoints": "WAKOS WANDD/ho SHREK/a9000 STNKY/h115"
+          "waypoints": "WAKOS WANDD/ho SHREK/a9000 STNKY/h115",
+          "is_rnav": true
         }
       ]
     },
@@ -8867,7 +8820,8 @@
           "initial_speed": 250,
           "star": "SHREK2",
           "speed_restriction": 250,
-          "waypoints": "WAKOS WANDD/ho SHREK/a7000 STNKY/h115"
+          "waypoints": "WAKOS WANDD/ho SHREK/a7000 STNKY/h115",
+          "is_rnav": true
         }
       ]
     },
@@ -8888,11 +8842,12 @@
           "initial_speed": 250,
           "star": "SHREK2",
           "speed_restriction": 250,
-          "waypoints": "WAKOS WANDD/a11000/ho STNKY/h115"
+          "waypoints": "WAKOS WANDD/a11000/ho STNKY/h115",
+          "is_rnav": true
         }
       ]
     },
-    "PRICY4": {
+    "PRICY5": {
       "arrivals": [
         {
           "airlines": {
@@ -9146,49 +9101,33 @@
               }
             ]
           },
-          "initial_altitude": 21000,
+          "initial_altitude": 16000,
           "initial_controller": "R67",
-          "initial_speed": 280,
-          "star": "PRICY4",
+          "initial_speed": 250,
+          "star": "PRICY5",
+          "waypoints": "PRICY/ho/a16000-/a13000+/s250 BOCCE",
           "runway_waypoints": {
             "KMCO": {
-              "17L": "PRICY/a13000-16000 BOCCE JUMBA TAYYE/a10000-12000/s250 ARHIP GIRAF/a8000+/s220 DVOLA LYENS/a5000/s210/h006",
-              "17R": "PRICY/a13000-16000 BOCCE JUMBA TAYYE/a10000-12000/s250 ARHIP GIRAF/a8000+/s220 DVOLA LYENS/a5000/s210/h006",
-              "18L": "PRICY/a13000-16000 BOCCE JUMBA TAYYE/a10000-12000/s250 ARHIP GIRAF/a8000+/s220 DVOLA LYENS/a5000/s210/h006",
-              "18R": "PRICY/a13000-16000 BOCCE JUMBA TAYYE/a10000-12000/s250 ARHIP GIRAF/a8000+/s220 DVOLA LYENS/a5000/s210/h006",
-              "36L": "PRICY/a13000-16000 BOCCE JUMBA AMADS/a9000- LORRA/a7000/s210/h096",
-              "36R": "PRICY/a13000-16000 BOCCE JUMBA AMADS/a9000- LORRA/a7000/s210/h096",
-              "35L": "PRICY/a13000-16000 BOCCE JUMBA AMADS/a9000- LORRA/a7000/s210/h096",
-              "35R": "PRICY/a13000-16000 BOCCE JUMBA AMADS/a9000- LORRA/a7000/s210/h096"
+              "17L,17R,18L,18R": "BOCCE JUMBA TAYYE/a12000-/a10000+/s250 ARHIP GIRAF/a8000+/s220 DVOLA/a6000/s210/h006",
+              "35L,35R,36L,36R": "BOCCE JUMBA AMADS/a9000- LORRA/a7000/s210/h096"
             },
             "KSFB": {
-              "9L": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "27R": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "9R": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "27L": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056"
+              "9L,9R,27L,27R": "BOCCE OTKEE/a11000/s250/h056"
             },
             "KMLB": {
-              "9L": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "27R": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "9R": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "27L": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056"
+              "9L,27R": "BOCCE OTKEE/a11000/s250/h056"
             },
             "KORL": {
-              "7": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "25": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056"
+              "7,25": "BOCCE OTKEE/a11000/s250/h056"
             },
             "KLEE": {
-              "4": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "13": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "31": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056"
+              "4,22": "BOCCE OTKEE/a11000/s250/h056"
             },
             "KISM": {
-              "15": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056",
-              "33": "PRICY/a13000-16000 BOCCE OTKEE/a11000/s250/h056"
+              "15,33": "BOCCE OTKEE/a11000/s250/h056"
             }
           },
-          "speed_restriction": 250,
-          "waypoints": "DECKS/a21000 BULKS/a19000-20000/s280/ho PRICY/a13000-16000"
+          "is_rnav": true
         }
       ]
     },
@@ -9908,7 +9847,7 @@
         }
       ]
     },
-    "PRICY4_LNU": {
+    "PRICY5_LNU": {
       "arrivals": [
         {
           "airlines": {
@@ -10096,16 +10035,16 @@
               }
             ]
           },
-          "initial_altitude": 19000,
+          "initial_altitude": 16000,
           "initial_controller": "R67",
-          "initial_speed": 280,
-          "star": "PRICY4",
-          "speed_restriction": 250,
-          "waypoints": "BULKS/a19000-20000/ho PRICY/a13000-16000 BOCCE JUMBA AMADS/a9000- LORRA/a7000/s210 EXBAN/a4000 AMEBE/a3000 BERDY/a1600 RUTNE/a780 _MCO_36L/a93"
+          "initial_speed": 250,
+          "star": "PRICY5",
+          "waypoints": "PRICY/a16000-/a13000+/s250/ho BOCCE JUMBA AMADS/a9000- LORRA/a7000/s210 EXBAN/a4000 AMEBE/a3000 BERDY/a1600 RUTNE/a780 _MCO_36L/a93",
+          "is_rnav": true
         }
       ]
     },
-    "PRICY4_LSU": {
+    "PRICY5_LSU": {
       "arrivals": [
         {
           "airlines": {
@@ -10293,16 +10232,17 @@
               }
             ]
           },
-          "initial_altitude": 19000,
+          "initial_altitude": 16000,
           "initial_controller": "R67",
           "initial_speed": 280,
-          "star": "PRICY4",
+          "star": "PRICY5",
           "speed_restriction": 250,
-          "waypoints": "BULKS/a19000/ho PRICY/a15000 BOCCE JUMBA TAYYE/a10000/s250 ARHIP GIRAF/a8000/s220 DVOLA LYENS/a5000/s210 _MCO_18R_PRICY_FINAL/a3000 HAMMY/a3000 TUFFE/a2200 _MCO_18R/a94 "
+          "waypoints": "PRICY/a16000-/a13000+/ho BOCCE JUMBA TAYYE/a10000/s250 ARHIP GIRAF/a8000/s220 DVOLA _MCO_18R_PRICY_FINAL/a3000 HAMMY/a3000 TUFFE/a2200 _MCO_18R/a94",
+          "is_rnav": true
         }
       ]
     },
-    "PRICY4_SFINAL": {
+    "PRICY5_SFINAL": {
       "arrivals": [
         {
           "airlines": {
@@ -10490,19 +10430,18 @@
               }
             ]
           },
-          "cruise_altitude": 39000,
           "expect_approach": "I8R",
           "initial_altitude": 8000,
           "initial_controller": "1L",
           "initial_speed": 220,
-          "speed_restriction": 220,
-          "star": "PRICY4",
+          "star": "PRICY5",
           "scratchpad": "IR",
-          "waypoints": "GIRAF/a8000/s220 DVOLA/a6500/s220/ho LYENS/a5000/s210/h006"
+          "waypoints": "GIRAF/a8000/s220 DVOLA/a6000/s210/ho",
+          "is_rnav": true
         }
       ]
     },
-    "PRICY4_NFINAL": {
+    "PRICY5_NFINAL": {
       "arrivals": [
         {
           "airlines": {
@@ -10690,14 +10629,14 @@
               }
             ]
           },
-          "cruise_altitude": 39000,
-          "expect_approach": "R6L",
+          "expect_approach": "RZ6L",
           "initial_altitude": 13000,
           "initial_controller": "1L",
           "initial_speed": 250,
-          "star": "PRICY4",
+          "star": "PRICY5",
           "scratchpad": "GL",
-          "waypoints": "PRICY/s250 BOCCE JUMBA/ho AMADS/a9000/s220 LORRA/a7000/s210 EXBAN/a4000 AMEBE/a3000"
+          "waypoints": "PRICY/s250 BOCCE JUMBA/ho AMADS/a9000/s220 LORRA/a7000/s210 EXBAN/a4000 AMEBE/a3000",
+          "is_rnav": true
         }
       ]
     },
@@ -10771,7 +10710,8 @@
           "initial_speed": 280,
           "star": "MUNGI1",
           "speed_restriction": 250,
-          "waypoints": "MOOTS/a15000+/ho MUNGI/a8000+ HAHNA/a6000/s210 SERAY/a4000 FESHA/a3000 HEWES/a1600 WOLDI/a540 _MCO_35R/a90"
+          "waypoints": "MOOTS/a15000+/ho MUNGI/a8000+ HAHNA/a6000/s210 SERAY/a4000 FESHA/a3000 HEWES/a1600 WOLDI/a540 _MCO_35R/a90",
+          "is_rnav": true
         }
       ]
     },
@@ -10845,7 +10785,8 @@
           "initial_speed": 280,
           "star": "MUNGI1",
           "speed_restriction": 250,
-          "waypoints": "MOOTS/a15000/ho MUNGI HIJON PARRX/a9000-11000/s250 HAANZ/a8000-9000/s220 WONMR/a6000/s210 _MCO_17L_BITHO COCAS/a1500 JAXES/a540 _MCO_17L/a90"
+          "waypoints": "MOOTS/a15000/ho MUNGI HIJON PARRX/a9000-11000/s250 HAANZ/a8000-9000/s220 WONMR/a6000/s210 _MCO_17L_BITHO COCAS/a1500 JAXES/a540 _MCO_17L/a90",
+          "is_rnav": true
         }
       ]
     },
@@ -10984,35 +10925,24 @@
           "star": "MUNGI1",
           "runway_waypoints": {
             "KMCO": {
-              "17L": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
-              "17R": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
-              "18L": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
-              "18R": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
-              "36L": "MUNGI MMADD/a6000/s210/h302",
-              "36R": "MUNGI MMADD/a6000/s210/h302",
-              "35L": "MUNGI MMADD/a6000/s210/h302",
-              "35R": "MUNGI MMADD/a6000/s210/h302"
+              "17L,17R,18L,18R": "MUNGI HIJON PARRX/a9000-11000/s220 HAANZ/a8000-9000/s220 WONMR/a6000/s210/h006",
+              "35L,35R,36L,36R": "MUNGI MMADD/a6000/s210/h302"
             },
             "KSFB": {
-              "9L": "MUNGI BLOKD/a12000/s250/h345",
-              "27R": "MUNGI BLOKD/a12000/s250/h345"
+              "9L,27R": "MUNGI BLOKD/a12000/s250/h345"
             },
             "KISM": {
-              "15": "MUNGI PDLLA/a8000/h345",
-              "33": "MUNGI PDLLA/a8000/h345"
+              "15,33": "MUNGI PDLLA/a8000/h345"
             },
             "KORL": {
-              "7": "MUNGI BLOKD/a12000/s250/h345",
-              "25": "MUNGI BLOKD/a12000/s250/h345"
+              "7,25": "MUNGI BLOKD/a12000/s250/h345"
             },
             "KLEE": {
-              "13": "MUNGI BLOKD/a12000/s250/h345",
-              "4": "MUNGI BLOKD/a12000/s250/h345",
-              "31": "MUNGI BLOKD/a12000/s250/h345"
+              "4,13,31": "MUNGI BLOKD/a12000/s250/h345"
             }
           },
-          "speed_restriction": 250,
-          "waypoints": "CHEFS/a19000-21000/s280 MOOTS/a15000+/ho MUNGI"
+          "waypoints": "CHEFS/a19000-21000/s280 MOOTS/a15000+/ho MUNGI",
+          "is_rnav": true
         }
       ]
     },
@@ -11190,41 +11120,28 @@
           "waypoints": "N027.33.19.868,W080.38.02.189/ho MATLK SLOAO",
           "runway_waypoints": {
             "KMCO": {
-              "17L": "SLOAO/a6000 ODDEL/h360",
-              "17R": "SLOAO/a6000 ODDEL/h360",
-              "18L": "SLOAO/a6000 ODDEL/h360",
-              "18R": "SLOAO/a6000 ODDEL/h360",
-              "36L": "SLOAO/a6000 ODDEL/h360",
-              "36R": "SLOAO/a6000 ODDEL/h360",
-              "35L": "SLOAO/a6000 ODDEL/h360",
-              "35R": "SLOAO/a6000 ODDEL/h360"
+              "17L,17R,18L,18R,35L,35R,36L,36R": "SLOAO/a6000 ODDEL/h360"
             },
             "KSFB": {
-              "9L": "SLOAO DORMS/h015",
-              "27R": "SLOAO ODDEL/h360"
+              "9L,27R": "SLOAO DORMS/h015"
             },
             "KISM": {
-              "15": "SLOAO/a6000 ODDEL/h360",
-              "33": "SLOAO/a6000 ODDEL/h360"
+              "15,33": "SLOAO/a6000 ODDEL/h360"
             },
             "KORL": {
-              "7": "SLOAO ODDEL/h360",
-              "25": "SLOAO ODDEL/h360"
+              "7,25": "SLOAO ODDEL/h360"
             },
             "KLEE": {
-              "13": "SLOAO ODDEL/h360",
-              "4": "SLOAO ODDEL/h360",
-              "31": "SLOAO ODDEL/h360"
+              "4,13,31": "SLOAO ODDEL/h360"
             },
             "KCOI": {
-              "11": "SLOAO ODDEL/h360",
-              "29": "SLOAO ODDEL/h360"
+              "11,29": "SLOAO ODDEL/h360"
             },
             "KTIX": {
-              "36": "SLOAO ODDEL/h360",
-              "18": "SLOAO ODDEL/h360"
+              "18,36": "SLOAO ODDEL/h360"
             }
-          }
+          },
+          "is_rnav": true
         }
       ]
     },
@@ -11402,41 +11319,28 @@
           "waypoints": "N027.33.19.868,W080.38.02.189/ho MATLK SLOAO",
           "runway_waypoints": {
             "KMCO": {
-              "17L": "SLOAO/a9000 ODDEL/h360",
-              "17R": "SLOAO/a9000 ODDEL/h360",
-              "18L": "SLOAO/a9000 ODDEL/h360",
-              "18R": "SLOAO/a9000 ODDEL/h360",
-              "36L": "SLOAO/a9000 ODDEL/h360",
-              "36R": "SLOAO/a9000 ODDEL/h360",
-              "35L": "SLOAO/a9000 ODDEL/h360",
-              "35R": "SLOAO/a9000 ODDEL/h360"
+              "17L,17R,18L,18R,35L,35R,36L,36R": "SLOAO/a6000 ODDEL/h360"
             },
             "KSFB": {
-              "9L": "SLOAO DORMS/h015",
-              "27R": "SLOAO ODDEL/h360"
+              "9L,27R": "SLOAO DORMS/h015"
             },
             "KISM": {
-              "15": "SLOAO/a6000 ODDEL/h360",
-              "33": "SLOAO/a6000 ODDEL/h360"
+              "15,33": "SLOAO/a6000 ODDEL/h360"
             },
             "KORL": {
-              "7": "SLOAO ODDEL/h360",
-              "25": "SLOAO ODDEL/h360"
+              "7,25": "SLOAO ODDEL/h360"
             },
             "KLEE": {
-              "13": "SLOAO ODDEL/h360",
-              "4": "SLOAO ODDEL/h360",
-              "31": "SLOAO ODDEL/h360"
+              "4,13,31": "SLOAO ODDEL/h360"
             },
             "KCOI": {
-              "11": "SLOAO ODDEL/h360",
-              "29": "SLOAO ODDEL/h360"
+              "11,29": "SLOAO ODDEL/h360"
             },
             "KTIX": {
-              "36": "SLOAO ODDEL/h360",
-              "18": "SLOAO ODDEL/h360"
+              "18,36": "SLOAO ODDEL/h360"
             }
-          }
+          },
+          "is_rnav": true
         }
       ]
     },
@@ -11505,15 +11409,14 @@
               }
             ]
           },
-          "cruise_altitude": 39000,
           "expect_approach": "I7L",
           "initial_altitude": 8000,
           "initial_controller": "1B",
           "initial_speed": 220,
-          "speed_restriction": 220,
           "star": "MUNGI1",
           "scratchpad": "IE",
-          "waypoints": "HAANZ/a8000/s220/ho PTMAN/a5000/s210/h006"
+          "waypoints": "HAANZ/a8000/s220/ho PTMAN/a5000/s210/h006",
+          "is_rnav": true
         }
       ]
     },
@@ -11582,15 +11485,14 @@
               }
             ]
           },
-          "cruise_altitude": 39000,
           "expect_approach": "I5R",
           "initial_altitude": 8000,
           "initial_controller": "1B",
           "initial_speed": 250,
-          "speed_restriction": 250,
           "star": "MUNGI1",
           "scratchpad": "IE",
-          "waypoints": "MUNGI/ho MMADD/a6000/s210/h302"
+          "waypoints": "MUNGI/ho MMADD/a6000/s210/h302",
+          "is_rnav": true
         }
       ]
     },
@@ -12008,15 +11910,14 @@
               }
             ]
           },
-          "cruise_altitude": 39000,
           "expect_approach": "I5R",
           "initial_altitude": 11000,
           "initial_controller": "1B",
           "initial_speed": 250,
-          "speed_restriction": 250,
           "star": "SNFLD3",
           "scratchpad": "IE",
-          "waypoints": "TUGLE HIGGZ/a10000-12000/s250 VOSSS/a8000/s230/ho SUNDE/a6000 CUBAL/a5000/s210/h186"
+          "waypoints": "TUGLE HIGGZ/a10000-12000/s250 VOSSS/a8000/s230/ho SUNDE/a6000 CUBAL/a5000/s210/h186",
+          "is_rnav": true
         }
       ]
     },
@@ -12438,8 +12339,8 @@
           "initial_controller": "C58",
           "initial_speed": 280,
           "star": "SNFLD3",
-          "speed_restriction": 250,
-          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+ NICCK/a12000-14000 BGBBY/a10000+/s250 GTOUT/a10000-11000 TUGLE HIGGZ/a10000/s250 VOSSS/a8000/s230 SUNDE/a6000 CUBAL/a5000/s210 _MCO_35R_BITHO/a2500 HEWES/a1600 WOLDI/a540 _MCO_35R/a90"
+          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+ NICCK/a12000-14000 BGBBY/a10000+/s250 GTOUT/a10000-11000 TUGLE HIGGZ/a10000/s250 VOSSS/a8000/s230 SUNDE/a6000 CUBAL/a5000/s210 _MCO_35R_BITHO/a2500 HEWES/a1600 WOLDI/a540 _MCO_35R/a90",
+          "is_rnav": true
         }
       ]
     },
@@ -12861,8 +12762,8 @@
           "initial_controller": "C58",
           "initial_speed": 280,
           "star": "SNFLD3",
-          "speed_restriction": 250,
-          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+/s280/ho NICCK/a12000-14000 SNFLD/a12000+ GTOUT/a12000-16000/s280 TUGLE HIGGZ/a10000-12000/s250 VOSSS/a8000+/s230 SUNDE/a6000+ CUBAL/a5000/s210/h186"
+          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+/s280/ho NICCK/a12000-14000 SNFLD/a12000+ GTOUT/a12000-16000/s280 TUGLE HIGGZ/a10000-12000/s250 VOSSS/a8000+/s230 SUNDE/a6000+ CUBAL/a5000/s210/h186",
+          "is_rnav": true
         },
         {
           "airlines": {
@@ -12887,7 +12788,8 @@
           "initial_speed": 280,
           "star": "SNFLD3",
           "speed_restriction": 250,
-          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+/s280/ho NICCK/a12000-14000 SNFLD/a12000+ JRRYY SECOY/a9000/h179"
+          "waypoints": "N029.41.47.135,W081.12.09.602/ho FORYU/a13000+/s280/ho NICCK/a12000-14000 SNFLD/a12000+ JRRYY SECOY/a9000/h179",
+          "is_rnav": true
         }
       ]
     },
@@ -13727,7 +13629,7 @@
           "KMCO": 1,
           "KCOF": 1
         },
-        "GOOFY7": {
+        "SLOAO1": {
           "KISM": 1,
           "KORL": 1,
           "KSFB": 1,
@@ -13762,7 +13664,7 @@
         "SHREK2.MCO": {
           "KMCO": 2
         },
-        "PRICY4": {
+        "PRICY5": {
           "KMCO": 10,
           "KSFB": 3,
           "KORL": 1,
@@ -13896,18 +13798,6 @@
           "rate": 3
         },
         {
-          "airport": "KMCO",
-          "runway": "17R",
-          "rate": 2,
-          "category": "Prop.East"
-        },
-        {
-          "airport": "KMCO",
-          "runway": "18L",
-          "rate": 3,
-          "category": "Prop.West"
-        },
-        {
           "airport": "KCOF",
           "runway": "21",
           "rate": 3
@@ -14024,7 +13914,7 @@
           "KMCO": 1,
           "KCOF": 1
         },
-        "GOOFY7": {
+        "SLOAO1": {
           "KISM": 1,
           "KORL": 1,
           "KSFB": 1,
@@ -14060,7 +13950,7 @@
           "KSFB": 1,
           "KORL": 1
         },
-        "PRICY4": {
+        "PRICY5": {
           "KMCO": 10,
           "KSFB": 1,
           "KORL": 1,
@@ -14167,18 +14057,6 @@
           "category": "JEEMY"
         },
         {
-          "airport": "KMCO",
-          "rate": 2,
-          "runway": "35L",
-          "category": "Prop.East"
-        },
-        {
-          "airport": "KMCO",
-          "rate": 2,
-          "runway": "36R",
-          "category": "Prop.West"
-        },
-        {
           "airport": "KSFB",
           "rate": 10,
           "runway": "9L"
@@ -14240,7 +14118,7 @@
     },
     "MCO North DEP": {
       "airspace": {
-        "1W": ["MCOAPP"]
+        "1E": ["MCOAPP"]
       },
       "configuration": "MC5",
       "departure_runways": [
@@ -14330,7 +14208,7 @@
         "GTOUT1_SFINAL": {
           "KMCO": 10
         },
-        "PRICY4_SFINAL": {
+        "PRICY5_SFINAL": {
           "KMCO": 10
         },
         "MUNGI1_SFINAL": {
@@ -14356,7 +14234,7 @@
         "GRNCH5_LSU": {
           "KMCO": 10
         },
-        "PRICY4_LSU": {
+        "PRICY5_LSU": {
           "KMCO": 10
         }
       },
@@ -14383,7 +14261,7 @@
         "GRNCH5_LSU": {
           "KMCO": 10
         },
-        "PRICY4_LSU": {
+        "PRICY5_LSU": {
           "KMCO": 10
         },
         "GTOUT1_BSU": {
@@ -14441,7 +14319,7 @@
         "GRNCH5_LNU": {
           "KMCO": 10
         },
-        "PRICY4_LNU": {
+        "PRICY5_LNU": {
           "KMCO": 10
         }
       },
@@ -14468,7 +14346,7 @@
         "GRNCH5_LNU": {
           "KMCO": 10
         },
-        "PRICY4_LNU": {
+        "PRICY5_LNU": {
           "KMCO": 10
         },
         "SNFLD3_BNU": {
@@ -14530,7 +14408,7 @@
         "GRNCH_NFINAL": {
           "KMCO": 10
         },
-        "PRICY4_NFINAL": {
+        "PRICY5_NFINAL": {
           "KMCO": 10
         },
         "MUNGI1_NFINAL": {
