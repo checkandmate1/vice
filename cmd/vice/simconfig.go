@@ -1104,7 +1104,14 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 			imgui.TableNextColumn()
 			imgui.Text("Select TCW:")
 			imgui.TableNextColumn()
-			first := true
+			const tcwsPerRow = 8
+			tcwCol := 0
+			startX := imgui.CursorPosX()
+			style := imgui.CurrentStyle()
+			// Measure column width from the radio button circle plus the widest
+			// 2-character label, then add spacing.
+			colWidth := imgui.FrameHeight() + style.ItemInnerSpacing().X +
+				imgui.CalcTextSizeV("WW", false, 0).X + style.ItemSpacing().X
 			for tcw, cons := range util.SortedMap(rs.CurrentConsolidation) {
 				// Filter: relief shows only occupied, normal shows only unoccupied
 				if c.showReliefPositions != cons.IsOccupied() {
@@ -1115,10 +1122,11 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 					continue
 				}
 
-				if !first {
+				if tcwCol%tcwsPerRow != 0 {
 					imgui.SameLine()
+					imgui.SetCursorPosX(startX + float32(tcwCol%tcwsPerRow)*colWidth)
 				}
-				first = false
+				tcwCol++
 
 				label := controllerDisplayLabel(controllersForGroup, av.ControlPosition(tcw))
 				selected := tcw == c.selectedTCW
@@ -1151,10 +1159,21 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 
 				// Show all available TCPs (excludes primaries at occupied TCWs)
 				availableTCPs := getAvailableTCPs()
+				tcpCol := 0
+				tcpStartX := imgui.CursorPosX()
+				tcpStyle := imgui.CurrentStyle()
+				tcpColWidth := imgui.FrameHeight() + tcpStyle.ItemInnerSpacing().X +
+					imgui.CalcTextSizeV("WW", false, 0).X + tcpStyle.ItemSpacing().X
 				for tcp := range util.SortedMap(availableTCPs) {
 					if len(tcp) > 0 && tcp[0] == '_' {
 						continue
 					}
+
+					if tcpCol%tcwsPerRow != 0 {
+						imgui.SameLine()
+						imgui.SetCursorPosX(tcpStartX + float32(tcpCol%tcwsPerRow)*tcpColWidth)
+					}
+					tcpCol++
 
 					isSelected := c.selectedTCPs[tcp]
 					label := controllerDisplayLabel(controllersForGroup, av.ControlPosition(tcp))
@@ -1164,9 +1183,12 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 						}
 						c.selectedTCPs[tcp] = isSelected
 					}
-					imgui.SameLine()
 				}
 
+				if tcpCol%tcwsPerRow != 0 {
+					imgui.SameLine()
+					imgui.SetCursorPosX(tcpStartX + float32(tcpCol%tcwsPerRow)*tcpColWidth)
+				}
 				imgui.Checkbox("Instructor", &c.Privileged)
 				if imgui.IsItemHovered() {
 					imgui.SetTooltip("Allows control of any aircraft regardless of position ownership")
