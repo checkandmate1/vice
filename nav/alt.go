@@ -407,7 +407,7 @@ func (nav *Nav) findAltitudeTarget() (altitudeTarget, bool) {
 	}
 
 	haveFixAssignments := len(nav.FixAssignments) > 0
-	getRestriction := func(i int) *av.AltitudeRestriction {
+	getChartedRestriction := func(i int) *av.AltitudeRestriction {
 		if haveFixAssignments {
 			wp := &nav.Waypoints[i]
 			// Return any controller-assigned constraint in preference to a
@@ -431,6 +431,19 @@ func (nav *Nav) findAltitudeTarget() (altitudeTarget, bool) {
 		}
 		// Fast path: no fix assignments, just return the charted restriction.
 		return nav.Waypoints[i].AltitudeRestriction()
+	}
+
+	// On a cleared approach, "at or above X" means the aircraft should
+	// target X (the floor) to maintain a normal descent profile, not
+	// stay high because the restriction is technically satisfied.
+	getRestriction := func(i int) *av.AltitudeRestriction {
+		ar := getChartedRestriction(i)
+		if ar != nil && nav.Approach.Cleared && nav.Waypoints[i].OnApproach() &&
+			ar.Range[1] == av.MaxAltitude && ar.Range[0] > 0 {
+			adjusted := av.MakeAtAltitudeRestriction(ar.Range[0])
+			return &adjusted
+		}
+		return ar
 	}
 
 	// Find the *last* waypoint that has an altitude restriction that
