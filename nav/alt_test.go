@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	av "github.com/mmp/vice/aviation"
+	"github.com/mmp/vice/wx"
 )
 
 // TestSTARDescentMeetsRestrictions verifies that an aircraft descending
@@ -64,12 +65,14 @@ func TestDescentPreservedOnApproachTransition(t *testing.T) {
 		f.ClearedApproach("I22L")
 	})
 
-	// After being assigned 3000 and cleared approach at HAUPT, the
-	// aircraft must continue descending toward 3000 through LEFER.
-	// LEFER is 6.5nm from HAUPT; at 210kt that's ~112s. Descending
-	// from 7000 toward 3000 the aircraft should be well below 3800
-	// by LEFER — not stalled at the STAR restriction of 4000.
+	// Bug ecfa0ce7: after passing approach fixes, clearAltitudeForApproach
+	// must preserve the assigned 3000 as a Cleared altitude so descent
+	// continues through the approach transition.
 	f.AtFix("LEFER", func(f *FlightTest) {
+		if f.nav.Altitude.Cleared == nil || *f.nav.Altitude.Cleared != 3000 {
+			t.Errorf("tick %d: expected Cleared=3000 preserved after approach transition, got %v",
+				f.tick, f.nav.Altitude.Cleared)
+		}
 		f.AssertAltitudeBelow(3800)
 		f.AssertDescending()
 	})
@@ -81,10 +84,11 @@ func TestDescentPreservedOnApproachTransition(t *testing.T) {
 // restrictions on approach waypoints are treated as descent targets,
 // not as already-satisfied constraints (regression test for eb46d623).
 //
-// Scenario: aircraft is cleared for I22L approach at 5000 ft. The first
-// approach fix has "at or above 3000". Without the fix, the aircraft
-// would stay at 5000 because the restriction is "satisfied" — but it
-// should descend toward 3000 to maintain a normal descent profile.
+// Scenario: aircraft is cleared for I22L approach at 5000 ft with NO
+// assigned altitude. The approach fix ROSLY has "at or above 3000".
+// Without the fix, the aircraft stays at 5000 because the restriction
+// is "satisfied". With the fix, "at or above" is converted to "at 3000"
+// on a cleared approach, driving descent.
 func TestApproachAtOrAboveDescentTarget(t *testing.T) {
 	f := NewArrivalFlight(t, ArrivalConfig{
 		Waypoints:        "LEFER/a4000/star ROSLY/a3000/star",
@@ -97,13 +101,15 @@ func TestApproachAtOrAboveDescentTarget(t *testing.T) {
 
 	f.AfterTicks(1, func(f *FlightTest) {
 		f.ExpectApproach("I22L")
-		f.AssignAltitude(3000)
+		// No AssignAltitude — descent must be driven purely by the
+		// approach "at or above" restriction being treated as a target.
 		f.ClearedApproach("I22L")
 	})
 
-	// The aircraft should be descending toward 3000, not leveling
-	// off at 5000 because the "at or above 3000" is "satisfied".
-	f.BeforeFix("LEFER", func(f *FlightTest) {
+	// ROSLY is on the I22L approach with "at or above 3000". With the
+	// fix, it's treated as "at 3000", driving descent from 5000.
+	// Without the fix, 5000 satisfies "at or above 3000" so no descent.
+	f.BeforeFix("ROSLY", func(f *FlightTest) {
 		if f.tick > 30 {
 			f.AssertDescending()
 		}
@@ -190,4 +196,242 @@ func TestDescendViaSTAR(t *testing.T) {
 	})
 
 	f.Run()
+}
+
+// TestDescentContinuesAfterMissedRestriction verifies that an aircraft
+// continues descending after missing an altitude restriction at a fix,
+// rather than leveling off (regression test for 3c74afba).
+//
+// Scenario: aircraft starts at DETGY at 7500 (500ft above the 7000
+// restriction) and immediately passes it. The next fix (HAUPT at 6500)
+// is close but the altitude difference is small enough that geometric
+// descent hasn't started ("Not time yet"). The carried restriction from
+// DETGY should drive descent toward 7000 in the interim.
+func TestDescentContinuesAfterMissedRestriction(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		// HAUPT's restriction is set to 6500 (not the charted 6000) so
+		// the geometric rate from 7500 to 6500 stays below the "start
+		// descent" threshold, exercising the carried-restriction fallback.
+		Waypoints:        "DETGY/a7000/star HAUPT/a6500/star LEFER/a4000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  7500,
+		InitialSpeed:     180,
+	})
+
+	// Aircraft passes DETGY immediately at 7500 (missing the 7000
+	// restriction). The geometric descent to HAUPT/6500 hasn't started
+	// yet. Without the fix, the aircraft levels at 7500. With the fix,
+	// the carried restriction from DETGY drives descent toward 7000.
+	betweenStart := 0
+	f.BetweenFixes("DETGY", "HAUPT", func(f *FlightTest) {
+		if betweenStart == 0 {
+			betweenStart = f.tick
+		}
+		if f.tick > betweenStart+20 {
+			f.AssertDescending()
+		}
+	})
+
+	f.AtFix("HAUPT", func(f *FlightTest) {})
+	f.Run()
+}
+
+// TestSpeedAssignmentPausesDescentWhenLarge verifies that a large speed
+// change (>20kt) during descent causes the aircraft to pause descent
+// until speed is achieved (regression test for 756909b6).
+func TestSpeedAssignmentPausesDescentWhenLarge(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/star HAUPT/star LEFER/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  8000,
+		InitialSpeed:     250,
+		OnSTAR:           true,
+	})
+
+	f.AfterTicks(1, func(f *FlightTest) {
+		f.AssignAltitude(3000)
+	})
+
+	// Let descent start for a few ticks
+	f.AfterTicks(10, func(f *FlightTest) {
+		f.AssertDescending()
+		// Assign a large speed change (70kt delta)
+		f.AssignSpeed(180)
+	})
+
+	// Shortly after the speed assignment, descent should be paused
+	f.AfterTicks(12, func(f *FlightTest) {
+		if f.nav.Altitude.AfterSpeed == nil {
+			t.Errorf("tick %d: expected AfterSpeed to be set (altitude deferred for speed change)", f.tick)
+		}
+	})
+
+	f.AtFix("HAUPT", func(f *FlightTest) {
+		// Eventually the aircraft should be descending again
+		f.AssertAltitudeBelow(8000)
+	})
+
+	f.Run()
+}
+
+// TestSmallSpeedChangeDuringDescentContinues verifies that a small speed
+// change (<=20kt) during descent does NOT pause the descent.
+func TestSmallSpeedChangeDuringDescentContinues(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/star HAUPT/star LEFER/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  8000,
+		InitialSpeed:     250,
+		OnSTAR:           true,
+	})
+
+	f.AfterTicks(1, func(f *FlightTest) {
+		f.AssignAltitude(3000)
+	})
+
+	f.AfterTicks(10, func(f *FlightTest) {
+		f.AssertDescending()
+		// Small speed change — only 10kt delta
+		f.AssignSpeed(240)
+	})
+
+	f.AfterTicks(12, func(f *FlightTest) {
+		if f.nav.Altitude.AfterSpeed != nil {
+			t.Errorf("tick %d: AfterSpeed should NOT be set for small speed change", f.tick)
+		}
+	})
+
+	f.AtFix("DETGY", func(f *FlightTest) {
+		// Descent should have continued
+		f.AssertAltitudeBelow(7500)
+	})
+
+	f.Run()
+}
+
+// TestExpediteDescentThroughAltitude verifies that ExpediteDescentThrough
+// applies RateExpedite above the "through" altitude and reverts to
+// RateNormal below it (regression test for 3888830d).
+func TestExpediteDescentThroughAltitude(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/star HAUPT/star LEFER/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+		OnSTAR:           true,
+	})
+
+	f.AfterTicks(1, func(f *FlightTest) {
+		f.AssignAltitude(3000)
+		f.ExpediteDescentThrough(7000)
+	})
+
+	// Above 7000: rate should be expedite
+	f.AfterTicks(20, func(f *FlightTest) {
+		if f.nav.FlightState.Altitude > 7000 {
+			if f.nav.Altitude.Rate != RateExpedite {
+				t.Errorf("tick %d: expected RateExpedite above 7000, got %d (alt=%.0f)",
+					f.tick, f.nav.Altitude.Rate, f.nav.FlightState.Altitude)
+			}
+		}
+	})
+
+	// Check multiple ticks: after passing through 7000 but still above
+	// the target (3000), rate should have reverted to RateNormal.
+	// Without the fix, rate stays RateExpedite all the way down.
+	for tick := 40; tick <= 150; tick += 5 {
+		tickCopy := tick
+		f.AfterTicks(tickCopy, func(f *FlightTest) {
+			alt := f.nav.FlightState.Altitude
+			if alt < 6800 && alt > 3500 {
+				if f.nav.Altitude.Rate != RateNormal {
+					t.Errorf("tick %d: expected RateNormal below 7000 (alt=%.0f), got %d",
+						f.tick, alt, f.nav.Altitude.Rate)
+				}
+			}
+		})
+	}
+
+	f.AtFix("DETGY", func(f *FlightTest) {
+		// Just reach the fix
+	})
+
+	f.Run()
+}
+
+// TestGoodRateDescentFasterThanNormal verifies that GoodRateDescent
+// causes more altitude loss per tick than normal descent.
+func TestGoodRateDescentFasterThanNormal(t *testing.T) {
+	makeTestFlight := func() *FlightTest {
+		return NewArrivalFlight(t, ArrivalConfig{
+			Waypoints:        "SAJUL/star DETGY/star HAUPT/star LEFER/star",
+			DepartureAirport: "KMCO",
+			ArrivalAirport:   "KJFK",
+			AircraftType:     "A320",
+			InitialAltitude:  10000,
+			InitialSpeed:     250,
+			OnSTAR:           true,
+		})
+	}
+
+	runForTicks := func(f *FlightTest, ticks int) {
+		for range ticks {
+			wxs := f.weather(f.nav.FlightState.Altitude)
+			f.nav.UpdateWithWeather(f.callsign, wxs, &f.fp, f.simTime, nil)
+			f.simTime = f.simTime.Add(1e9)
+		}
+	}
+
+	// Normal rate
+	fNormal := makeTestFlight()
+	fNormal.nav.AssignAltitude(3000, false)
+	runForTicks(fNormal, 120)
+	normalAlt := fNormal.nav.FlightState.Altitude
+
+	// Good rate
+	fGood := makeTestFlight()
+	fGood.nav.AssignAltitude(3000, false)
+	fGood.nav.GoodRateDescent()
+	runForTicks(fGood, 120)
+	goodAlt := fGood.nav.FlightState.Altitude
+
+	// Good rate should have descended more (lower altitude)
+	if goodAlt >= normalAlt {
+		t.Errorf("good rate alt %.0f should be lower than normal rate alt %.0f", goodAlt, normalAlt)
+	}
+}
+
+// TestAtmosClimbFactorNoNaN verifies that atmosClimbFactor does not
+// return NaN or Inf at high altitudes (regression test for b51ae87d).
+func TestAtmosClimbFactorNoNaN(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "B738",
+		InitialAltitude:  35000,
+		InitialSpeed:     250,
+		OnSTAR:           true,
+	})
+
+	for _, alt := range []float32{35000, 40000, 45000} {
+		f.nav.FlightState.Altitude = alt
+		wxs := wx.MakeStandardSampleForAltitude(alt)
+		factor := f.nav.atmosClimbFactor(wxs)
+
+		if factor != factor { // NaN check
+			t.Errorf("atmosClimbFactor(alt=%.0f) returned NaN", alt)
+		}
+		if factor < 0.5 || factor > 1.0 {
+			t.Errorf("atmosClimbFactor(alt=%.0f) = %.3f, expected [0.5, 1.0]", alt, factor)
+		}
+	}
 }

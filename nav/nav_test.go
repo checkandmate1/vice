@@ -6,6 +6,7 @@ package nav
 
 import (
 	"encoding/json"
+	gomath "math"
 	"os"
 	"slices"
 	"testing"
@@ -43,12 +44,15 @@ type flightEvent struct {
 	trigger eventTrigger
 	action  func(f *FlightTest)
 	fired   bool
+	active  bool // for betweenFixes: start fix has been passed
 }
 
 type eventTrigger struct {
-	atFix     string // fire when this fix is passed
-	beforeFix string // fire every tick; fail if fix passed without it holding
-	atTick    int    // fire at this tick number
+	atFix        string // fire when this fix is passed
+	beforeFix    string // fire every tick; fail if fix passed without it holding
+	atTick       int    // fire at this tick number
+	betweenStart string // fire every tick between start and end fixes
+	betweenEnd   string
 }
 
 // ArrivalConfig configures a test arrival flight.
@@ -203,6 +207,17 @@ func (f *FlightTest) AfterTicks(n int, action func(*FlightTest)) *FlightTest {
 	return f
 }
 
+// BetweenFixes fires check every tick after fixA is passed and before fixB
+// is passed. Useful for asserting behavior over a leg of the route.
+func (f *FlightTest) BetweenFixes(fixA, fixB string, check func(*FlightTest)) *FlightTest {
+	f.events = append(f.events, flightEvent{
+		name:    "betweenFixes:" + fixA + "-" + fixB,
+		trigger: eventTrigger{betweenStart: fixA, betweenEnd: fixB},
+		action:  check,
+	})
+	return f
+}
+
 // Run executes the simulation loop.
 func (f *FlightTest) Run() {
 	f.t.Helper()
@@ -215,9 +230,12 @@ func (f *FlightTest) Run() {
 			f.passed = append(f.passed, passedWp.Fix)
 			f.fireAtFixEvents(passedWp.Fix)
 			f.resolveBeforeFixEvents(passedWp.Fix)
+			f.activateBetweenFixesEvents(passedWp.Fix)
+			f.resolveBetweenFixesEvents(passedWp.Fix)
 		}
 
 		f.fireBeforeFixEvents()
+		f.fireBetweenFixesEvents()
 		f.fireAtTickEvents()
 
 		// Advance simulation time by 1 second per tick
@@ -242,6 +260,9 @@ func (f *FlightTest) Run() {
 			}
 			if e.trigger.beforeFix != "" {
 				f.t.Errorf("fix %q was never reached, beforeFix check never ran (passed: %v)", e.trigger.beforeFix, f.passed)
+			}
+			if e.trigger.betweenEnd != "" {
+				f.t.Errorf("fix %q was never reached for betweenFixes check (passed: %v)", e.trigger.betweenEnd, f.passed)
 			}
 		}
 	}
@@ -279,6 +300,31 @@ func (f *FlightTest) fireAtTickEvents() {
 		if e.trigger.atTick > 0 && f.tick == e.trigger.atTick && !e.fired {
 			e.action(f)
 			e.fired = true
+		}
+	}
+}
+
+func (f *FlightTest) activateBetweenFixesEvents(fix string) {
+	for i := range f.events {
+		if f.events[i].trigger.betweenStart == fix {
+			f.events[i].active = true
+		}
+	}
+}
+
+func (f *FlightTest) resolveBetweenFixesEvents(fix string) {
+	for i := range f.events {
+		if f.events[i].trigger.betweenEnd == fix && f.events[i].active {
+			f.events[i].fired = true
+		}
+	}
+}
+
+func (f *FlightTest) fireBetweenFixesEvents() {
+	for i := range f.events {
+		e := &f.events[i]
+		if e.trigger.betweenStart != "" && e.active && !e.fired {
+			e.action(f)
 		}
 	}
 }
@@ -329,6 +375,62 @@ func (f *FlightTest) AssertSpeedAbove(spd float32) {
 	f.t.Helper()
 	if f.nav.FlightState.IAS < spd {
 		f.t.Errorf("tick %d: IAS %.0f below %.0f", f.tick, f.nav.FlightState.IAS, spd)
+	}
+}
+
+func (f *FlightTest) AssertSpeedNear(spd, tolerance float32) {
+	f.t.Helper()
+	if f.nav.FlightState.IAS < spd-tolerance || f.nav.FlightState.IAS > spd+tolerance {
+		f.t.Errorf("tick %d: IAS %.0f not within %.0f of %.0f",
+			f.tick, f.nav.FlightState.IAS, tolerance, spd)
+	}
+}
+
+func (f *FlightTest) AssertHeadingNear(hdg float32, tolerance float32) {
+	f.t.Helper()
+	diff := math.HeadingDifference(f.nav.FlightState.Heading, math.MagneticHeading(hdg))
+	if diff > tolerance {
+		f.t.Errorf("tick %d: heading %.0f not within %.0f of %.0f",
+			f.tick, float32(f.nav.FlightState.Heading), tolerance, hdg)
+	}
+}
+
+func (f *FlightTest) AssertClimbing() {
+	f.t.Helper()
+	if f.nav.FlightState.AltitudeRate <= 0 {
+		f.t.Errorf("tick %d: expected climbing but altitude rate is %.0f", f.tick, f.nav.FlightState.AltitudeRate)
+	}
+}
+
+func (f *FlightTest) AssertLevelFlight() {
+	f.t.Helper()
+	if math.Abs(f.nav.FlightState.AltitudeRate) > 50 {
+		f.t.Errorf("tick %d: expected level flight but altitude rate is %.0f", f.tick, f.nav.FlightState.AltitudeRate)
+	}
+}
+
+func (f *FlightTest) AssertNotDescending() {
+	f.t.Helper()
+	if f.nav.FlightState.AltitudeRate < -50 {
+		f.t.Errorf("tick %d: expected not descending but altitude rate is %.0f", f.tick, f.nav.FlightState.AltitudeRate)
+	}
+}
+
+// AssertOnExtendedCenterline checks that the aircraft is within the given
+// tolerance (in nm) of the approach extended centerline.
+func (f *FlightTest) AssertOnExtendedCenterline(toleranceNM float32) {
+	f.t.Helper()
+	if !f.nav.OnExtendedCenterline(toleranceNM) {
+		f.t.Errorf("tick %d: aircraft is more than %.1fnm from the extended centerline",
+			f.tick, toleranceNM)
+	}
+}
+
+// AssertUnable checks that the given CommandIntent is an UnableIntent.
+func AssertUnable(t *testing.T, intent av.CommandIntent) {
+	t.Helper()
+	if _, ok := intent.(av.UnableIntent); !ok {
+		t.Errorf("expected UnableIntent, got %T: %v", intent, intent)
 	}
 }
 
@@ -426,6 +528,72 @@ func (f *FlightTest) AssignHeading(hdg int, turn av.TurnDirection) {
 func (f *FlightTest) DirectFix(fix string) {
 	f.t.Helper()
 	f.nav.DirectFix(fix, av.TurnClosest, f.simTime)
+}
+
+func (f *FlightTest) DirectFixWithTurn(fix string, turn av.TurnDirection) {
+	f.t.Helper()
+	f.nav.DirectFix(fix, turn, f.simTime)
+}
+
+func (f *FlightTest) ExpediteDescent() {
+	f.t.Helper()
+	f.nav.ExpediteDescent()
+}
+
+func (f *FlightTest) ExpediteDescentThrough(alt float32) {
+	f.t.Helper()
+	f.nav.ExpediteDescentThrough(alt)
+}
+
+func (f *FlightTest) GoodRateDescent() {
+	f.t.Helper()
+	f.nav.GoodRateDescent()
+}
+
+func (f *FlightTest) DescendViaSTAR() {
+	f.t.Helper()
+	f.nav.DescendViaSTAR(f.simTime)
+}
+
+func (f *FlightTest) AfterFixSpeed(fix string, spd float32) {
+	f.t.Helper()
+	sr := av.MakeAtSpeedRestriction(spd)
+	f.nav.AfterFixSpeed(fix, &sr)
+}
+
+func (f *FlightTest) AfterFixAltitude(fix string, alt float32) {
+	f.t.Helper()
+	f.nav.AfterFixAltitude(fix, alt)
+}
+
+func (f *FlightTest) CompoundSpeed(segments []av.CompoundSpeedSegment) {
+	f.t.Helper()
+	f.nav.AssignCompoundSpeed(segments)
+}
+
+func (f *FlightTest) AtFixCleared(fix, approach string) {
+	f.t.Helper()
+	f.nav.AtFixCleared(fix, approach)
+}
+
+// SetWind configures a constant wind from the given direction (degrees true)
+// at the given speed (knots). The wind is overlaid on standard atmosphere.
+func (f *FlightTest) SetWind(fromDir, speedKts float32) *FlightTest {
+	f.weather = func(alt float32) wx.Sample {
+		std := wx.MakeStandardSampleForAltitude(alt)
+		// Convert meteorological "from" direction and speed in knots to a
+		// velocity vector in nm/s. Wind blows FROM fromDir, so the velocity
+		// vector points in the opposite direction.
+		toDir := fromDir + 180
+		rad := float32(gomath.Pi) * toDir / 180
+		speedNmPerSec := speedKts / 3600
+		windVec := [2]float32{
+			speedNmPerSec * float32(gomath.Sin(float64(rad))),
+			speedNmPerSec * float32(gomath.Cos(float64(rad))),
+		}
+		return wx.MakeSample(windVec, std.Temperature().Celsius(), std.Dewpoint().Celsius(), std.Pressure())
+	}
+	return f
 }
 
 // dbLocator implements av.Locator using the static aviation database.
