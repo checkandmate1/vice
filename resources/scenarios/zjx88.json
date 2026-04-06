@@ -5,17 +5,12 @@
   "airports": {
     "KGNV": {
       "approaches": {
-        "I29": { "cifp_id": "I29" },
         "R11": { "cifp_id": "R11" },
-        "R25": { "cifp_id": "R25" },
-        "R29": { "cifp_id": "R29" },
         "R7": { "cifp_id": "R7" }
       }
     },
     "KPIE": {
       "approaches": {
-        "I36": { "cifp_id": "I36" },
-        "R36": { "cifp_id": "R36" },
         "I18": { "cifp_id": "I18" },
         "R18": { "cifp_id": "R18" }
       },
@@ -33,19 +28,10 @@
             "sid": "LLRGO1",
             "waypoints": "KPIE-36 INLTT/a1600+ N028.08.08.438,W082.42.30.311/ho LLRGO BAYPO ECAKE WILON SPRNG CAMJO",
             "handoff_controller": "88"
-          }
-        },
-        "36": {
-          "LACEN": {
-            "cleared_altitude": 12000,
-            "sid": "ENDED2",
-            "waypoints": "KPIE-18 FOXAR/a1600- PPOLE N028.06.04.801,W082.41.14.121/ho ENDED LACEN",
-            "handoff_controller": "88"
           },
-          "CAMJO": {
+          "OCF": {
             "cleared_altitude": 12000,
-            "sid": "LLRGO1",
-            "waypoints": "KPIE-18 INLTT/a1600+ N028.08.08.438,W082.42.30.311/ho LLRGO BAYPO ECAKE WILON SPRNG CAMJO",
+            "waypoints": "KPIE-36 N028.08.06.371,W082.36.09.470/ho OCF",
             "handoff_controller": "88"
           }
         }
@@ -267,16 +253,18 @@
           "destination": "KFAR",
           "exit": "LACEN",
           "route": "ENDED2 LACEN BRUTS Q118 JAMIZ VAD CVC BNA FTZ IRK RWF FAR"
+        },
+        {
+          "airlines": [{ "icao": "EJA" }, { "icao": "N", "fleet": "fastGA" }],
+          "altitude": 17000,
+          "destination": "KGNV",
+          "exit": "OCF",
+          "route": "OCF"
         }
       ]
     },
     "KTPA": {
       "approaches": {
-        "I1L": { "cifp_id": "I1L" },
-        "RY1L": { "cifp_id": "RY1L" },
-        "RZ1L": { "cifp_id": "RZ1L" },
-        "RY1R": { "cifp_id": "RY1R" },
-        "RZ1R": { "cifp_id": "RZ1R" },
         "I9L": { "cifp_id": "I19L" },
         "R9L": { "cifp_id": "R19L" },
         "I9R": { "cifp_id": "I19R" },
@@ -528,8 +516,6 @@
     },
     "KSRQ": {
       "approaches": {
-        "I32": { "cifp_id": "I32" },
-        "R32": { "cifp_id": "R32" },
         "I14": { "cifp_id": "I14" },
         "R14": { "cifp_id": "R14" }
       },
@@ -1016,18 +1002,14 @@
     },
     "KPGD": {
       "approaches": {
-        "I4": { "cifp_id": "I4" },
-        "R4": { "cifp_id": "R4" },
         "R15": { "cifp_id": "R15" },
-        "R22": { "cifp_id": "R22" },
-        "R33": { "cifp_id": "R33" }
+        "R22": { "cifp_id": "R22" }
       }
     },
     "KLAL": {
       "approaches": {
         "I10": { "cifp_id": "I10" },
-        "R10": { "cifp_id": "R10" },
-        "R28": { "cifp_id": "R28" }
+        "R10": { "cifp_id": "R10" }
       },
       "departure_controller": "D1D",
       "departure_routes": {
@@ -1058,24 +1040,6 @@
     }
   },
   "inbound_flows": {
-    "OCF": {
-      "arrivals": [
-        {
-          "airlines": {
-            "KGNV": [
-              { "icao": "EJA", "airport": "KPIE" },
-              { "icao": "N", "fleet": "fastGA", "airport": "KPIE" }
-            ]
-          },
-          "initial_altitude": 23000,
-          "assigned_altitude": 23000,
-          "initial_controller": "D1D",
-          "initial_speed": 300,
-          "waypoints": "N028.29.20.490,W082.55.41.683/ho OCF KGNV/delete",
-          "route": "OCF"
-        }
-      ]
-    },
     "MAATY5": {
       "arrivals": [
         {
@@ -1136,15 +1100,7 @@
           "assigned_altitude": 23000,
           "initial_controller": "17",
           "initial_speed": 350,
-          "waypoints": "HEVVN/ho LEGGT GOJOE AAHOY MAATY ROOKR",
-          "runway_waypoints": {
-            "KTPA": {
-              "1L": "ROOKR BLOUT CBASS/delete",
-              "1R": "ROOKR BLOUT CBASS/delete",
-              "19L": "ROOKR SCLOP/s230/delete",
-              "19R": "ROOKR SCLOP/s230/delete"
-            }
-          },
+          "waypoints": "HEVVN/ho LEGGT GOJOE AAHOY MAATY ROOKR SCLOP/delete",
           "route": "MAATY5"
         },
         {
@@ -1279,13 +1235,7 @@
           "assigned_altitude": 23000,
           "initial_controller": "17",
           "initial_speed": 350,
-          "waypoints": "CLAMP/ho LALAA CORRL BANGZ KIDLE ALROE MAHAR",
-          "runway_waypoints": {
-            "KSRQ": {
-              "14": "MAHAR PASOE/delete",
-              "32": "MAHAR FIVDO MURDO/delete"
-            }
-          },
+          "waypoints": "CLAMP/ho LALAA CORRL BANGZ KIDLE ALROE MAHAR PASOE/delete",
           "route": "BANGZ2"
         }
       ]
@@ -1331,10 +1281,10 @@
       ]
     }
   },
-  "default_scenario": "ZJX 88 DARBS TPA South GNV East",
+  "default_scenario": "ZJX 88 DARBS",
   "magnetic_adjustment": -6.0,
   "scenarios": {
-    "ZJX 88 DARBS TPA South GNV East": {
+    "ZJX 88 DARBS": {
       "configuration": "J88",
       "default_maps": ["ZJX LO"],
       "default_map_group": "ZJX",
@@ -1404,95 +1354,13 @@
         }
       ],
       "inbound_rates": {
-        "OCF": { "KGNV": 5 },
         "MAATY5": { "KTPA": 15, "KLAL": 5 },
         "BANGZ2": { "KPIE": 5, "KSRQ": 10 },
         "PLYER.PIKKR7": { "KPGD": 10 }
       },
       "wind": {
         "direction": "100-190",
-        "speed": "5+",
-        "flight_rules": "VMC"
-      }
-    },
-    "ZJX 88 DARBS TPA North GNV West": {
-      "configuration": "J88",
-      "default_maps": ["ZJX LO"],
-      "default_map_group": "ZJX",
-      "arrival_runways": [
-        {
-          "airport": "KGNV",
-          "runway": "29"
-        },
-        {
-          "airport": "KGNV",
-          "runway": "25"
-        },
-        {
-          "airport": "KPIE",
-          "runway": "36"
-        },
-        {
-          "airport": "KTPA",
-          "runway": "1L"
-        },
-        {
-          "airport": "KTPA",
-          "runway": "1R"
-        },
-        {
-          "airport": "KSRQ",
-          "runway": "32"
-        },
-        {
-          "airport": "KPGD",
-          "runway": "33"
-        },
-        {
-          "airport": "KPGD",
-          "runway": "4"
-        },
-        {
-          "airport": "KLAL",
-          "runway": "28"
-        }
-      ],
-      "departure_runways": [
-        {
-          "airport": "KSRQ",
-          "rate": 10,
-          "runway": "32"
-        },
-        {
-          "airport": "KLAL",
-          "rate": 5,
-          "runway": "28"
-        },
-        {
-          "airport": "KPIE",
-          "rate": 10,
-          "runway": "36"
-        },
-        {
-          "airport": "KTPA",
-          "rate": 7,
-          "runway": "1L"
-        },
-        {
-          "airport": "KTPA",
-          "rate": 7,
-          "runway": "1R"
-        }
-      ],
-      "inbound_rates": {
-        "OCF": { "KGNV": 5 },
-        "MAATY5": { "KTPA": 15, "KLAL": 5 },
-        "BANGZ2": { "KPIE": 5, "KSRQ": 10 },
-        "PLYER.PIKKR7": { "KPGD": 10 }
-      },
-      "wind": {
-        "direction": "100-190",
-        "speed": "5+",
+        "speed": "3+",
         "flight_rules": "VMC"
       }
     }
