@@ -10,6 +10,8 @@
   - Fixed bugs with aircraft on approach not descending as much as they should.
 - STARS
   - Added support for "Create interfacility VFR flight plan from active local track"
+  - Fixed bug where WX3 would never have any contents
 - Facility engineering:
   - Support "at or above/at or below" speed restrictions
   - Removed "speed_restriction" from departure routes; this was unused/redundant.
+  - Added "thick_20nm_range_ring" STARS adaptation
