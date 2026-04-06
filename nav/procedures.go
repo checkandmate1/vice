@@ -66,7 +66,7 @@ func (mc *ManeuverComplete) Done(nav *Nav, simTime Time, wxs wx.Sample, targetHd
 	case UntilFix:
 		return nav.ETA(mc.Fix) < 2
 	case UntilIntercept:
-		return nav.shouldTurnToIntercept(mc.Fix, mc.InterceptCourse, mc.InterceptTurn, wxs)
+		return nav.shouldTurnToIntercept(mc.Fix, mc.InterceptCourse, mc.InterceptTurn, wxs) == turnToInterceptTurn
 	case UntilControllerIntervention:
 		return false
 	default:
@@ -439,7 +439,7 @@ func init() {
 
 			if math.HeadingDifference(nav.FlightState.Heading, intercept) < 1 {
 				turn := util.Select(fh.Hold.TurnDirection == av.TurnRight, av.TurnRight, av.TurnLeft)
-				if nav.shouldTurnToIntercept(fh.FixLocation, fh.Hold.InboundCourse, turn, wxs) {
+				if nav.shouldTurnToIntercept(fh.FixLocation, fh.Hold.InboundCourse, turn, wxs) == turnToInterceptTurn {
 					return intercept, turn, HoldStateFlyingInbound
 				}
 			}
@@ -467,7 +467,7 @@ func init() {
 			hdg := nav.headingForTrack(math.OppositeHeading(math.OffsetHeading(fh.Hold.InboundCourse, offset)), wxs)
 			turn := util.Select(fh.Hold.TurnDirection == av.TurnRight, av.TurnRight, av.TurnLeft)
 
-			if nav.shouldTurnToIntercept(fh.FixLocation, fh.Hold.InboundCourse, turn, wxs) {
+			if nav.shouldTurnToIntercept(fh.FixLocation, fh.Hold.InboundCourse, turn, wxs) == turnToInterceptTurn {
 				return fh.Hold.InboundCourse, turn, HoldStateFlyingInbound
 			}
 
@@ -515,7 +515,7 @@ func init() {
 				return fh.Hold.InboundCourse, turn, HoldStateTurningInbound
 			}
 
-			if !nav.shouldTurnToIntercept(fh.FixLocation, fh.Hold.InboundCourse, turn, wxs) {
+			if nav.shouldTurnToIntercept(fh.FixLocation, fh.Hold.InboundCourse, turn, wxs) != turnToInterceptTurn {
 				// Don't finish the turn and instead fly present heading a bit until the point at
 				// which finishing the turn would have us roll out to the inbound course.
 				return nav.FlightState.Heading, turn, HoldStateTurningInbound

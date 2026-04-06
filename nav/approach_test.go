@@ -8,7 +8,6 @@ import (
 	gomath "math"
 	"testing"
 
-	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 )
 
@@ -108,44 +107,35 @@ func TestAtFixClearedApproach(t *testing.T) {
 // caused the aircraft to drift off the localizer because TurningToJoin
 // flew the raw runway heading without crabbing into the wind.
 func TestApproachWindCorrectionOnLocalizer(t *testing.T) {
+	// Position northwest of the localizer (left of outbound course).
+	// The westerly wind pushes the aircraft east toward the centerline.
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.ThresholdOffset(12, -3)
+
 	f := NewArrivalFlight(t, ArrivalConfig{
-		Waypoints:        "HAUPT/a6000/star LEFER/a4000/star ROSLY/a3000/star",
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
 		DepartureAirport: "KMCO",
 		ArrivalAirport:   "KJFK",
 		AircraftType:     "A320",
 		InitialAltitude:  3000,
 		InitialSpeed:     180,
+		InitialHeading:   180,
 	})
 
 	// Strong crosswind from the west — 40kt creates a crab angle (~11°)
 	// that exceeds the old heading tolerance of 10° in shouldTurnToIntercept.
 	f.SetWind(270, 40)
-
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.ExpectApproach("I22L")
-		f.AssignHeading(180, av.TurnClosest)
-		f.ClearedApproach("I22L")
-
-		// Position the aircraft northwest of the localizer (perpendicular
-		// left of the outbound course). The westerly wind pushes it east
-		// toward the centerline, creating a natural intercept.
-		ap := f.nav.Approach.Assigned
-		nmPerLong := f.nav.FlightState.NmPerLongitude
-		rwyHdg := ap.RunwayHeading(nmPerLong)
-		outbound := math.OppositeHeading(rwyHdg)
-		onCourse := math.Offset2LL(ap.Threshold, outbound, 12, nmPerLong)
-		perpLeft := math.OffsetHeading(outbound, -90)
-		f.nav.FlightState.Position = math.Offset2LL(onCourse, perpLeft, 3, nmPerLong)
-	})
+	f.ExpectApproach("I22L")
+	f.ClearedApproach("I22L")
 
 	// Once established on the approach (OnApproachCourse), the aircraft
-	// should stay within 0.15nm of the extended centerline despite
+	// should stay within 0.1nm of the extended centerline despite
 	// the crosswind. Without the wind correction fix, it drifts to
 	// ~1.9nm before slowly oscillating back.
 	for tick := 200; tick <= 800; tick += 10 {
 		f.AfterTicks(tick, func(f *FlightTest) {
 			if f.nav.Approach.InterceptState == OnApproachCourse {
-				f.AssertOnExtendedCenterline(0.15)
+				f.AssertOnExtendedCenterline(0.1)
 			}
 		})
 	}
@@ -192,6 +182,233 @@ func TestDirectFixRevokesApproachClearance(t *testing.T) {
 	// Altitude should remain near 5000 — no approach descent
 	f.AfterTicks(150, func(f *FlightTest) {
 		f.AssertAltitudeNear(5000, 200)
+	})
+
+	f.Run()
+}
+
+// TestLocalizerFlythroughSteepIntercept verifies that an aircraft on a
+// heading that creates a >45° intercept angle is detected as an overshoot
+// after it flies through the localizer, and requests vectors (since the
+// heading is too far from the approach course for recovery).
+func TestLocalizerFlythroughSteepIntercept(t *testing.T) {
+	// Position 10nm out, 2nm right of outbound
+	// Aircraft heading 280° (~56° intercept)
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.ThresholdOffset(10, -2)
+
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  3000,
+		InitialSpeed:     180,
+		InitialHeading:   280,
+	})
+	f.ExpectApproach("I22L")
+	f.ClearedApproach("I22L")
+
+	// After the aircraft crosses through the localizer, overshoot detection
+	// fires. The heading check should fail → request vectors.
+	f.AfterTicks(300, func(f *FlightTest) {
+		if f.nav.Approach.InterceptState != NotIntercepting {
+			t.Errorf("expected NotIntercepting, got %d", f.nav.Approach.InterceptState)
+		}
+		if !f.nav.Approach.RequestVectors {
+			t.Errorf("expected RequestVectors to be set")
+		}
+	})
+
+	f.Run()
+}
+
+// TestLocalizerFlythroughLateTurn verifies that an aircraft with a
+// reasonable intercept angle (~24°) but positioned very close to the
+// localizer (0.3nm) overshoots because it crosses through before or
+// during the turn, and then recovers
+func TestLocalizerFlythroughLateTurn(t *testing.T) {
+	// Position 8nm out, only 0.3nm left of outbound (NW side).
+	// Heading 200° (~24° intercept) crosses through quickly.
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.ThresholdOffset(8, 0.3)
+
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  3000,
+		InitialSpeed:     180,
+		InitialHeading:   250,
+	})
+	f.ExpectApproach("I22L")
+	f.ClearedApproach("I22L")
+
+	// The aircraft overshoots but recovery criteria are met:
+	// heading ~24° < 45°, well within capture cone at ~10nm from antenna,
+	// well before FAF. Should eventually establish on the localizer.
+	for tick := 200; tick <= 800; tick += 50 {
+		f.AfterTicks(tick, func(f *FlightTest) {
+			if f.nav.Approach.InterceptState == OnApproachCourse {
+				f.AssertOnExtendedCenterline(0.05)
+			}
+		})
+	}
+
+	// By ZALPO the aircraft should have recovered and be on the approach.
+	f.AtFix("ZALPO", func(f *FlightTest) {
+		if f.nav.Approach.InterceptState != OnApproachCourse {
+			t.Errorf("expected OnApproachCourse after recovery, got %d", f.nav.Approach.InterceptState)
+		}
+		if f.nav.Approach.RequestVectors {
+			t.Errorf("RequestVectors should not be set after successful recovery")
+		}
+	})
+
+	f.Run()
+}
+
+// TestLocalizerOvershootRecovery verifies that after an overshoot, the
+// recovery does not oscillate back and forth across the localizer. The
+// aircraft is placed 0.5nm NW of the localizer with a ~24° intercept;
+// it overshoots, receives a recovery heading, and the shouldTurnToIntercept
+// mid-turn check switches it to the runway heading before re-crossing,
+// resulting in a smooth capture with at most 2 centerline crossings.
+func TestLocalizerOvershootRecovery(t *testing.T) {
+	// Position 10nm out, 0.5nm left of outbound (NW side).
+	// Heading 200° (~24° intercept) crosses through the localizer,
+	// triggering overshoot recovery via handleLocalizerOvershoot.
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.ThresholdOffset(10, -0.5)
+
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  3000,
+		InitialSpeed:     180,
+		InitialHeading:   200,
+	})
+	f.ExpectApproach("I22L")
+	f.ClearedApproach("I22L")
+
+	var prevSD float32
+	crossings := 0
+
+	for tick := 2; tick <= 800; tick++ {
+		f.AfterTicks(tick, func(f *FlightTest) {
+			sd := f.SignedCenterlineDistance()
+
+			if tick <= 10 || tick%10 == 0 {
+				var assignedHdg float32
+				if f.nav.Heading.Assigned != nil {
+					assignedHdg = float32(*f.nav.Heading.Assigned)
+				}
+				t.Logf("tick=%d state=%d hdg=%.0f sd=%.3f assignedHdg=%.0f reqVec=%v",
+					tick, f.nav.Approach.InterceptState,
+					f.nav.FlightState.Heading, sd,
+					assignedHdg,
+					f.nav.Approach.RequestVectors)
+			}
+
+			// Count centerline crossings to detect oscillation.
+			if tick > 5 && prevSD != 0 &&
+				math.Sign(sd) != math.Sign(prevSD) &&
+				math.Abs(sd) > 0.02 && math.Abs(prevSD) > 0.02 {
+				crossings++
+				t.Logf("tick=%d centerline crossing #%d: sd %.3f → %.3f",
+					tick, crossings, prevSD, sd)
+			}
+			prevSD = sd
+		})
+	}
+
+	f.AtFix("ZALPO", func(f *FlightTest) {
+		if f.nav.Approach.InterceptState != OnApproachCourse {
+			t.Errorf("expected OnApproachCourse by ZALPO, got %d", f.nav.Approach.InterceptState)
+		}
+		if f.nav.Approach.RequestVectors {
+			t.Errorf("RequestVectors should not be set after successful recovery")
+		}
+		// One or two crossings are OK (converging to centerline);
+		// three or more indicates oscillation.
+		if crossings > 2 {
+			t.Errorf("oscillation detected: %d centerline crossings (expected ≤ 2)", crossings)
+		}
+	})
+
+	f.Run()
+}
+
+// TestLocalizerOvershootNearFAF verifies that an aircraft that overshoots
+// the localizer too close to the FAF (within 2nm along the approach course)
+// cannot recover and requests vectors instead.
+func TestLocalizerOvershootNearFAF(t *testing.T) {
+	// Position 1nm outbound from FAF, 0.3nm right of outbound
+	// (SE = left of inbound). Too close to FAF for recovery.
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.FAFOffset(1, 0.3)
+
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  3000,
+		InitialSpeed:     180,
+		InitialHeading:   200,
+	})
+
+	f.ExpectApproach("I22L")
+	f.ClearedApproach("I22L")
+
+	// The aircraft is too close to the FAF for recovery → requests vectors.
+	f.AfterTicks(100, func(f *FlightTest) {
+		if f.nav.Approach.InterceptState != NotIntercepting {
+			t.Errorf("expected NotIntercepting, got %d", f.nav.Approach.InterceptState)
+		}
+		if !f.nav.Approach.RequestVectors {
+			t.Errorf("expected RequestVectors to be set (too close to FAF)")
+		}
+	})
+
+	f.Run()
+}
+
+// TestLocalizerOvershootOutsideCaptureArea verifies that an aircraft that
+// overshoots the localizer outside the lateral capture cone (too far from
+// the centerline relative to its distance from the antenna) requests
+// vectors instead of attempting recovery.
+func TestLocalizerOvershootOutsideCaptureArea(t *testing.T) {
+	// Position 5nm from threshold, 0.5nm right of outbound (SE = left
+	// of inbound). At ~6.5nm from the antenna, the capture cone
+	// half-width is ~6.5 * tan(2°) ≈ 0.23nm. The 0.5nm offset exceeds it.
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.ThresholdOffset(5, 0.5)
+
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  3000,
+		InitialSpeed:     180,
+		InitialHeading:   200,
+	})
+
+	f.ExpectApproach("I22L")
+	f.ClearedApproach("I22L")
+
+	// Aircraft is outside the capture cone → requests vectors.
+	f.AfterTicks(100, func(f *FlightTest) {
+		if f.nav.Approach.InterceptState != NotIntercepting {
+			t.Errorf("expected NotIntercepting, got %d", f.nav.Approach.InterceptState)
+		}
+		if !f.nav.Approach.RequestVectors {
+			t.Errorf("expected RequestVectors to be set (outside capture area)")
+		}
 	})
 
 	f.Run()

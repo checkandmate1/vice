@@ -5,6 +5,7 @@
 package nav
 
 import (
+	"fmt"
 	"log/slog"
 	"slices"
 	"time"
@@ -22,33 +23,57 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (h
 
 	ap := nav.Approach.Assigned
 
+	// Shared variables for both InitialHeading and TurningToJoin
+	rwyHdgTrue := ap.RunwayHeading(nav.FlightState.NmPerLongitude)
+	loc := ap.ExtendedCenterline(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+
 	switch nav.Approach.InterceptState {
 	case InitialHeading:
-		// On a heading. Is it time to turn?  Allow a lot of slop, but just
-		// fly through the localizer if it's too sharp an intercept
-		hdgTrue := ap.RunwayHeading(nav.FlightState.NmPerLongitude)
-		acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
-		if d := math.HeadingDifference(hdgTrue, acftTrue); d > 45 {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading: intercept angle %.1f too sharp, continuing heading %.0f", d, nav.FlightState.Heading)
+		assignedMag, _ := nav.AssignedHeading() // use the deferred heading for the following
+		assignedTrue := math.MagneticToTrue(assignedMag, nav.FlightState.MagneticVariation)
+		if d := math.HeadingDifference(rwyHdgTrue, assignedTrue); d > 45 {
+			// Too big an intercept angle; request vectors
+			nav.localizerOvershootRequestVectors()
 			return
 		}
+		hdgMag := math.TrueToMagnetic(rwyHdgTrue, nav.FlightState.MagneticVariation)
+		switch nav.shouldTurnToIntercept(loc[0], hdgMag, av.TurnClosest, wxs) {
+		case turnToInterceptWait:
+			fmt.Printf("wait\n")
 
-		loc := ap.ExtendedCenterline(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-
-		hdgMag := math.TrueToMagnetic(hdgTrue, nav.FlightState.MagneticVariation)
-		if nav.shouldTurnToIntercept(loc[0], hdgMag, av.TurnClosest, wxs) {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading->TurningToJoin: turning to intercept runway hdg %.0f", hdgMag)
+		case turnToInterceptTurn:
+			if !nav.approachRecoveryFeasible(ap) {
+				nav.localizerOvershootRequestVectors()
+				return
+			}
 			nav.Approach.InterceptState = TurningToJoin
-			// The autopilot is doing this, so start the turn immediately;
-			// don't use EnqueueHeading. However, leave any deferred
-			// heading/direct fix in place, as it represents a controller
-			// command that should still be followed.
 			nav.Heading = NavHeading{Assigned: &hdgMag}
-			// Just in case.. Thus we will be ready to pick up the
-			// approach waypoints once we capture.
+			nav.DeferredNavHeading = nil
 			nav.Waypoints = []av.Waypoint{nav.FlightState.ArrivalAirport}
-		} else {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading: not yet time to turn, acft hdg %.0f rwy hdg %.0f", nav.FlightState.Heading, hdgMag)
+			fmt.Printf("turn to join %.1f\n", hdgMag)
+
+		case turnToInterceptCorrectableOvershoot:
+			if !nav.approachRecoveryFeasible(ap) {
+				nav.localizerOvershootRequestVectors()
+				return
+			}
+			acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
+			signed := math.HeadingSignedTurn(acftTrue, rwyHdgTrue)
+			offset := float32(20)
+			if signed < 0 {
+				offset = -20
+			}
+			recoveryTrue := math.OffsetHeading(rwyHdgTrue, offset)
+			recoveryHdg := math.TrueToMagnetic(recoveryTrue, nav.FlightState.MagneticVariation)
+			nav.Approach.InterceptState = TurningToJoin
+			nav.Heading = NavHeading{Assigned: &recoveryHdg}
+			nav.DeferredNavHeading = nil
+			nav.Waypoints = []av.Waypoint{nav.FlightState.ArrivalAirport}
+			fmt.Printf("correctable overshoot--recovery %.1f\n", recoveryHdg)
+
+		case turnToInterceptMajorOvershoot:
+			fmt.Printf("uncorrectable overshoot\n")
+			nav.localizerOvershootRequestVectors()
 		}
 		return
 
@@ -68,7 +93,6 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (h
 		// fixes in the approach are still ahead and then add them to
 		// the aircraft's waypoints.
 		apHeading := ap.RunwayHeading(nav.FlightState.NmPerLongitude)
-
 		wps, idx := ap.FAFSegment(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
 		acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 		for idx > 0 {
@@ -114,6 +138,43 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (h
 
 	return
 }
+
+// approachRecoveryFeasible returns true if the aircraft's current position
+// allows a turn back to the localizer: it must not be too close to the FAF
+// and must be within the localizer capture cone (2° half-width).
+func (nav *Nav) approachRecoveryFeasible(ap *av.Approach) bool {
+	nmPerLong := nav.FlightState.NmPerLongitude
+	magVar := nav.FlightState.MagneticVariation
+	pos := nav.FlightState.Position
+
+	// Check proximity to the FAF: need at least 2nm along the course.
+	wps, fafIdx := ap.FAFSegment(nmPerLong, magVar)
+	if wps != nil {
+		fafDist := math.NMDistance2LLFast(pos, wps[fafIdx].Location, nmPerLong)
+		if fafDist < 2 {
+			return false
+		}
+	}
+
+	// Check if within the localizer capture cone (2° half-width from threshold).
+	cl := ap.ExtendedCenterline(nmPerLong, magVar)
+	posNM := math.LL2NM(pos, nmPerLong)
+	cl0NM := math.LL2NM(cl[0], nmPerLong)
+	cl1NM := math.LL2NM(cl[1], nmPerLong)
+	lateralOffset := math.Abs(math.SignedPointLineDistance(posNM, cl0NM, cl1NM))
+	distFromThreshold := math.NMDistance2LLFast(pos, ap.Threshold, nmPerLong)
+	coneHalfWidth := distFromThreshold * math.Tan(math.Radians(float32(2)))
+	return lateralOffset <= coneHalfWidth
+}
+
+// localizerOvershootRequestVectors cancels the approach and flags the
+// pilot to request new vectors from ATC.
+func (nav *Nav) localizerOvershootRequestVectors() {
+	nav.Approach.InterceptState = NotIntercepting
+	nav.Approach.Cleared = false
+	nav.Approach.RequestVectors = true
+}
+
 func (nav *Nav) getApproach(airport *av.Airport, id string, lg *log.Logger) (*av.Approach, error) {
 	if id == "" {
 		return nil, ErrInvalidApproach

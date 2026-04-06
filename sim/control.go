@@ -2096,6 +2096,7 @@ const (
 	PendingTransmissionGoAround                                                // Go-around announcement
 	PendingTransmissionEmergency                                               // Emergency stage transmission
 	PendingTransmissionRequestApproachClearance                                // Pilot requesting approach clearance
+	PendingTransmissionRequestVectors                                          // Pilot requesting vectors (overshot localizer)
 )
 
 // PendingFrequencyChange represents a pilot switching to a new frequency.
@@ -2481,6 +2482,10 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 
 	case PendingTransmissionRequestApproachClearance:
 		rt = av.MakeContactTransmission("[are we cleared for the approach|looking for the approach|we're going to need the approach here shortly]")
+		rt.Type = av.RadioTransmissionUnexpected
+
+	case PendingTransmissionRequestVectors:
+		rt = av.MakeContactTransmission("[we've overshot the localizer, request vectors|unable to intercept, request new heading|we missed the localizer, request vectors]")
 		rt.Type = av.RadioTransmissionUnexpected
 
 	case PendingTransmissionEmergency:

@@ -657,24 +657,33 @@ func (nav *Nav) shouldTurnForOutbound(p math.Point2LL, hdg math.MagneticHeading,
 	return false
 }
 
-// Given a point and a radial, returns true when the aircraft should
-// start turning to intercept the radial.
-func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg math.MagneticHeading, turn av.TurnDirection, wxs wx.Sample) bool {
+const (
+	turnToInterceptWait = iota
+	turnToInterceptTurn
+	turnToInterceptCorrectableOvershoot
+	turnToInterceptMajorOvershoot
+)
+
+type turnToInterceptResult int
+
+// Given a point and a radial, indicates when the aircraft should start turning to intercept the
+// radial.
+func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg math.MagneticHeading, turn av.TurnDirection, wxs wx.Sample) turnToInterceptResult {
 	p0nm := math.LL2NM(p0, nav.FlightState.NmPerLongitude)
 	hdgTrue := math.MagneticToTrue(hdg, nav.FlightState.MagneticVariation)
 	p1 := math.Add2f(p0nm, math.SinCos(math.Radians(hdgTrue)))
 
 	initialDist := math.SignedPointLineDistance(math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude), p0nm, p1)
 	eta := math.Abs(initialDist) / nav.FlightState.GS * 3600 // in seconds
-	if eta < 2 {
-		// Just in case, start the turn
-		return true
+	turnAngle := TurnAngle(nav.FlightState.Heading, hdg, turn)
+	if eta < 2 && turnAngle < 4 {
+		// Just in case, start the turn; for larger turn angles, fall through to simulation to see if this is correctable.
+		return turnToInterceptTurn
 	}
 
 	// As above, don't consider starting the turn if we're far away.
-	turnAngle := TurnAngle(nav.FlightState.Heading, hdg, turn)
 	if turnAngle < eta {
-		return false
+		return turnToInterceptWait
 	}
 
 	// Calculate the expected crab angle needed for wind correction.
@@ -689,18 +698,45 @@ func (nav *Nav) shouldTurnToIntercept(p0 math.Point2LL, hdg math.MagneticHeading
 	nav2.Approach.InterceptState = NotIntercepting // avoid recursive calls..
 
 	n := int(1 + turnAngle)
+	lastDist := initialDist
 	for range n {
 		nav2.UpdateWithWeather("", wxs, nil, Time{}, nil)
 		curDist := math.SignedPointLineDistance(math.LL2NM(nav2.FlightState.Position, nav2.FlightState.NmPerLongitude), p0nm, p1)
 
+		intercepted := math.Abs(curDist) < 0.02
+		crossed := math.Sign(initialDist) != math.Sign(curDist)
+		if !intercepted && !crossed {
+			lastDist = curDist
+			continue
+		}
+
 		// Allow heading tolerance to account for the crab angle needed in crosswind.
 		// Base tolerance of 10 degrees plus the calculated crab angle.
 		headingTolerance := 10 + crabAngle
-		if (math.Abs(curDist) < 0.02 || math.Sign(initialDist) != math.Sign(curDist)) && math.Abs(curDist) < .25 && math.HeadingDifference(hdg, nav2.FlightState.Heading) < headingTolerance {
-			return true
+		delta := math.HeadingDifference(hdg, nav2.FlightState.Heading)
+		if delta < headingTolerance {
+			return turnToInterceptTurn
+		} else if delta < headingTolerance+30 {
+			return turnToInterceptCorrectableOvershoot
+		} else {
+			return turnToInterceptMajorOvershoot
 		}
 	}
-	return false
+
+	// If the simulated aircraft ended up farther from the line than it
+	// started, it has overshot and is diverging.
+	if math.Abs(lastDist) > math.Abs(initialDist) {
+		delta := math.HeadingDifference(hdg, nav.FlightState.Heading)
+		if math.Abs(lastDist) < 0.25 && delta < 30 {
+			return turnToInterceptTurn
+		}
+		headingTolerance := 10 + crabAngle
+		if delta < headingTolerance+30 {
+			return turnToInterceptCorrectableOvershoot
+		}
+		return turnToInterceptMajorOvershoot
+	}
+	return turnToInterceptWait
 }
 
 // Analytical version of shouldTurnForOutbound using geometry rather than

@@ -208,6 +208,7 @@ type NavApproach struct {
 	StandbyApproach             bool // suppress repeated approach clearance requests
 	RequestApproachClearance    bool // pilot should radio for approach clearance
 	GoAroundNoApproachClearance bool // pilot should go around (reached FAF without clearance)
+	RequestVectors              bool // pilot should request vectors (overshot localizer)
 	InterceptState              InterceptState
 	PassedApproachFix           bool // have we passed a fix on the approach yet?
 	PassedFAF                   bool

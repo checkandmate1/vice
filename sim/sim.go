@@ -1307,6 +1307,11 @@ func (s *Sim) updateState() {
 				s.goAround(ac)
 			}
 
+			if ac.Nav.Approach.RequestVectors && ac.IsAssociated() {
+				ac.Nav.Approach.RequestVectors = false
+				s.enqueuePilotTransmission(callsign, TCP(ac.ControllerFrequency), PendingTransmissionRequestVectors)
+			}
+
 			if ac.FirstSeen.IsZero() && s.isRadarVisible(ac) {
 				ac.FirstSeen = s.State.SimTime
 			}
