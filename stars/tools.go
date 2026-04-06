@@ -144,6 +144,15 @@ func (sp *STARSPane) drawRangeRings(ctx *panes.Context, transforms radar.ScopeTr
 	cb.SetRGB(color)
 	transforms.LoadWindowViewingMatrices(cb)
 	ld.GenerateCommands(cb)
+
+	if ctx.FacilityAdaptation.Thick20NmRangeRing {
+		// There is always a 20nm range ring--don't need to check ps.RangeRingRadius.
+		ld.Reset()
+		r := 20.0 / pixelDistanceNm
+		ld.AddCircle(centerWindow, r, 360)
+		cb.LineWidth(2, ctx.DPIScale)
+		ld.GenerateCommands(cb)
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////

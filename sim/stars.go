@@ -373,10 +373,11 @@ type FacilityAdaptation struct {
 		Symbol           string         `json:"symbol"`
 	} `json:"untracked_position_symbol_overrides"`
 
-	VideoMapFile      string                        `json:"video_map_file"`
-	CoordinationFixes map[string]av.AdaptationFixes `json:"coordination_fixes"`
-	SingleCharAIDs    map[string]string             `json:"single_char_aids"`
-	Monitor           string                        `json:"monitor"`
+	VideoMapFile       string                        `json:"video_map_file"`
+	CoordinationFixes  map[string]av.AdaptationFixes `json:"coordination_fixes"`
+	SingleCharAIDs     map[string]string             `json:"single_char_aids"`
+	Monitor            string                        `json:"monitor"`
+	Thick20NmRangeRing bool                          `json:"thick_20nm_range_ring"`
 
 	SSRCodes av.LocalSquawkCodePoolSpecifier `json:"ssr_codes"`
 
