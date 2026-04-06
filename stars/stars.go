@@ -396,8 +396,9 @@ type MonitorColors struct {
 	RestrictionAreaGeom [8]renderer.RGB
 
 	// WX
-	WX        [2]renderer.RGB
-	WXStipple renderer.RGB
+	WX             [radar.NumWxLevels]renderer.RGB
+	WXStipple      renderer.RGB
+	WXLevelStipple [radar.NumWxLevels]int // 0=none, 1=light, 2=dense
 
 	// DCB
 	DCBButton            renderer.RGB
@@ -480,11 +481,16 @@ var monitorColorSets = map[string]MonitorColors{
 			renderer.RGBFromUInt8(50, 205, 50),
 		},
 
-		WX: [2]renderer.RGB{
+		WX: [radar.NumWxLevels]renderer.RGB{
+			renderer.RGBFromUInt8(38, 77, 77),
+			renderer.RGBFromUInt8(38, 77, 77),
 			renderer.RGBFromUInt8(38, 77, 77),
 			renderer.RGBFromUInt8(100, 100, 51),
+			renderer.RGBFromUInt8(100, 100, 51),
+			renderer.RGBFromUInt8(100, 100, 51),
 		},
-		WXStipple: renderer.RGBFromUInt8(255, 255, 255),
+		WXLevelStipple: [radar.NumWxLevels]int{0, 1, 2, 0, 1, 2},
+		WXStipple:      renderer.RGBFromUInt8(255, 255, 255),
 
 		DCBButton:            renderer.RGBFromUInt8(0, 44, 0),
 		DCBActiveButton:      renderer.RGBFromUInt8(0, 78, 0),
@@ -564,11 +570,16 @@ var monitorColorSets = map[string]MonitorColors{
 			renderer.RGBFromUInt8(102, 208, 85),
 		},
 
-		WX: [2]renderer.RGB{
-			renderer.RGBFromUInt8(37, 77, 77),
-			renderer.RGBFromUInt8(100, 100, 51),
+		WX: [radar.NumWxLevels]renderer.RGB{
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 67, 84),
+			renderer.RGBFromUInt8(107, 67, 84),
 		},
-		WXStipple: renderer.RGBFromUInt8(185, 172, 147),
+		WXLevelStipple: [radar.NumWxLevels]int{0, 2, 0, 2, 0, 2},
+		WXStipple:      renderer.RGBFromUInt8(185, 172, 147),
 
 		DCBButton:            renderer.RGBFromUInt8(0, 10, 0),
 		DCBActiveButton:      renderer.RGBFromUInt8(57, 94, 40),
@@ -648,11 +659,16 @@ var monitorColorSets = map[string]MonitorColors{
 			renderer.RGBFromUInt8(39, 187, 44),
 		},
 
-		WX: [2]renderer.RGB{
-			renderer.RGBFromUInt8(0, 78, 90),
-			renderer.RGBFromUInt8(85, 100, 45),
+		WX: [radar.NumWxLevels]renderer.RGB{
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 67, 84),
+			renderer.RGBFromUInt8(107, 67, 84),
 		},
-		WXStipple: renderer.RGBFromUInt8(153, 144, 89),
+		WXLevelStipple: [radar.NumWxLevels]int{0, 2, 0, 2, 0, 2},
+		WXStipple:      renderer.RGBFromUInt8(153, 144, 89),
 
 		DCBButton:            renderer.RGBFromUInt8(2, 20, 4),
 		DCBActiveButton:      renderer.RGBFromUInt8(7, 37, 12),
@@ -1284,7 +1300,7 @@ func (sp *STARSPane) drawWX(ctx *panes.Context, transforms radar.ScopeTransforma
 	weatherBrightness := float32(ps.Brightness.Weather) / float32(100)
 	wxStipple := ps.Brightness.WxContrast.ScaleRGB(sp.Colors.WXStipple)
 	sp.weatherRadar.Draw(ctx, sp.wxHistoryDraw, weatherBrightness, sp.Colors.WX, wxStipple,
-		ps.DisplayWeatherLevel, transforms, cb)
+		sp.Colors.WXLevelStipple, ps.DisplayWeatherLevel, transforms, cb)
 }
 
 func (sp *STARSPane) drawTRACONBoundary(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {

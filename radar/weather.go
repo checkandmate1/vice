@@ -255,7 +255,7 @@ func reverseStippleBytes(stipple [32]uint32) [32]uint32 {
 
 // Draw draws the current weather radar data, if available.
 func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32,
-	wxColors [2]renderer.RGB, wxStippleColor renderer.RGB,
+	wxColors [NumWxLevels]renderer.RGB, wxStippleColor renderer.RGB, wxLevelStipple [NumWxLevels]int,
 	active [NumWxLevels]bool, transforms ScopeTransformations, cb *renderer.CommandBuffer) {
 	w.mu.Lock(ctx.Lg)
 	defer w.mu.Unlock(ctx.Lg)
@@ -290,25 +290,20 @@ func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32,
 	transforms.LoadLatLongViewingMatrices(cb)
 	for i := range w.cb[hist] {
 		if active[i] && w.cb[hist][i] != nil {
-			baseColor := util.Select(i < 3, wxColors[0], wxColors[1])
-			cb.SetRGB(baseColor.Scale(intensity))
+			cb.SetRGB(wxColors[i].Scale(intensity))
 			cb.Call(*w.cb[hist][i])
 
-			if i == 0 || i == 3 {
-				// No stipple
-				continue
+			if wxLevelStipple[i] > 0 {
+				cb.EnablePolygonStipple()
+				if wxLevelStipple[i] == 1 {
+					cb.PolygonStipple(reverseStippleBytes(wxStippleLight))
+				} else {
+					cb.PolygonStipple(reverseStippleBytes(wxStippleDense))
+				}
+				cb.SetRGB(wxStippleColor)
+				cb.Call(*w.cb[hist][i])
+				cb.DisablePolygonStipple()
 			}
-
-			cb.EnablePolygonStipple()
-			if i == 1 || i == 4 {
-				cb.PolygonStipple(reverseStippleBytes(wxStippleLight))
-			} else if i == 2 || i == 5 {
-				cb.PolygonStipple(reverseStippleBytes(wxStippleDense))
-			}
-			// Draw the same quads again, just with a different color and stippled.
-			cb.SetRGB(wxStippleColor)
-			cb.Call(*w.cb[hist][i])
-			cb.DisablePolygonStipple()
 		}
 	}
 }
