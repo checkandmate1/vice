@@ -102,10 +102,8 @@ func TestLeftDirectFix(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		// Assign heading north first, then direct to DETGY with left turn
-		f.AssignHeading(360, av.TurnClosest)
-	})
+	// Assign heading north first, then direct to DETGY with left turn
+	f.AssignHeading(360, av.TurnClosest)
 
 	f.AfterTicks(30, func(f *FlightTest) {
 		f.DirectFixWithTurn("DETGY", av.TurnLeft)
@@ -139,9 +137,7 @@ func TestRightDirectFix(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AssignHeading(360, av.TurnClosest)
-	})
+	f.AssignHeading(360, av.TurnClosest)
 
 	f.AfterTicks(30, func(f *FlightTest) {
 		f.DirectFixWithTurn("DETGY", av.TurnRight)

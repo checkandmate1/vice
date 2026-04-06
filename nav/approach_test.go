@@ -23,7 +23,7 @@ import (
 func TestDirectToApproachFixNoDescentWithoutClearance(t *testing.T) {
 	// Route does NOT include ROSLY so that DirectFix will find it on the approach.
 	f := NewArrivalFlight(t, ArrivalConfig{
-		Waypoints:        "HAUPT/a6000/star LEFER/a4000/star",
+		Waypoints:        "HAUPT/a6000 LEFER/a4000",
 		DepartureAirport: "KMCO",
 		ArrivalAirport:   "KJFK",
 		AircraftType:     "A320",
@@ -32,11 +32,9 @@ func TestDirectToApproachFixNoDescentWithoutClearance(t *testing.T) {
 		AssignedAltitude: 5000, // hold at 5000
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.ExpectApproach("I22L")
-		// Direct to ROSLY — which is on the I22L approach but not in our route
-		f.DirectFix("ROSLY")
-	})
+	f.ExpectApproach("I22L")
+	// Direct to ROSLY — which is on the I22L approach but not in our route
+	f.DirectFix("ROSLY")
 
 	f.AfterTicks(20, func(f *FlightTest) {
 		// InterceptState should be OnApproachCourse (tracking laterally)
@@ -77,7 +75,7 @@ func TestDirectToApproachFixNoDescentWithoutClearance(t *testing.T) {
 // (regression test for 61db003f).
 func TestAtFixClearedApproach(t *testing.T) {
 	f := NewArrivalFlight(t, ArrivalConfig{
-		Waypoints:        "HAUPT/a6000/star LEFER/a4000/star ROSLY/a3000/star",
+		Waypoints:        "HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
 		DepartureAirport: "KMCO",
 		ArrivalAirport:   "KJFK",
 		AircraftType:     "A320",
@@ -85,14 +83,12 @@ func TestAtFixClearedApproach(t *testing.T) {
 		InitialSpeed:     210,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.ExpectApproach("I22L")
-		f.AtFixCleared("ROSLY", "I22L")
-	})
+	f.ExpectApproach("I22L")
+	f.AtFixCleared("ROSLY", "I22L")
 
 	// Before ROSLY: approach should NOT be cleared
 	f.BeforeFix("ROSLY", func(f *FlightTest) {
-		if f.tick > 5 && f.nav.Approach.Cleared {
+		if f.nav.Approach.Cleared {
 			t.Errorf("tick %d: approach should not be cleared before ROSLY", f.tick)
 		}
 	})
@@ -147,8 +143,7 @@ func TestApproachWindCorrectionOnLocalizer(t *testing.T) {
 	// the crosswind. Without the wind correction fix, it drifts to
 	// ~1.9nm before slowly oscillating back.
 	for tick := 200; tick <= 800; tick += 10 {
-		tickCopy := tick
-		f.AfterTicks(tickCopy, func(f *FlightTest) {
+		f.AfterTicks(tick, func(f *FlightTest) {
 			if f.nav.Approach.InterceptState == OnApproachCourse {
 				f.AssertOnExtendedCenterline(0.15)
 			}
@@ -165,7 +160,7 @@ func TestApproachWindCorrectionOnLocalizer(t *testing.T) {
 // restrictions.
 func TestDirectFixRevokesApproachClearance(t *testing.T) {
 	f := NewArrivalFlight(t, ArrivalConfig{
-		Waypoints:        "HAUPT/a6000/star LEFER/a4000/star",
+		Waypoints:        "HAUPT/a6000 LEFER/a4000",
 		DepartureAirport: "KMCO",
 		ArrivalAirport:   "KJFK",
 		AircraftType:     "A320",
@@ -174,6 +169,8 @@ func TestDirectFixRevokesApproachClearance(t *testing.T) {
 		AssignedAltitude: 5000,
 	})
 
+	// This sequence must run after the first tick so the random state
+	// and deferred-heading timing match the intended scenario.
 	f.AfterTicks(1, func(f *FlightTest) {
 		f.ExpectApproach("I22L")
 		// 1. Direct to ROSLY (on the I22L approach)

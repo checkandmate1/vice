@@ -23,8 +23,10 @@ func TestSTARSpeedRestrictions(t *testing.T) {
 	})
 
 	// Before DETGY: the SAJUL/s250 restriction should slow the aircraft.
+	calls := 0
 	f.BeforeFix("DETGY", func(f *FlightTest) {
-		if f.tick > 30 {
+		calls++
+		if calls > 30 {
 			f.AssertSpeedBelow(255)
 		}
 	})
@@ -70,15 +72,11 @@ func TestAfterFixSpeed(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AfterFixSpeed("DETGY", 210)
-	})
+	f.AfterFixSpeed("DETGY", 210)
 
 	// Before DETGY: speed should stay near 250
 	f.BeforeFix("DETGY", func(f *FlightTest) {
-		if f.tick > 5 {
-			f.AssertSpeedAbove(240)
-		}
+		f.AssertSpeedAbove(240)
 	})
 
 	// After DETGY the after-fix speed fires and the aircraft decelerates
@@ -102,9 +100,7 @@ func TestDirectSpeedCancelsAfterFixSpeed(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AfterFixSpeed("DETGY", 210)
-	})
+	f.AfterFixSpeed("DETGY", 210)
 
 	// After setting after-fix, assign a direct speed — should clear it
 	f.AfterTicks(30, func(f *FlightTest) {
@@ -137,20 +133,20 @@ func TestCompoundSpeed(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		sr250 := av.MakeAtSpeedRestriction(250)
-		sr210 := av.MakeAtSpeedRestriction(210)
-		sr180 := av.MakeAtSpeedRestriction(180)
-		f.CompoundSpeed([]av.CompoundSpeedSegment{
-			{Speed: &sr250, UntilFix: "DETGY"},
-			{Speed: &sr210, UntilFix: "HAUPT"},
-			{Speed: &sr180},
-		})
+	sr250 := av.MakeAtSpeedRestriction(250)
+	sr210 := av.MakeAtSpeedRestriction(210)
+	sr180 := av.MakeAtSpeedRestriction(180)
+	f.CompoundSpeed([]av.CompoundSpeedSegment{
+		{Speed: &sr250, UntilFix: "DETGY"},
+		{Speed: &sr210, UntilFix: "HAUPT"},
+		{Speed: &sr180},
 	})
 
 	// Before DETGY: speed should be decelerating toward 250
+	calls := 0
 	f.BeforeFix("DETGY", func(f *FlightTest) {
-		if f.tick > 30 {
+		calls++
+		if calls > 30 {
 			f.AssertSpeedBelow(255)
 		}
 	})
@@ -180,9 +176,7 @@ func TestAfterFixDescendAltitude(t *testing.T) {
 		InitialSpeed:     250,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AfterFixAltitude("DETGY", 5000)
-	})
+	f.AfterFixAltitude("DETGY", 5000)
 
 	// At DETGY: the after-fix altitude should be assigned
 	f.AtFix("DETGY", func(f *FlightTest) {

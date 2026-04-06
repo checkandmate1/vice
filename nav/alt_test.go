@@ -99,18 +99,18 @@ func TestApproachAtOrAboveDescentTarget(t *testing.T) {
 		InitialSpeed:     210,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.ExpectApproach("I22L")
-		// No AssignAltitude — descent must be driven purely by the
-		// approach "at or above" restriction being treated as a target.
-		f.ClearedApproach("I22L")
-	})
+	f.ExpectApproach("I22L")
+	// No AssignAltitude — descent must be driven purely by the
+	// approach "at or above" restriction being treated as a target.
+	f.ClearedApproach("I22L")
 
 	// ROSLY is on the I22L approach with "at or above 3000". With the
 	// fix, it's treated as "at 3000", driving descent from 5000.
 	// Without the fix, 5000 satisfies "at or above 3000" so no descent.
+	calls := 0
 	f.BeforeFix("ROSLY", func(f *FlightTest) {
-		if f.tick > 30 {
+		calls++
+		if calls > 30 {
 			f.AssertDescending()
 		}
 	})
@@ -131,9 +131,7 @@ func TestAssignedAltitudeOverridesSTAR(t *testing.T) {
 	})
 
 	// Assign 5000 immediately — should override the 10000/7000 restrictions.
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AssignAltitude(5000)
-	})
+	f.AssignAltitude(5000)
 
 	// At DETGY (charted restriction 7000), the aircraft should be at
 	// 5000 — the assigned altitude — not leveled at 7000.
@@ -159,10 +157,8 @@ func TestCrossFixAtAltitude(t *testing.T) {
 	// "Cross DETGY at 8000" — controller raises the charted 7000
 	// restriction to 8000. The aircraft must level at 8000, not
 	// descend through to the charted 7000.
-	f.AfterTicks(1, func(f *FlightTest) {
-		ar := av.MakeAtAltitudeRestriction(8000)
-		f.nav.CrossFixAt("DETGY", &ar, nil, 0)
-	})
+	ar := av.MakeAtAltitudeRestriction(8000)
+	f.nav.CrossFixAt("DETGY", &ar, nil, 0)
 
 	f.AtFix("DETGY", func(f *FlightTest) {
 		f.AssertAltitudeNear(8000, 100)
@@ -224,12 +220,10 @@ func TestDescentContinuesAfterMissedRestriction(t *testing.T) {
 	// restriction). The geometric descent to HAUPT/6500 hasn't started
 	// yet. Without the fix, the aircraft levels at 7500. With the fix,
 	// the carried restriction from DETGY drives descent toward 7000.
-	betweenStart := 0
+	calls := 0
 	f.BetweenFixes("DETGY", "HAUPT", func(f *FlightTest) {
-		if betweenStart == 0 {
-			betweenStart = f.tick
-		}
-		if f.tick > betweenStart+20 {
+		calls++
+		if calls > 20 {
 			f.AssertDescending()
 		}
 	})
@@ -252,9 +246,7 @@ func TestSpeedAssignmentPausesDescentWhenLarge(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AssignAltitude(3000)
-	})
+	f.AssignAltitude(3000)
 
 	// Let descent start for a few ticks
 	f.AfterTicks(10, func(f *FlightTest) {
@@ -291,9 +283,7 @@ func TestSmallSpeedChangeDuringDescentContinues(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AssignAltitude(3000)
-	})
+	f.AssignAltitude(3000)
 
 	f.AfterTicks(10, func(f *FlightTest) {
 		f.AssertDescending()
@@ -329,10 +319,8 @@ func TestExpediteDescentThroughAltitude(t *testing.T) {
 		OnSTAR:           true,
 	})
 
-	f.AfterTicks(1, func(f *FlightTest) {
-		f.AssignAltitude(3000)
-		f.ExpediteDescentThrough(7000)
-	})
+	f.AssignAltitude(3000)
+	f.ExpediteDescentThrough(7000)
 
 	// Above 7000: rate should be expedite
 	f.AfterTicks(20, func(f *FlightTest) {
