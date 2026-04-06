@@ -5,6 +5,7 @@
 package nav
 
 import (
+	gomath "math"
 	"testing"
 
 	av "github.com/mmp/vice/aviation"
@@ -197,4 +198,132 @@ func TestDirectFixRevokesApproachClearance(t *testing.T) {
 	})
 
 	f.Run()
+}
+
+// TestThresholdOffset verifies that ThresholdOffset places points at the
+// correct distance and lateral offset from the runway threshold.
+func TestThresholdOffset(t *testing.T) {
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+
+	// On centerline: distance from threshold should match distNM.
+	for _, dist := range []float32{1, 5, 10, 20} {
+		pos := apg.ThresholdOffset(dist, 0)
+		got := math.NMDistance2LLFast(apg.Threshold, pos, apg.NmPerLongitude)
+		if gomath.Abs(float64(got-dist)) > 0.05 {
+			t.Errorf("ThresholdOffset(%.0f, 0): distance from threshold = %.3f nm, want ~%.0f",
+				dist, got, dist)
+		}
+	}
+
+	// On centerline: point should lie on the extended centerline.
+	for _, dist := range []float32{5, 10} {
+		pos := apg.ThresholdOffset(dist, 0)
+		posNM := math.LL2NM(pos, apg.NmPerLongitude)
+		threshNM := math.LL2NM(apg.Threshold, apg.NmPerLongitude)
+		// Use a second point on the centerline for the line.
+		pos2 := apg.ThresholdOffset(dist+1, 0)
+		pos2NM := math.LL2NM(pos2, apg.NmPerLongitude)
+		deviation := math.PointLineDistance(posNM, threshNM, pos2NM)
+		if deviation > 0.001 {
+			t.Errorf("ThresholdOffset(%.0f, 0): %.4f nm off centerline", dist, deviation)
+		}
+	}
+
+	// Lateral offset: distance from the on-course point should match |lateralNM|.
+	for _, tc := range []struct {
+		dist, lateral float32
+	}{
+		{10, 2},
+		{10, -2},
+		{5, 0.5},
+		{5, -0.5},
+	} {
+		onCourse := apg.ThresholdOffset(tc.dist, 0)
+		offset := apg.ThresholdOffset(tc.dist, tc.lateral)
+		lateralDist := math.NMDistance2LLFast(onCourse, offset, apg.NmPerLongitude)
+		want := float32(gomath.Abs(float64(tc.lateral)))
+		if gomath.Abs(float64(lateralDist-want)) > 0.05 {
+			t.Errorf("ThresholdOffset(%.0f, %.1f): lateral distance = %.3f nm, want ~%.1f",
+				tc.dist, tc.lateral, lateralDist, want)
+		}
+	}
+
+	// Sign convention: negative lateral = left of outbound.
+	// For KJFK 22L (runway heading ~224° true, outbound ~044°),
+	// left of outbound points roughly NW, right points SE.
+	left := apg.ThresholdOffset(10, -1)
+	right := apg.ThresholdOffset(10, 1)
+	onCourse := apg.ThresholdOffset(10, 0)
+
+	// Left and right should be on opposite sides of the centerline.
+	leftNM := math.LL2NM(left, apg.NmPerLongitude)
+	rightNM := math.LL2NM(right, apg.NmPerLongitude)
+	courseNM := math.LL2NM(onCourse, apg.NmPerLongitude)
+	threshNM := math.LL2NM(apg.Threshold, apg.NmPerLongitude)
+	sdLeft := math.SignedPointLineDistance(leftNM, threshNM, courseNM)
+	sdRight := math.SignedPointLineDistance(rightNM, threshNM, courseNM)
+	if math.Sign(sdLeft) == math.Sign(sdRight) {
+		t.Errorf("left (sd=%.3f) and right (sd=%.3f) should be on opposite sides of centerline",
+			sdLeft, sdRight)
+	}
+
+	// Perpendicularity: the on-course → offset vector should be ~90° from the course.
+	outbound := math.OppositeHeading(apg.RunwayHeading)
+	offsetHdg := math.Heading2LL(onCourse, right, apg.NmPerLongitude)
+	angleDiff := math.HeadingDifference(outbound, offsetHdg)
+	if gomath.Abs(float64(angleDiff)-90) > 1 {
+		t.Errorf("offset direction %.1f° differs from course %.1f° by %.1f° (want ~90°)",
+			float32(offsetHdg), float32(outbound), angleDiff)
+	}
+}
+
+// TestFAFOffset verifies that FAFOffset places points at the correct
+// distance and lateral offset from the FAF.
+func TestFAFOffset(t *testing.T) {
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+
+	// On centerline: distance from FAF should match distNM.
+	for _, dist := range []float32{1, 3, 5} {
+		pos := apg.FAFOffset(dist, 0)
+		got := math.NMDistance2LLFast(apg.FAFLocation, pos, apg.NmPerLongitude)
+		if gomath.Abs(float64(got-dist)) > 0.05 {
+			t.Errorf("FAFOffset(%.0f, 0): distance from FAF = %.3f nm, want ~%.0f",
+				dist, got, dist)
+		}
+	}
+
+	// Lateral offset magnitude.
+	for _, tc := range []struct {
+		dist, lateral float32
+	}{
+		{1, 0.3},
+		{1, -0.3},
+		{3, 1},
+	} {
+		onCourse := apg.FAFOffset(tc.dist, 0)
+		offset := apg.FAFOffset(tc.dist, tc.lateral)
+		lateralDist := math.NMDistance2LLFast(onCourse, offset, apg.NmPerLongitude)
+		want := float32(gomath.Abs(float64(tc.lateral)))
+		if gomath.Abs(float64(lateralDist-want)) > 0.05 {
+			t.Errorf("FAFOffset(%.0f, %.1f): lateral distance = %.3f nm, want ~%.1f",
+				tc.dist, tc.lateral, lateralDist, want)
+		}
+	}
+
+	// FAFOffset should use the same course as ThresholdOffset (outbound heading).
+	// A point at FAFOffset(0, 0) should be at the FAF location.
+	atFAF := apg.FAFOffset(0, 0)
+	fafDist := math.NMDistance2LLFast(apg.FAFLocation, atFAF, apg.NmPerLongitude)
+	if fafDist > 0.01 {
+		t.Errorf("FAFOffset(0, 0) is %.4f nm from FAF, want ~0", fafDist)
+	}
+
+	// FAF should lie on the extended centerline (same outbound course as threshold).
+	fafNM := math.LL2NM(apg.FAFLocation, apg.NmPerLongitude)
+	threshNM := math.LL2NM(apg.Threshold, apg.NmPerLongitude)
+	farNM := math.LL2NM(apg.ThresholdOffset(20, 0), apg.NmPerLongitude)
+	fafDeviation := math.PointLineDistance(fafNM, threshNM, farNM)
+	if fafDeviation > 0.1 {
+		t.Errorf("FAF is %.3f nm off extended centerline (want <0.1)", fafDeviation)
+	}
 }

@@ -65,6 +65,7 @@ type ArrivalConfig struct {
 	InitialSpeed     float32 // starting IAS in knots
 	AssignedAltitude float32 // 0 = none
 	ClearedAltitude  float32 // 0 = none
+	InitialHeading   float32 // 0 = compute from route, non-zero = start in heading mode
 	OnSTAR           bool    // set OnSTAR flag on all waypoints
 }
 
@@ -126,7 +127,9 @@ func NewArrivalFlight(t *testing.T, cfg ArrivalConfig) *FlightTest {
 
 	// Compute initial heading from first to second waypoint
 	var initialHeading math.MagneticHeading
-	if len(navWps) > 1 {
+	if cfg.InitialHeading != 0 {
+		initialHeading = math.MagneticHeading(cfg.InitialHeading)
+	} else if len(navWps) > 1 {
 		trueHdg := math.Heading2LL(navWps[0].Location, navWps[1].Location, nmPerLongitude)
 		initialHeading = math.TrueToMagnetic(trueHdg, magneticVariation)
 	}
@@ -163,6 +166,10 @@ func NewArrivalFlight(t *testing.T, cfg ArrivalConfig) *FlightTest {
 	if cfg.ClearedAltitude > 0 {
 		alt := cfg.ClearedAltitude
 		n.Altitude.Cleared = &alt
+	}
+	if cfg.InitialHeading != 0 {
+		hdg := math.MagneticHeading(cfg.InitialHeading)
+		n.Heading.Assigned = &hdg
 	}
 
 	return &FlightTest{
@@ -426,6 +433,25 @@ func (f *FlightTest) AssertOnExtendedCenterline(toleranceNM float32) {
 	}
 }
 
+// SignedCenterlineDistance returns the signed perpendicular distance (in nm)
+// from the aircraft to the approach extended centerline. Positive values
+// are to one side, negative to the other (consistent with
+// math.SignedPointLineDistance). Requires an approach to be assigned.
+func (f *FlightTest) SignedCenterlineDistance() float32 {
+	f.t.Helper()
+	ap := f.nav.Approach.Assigned
+	if ap == nil {
+		f.t.Fatalf("tick %d: SignedCenterlineDistance called with no approach assigned", f.tick)
+	}
+	nmPerLong := f.nav.FlightState.NmPerLongitude
+	magVar := f.nav.FlightState.MagneticVariation
+	cl := ap.ExtendedCenterline(nmPerLong, magVar)
+	acftNM := math.LL2NM(f.nav.FlightState.Position, nmPerLong)
+	cl0NM := math.LL2NM(cl[0], nmPerLong)
+	cl1NM := math.LL2NM(cl[1], nmPerLong)
+	return math.SignedPointLineDistance(acftNM, cl0NM, cl1NM)
+}
+
 // AssertUnable checks that the given CommandIntent is an UnableIntent.
 func AssertUnable(t *testing.T, intent av.CommandIntent) {
 	t.Helper()
@@ -600,7 +626,13 @@ func (f *FlightTest) SetWind(fromDir, speedKts float32) *FlightTest {
 type dbLocator struct{}
 
 func (dbLocator) Locate(fix string) (math.Point2LL, bool) {
-	return av.DB.LookupWaypoint(fix)
+	if p, ok := av.DB.LookupWaypoint(fix); ok {
+		return p, true
+	}
+	if p, err := math.ParseLatLong([]byte(fix)); err == nil {
+		return p, true
+	}
+	return math.Point2LL{}, false
 }
 
 func (dbLocator) Similar(fix string) []string { return nil }
@@ -628,4 +660,100 @@ func parseRoute(t *testing.T, s string) av.WaypointArray {
 		t.Fatalf("failed to resolve waypoint locations: %s", e.String())
 	}
 	return wps
+}
+
+// ApproachGeometry holds the essential geometric properties of an approach,
+// allowing tests to compute positions relative to the threshold or FAF.
+type ApproachGeometry struct {
+	Threshold         math.Point2LL
+	NmPerLongitude    float32
+	MagneticVariation float32
+	RunwayHeading     math.TrueHeading
+	FAFLocation       math.Point2LL
+}
+
+// LookupApproachGeometry resolves the named approach from the aviation
+// database, initializes its waypoint locations, and returns the geometry.
+func LookupApproachGeometry(t *testing.T, airport, approachID string) ApproachGeometry {
+	t.Helper()
+
+	faa, ok := av.DB.Airports[airport]
+	if !ok {
+		t.Fatalf("unknown airport %q", airport)
+	}
+
+	appr, ok := faa.Approaches[approachID]
+	if !ok {
+		t.Fatalf("unknown approach %q at %s", approachID, airport)
+	}
+
+	nmPerLong := math.NMPerLongitudeAt(faa.Location)
+	magVar, err := av.DB.MagneticGrid.Lookup(faa.Location)
+	if err != nil {
+		t.Fatalf("magnetic grid lookup failed: %v", err)
+	}
+
+	// Deep-copy and initialize waypoint locations.
+	a := appr
+	a.Waypoints = make([]av.WaypointArray, len(appr.Waypoints))
+	e := &util.ErrorLogger{}
+	for i, route := range appr.Waypoints {
+		a.Waypoints[i] = util.DuplicateSlice(route)
+		a.Waypoints[i] = a.Waypoints[i].InitializeLocations(dbLocator{}, nmPerLong, magVar, true, e)
+	}
+	if e.HaveErrors() {
+		t.Fatalf("failed to resolve approach waypoint locations: %s", e.String())
+	}
+
+	// Set threshold from runway data.
+	rwy, ok := av.LookupRunway(airport, a.Runway)
+	if !ok {
+		t.Fatalf("unknown runway %q at %s", a.Runway, airport)
+	}
+	a.Threshold = rwy.Threshold
+	if opp, ok := av.LookupOppositeRunway(airport, a.Runway); ok {
+		a.OppositeThreshold = opp.Threshold
+	}
+
+	rwyHdg := a.RunwayHeading(nmPerLong)
+
+	// Find FAF location.
+	var fafLoc math.Point2LL
+	if wps, idx := a.FAFSegment(nmPerLong, magVar); wps != nil {
+		fafLoc = wps[idx].Location
+	}
+
+	return ApproachGeometry{
+		Threshold:         a.Threshold,
+		NmPerLongitude:    nmPerLong,
+		MagneticVariation: magVar,
+		RunwayHeading:     rwyHdg,
+		FAFLocation:       fafLoc,
+	}
+}
+
+// ThresholdOffset returns a position at distNM along the outbound course
+// from the threshold, offset laterally by lateralNM. Positive lateral =
+// right of outbound, negative = left of outbound.
+func (g ApproachGeometry) ThresholdOffset(distNM, lateralNM float32) math.Point2LL {
+	outbound := math.OppositeHeading(g.RunwayHeading)
+	onCourse := math.Offset2LL(g.Threshold, outbound, distNM, g.NmPerLongitude)
+	if lateralNM == 0 {
+		return onCourse
+	}
+	perpRight := math.OffsetHeading(outbound, 90)
+	return math.Offset2LL(onCourse, perpRight, lateralNM, g.NmPerLongitude)
+}
+
+// FAFOffset returns a position at distNM along the outbound course from
+// the FAF, offset laterally by lateralNM. Positive lateral = right of
+// outbound, negative = left of outbound.
+func (g ApproachGeometry) FAFOffset(distNM, lateralNM float32) math.Point2LL {
+	outbound := math.OppositeHeading(g.RunwayHeading)
+	onCourse := math.Offset2LL(g.FAFLocation, outbound, distNM, g.NmPerLongitude)
+	if lateralNM == 0 {
+		return onCourse
+	}
+	perpRight := math.OffsetHeading(outbound, 90)
+	return math.Offset2LL(onCourse, perpRight, lateralNM, g.NmPerLongitude)
 }
