@@ -602,6 +602,11 @@ func (f *FlightTest) AtFixCleared(fix, approach string) {
 	f.nav.AtFixCleared(fix, approach)
 }
 
+func (f *FlightTest) InterceptApproach() {
+	f.t.Helper()
+	f.nav.InterceptApproach(f.fp.ArrivalAirport, nil)
+}
+
 // SetWind configures a constant wind from the given direction (degrees true)
 // at the given speed (knots). The wind is overlaid on standard atmosphere.
 func (f *FlightTest) SetWind(fromDir, speedKts float32) *FlightTest {

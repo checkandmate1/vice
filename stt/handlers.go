@@ -881,6 +881,13 @@ func registerAllCommands() {
 		WithName("at_fix_intercept_localizer_runway"),
 		WithPriority(16), // Higher priority for more specific match
 	)
+	// Non-ILS: "at FIX intercept the approach course"
+	registerSTTCommand(
+		"at {fix} intercept|join [the] [final] approach [course]",
+		func(fix string) string { return fmt.Sprintf("A%s/I", fix) },
+		WithName("at_fix_intercept_approach"),
+		WithPriority(15),
+	)
 
 	registerSTTCommand(
 		"expect [vectors] [for] [to] [the] {approach_lahso}",
@@ -985,13 +992,12 @@ func registerAllCommands() {
 		WithName("intercept_localizer"),
 		WithPriority(10),
 	)
-	// Pattern: "intercept the final approach course" - ATC equivalent of
-	// "intercept the localizer". Controllers sometimes say "final approach course"
-	// instead of "localizer" to mean the same thing.
+	// Pattern: "intercept the final approach course" / "intercept the approach" -
+	// ATC equivalent of "intercept the localizer". Used for both ILS and RNAV.
 	registerSTTCommand(
-		"intercept|join|set [the] final approach [course]",
+		"intercept|join|set [the] [final] approach [course]",
 		func() string { return "I" },
-		WithName("intercept_final_approach_course"),
+		WithName("intercept_approach_course"),
 		WithPriority(11),
 	)
 	// Pattern: standalone "localizer" without "intercept" keyword.

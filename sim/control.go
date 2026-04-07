@@ -1716,7 +1716,7 @@ func (s *Sim) ClearedApproach(tcw TCW, callsign av.ADSBCallsign, approach string
 		})
 }
 
-func (s *Sim) InterceptLocalizer(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+func (s *Sim) InterceptApproach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
@@ -3252,7 +3252,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 
 	case 'I':
 		if len(command) == 1 {
-			return s.InterceptLocalizer(tcw, callsign)
+			return s.InterceptApproach(tcw, callsign)
 		} else if command == "ID" {
 			return s.Ident(tcw, callsign)
 		} else {

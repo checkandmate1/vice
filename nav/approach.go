@@ -448,6 +448,7 @@ func (nav *Nav) AtFixIntercept(fix, airport string, lg *log.Logger) av.CommandIn
 		Type:         av.ApproachAtFixIntercept,
 		ApproachName: ap.FullName,
 		Fix:          fix,
+		HasLocalizer: ap.Type == av.ILSApproach || ap.Type == av.LocalizerApproach,
 	}
 }
 

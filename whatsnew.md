@@ -2,6 +2,7 @@
 - Navigation / flight model:
   - Handle "at or above/at or below" speed restrictions more reasonably (don't treat them all as "at")
   - Added support for intercepting RNAV t-segments
+  - Added support for "join the approach" for non-ILS/LOC approaches
 - Added multiple new control instructions:
   - "after FIX, climb/descend and maintain ALT"
   - "after FIX, reduce/maintain/increase SPEED"

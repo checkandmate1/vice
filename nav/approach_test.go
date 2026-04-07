@@ -209,6 +209,28 @@ func TestRNAVApproachViaHeading(t *testing.T) {
 	f.Run()
 }
 
+// TestRNAVInterceptNoDescent verifies that an aircraft given an intercept
+// command (without approach clearance) tracks the lateral course but does
+// not descend.
+func TestRNAVInterceptNoDescent(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "N040.55.22.265,W073.32.11.726",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KFRG",
+		AircraftType:     "A320",
+		InitialAltitude:  2500,
+		InitialSpeed:     180,
+		InitialHeading:   120,
+	})
+	f.ExpectApproach("R19")
+	f.InterceptApproach()
+
+	f.AtFix("MOIRE", func(f *FlightTest) {
+		f.AssertAltitudeNear(2500, 50)
+	})
+	f.Run()
+}
+
 // TestLocalizerFlythroughSteepIntercept verifies that an aircraft on a
 // heading that creates a >45° intercept angle is detected as an overshoot
 // after it flies through the localizer, and requests vectors (since the

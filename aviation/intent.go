@@ -640,6 +640,7 @@ type ApproachIntent struct {
 	ApproachName string // full name of the approach (e.g., "ILS Runway 22L")
 	Fix          string // for AtFixCleared
 	LAHSORunway  string // runway to hold short of (for LAHSO operations)
+	HasLocalizer bool
 }
 
 func (a ApproachIntent) Render(rt *RadioTransmission, r *rand.Rand) {
@@ -656,7 +657,11 @@ func (a ApproachIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	case ApproachAtFixCleared:
 		rt.Add("at {fix} cleared {appr}", a.Fix, a.ApproachName)
 	case ApproachAtFixIntercept:
-		rt.Add("[intercept at {fix}|at {fix} intercept the localizer|at {fix} join the localizer]", a.Fix)
+		if a.HasLocalizer {
+			rt.Add("[intercept at {fix}|at {fix} intercept the localizer|at {fix} join the localizer]", a.Fix)
+		} else {
+			rt.Add("[intercept at {fix}|at {fix} intercept the approach course|at {fix} join the approach course]", a.Fix)
+		}
 	case ApproachCancel:
 		rt.Add("cancel approach clearance")
 	}
