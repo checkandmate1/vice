@@ -68,6 +68,13 @@ type Nav struct {
 	Rand *rand.Rand
 }
 
+type contactCrossingRestriction struct {
+	Fix            string
+	AltRestriction *av.AltitudeRestriction
+	Speed          *av.SpeedRestriction
+	Mach           *float32
+}
+
 // DeferredNavHeading stores a heading assignment from the controller and the
 // time at which to start executing it; this time is set to be a few
 // seconds after the controller issues it in order to model the delay
@@ -885,7 +892,7 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 	var resp av.RadioTransmission
 
 	// Find the first applicable fix assignment for reporting
-	fixName, fixAlt := nav.firstFixAssignment()
+	crossing := nav.firstCrossingRestriction()
 
 	if isDeparture && reportHeading {
 		// Departure with varied headings
@@ -897,17 +904,17 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 			resp.Add("[turning to|about to turn to] [heading|] {hdg}", hdg)
 		}
 		// Add altitude after heading for departures
-		nav.addContactAltitude(&resp, star, fixName, fixAlt)
+		nav.addContactAltitude(&resp, star, crossing)
 	} else if hdg, ok := nav.AssignedHeading(); ok && reportHeading {
 		// Being vectored - heading + altitude
 		resp.Add("[heading {hdg}|on a {hdg} heading]", hdg)
-		nav.addContactAltitude(&resp, "", fixName, fixAlt)
+		nav.addContactAltitude(&resp, "", crossing)
 	} else if star != "" {
 		// On a STAR
-		nav.addStarAltitude(&resp, star, fixName, fixAlt)
+		nav.addStarAltitude(&resp, star, crossing)
 	} else {
 		// Simple altitude
-		nav.addContactAltitude(&resp, "", fixName, fixAlt)
+		nav.addContactAltitude(&resp, "", crossing)
 	}
 
 	// Runway assignment
@@ -929,33 +936,36 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 	return &resp
 }
 
-// firstFixAssignment finds the first controller-assigned crossing restriction
-// in the remaining waypoints. Returns the fix name and altitude, or empty/0
-// if none.
-func (nav *Nav) firstFixAssignment() (string, float32) {
-	for _, wp := range nav.Waypoints {
-		if fa, ok := nav.FixAssignments[wp.Fix]; ok && fa.Arrive.Altitude != nil {
-			// Use the floor; upgrade to the ceiling if one is set.
-			alt := fa.Arrive.Altitude.Range[0]
-			if fa.Arrive.Altitude.Range[1] != av.MaxAltitude {
-				alt = fa.Arrive.Altitude.Range[1]
-			}
-			return wp.Fix, alt
+// firstCrossingRestriction finds the first controller-assigned crossing
+// restriction in the remaining waypoints.
+func (nav *Nav) firstCrossingRestriction() *contactCrossingRestriction {
+	for _, wp := range nav.AssignedWaypoints() {
+		fa, ok := nav.FixAssignments[wp.Fix]
+		if !ok || (fa.Arrive.Altitude == nil && fa.Arrive.Speed == nil && fa.Arrive.Mach == nil) {
+			continue
+		}
+
+		return &contactCrossingRestriction{
+			Fix:            wp.Fix,
+			AltRestriction: fa.Arrive.Altitude,
+			Speed:          fa.Arrive.Speed,
+			Mach:           fa.Arrive.Mach,
 		}
 	}
-	return "", 0
+	return nil
 }
 
 // addStarAltitude adds combined STAR + altitude phraseology.
-func (nav *Nav) addStarAltitude(rt *av.RadioTransmission, star string, fixName string, fixAlt float32) {
+func (nav *Nav) addStarAltitude(rt *av.RadioTransmission, star string, crossing *contactCrossingRestriction) {
 	hasAltRestrictions := nav.procedureHasAltRestrictions(false)
 	cur := nav.FlightState.Altitude
 	descending := nav.Altitude.Assigned == nil && hasAltRestrictions
 
-	if descending && fixName != "" {
+	if descending && crossing != nil && crossing.AltRestriction != nil {
 		// Descending via STAR with a controller fix assignment exception
-		rt.Add("[leaving|out of] {alt} descending via [the|] {star} [arrival|] except [to cross|crossing] {fix} at {alt}",
-			cur, star, fixName, fixAlt)
+		format, args := crossingInstructionFormat(crossing, crossingAltitude(crossing), true)
+		rt.Add("[leaving|out of] {alt} descending via [the|] {star} [arrival|] except "+format,
+			append([]any{cur, star}, args...)...)
 	} else if descending {
 		// Descending via STAR, no override
 		rt.Add("[leaving|out of] {alt} descending via the {star} [arrival|]", cur, star)
@@ -966,15 +976,21 @@ func (nav *Nav) addStarAltitude(rt *av.RadioTransmission, star string, fixName s
 		// On STAR at altitude
 		rt.Add("on the {star} [at|] {alt}", star, cur)
 	}
+
+	if crossing != nil && crossing.AltRestriction == nil {
+		format, args := crossingInstructionFormat(crossing, 0, false)
+		rt.Add(format, args...)
+	}
 }
 
 // addContactAltitude adds altitude phraseology for non-STAR contexts (vectored, departures, etc.).
-func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, fixName string, fixAlt float32) {
+func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, crossing *contactCrossingRestriction) {
 	cur := nav.FlightState.Altitude
 
-	if fixName != "" && star == "" {
+	if crossing != nil && crossing.AltRestriction != nil && star == "" {
 		// Fix crossing restriction without a STAR
-		rt.Add("[leaving|out of] {alt} [to cross|crossing] {fix} at {alt}", cur, fixName, fixAlt)
+		format, args := crossingInstructionFormat(crossing, crossingAltitude(crossing), true)
+		rt.Add("[leaving|out of] {alt} "+format, append([]any{cur}, args...)...)
 	} else if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != cur {
 		nav.addAltitudePhrasing(rt, *nav.Altitude.Assigned)
 	} else if target, ok := nav.findAltitudeTarget(); ok {
@@ -990,6 +1006,54 @@ func (nav *Nav) addContactAltitude(rt *av.RadioTransmission, star string, fixNam
 	} else {
 		rt.Add("[at|] {alt}", cur)
 	}
+
+	if crossing != nil && crossing.AltRestriction == nil {
+		format, args := crossingInstructionFormat(crossing, 0, false)
+		rt.Add(format, args...)
+	}
+}
+
+func crossingAltitude(crossing *contactCrossingRestriction) float32 {
+	alt := crossing.AltRestriction.Range[0]
+	if crossing.AltRestriction.Range[1] != av.MaxAltitude {
+		alt = crossing.AltRestriction.Range[1]
+	}
+	return alt
+}
+
+func crossingInstructionFormat(crossing *contactCrossingRestriction, altitude float32, includeAltitude bool) (string, []any) {
+	targetFmt := "{fix}"
+	speedFmt, speedArgs := crossingSpeedFormat(crossing)
+
+	var format string
+	args := []any{crossing.Fix}
+	if includeAltitude {
+		format = "[to cross|crossing] " + targetFmt + " at {alt}" + speedFmt
+		args = append(args, altitude)
+	} else {
+		format = "[to cross|crossing] " + targetFmt + speedFmt
+	}
+	args = append(args, speedArgs...)
+	return format, args
+}
+
+func crossingSpeedFormat(crossing *contactCrossingRestriction) (string, []any) {
+	if crossing.Speed != nil {
+		if spd, exact := crossing.Speed.ExactValue(); exact {
+			return " and {spd}", []any{spd}
+		}
+		if crossing.Speed.Range[0] > 0 && crossing.Speed.Range[1] == av.MaxSpeed {
+			return " at {spd} or greater", []any{crossing.Speed.Range[0]}
+		}
+		if crossing.Speed.Range[0] == 0 && crossing.Speed.Range[1] < av.MaxSpeed {
+			return " at {spd} or less", []any{crossing.Speed.Range[1]}
+		}
+		return " between {spd} and {spd}", []any{crossing.Speed.Range[0], crossing.Speed.Range[1]}
+	}
+	if crossing.Mach != nil {
+		return " and {mach}", []any{*crossing.Mach}
+	}
+	return "", nil
 }
 
 func (nav *Nav) rateSummary() string {

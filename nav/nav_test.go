@@ -9,6 +9,7 @@ import (
 	gomath "math"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -180,6 +181,44 @@ func NewArrivalFlight(t *testing.T, cfg ArrivalConfig) *FlightTest {
 		simTime:  NewTime(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)),
 		maxTicks: 7200,
 		weather:  func(alt float32) wx.Sample { return wx.MakeStandardSampleForAltitude(alt) },
+	}
+}
+
+func TestContactMessageIncludesCrossFixAltitude(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	ar := av.MakeAtAltitudeRestriction(8000)
+	f.nav.CrossFixAt("DETGY", &ar, nil, 0)
+
+	written := strings.ToLower(f.nav.ContactMessage(nil, "", "", false, false).Written(f.nav.Rand))
+	if !strings.Contains(written, "cross") || !strings.Contains(written, "detgy") || !strings.Contains(written, "8,000") {
+		t.Fatalf("contact message missing cross-fix altitude restriction: %q", written)
+	}
+}
+
+func TestContactMessageIncludesCrossFixSpeed(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	sr := av.MakeAtSpeedRestriction(230)
+	f.nav.CrossFixAt("DETGY", nil, &sr, 0)
+
+	written := strings.ToLower(f.nav.ContactMessage(nil, "", "", false, false).Written(f.nav.Rand))
+	if !strings.Contains(written, "cross") || !strings.Contains(written, "detgy") || !strings.Contains(written, "230 knots") {
+		t.Fatalf("contact message missing cross-fix speed restriction: %q", written)
 	}
 }
 
