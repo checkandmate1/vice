@@ -187,6 +187,28 @@ func TestDirectFixRevokesApproachClearance(t *testing.T) {
 	f.Run()
 }
 
+// TestRNAVApproachViaHeading verifies that an aircraft on a heading can
+// intercept the T-leg of an RNAV approach (BLINZ→DEBYE) and descend
+// when cleared.
+func TestRNAVApproachViaHeading(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "N040.55.22.265,W073.32.11.726",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KFRG",
+		AircraftType:     "A320",
+		InitialAltitude:  2500,
+		InitialSpeed:     180,
+		InitialHeading:   120,
+	})
+	f.ExpectApproach("R19")
+	f.ClearedApproach("R19")
+
+	f.AtFix("MOIRE", func(f *FlightTest) {
+		f.AssertAltitudeNear(1500, 200)
+	})
+	f.Run()
+}
+
 // TestLocalizerFlythroughSteepIntercept verifies that an aircraft on a
 // heading that creates a >45° intercept angle is detected as an overshoot
 // after it flies through the localizer, and requests vectors (since the

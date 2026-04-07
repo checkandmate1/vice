@@ -214,7 +214,9 @@ type NavApproach struct {
 	PassedFAF                   bool
 	NoPT                        bool
 	AtFixClearedRoute           []av.Waypoint
-	AtFixInterceptFix           string // fix where aircraft should intercept the localizer
+	AtFixInterceptFix           string           // fix where aircraft should intercept the localizer
+	InterceptCourseLine         [2]math.Point2LL // cached course line for non-ILS intercepts
+	InterceptWaypoints          []av.Waypoint    // cached remaining waypoints for non-ILS intercepts
 }
 
 type NavFixAssignment struct {
@@ -584,6 +586,16 @@ func (nav *Nav) OnApproach(checkAltitude bool) bool {
 	return false
 }
 
+// onCourseLine checks if the flight position is less than maxNmDeviation
+// from the infinite line defined by the two given points.
+func (nav *Nav) onCourseLine(line [2]math.Point2LL, maxNmDeviation float32) bool {
+	distance := math.PointLineDistance(
+		math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude),
+		math.LL2NM(line[0], nav.FlightState.NmPerLongitude),
+		math.LL2NM(line[1], nav.FlightState.NmPerLongitude))
+	return distance < maxNmDeviation
+}
+
 // OnExtendedCenterline checks if the flight position is less than maxNmDeviation
 // from the infinite line defined by the assigned approach localizer
 func (nav *Nav) OnExtendedCenterline(maxNmDeviation float32) bool {
@@ -593,12 +605,7 @@ func (nav *Nav) OnExtendedCenterline(maxNmDeviation float32) bool {
 	}
 
 	cl := approach.ExtendedCenterline(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-	distance := math.PointLineDistance(
-		math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude),
-		math.LL2NM(cl[0], nav.FlightState.NmPerLongitude),
-		math.LL2NM(cl[1], nav.FlightState.NmPerLongitude))
-
-	return distance < maxNmDeviation
+	return nav.onCourseLine(cl, maxNmDeviation)
 }
 
 ///////////////////////////////////////////////////////////////////////////
