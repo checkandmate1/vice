@@ -442,6 +442,15 @@ func (g *glfwPlatform) PostRender() {
 }
 
 func (g *glfwPlatform) MakeContextCurrent() {
+	defer func() {
+		if r := recover(); r != nil {
+			// The GLFW Go bindings queue errors in a channel and
+			// panic on the next GLFW call if the error wasn't
+			// consumed. Clipboard FormatUnavailable errors on
+			// Windows can leak through imgui's internal GLFW calls
+			// and surface here.
+		}
+	}()
 	g.window.MakeContextCurrent()
 }
 
@@ -607,7 +616,15 @@ type glfwClipboard struct {
 	window *glfw.Window
 }
 
-func (cb glfwClipboard) GetClipboard() string {
+func (cb glfwClipboard) GetClipboard() (result string) {
+	defer func() {
+		if r := recover(); r != nil {
+			// On Windows, the GLFW clipboard can panic with
+			// FormatUnavailable if the clipboard contents can't be
+			// converted to a string (e.g., an image is copied).
+			result = ""
+		}
+	}()
 	return cb.window.GetClipboardString()
 }
 
