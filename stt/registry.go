@@ -90,6 +90,7 @@ func WithSayAgainMinTokens(n int) CommandOption {
 //   - `{sid}` - SID name
 //   - `{star}` - STAR name
 //   - `{num:min-max}` - Number in range
+//   - `{compass_dir}` - Cardinal/ordinal direction (returns short form: N/S/E/W/NE/NW/SE/SW)
 //   - `{skip}` - Skip tokens until next matcher
 //   - `[word {type}]` - Optional section with typed param (param is *T, nil if absent)
 //

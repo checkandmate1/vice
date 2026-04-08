@@ -4,6 +4,42 @@ import (
 	"testing"
 )
 
+func TestCompassDirParser(t *testing.T) {
+	p := &compassDirParser{}
+	tests := []struct {
+		name     string
+		token    Token
+		expected string
+		ok       bool
+	}{
+		{name: "cardinal", token: Token{Text: "west", Type: TokenWord}, expected: "W", ok: true},
+		{name: "ordinal", token: Token{Text: "southwest", Type: TokenWord}, expected: "SW", ok: true},
+		{name: "invalid", token: Token{Text: "detgy", Type: TokenWord}, ok: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, consumed, _ := p.parse([]Token{tt.token}, 0, Aircraft{})
+			if tt.ok {
+				if consumed != 1 {
+					t.Fatalf("consumed = %d, want 1", consumed)
+				}
+				got, ok := value.(string)
+				if !ok {
+					t.Fatalf("value type = %T, want string", value)
+				}
+				if got != tt.expected {
+					t.Fatalf("got %q, want %q", got, tt.expected)
+				}
+			} else {
+				if value != nil || consumed != 0 {
+					t.Fatalf("expected no match, got value=%v consumed=%d", value, consumed)
+				}
+			}
+		})
+	}
+}
+
 func TestExtractFixFromCrossCommand(t *testing.T) {
 	tests := []struct {
 		cmd      string
@@ -13,6 +49,7 @@ func TestExtractFixFromCrossCommand(t *testing.T) {
 		{"CJOBAS/A57+", "JOBAS"},
 		{"CROSLY/S250", "ROSLY"},
 		{"CROSLY/M80", "ROSLY"},
+		{"CDETGY/5W/A30", "DETGY"},
 		// Not cross-fix commands
 		{"C90", ""},    // climb command (no slash)
 		{"CI9L", ""},   // cleared approach (no slash)
@@ -41,6 +78,7 @@ func TestExtractCrossAltitude(t *testing.T) {
 		{"CROSLY/A60", 60},
 		{"CJOBAS/A57+", 57},
 		{"CROSLY/A30-", 30},
+		{"CDETGY/5W/A30", 30},
 		{"CROSLY/S250", 0}, // speed, not altitude
 		{"CROSLY/M80", 0},  // mach, not altitude
 		{"C90", 0},         // no slash
@@ -166,6 +204,16 @@ func TestCoalesceAfterFixAltitudes(t *testing.T) {
 			name:     "single command unchanged",
 			input:    []string{"CROSLY/A60"},
 			expected: []string{"CROSLY/A60"},
+		},
+		{
+			name:     "cross distance then descend unchanged",
+			input:    []string{"CDETGY/5W/A30", "D20"},
+			expected: []string{"CDETGY/5W/A30", "D20"},
+		},
+		{
+			name:     "cross fix altitude and speed still coalesces",
+			input:    []string{"CROSLY/A60/S250", "D20"},
+			expected: []string{"CROSLY/A60/S250", "AROSLY/D20"},
 		},
 	}
 	for _, tt := range tests {

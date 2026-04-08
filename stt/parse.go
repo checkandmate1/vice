@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	av "github.com/mmp/vice/aviation"
 )
 
 // ParseCommands parses tokens into a sequence of commands using the registered command templates.
@@ -367,7 +369,7 @@ func tryImplicitApproachMatch(tokens []Token, ac Aircraft) (string, int) {
 // altitude assignment.
 func coalesceAfterFixAltitudes(commands []string) []string {
 	for i := 0; i+1 < len(commands); i++ {
-		fix := extractFixFromCrossCommand(commands[i])
+		fix := extractPlainCrossFixTarget(commands[i])
 		if fix == "" {
 			continue
 		}
@@ -379,6 +381,20 @@ func coalesceAfterFixAltitudes(commands []string) []string {
 		}
 	}
 	return commands
+}
+
+func extractPlainCrossFixTarget(cmd string) string {
+	if !strings.HasPrefix(cmd, "C") {
+		return ""
+	}
+	parts := strings.Split(cmd, "/")
+	if len(parts) < 2 {
+		return ""
+	}
+	if _, _, err := av.ParseDistanceDirection(parts[1]); err == nil {
+		return ""
+	}
+	return extractFixFromCrossCommand(cmd)
 }
 
 // extractFixFromCrossCommand extracts the fix name from a cross-fix command
@@ -401,15 +417,17 @@ func extractFixFromCrossCommand(cmd string) string {
 // extractCrossAltitude returns the altitude from a cross-fix command like
 // "CROSLY/A60" → 60, "CROSLY/A57+" → 57. Returns 0 if no altitude found.
 func extractCrossAltitude(cmd string) int {
-	_, after, found := strings.Cut(cmd, "/")
-	if !found || len(after) < 2 || after[0] != 'A' {
-		return 0
-	}
-	// Strip trailing +/- modifier
-	numStr := after[1:]
-	numStr = strings.TrimRight(numStr, "+-")
-	if IsNumber(numStr) {
-		return ParseNumber(numStr)
+	parts := strings.Split(cmd, "/")
+	for _, part := range parts[1:] {
+		if len(part) < 2 || part[0] != 'A' {
+			continue
+		}
+		// Strip trailing +/- modifier
+		numStr := part[1:]
+		numStr = strings.TrimRight(numStr, "+-")
+		if IsNumber(numStr) {
+			return ParseNumber(numStr)
+		}
 	}
 	return 0
 }

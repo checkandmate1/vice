@@ -797,6 +797,51 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [and] [maintain] {altitude_fl}",
+		func(dist int, dir string, fix string, alt int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d", fix, dist, dir, alt)
+		},
+		WithName("cross_distance_direction_fix_altitude"),
+		WithPriority(14),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] {speed}",
+		func(dist int, dir string, fix string, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/S%d", fix, dist, dir, spd)
+		},
+		WithName("cross_distance_direction_fix_speed"),
+		WithPriority(14),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] {speed} or greater|better",
+		func(dist int, dir string, fix string, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/S%d+", fix, dist, dir, spd)
+		},
+		WithName("cross_distance_direction_fix_speed_or_greater"),
+		WithPriority(16),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [or] [and|at] [do] not [to] exceed {speed}",
+		func(dist int, dir string, fix string, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/S%d-", fix, dist, dir, spd)
+		},
+		WithName("cross_distance_direction_fix_do_not_exceed"),
+		WithPriority(16),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] mach [point] {mach}",
+		func(dist int, dir string, fix string, mach int) string {
+			return fmt.Sprintf("C%s/%d%s/M%d", fix, dist, dir, mach)
+		},
+		WithName("cross_distance_direction_fix_mach"),
+		WithPriority(14),
+	)
+
+	registerSTTCommand(
 		"depart {fix} [heading] {heading}",
 		func(fix string, hdg int) string { return fmt.Sprintf("D%s/H%03d", fix, hdg) },
 		WithName("depart_fix_heading"),

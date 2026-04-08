@@ -2013,6 +2013,24 @@ func TestParseCommandsBasic(t *testing.T) {
 			expected: []string{"GR100"},
 		},
 		{
+			name: "cross distance direction altitude",
+			tokens: []Token{
+				{Text: "cross", Type: TokenWord},
+				{Text: "5", Type: TokenNumber, Value: 5},
+				{Text: "miles", Type: TokenWord},
+				{Text: "west", Type: TokenWord},
+				{Text: "of", Type: TokenWord},
+				{Text: "detgy", Type: TokenWord},
+				{Text: "maintain", Type: TokenWord},
+				{Text: "30", Type: TokenAltitude, Value: 30},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				Fixes: map[string]string{"detgy": "DETGY"},
+			},
+			expected: []string{"CDETGY/5W/A30"},
+		},
+		{
 			name:     "empty tokens",
 			tokens:   []Token{},
 			ac:       Aircraft{State: "arrival"},

@@ -935,6 +935,36 @@ func (p *contactFrequencyParser) parse(tokens []Token, pos int, ac Aircraft) (an
 	return nil, 0, ""
 }
 
+// compassDirParser extracts a cardinal/ordinal compass direction.
+// Matches: north, south, east, west, northeast, northwest, southeast, southwest.
+// Returns the short abbreviation (N, S, E, W, NE, NW, SE, SW) as a string.
+type compassDirParser struct{}
+
+func (p *compassDirParser) identifier() string   { return "compass_dir" }
+func (p *compassDirParser) goType() reflect.Type { return reflect.TypeOf("") }
+
+var compassDirections = map[string]string{
+	"north": "N", "south": "S", "east": "E", "west": "W",
+	"northeast": "NE", "northwest": "NW", "southeast": "SE", "southwest": "SW",
+}
+
+func (p *compassDirParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, string) {
+	if pos >= len(tokens) {
+		return nil, 0, ""
+	}
+	text := strings.ToLower(tokens[pos].Text)
+	if short, ok := compassDirections[text]; ok {
+		return short, 1, ""
+	}
+	// Fuzzy match
+	for long, short := range compassDirections {
+		if len(text) >= 3 && FuzzyMatch(text, long, 0.80) {
+			return short, 1, ""
+		}
+	}
+	return nil, 0, ""
+}
+
 // getTypeParser returns the appropriate parser for a type identifier.
 func getTypeParser(typeID string) typeParser {
 	switch typeID {
@@ -978,6 +1008,8 @@ func getTypeParser(typeID string) typeParser {
 		return &contactFrequencyParser{}
 	case "standalone_altitude":
 		return &standaloneAltitudeParser{}
+	case "compass_dir":
+		return &compassDirParser{}
 	default:
 		// Check for range pattern: num:min-max
 		if strings.HasPrefix(typeID, "num:") {
