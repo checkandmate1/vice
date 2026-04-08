@@ -7,6 +7,7 @@
   - "after FIX, climb/descend and maintain ALT"
   - "after FIX, reduce/maintain/increase SPEED"
   - "speed SPEED1 until FIX1, then SPEED2 until FIX2, then SPEED3", etc.
+  - "cross {fix} {miles} miles {direction} of {fix}"
   - "good rate" for climbs/descents: "descend and maintain 3,000, good rate through 5,000", etc.
   - optional altitudes to expedite to: "expedite through 5,000", etc.
   - Fixed bugs with aircraft on approach not descending as much as they should.

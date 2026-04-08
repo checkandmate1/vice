@@ -699,6 +699,17 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                     <td><code>CCAMRN/A110+</code></td>
                   </tr>
                   <tr>
+                    <td><code>C</code><i>fix</i><code>/</code><i>dist</i><i>dir</i><code>/A</code><i>altitude</i><code>/S</code><i>speed</i><code>/M</code><i>mach</i></td>
+                    <td><p>Directs the aircraft to cross a point a given distance and direction from the fix at the
+                      given altitude, speed, and/or mach. The direction is specified as
+                      <code>N</code>, <code>S</code>, <code>E</code>, <code>W</code>,
+                      <code>NE</code>, <code>NW</code>, <code>SE</code>, or <code>SW</code>.
+                      Any combination of <code>A</code>, <code>S</code>, and <code>M</code>
+                      may be specified, just like the regular cross-fix command.
+                      For example, <code>CDETGY/5W/A30</code> means "cross 5 miles west of DETGY at 3,000."</p></td>
+                    <td><code>CDETGY/5W/A30</code></td>
+                  </tr>
+                  <tr>
                     <td><code>CVS</code></td>
                     <td>Directs a departure to "climb via the SID".</td>
                     <td><code>CVS</code></td>
@@ -1110,7 +1121,8 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                 </tr>
                 <tr><td>Altitude at Fix</td>
                   <td>
-                    <i>Cross (fix) at (altitude)</i> /  <i>Cross (fix) at or above (altitude)</i>
+                    <i>Cross (fix) at (altitude)</i> /  <i>Cross (fix) at or above (altitude)</i> /
+                    <i>Cross (distance) miles (direction) of (fix) at (altitude)</i>
                   </td>
                 </tr>
                 <tr><td>Altitude after Speed</td>
@@ -1210,7 +1222,9 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                 </tr>
                 <tr><td>Speed at Fix</td>
                   <td>
-                    <i>Cross (fix) at (speed) knots</i> / <i>Cross (fix) at Mach (mach)</i>
+                    <i>Cross (fix) at (speed) knots</i> / <i>Cross (fix) at Mach (mach)</i> /
+                    <i>Cross (distance) miles (direction) of (fix) at (speed) knots</i> /
+                    <i>Cross (distance) miles (direction) of (fix) at Mach (mach)</i>
                   </td>
                 </tr>
                 <tr><td>Speed after Fix</td>

@@ -475,6 +475,8 @@ var secondaryAcCommands = [][3]string{
 		`"Hold at _fix_ (controller-specified)." Options: *L*/*R* (turns), *xxNM*/*xxM* (legs), *Rxxx* (radial, req'd).`, "*HJIMEE/L/5NM/R090*"},
 	{"*C_fix*/A_alt*/S_kts*/M_mach*",
 		`"Cross _fix_ at _alt_ / _kts_ knots / mach." Any combination of *A*, *S*, and *M* may be specified.`, "*CCAMRN/A110+*"},
+	{"*C_fix*/_dist__dir*/A_alt*/S_kts*/M_mach*",
+		`"Cross _dist_ miles _dir_ of _fix_ at _alt_ / _kts_ knots / mach." _dir_ is N/S/E/W/NE/NW/SE/SW.`, "*CDETGY/5W/A30*"},
 	{"*ED[_alt]*", `"Expedite descent", optionally through an altitude.`, "*ED*, *ED50*"},
 	{"*EC[_alt]*", `"Expedite climb", optionally through an altitude.`, "*EC*, *EC50*"},
 	{"*GRD*/*GRC*", `"Good rate" descent/climb. Faster than normal, not as fast as expedite.`, "*GRD*"},
