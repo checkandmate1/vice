@@ -63,12 +63,11 @@ func (nav *Nav) assignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 	// defer the speed assignment until after the altitude change completes.
 	if sr := nav.Speed.Assigned; sr != nil {
 		if spd, exact := sr.ExactValue(); exact &&
-			(nav.Speed.Mach || math.Abs(spd-nav.FlightState.IAS) >= 20) {
+			(sr.IsMach || math.Abs(spd-nav.FlightState.IAS) >= 20) {
 			srCopy := *sr
 			nav.Speed = NavSpeed{
 				AfterAltitude:         &srCopy,
 				AfterAltitudeAltitude: &alt,
-				Mach:                  nav.Speed.Mach,
 			}
 		}
 	}
@@ -90,16 +89,15 @@ func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp av.Temperature
 	} else if afterAltitude && nav.Altitude.Assigned != nil &&
 		*nav.Altitude.Assigned != nav.FlightState.Altitude {
 		alt := *nav.Altitude.Assigned
-		sr := av.MakeAtSpeedRestriction(mach)
+		sr := av.MakeMachRestriction(mach)
 		nav.Speed = NavSpeed{
 			AfterAltitude:         &sr,
 			AfterAltitudeAltitude: &alt,
-			Mach:                  true,
 		}
 		return av.SpeedIntent{Speed: mach, AfterAltitude: &alt, Type: av.SpeedAssign, Mach: true}
 	} else {
-		sr := av.MakeAtSpeedRestriction(mach)
-		nav.Speed = NavSpeed{Assigned: &sr, Mach: true}
+		sr := av.MakeMachRestriction(mach)
+		nav.Speed = NavSpeed{Assigned: &sr}
 		// If there's an active altitude change and this is a significant speed change, defer the
 		// altitude until after the Mach speed change completes.
 		tas := av.MachToTAS(mach, temp)
@@ -249,7 +247,7 @@ func (nav *Nav) SaySpeed(temp av.Temperature) av.CommandIntent {
 func (nav *Nav) SayIndicatedSpeed() av.CommandIntent {
 	currentSpeed := nav.FlightState.IAS
 	intent := av.ReportSpeedIntent{Current: currentSpeed}
-	if sr := nav.Speed.Assigned; sr != nil && !nav.Speed.Mach {
+	if sr := nav.Speed.Assigned; sr != nil && !sr.IsMach {
 		if spd, exact := sr.ExactValue(); exact {
 			intent.Assigned = &spd
 		}
@@ -271,7 +269,7 @@ func (nav *Nav) SayMach(temp av.Temperature) av.CommandIntent {
 	}
 	currentMach := nav.Mach(temp)
 	intent := av.ReportMachIntent{Current: currentMach}
-	if sr := nav.Speed.Assigned; sr != nil && nav.Speed.Mach {
+	if sr := nav.Speed.Assigned; sr != nil && sr.IsMach {
 		if mach, exact := sr.ExactValue(); exact {
 			intent.Assigned = &mach
 		}
@@ -735,7 +733,7 @@ func (nav *Nav) DepartFixHeading(fix string, hdg math.MagneticHeading) av.Comman
 	}
 }
 
-func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction, mach float32) av.CommandIntent {
+func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction) av.CommandIntent {
 	if !nav.fixInRoute(fix) {
 		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
 	}
@@ -754,15 +752,15 @@ func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedR
 	}
 	if sr != nil {
 		nfa.Arrive.Speed = sr
-		naturalIAS, _ := nav.targetAltitudeIAS()
-		s := nav.restrictedSpeed(sr, naturalIAS)
-		intent.Speed = &s
+		if sr.IsMach {
+			intent.SpeedRestriction = sr
+		} else {
+			naturalIAS, _ := nav.targetAltitudeIAS()
+			s := nav.restrictedSpeed(sr, naturalIAS)
+			intentSpeed := av.MakeAtSpeedRestriction(s)
+			intent.SpeedRestriction = &intentSpeed
+		}
 		// Delete other speed restrictions
-		nav.Speed = NavSpeed{}
-	} else if mach != 0 {
-		m := float32(mach)
-		nfa.Arrive.Mach = &m
-		intent.Mach = &m
 		nav.Speed = NavSpeed{}
 	}
 	nav.FixAssignments[fix] = nfa

@@ -568,16 +568,15 @@ const (
 
 // NavigationIntent represents navigation commands (direct, hold, depart fix, etc.)
 type NavigationIntent struct {
-	Type           NavigationType
-	Fix            string
-	SecondFix      string               // for DepartFixDirect
-	Heading        math.MagneticHeading // for DepartFixHeading
-	Turn           TurnDirection        // for NavDirectFix / NavDirectFixFromHold
-	HoldDirection  string               // "left" or "right" for holds
-	HoldLegLength  string               // e.g., "2 mile" or "1 minute"
-	AltRestriction *AltitudeRestriction // for CrossFixAt
-	Speed          *float32             // for CrossFixAt
-	Mach           *float32             // for CrossFixAt
+	Type             NavigationType
+	Fix              string
+	SecondFix        string               // for DepartFixDirect
+	Heading          math.MagneticHeading // for DepartFixHeading
+	Turn             TurnDirection        // for NavDirectFix / NavDirectFixFromHold
+	HoldDirection    string               // "left" or "right" for holds
+	HoldLegLength    string               // e.g., "2 mile" or "1 minute"
+	AltRestriction   *AltitudeRestriction // for CrossFixAt
+	SpeedRestriction *SpeedRestriction    // for CrossFixAt
 }
 
 func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
@@ -608,10 +607,14 @@ func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		if n.AltRestriction != nil {
 			rt.Add("{altrest}", n.AltRestriction)
 		}
-		if n.Speed != nil {
-			rt.Add("at {spd}", *n.Speed)
-		} else if n.Mach != nil {
-			rt.Add("at {mach}", *n.Mach)
+		if n.SpeedRestriction != nil {
+			if n.SpeedRestriction.IsMach {
+				mach, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {mach}", mach)
+			} else {
+				speed, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {spd}", speed)
+			}
 		}
 	case NavResumeOwnNav:
 		rt.Add("[own navigation|resuming own navigation]")

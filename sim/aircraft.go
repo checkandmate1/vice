@@ -345,8 +345,8 @@ func (ac *Aircraft) DepartFixDirect(fixa, fixb string) av.CommandIntent {
 	return ac.Nav.DepartFixDirect(strings.ToUpper(fixa), strings.ToUpper(fixb))
 }
 
-func (ac *Aircraft) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction, mach float32) av.CommandIntent {
-	return ac.Nav.CrossFixAt(strings.ToUpper(fix), ar, sr, mach)
+func (ac *Aircraft) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction) av.CommandIntent {
+	return ac.Nav.CrossFixAt(strings.ToUpper(fix), ar, sr)
 }
 
 func (ac *Aircraft) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.CommandIntent {

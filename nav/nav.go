@@ -72,7 +72,6 @@ type contactCrossingRestriction struct {
 	Fix            string
 	AltRestriction *av.AltitudeRestriction
 	Speed          *av.SpeedRestriction
-	Mach           *float32
 }
 
 // DeferredNavHeading stores a heading assignment from the controller and the
@@ -193,7 +192,6 @@ type NavSpeed struct {
 	MaintainMaximumForward   bool
 	// Carried after passing a waypoint
 	Restriction *av.SpeedRestriction
-	Mach        bool
 }
 
 const MaxIAS = 290
@@ -230,7 +228,6 @@ type NavFixAssignment struct {
 	Arrive struct {
 		Altitude *av.AltitudeRestriction
 		Speed    *av.SpeedRestriction
-		Mach     *float32
 	}
 	Depart struct {
 		Fix         *av.Waypoint
@@ -745,7 +742,11 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime Time, lg *log
 				line += ar.Written(nav.Rand) + " "
 			}
 			if nfa.Arrive.Speed != nil {
-				line += "at " + fmt.Sprintf("%.0f kts", *nfa.Arrive.Speed)
+				if nfa.Arrive.Speed.IsMach {
+					line += "at " + nfa.Arrive.Speed.Encoded()
+				} else {
+					line += "at " + nfa.Arrive.Speed.Encoded() + " kts"
+				}
 			}
 			lines = append(lines, line)
 		}
@@ -941,7 +942,7 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 func (nav *Nav) firstCrossingRestriction() *contactCrossingRestriction {
 	for _, wp := range nav.AssignedWaypoints() {
 		fa, ok := nav.FixAssignments[wp.Fix]
-		if !ok || (fa.Arrive.Altitude == nil && fa.Arrive.Speed == nil && fa.Arrive.Mach == nil) {
+		if !ok || (fa.Arrive.Altitude == nil && fa.Arrive.Speed == nil) {
 			continue
 		}
 
@@ -949,7 +950,6 @@ func (nav *Nav) firstCrossingRestriction() *contactCrossingRestriction {
 			Fix:            wp.Fix,
 			AltRestriction: fa.Arrive.Altitude,
 			Speed:          fa.Arrive.Speed,
-			Mach:           fa.Arrive.Mach,
 		}
 	}
 	return nil
@@ -1039,6 +1039,10 @@ func crossingInstructionFormat(crossing *contactCrossingRestriction, altitude fl
 
 func crossingSpeedFormat(crossing *contactCrossingRestriction) (string, []any) {
 	if crossing.Speed != nil {
+		if crossing.Speed.IsMach {
+			mach, _ := crossing.Speed.ExactValue()
+			return " and {mach}", []any{mach}
+		}
 		if spd, exact := crossing.Speed.ExactValue(); exact {
 			return " and {spd}", []any{spd}
 		}
@@ -1049,9 +1053,6 @@ func crossingSpeedFormat(crossing *contactCrossingRestriction) (string, []any) {
 			return " at {spd} or less", []any{crossing.Speed.Range[1]}
 		}
 		return " between {spd} and {spd}", []any{crossing.Speed.Range[0], crossing.Speed.Range[1]}
-	}
-	if crossing.Mach != nil {
-		return " and {mach}", []any{*crossing.Mach}
 	}
 	return "", nil
 }
