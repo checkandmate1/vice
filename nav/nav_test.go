@@ -222,6 +222,35 @@ func TestContactMessageIncludesCrossFixSpeed(t *testing.T) {
 	}
 }
 
+func TestContactMessageIncludesCrossDistanceAltitudeAndSpeed(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude)
+	dir, err := math.ParseCardinalOrdinalDirection(math.ShortCompass(approachHeading))
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	ar := av.MakeAtAltitudeRestriction(8000)
+	sr := av.MakeAtSpeedRestriction(230)
+	f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, &sr)
+
+	written := strings.ToLower(f.nav.ContactMessage(nil, "", "", false, false).Written(f.nav.Rand))
+	if !strings.Contains(written, "cross") || !strings.Contains(written, "detgy") ||
+		!strings.Contains(written, "8,000") || !strings.Contains(written, "230 knots") {
+		t.Fatalf("contact message missing cross-distance restriction: %q", written)
+	}
+}
+
 // AtFix fires action when the named fix is passed.
 func (f *FlightTest) AtFix(fix string, action func(*FlightTest)) *FlightTest {
 	f.events = append(f.events, flightEvent{

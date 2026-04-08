@@ -941,6 +941,16 @@ func (nav *Nav) ContactMessage(reportingPoints []av.ReportingPoint, star string,
 // restriction in the remaining waypoints.
 func (nav *Nav) firstCrossingRestriction() *contactCrossingRestriction {
 	for _, wp := range nav.AssignedWaypoints() {
+		if wp.SyntheticCrossing() {
+			if ar, sr := wp.AltitudeRestriction(), wp.SpeedRestriction(); ar != nil || sr != nil {
+				return &contactCrossingRestriction{
+					Fix:            wp.Fix,
+					AltRestriction: ar,
+					Speed:          sr,
+				}
+			}
+		}
+
 		fa, ok := nav.FixAssignments[wp.Fix]
 		if !ok || (fa.Arrive.Altitude == nil && fa.Arrive.Speed == nil) {
 			continue

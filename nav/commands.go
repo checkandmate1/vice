@@ -7,6 +7,7 @@ package nav
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
@@ -764,6 +765,174 @@ func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedR
 		nav.Speed = NavSpeed{}
 	}
 	nav.FixAssignments[fix] = nfa
+
+	return intent
+}
+
+func (nav *Nav) CrossDistanceFromFixAt(fix string, dist float32, dir math.CardinalOrdinalDirection,
+	ar *av.AltitudeRestriction, sr *av.SpeedRestriction) av.CommandIntent {
+	useDeferred := false
+	routeWps := []av.Waypoint(nav.Waypoints)
+	if dh := nav.DeferredNavHeading; dh != nil && len(dh.Waypoints) > 0 {
+		useDeferred = true
+		routeWps = dh.Waypoints
+	}
+	commitRouteWps := func() {
+		if useDeferred {
+			nav.DeferredNavHeading.Waypoints = routeWps
+		} else {
+			nav.Waypoints = routeWps
+		}
+	}
+
+	wps := routeWps
+	idx := slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == fix })
+	if idx == -1 {
+		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
+	}
+
+	fixLoc := wps[idx].Location
+
+	// Find the "real" prior waypoint (skip synthetic ones) to determine the segment.
+	realPriorIdx := idx - 1
+	for realPriorIdx >= 0 && wps[realPriorIdx].SyntheticCrossing() {
+		realPriorIdx--
+	}
+
+	var priorLoc math.Point2LL
+	var priorName string
+	if realPriorIdx >= 0 {
+		priorLoc = wps[realPriorIdx].Location
+		priorName = wps[realPriorIdx].Fix
+	} else {
+		priorLoc = nav.FlightState.Position
+	}
+
+	// Direction validation uses the inbound magnetic course to the fix, since
+	// the controller-issued direction is spoken relative to the magnetic compass.
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, nav.FlightState.NmPerLongitude),
+		nav.FlightState.MagneticVariation,
+	)
+	if math.HeadingDifference(float32(approachHeading), dir.Heading()) > 45 {
+		actualDir := math.Compass(approachHeading)
+		return av.MakeUnableIntent("unable. We're approaching {fix} from the "+actualDir, fix)
+	}
+
+	// Distance validation against the real segment.
+	segLen := math.NMDistance2LL(priorLoc, fixLoc)
+	if realPriorIdx >= 0 && dist >= segLen {
+		return av.MakeUnableIntent("unable. That's before {fix}", priorName)
+	}
+	if realPriorIdx < 0 && dist >= math.NMDistance2LL(nav.FlightState.Position, fixLoc) {
+		return av.MakeUnableIntent("unable. We're already closer to {fix}", fix)
+	}
+
+	// Compute synthetic waypoint via linear interpolation.
+	t := 1 - dist/segLen
+	syntheticLoc := math.Point2LL{
+		math.Lerp(t, priorLoc[0], fixLoc[0]),
+		math.Lerp(t, priorLoc[1], fixLoc[1]),
+	}
+
+	clearAltitude := func(wp *av.Waypoint) {
+		wp.ClearAltitudeRestriction()
+	}
+	clearSpeed := func(wp *av.Waypoint) {
+		wp.ClearSpeedRestriction()
+	}
+	hasInlineRestrictions := func(wp *av.Waypoint) bool {
+		return wp.HasAltitudeRestriction() || wp.HasSpeedRestriction()
+	}
+
+	// 1. Remove or clear existing synthetic waypoints for this fix and restriction types.
+	removePrefix := "_" + fix + "/"
+	for i := 0; i < len(routeWps); {
+		wp := &routeWps[i]
+		if strings.HasPrefix(wp.Fix, removePrefix) {
+			if ar != nil {
+				clearAltitude(wp)
+			}
+			if sr != nil {
+				clearSpeed(wp)
+			}
+			if !hasInlineRestrictions(wp) {
+				routeWps = slices.Delete(routeWps, i, i+1)
+				continue
+			}
+		}
+		i++
+	}
+	commitRouteWps()
+
+	// 2. Refresh index as waypoints might have shifted.
+	wps = routeWps
+	idx = slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == fix })
+
+	intent := av.NavigationIntent{
+		Type:      av.NavCrossDistanceFromFixAt,
+		Fix:       fix,
+		Distance:  dist,
+		Direction: dir,
+	}
+
+	// Helper to insert a synthetic waypoint in the correct order (descending distance from fix).
+	insertOrdered := func(name string, loc math.Point2LL, d float32) {
+		// Find the insertion index among synthetic waypoints for this fix.
+		insertIdx := idx
+		for insertIdx > 0 && strings.HasPrefix(wps[insertIdx-1].Fix, removePrefix) {
+			if _, otherDist, _, ok := av.ParseSyntheticCrossingFix(wps[insertIdx-1].Fix); ok {
+				if float32(otherDist) >= d {
+					break // Current one is closer to fix than the one we are checking (or same distance).
+				}
+			}
+			insertIdx--
+		}
+
+		wp := av.Waypoint{Fix: name, Location: loc}
+		wp.SetSyntheticCrossing(true)
+		if idx < len(wps) {
+			wp.SetOnSID(wps[idx].OnSID())
+			wp.SetOnSTAR(wps[idx].OnSTAR())
+			wp.SetOnApproach(wps[idx].OnApproach())
+		}
+		routeWps = slices.Insert(routeWps, insertIdx, wp)
+		commitRouteWps()
+		// Refresh wps and idx for subsequent operations.
+		wps = routeWps
+		idx = slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == fix })
+	}
+
+	name := fmt.Sprintf("_%s/%d%s", fix, int(dist), dir.ShortString())
+	wpIdx := slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == name })
+	if wpIdx == -1 {
+		insertOrdered(name, syntheticLoc, dist)
+		wps = routeWps
+		wpIdx = slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == name })
+	}
+	wp := &routeWps[wpIdx]
+	wp.Location = syntheticLoc
+
+	// 3. Apply new inline restrictions to the synthetic waypoint.
+	if ar != nil {
+		wp.SetAltitudeRestriction(*ar)
+		intent.AltRestriction = ar
+		nav.Altitude = NavAltitude{}
+	}
+
+	if sr != nil {
+		wp.SetSpeedRestriction(*sr)
+		if sr.IsMach {
+			intent.SpeedRestriction = sr
+		} else {
+			naturalIAS, _ := nav.targetAltitudeIAS()
+			s := nav.restrictedSpeed(sr, naturalIAS)
+			intentSpeed := av.MakeAtSpeedRestriction(s)
+			intent.SpeedRestriction = &intentSpeed
+		}
+		nav.Speed = NavSpeed{}
+	}
+	commitRouteWps()
 
 	return intent
 }

@@ -44,6 +44,7 @@ const (
 	WaypointFlagTransferComms
 	WaypointFlagTurnLeft
 	WaypointFlagTurnRight
+	WaypointFlagSyntheticCrossing
 	WaypointFlagHasAltRestriction
 	WaypointFlagHasSpeedRestriction
 	WaypointFlagSequenceVFRLanding
@@ -123,6 +124,15 @@ func (wp Waypoint) FAF() bool            { return wp.Flags&WaypointFlagFAF != 0 
 func (wp Waypoint) OnSID() bool          { return wp.Flags&WaypointFlagOnSID != 0 }
 func (wp Waypoint) OnSTAR() bool         { return wp.Flags&WaypointFlagOnSTAR != 0 }
 func (wp Waypoint) OnApproach() bool     { return wp.Flags&WaypointFlagOnApproach != 0 }
+func (wp Waypoint) SyntheticCrossing() bool {
+	return wp.Flags&WaypointFlagSyntheticCrossing != 0
+}
+func (wp Waypoint) HasAltitudeRestriction() bool {
+	return wp.Flags&WaypointFlagHasAltRestriction != 0
+}
+func (wp Waypoint) HasSpeedRestriction() bool {
+	return wp.Flags&WaypointFlagHasSpeedRestriction != 0
+}
 func (wp Waypoint) ClearPrimaryScratchpad() bool {
 	return wp.Flags&WaypointFlagClearPrimaryScratchpad != 0
 }
@@ -166,6 +176,9 @@ func (wp *Waypoint) SetFAF(v bool)            { wp.setFlag(WaypointFlagFAF, v) }
 func (wp *Waypoint) SetOnSID(v bool)          { wp.setFlag(WaypointFlagOnSID, v) }
 func (wp *Waypoint) SetOnSTAR(v bool)         { wp.setFlag(WaypointFlagOnSTAR, v) }
 func (wp *Waypoint) SetOnApproach(v bool)     { wp.setFlag(WaypointFlagOnApproach, v) }
+func (wp *Waypoint) SetSyntheticCrossing(v bool) {
+	wp.setFlag(WaypointFlagSyntheticCrossing, v)
+}
 func (wp *Waypoint) SetClearPrimaryScratchpad(v bool) {
 	wp.setFlag(WaypointFlagClearPrimaryScratchpad, v)
 }
@@ -188,7 +201,7 @@ func (wp *Waypoint) SetTurn(t TurnDirection) {
 
 // AltitudeRestriction returns a pointer to the inline restriction if the flag is set, else nil.
 func (wp *Waypoint) AltitudeRestriction() *AltitudeRestriction {
-	if wp.Flags&WaypointFlagHasAltRestriction != 0 {
+	if wp.HasAltitudeRestriction() {
 		return &wp.AltRestriction
 	}
 	return nil
@@ -200,9 +213,15 @@ func (wp *Waypoint) SetAltitudeRestriction(ar AltitudeRestriction) {
 	wp.Flags |= WaypointFlagHasAltRestriction
 }
 
+// ClearAltitudeRestriction removes the inline restriction and clears the flag.
+func (wp *Waypoint) ClearAltitudeRestriction() {
+	wp.AltRestriction = AltitudeRestriction{}
+	wp.Flags &^= WaypointFlagHasAltRestriction
+}
+
 // SpeedRestriction returns a pointer to the inline restriction if the flag is set, else nil.
 func (wp *Waypoint) SpeedRestriction() *SpeedRestriction {
-	if wp.Flags&WaypointFlagHasSpeedRestriction != 0 {
+	if wp.HasSpeedRestriction() {
 		return &wp.SpdRestriction
 	}
 	return nil
@@ -212,6 +231,12 @@ func (wp *Waypoint) SpeedRestriction() *SpeedRestriction {
 func (wp *Waypoint) SetSpeedRestriction(sr SpeedRestriction) {
 	wp.SpdRestriction = sr
 	wp.Flags |= WaypointFlagHasSpeedRestriction
+}
+
+// ClearSpeedRestriction removes the inline restriction and clears the flag.
+func (wp *Waypoint) ClearSpeedRestriction() {
+	wp.SpdRestriction = SpeedRestriction{}
+	wp.Flags &^= WaypointFlagHasSpeedRestriction
 }
 
 // Extra field readers (value receiver, nil-safe)
@@ -1837,6 +1862,44 @@ func ParseSpeedRestriction(s string) (*SpeedRestriction, error) {
 			return &sr, nil
 		}
 	}
+}
+
+// ParseDistanceDirection parses strings like "5W" or "10NE" into a distance
+// in miles and a cardinal/ordinal direction.
+func ParseDistanceDirection(s string) (int, math.CardinalOrdinalDirection, error) {
+	i := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		i++
+	}
+	if i == 0 || i == len(s) {
+		return 0, 0, fmt.Errorf("invalid distance/direction")
+	}
+	dist, err := strconv.Atoi(s[:i])
+	if err != nil {
+		return 0, 0, err
+	}
+	dir, err := math.ParseCardinalOrdinalDirection(s[i:])
+	if err != nil {
+		return 0, 0, err
+	}
+	return dist, dir, nil
+}
+
+// ParseSyntheticCrossingFix parses a synthetic cross-distance waypoint name
+// like "_DETGY/5W" and returns the named fix, distance, and direction.
+func ParseSyntheticCrossingFix(fix string) (string, int, math.CardinalOrdinalDirection, bool) {
+	if !strings.HasPrefix(fix, "_") {
+		return "", 0, 0, false
+	}
+	parts := strings.Split(fix[1:], "/")
+	if len(parts) < 2 || parts[0] == "" {
+		return "", 0, 0, false
+	}
+	dist, dir, err := ParseDistanceDirection(parts[1])
+	if err != nil {
+		return "", 0, 0, false
+	}
+	return parts[0], dist, dir, true
 }
 
 ///////////////////////////////////////////////////////////////////////////

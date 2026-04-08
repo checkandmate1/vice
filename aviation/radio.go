@@ -772,6 +772,13 @@ type FixSnippetFormatter struct{}
 
 func (FixSnippetFormatter) Written(arg any) string {
 	fix := arg.(string)
+
+	if strings.HasPrefix(fix, "_") {
+		if namedFix, dist, dir, ok := ParseSyntheticCrossingFix(fix); ok {
+			return fmt.Sprintf("%d miles %s of %s", dist, math.Compass(dir.Heading()), namedFix)
+		}
+	}
+
 	// Cut off any trailing bits like COLIN.JT
 	fix, _, _ = strings.Cut(fix, ".")
 
@@ -995,6 +1002,12 @@ func GetCallsignSpoken(callsign string, cwtCategory string) string {
 // lookups for navaids/airports, and uses StopShouting for other fixes.
 func GetFixTelephony(fix string) string {
 	loadPronunciationsIfNeeded()
+
+	if strings.HasPrefix(fix, "_") {
+		if namedFix, dist, dir, ok := ParseSyntheticCrossingFix(fix); ok {
+			return fmt.Sprintf("%d miles %s of %s", dist, math.Compass(dir.Heading()), GetFixTelephony(namedFix))
+		}
+	}
 
 	// Cut off any trailing bits like COLIN.JT
 	fix, _, _ = strings.Cut(fix, ".")

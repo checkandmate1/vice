@@ -5,6 +5,7 @@
 package nav
 
 import (
+	"fmt"
 	"testing"
 
 	av "github.com/mmp/vice/aviation"
@@ -200,6 +201,380 @@ func TestExpectDirectReducesDelay(t *testing.T) {
 	// With expect, the delay should be shorter (earlier time)
 	if !expectDelay.Before(noExpectDelay) {
 		t.Errorf("ExpectDirect did not reduce delay: expect=%v noExpect=%v", expectDelay, noExpectDelay)
+	}
+}
+
+// TestCrossDistanceFromFixAtDirectionUnable verifies that
+// CrossDistanceFromFixAt returns unable when the direction is wrong.
+func TestCrossDistanceFromFixAtDirectionUnable(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	// Determine the actual approach direction (SAJUL→DETGY), then pick the opposite.
+	fixLoc := f.nav.Waypoints[1].Location   // DETGY
+	priorLoc := f.nav.Waypoints[0].Location // SAJUL
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	oppositeDir := math.ShortCompass(math.OppositeHeading(approachHeading))
+	dir, err := math.ParseCardinalOrdinalDirection(oppositeDir)
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, nil)
+	AssertUnable(t, intent)
+}
+
+// TestCrossDistanceFromFixAtDistanceUnable verifies that
+// CrossDistanceFromFixAt returns unable when the distance exceeds the segment.
+func TestCrossDistanceFromFixAtDistanceUnable(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	// Determine the correct direction.
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	approachDir := math.ShortCompass(approachHeading)
+	dir, err := math.ParseCardinalOrdinalDirection(approachDir)
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	// Distance of 9999 miles should exceed any segment.
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 9999, dir, &ar, nil)
+	AssertUnable(t, intent)
+}
+
+// TestCrossDistanceFromFixAtNotInRoute verifies that an unknown fix returns unable.
+func TestCrossDistanceFromFixAtNotInRoute(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("BOGUS", 5, math.West, &ar, nil)
+	AssertUnable(t, intent)
+}
+
+// TestCrossDistanceFromFixAtInsertsWaypoint verifies that a synthetic waypoint
+// is inserted at the correct position in the route.
+func TestCrossDistanceFromFixAtInsertsWaypoint(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	// Find the correct approach direction.
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	approachDir := math.ShortCompass(approachHeading)
+	dir, err := math.ParseCardinalOrdinalDirection(approachDir)
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	wpsBefore := len(f.nav.Waypoints)
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	// Waypoints should have one more entry.
+	if len(f.nav.Waypoints) != wpsBefore+1 {
+		t.Errorf("expected %d waypoints, got %d", wpsBefore+1, len(f.nav.Waypoints))
+	}
+
+	// The synthetic waypoint should be before DETGY (at index 1).
+	if f.nav.Waypoints[1].Fix[0] != '_' {
+		t.Errorf("expected synthetic waypoint (underscore prefix) at index 1, got %q",
+			f.nav.Waypoints[1].Fix)
+	}
+	if !f.nav.Waypoints[1].OnSTAR() {
+		t.Errorf("expected synthetic waypoint to preserve STAR membership")
+	}
+	if f.nav.Waypoints[2].Fix != "DETGY" {
+		t.Errorf("expected DETGY at index 2, got %q", f.nav.Waypoints[2].Fix)
+	}
+}
+
+// TestCrossDistanceFromFixAtUsesDeferredWaypoints verifies that when a
+// deferred route exists, the synthetic waypoint is inserted into that route
+// rather than the current nav.Waypoints slice.
+func TestCrossDistanceFromFixAtUsesDeferredWaypoints(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	origNavLen := len(f.nav.Waypoints)
+	deferred := append([]av.Waypoint(nil), f.nav.Waypoints[1:]...)
+	f.nav.DeferredNavHeading = &DeferredNavHeading{Waypoints: deferred}
+
+	fixLoc := deferred[0].Location
+	priorLoc := f.nav.FlightState.Position
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	dir, err := math.ParseCardinalOrdinalDirection(math.ShortCompass(approachHeading))
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	if len(f.nav.Waypoints) != origNavLen {
+		t.Fatalf("expected nav.Waypoints length %d, got %d", origNavLen, len(f.nav.Waypoints))
+	}
+	if len(f.nav.DeferredNavHeading.Waypoints) != len(deferred)+1 {
+		t.Fatalf("expected deferred waypoints length %d, got %d",
+			len(deferred)+1, len(f.nav.DeferredNavHeading.Waypoints))
+	}
+	if f.nav.DeferredNavHeading.Waypoints[0].Fix[0] != '_' {
+		t.Fatalf("expected synthetic waypoint inserted at deferred index 0, got %q",
+			f.nav.DeferredNavHeading.Waypoints[0].Fix)
+	}
+	if !f.nav.DeferredNavHeading.Waypoints[0].OnSTAR() {
+		t.Fatalf("expected deferred synthetic waypoint to preserve STAR membership")
+	}
+	if f.nav.DeferredNavHeading.Waypoints[1].Fix != "DETGY" {
+		t.Fatalf("expected DETGY after synthetic waypoint, got %q",
+			f.nav.DeferredNavHeading.Waypoints[1].Fix)
+	}
+}
+
+func TestCrossDistanceFromFixAtIgnoresEmptyDeferredRoute(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	origNavLen := len(f.nav.Waypoints)
+	f.nav.DeferredNavHeading = &DeferredNavHeading{}
+
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	dir, err := math.ParseCardinalOrdinalDirection(math.ShortCompass(approachHeading))
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	if len(f.nav.Waypoints) != origNavLen+1 {
+		t.Fatalf("expected nav.Waypoints length %d, got %d", origNavLen+1, len(f.nav.Waypoints))
+	}
+	if len(f.nav.DeferredNavHeading.Waypoints) != 0 {
+		t.Fatalf("expected empty deferred route to remain empty, got %d waypoints", len(f.nav.DeferredNavHeading.Waypoints))
+	}
+}
+
+// TestCrossDistanceFromFixAtReplacement verifies that altitude and speed/mach
+// synthetic waypoints are independent and replace correctly.
+func TestCrossDistanceFromFixAtReplacement(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	// Find the correct approach direction.
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	dir, _ := math.ParseCardinalOrdinalDirection(math.ShortCompass(approachHeading))
+
+	// 1. Initial command: both altitude and speed.
+	ar1 := av.MakeAtAltitudeRestriction(8000)
+	sr1 := av.MakeAtSpeedRestriction(230)
+	f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar1, &sr1)
+
+	// Original waypoints: SAJUL, DETGY, HAUPT, KJFK (4)
+	// After adding one combined synthetic waypoint: SAJUL, _DETGY/5W, DETGY, HAUPT, KJFK (5)
+	if len(f.nav.Waypoints) != 5 {
+		t.Fatalf("expected 5 waypoints, got %d", len(f.nav.Waypoints))
+	}
+	expected5 := fmt.Sprintf("_DETGY/5%s", dir.ShortString())
+	if f.nav.Waypoints[1].Fix != expected5 {
+		t.Errorf("expected %s at index 1, got %q", expected5, f.nav.Waypoints[1].Fix)
+	}
+	if f.nav.Waypoints[1].AltitudeRestriction() == nil || f.nav.Waypoints[1].SpeedRestriction() == nil {
+		t.Fatalf("expected combined synthetic waypoint to carry both altitude and speed restrictions")
+	}
+
+	// 2. Update only altitude.
+	ar2 := av.MakeAtAltitudeRestriction(9000)
+	f.nav.CrossDistanceFromFixAt("DETGY", 7, dir, &ar2, nil)
+
+	// The 5-mile waypoint should retain only speed; altitude moves to the 7-mile waypoint.
+	if len(f.nav.Waypoints) != 6 {
+		t.Fatalf("expected 6 waypoints after altitude update, got %d", len(f.nav.Waypoints))
+	}
+	expected7 := fmt.Sprintf("_DETGY/7%s", dir.ShortString())
+	if f.nav.Waypoints[1].Fix != expected7 {
+		t.Errorf("expected %s at index 1, got %q", expected7, f.nav.Waypoints[1].Fix)
+	}
+	if f.nav.Waypoints[1].AltitudeRestriction() == nil || f.nav.Waypoints[1].SpeedRestriction() != nil {
+		t.Fatalf("expected 7-mile waypoint to carry only altitude restriction")
+	}
+	if f.nav.Waypoints[2].Fix != expected5 {
+		t.Errorf("expected %s at index 2, got %q", expected5, f.nav.Waypoints[2].Fix)
+	}
+	if f.nav.Waypoints[2].AltitudeRestriction() != nil || f.nav.Waypoints[2].SpeedRestriction() == nil {
+		t.Fatalf("expected 5-mile waypoint to carry only speed restriction")
+	}
+
+	// 3. Update only speed.
+	sr2 := av.MakeAtSpeedRestriction(210)
+	f.nav.CrossDistanceFromFixAt("DETGY", 6, dir, nil, &sr2)
+
+	// The old 5-mile speed waypoint should be gone, replaced by a 6-mile speed waypoint.
+	if len(f.nav.Waypoints) != 6 {
+		t.Fatalf("expected 6 waypoints after speed update, got %d", len(f.nav.Waypoints))
+	}
+	expected6 := fmt.Sprintf("_DETGY/6%s", dir.ShortString())
+	if f.nav.Waypoints[1].Fix != expected7 {
+		t.Errorf("expected %s at index 1, got %q", expected7, f.nav.Waypoints[1].Fix)
+	}
+	if f.nav.Waypoints[2].Fix != expected6 {
+		t.Errorf("expected %s at index 2, got %q", expected6, f.nav.Waypoints[2].Fix)
+	}
+	if f.nav.Waypoints[1].AltitudeRestriction() == nil || f.nav.Waypoints[1].SpeedRestriction() != nil {
+		t.Fatalf("expected 7-mile waypoint to carry only altitude restriction")
+	}
+	if f.nav.Waypoints[2].AltitudeRestriction() != nil || f.nav.Waypoints[2].SpeedRestriction() == nil {
+		t.Fatalf("expected 6-mile waypoint to carry only speed restriction")
+	}
+}
+
+// TestCrossDistanceFromFixAtRejectsOrthogonalDirection verifies that
+// orthogonal directions are rejected instead of being mapped onto the route leg.
+func TestCrossDistanceFromFixAtRejectsOrthogonalDirection(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	orthogonalDir := math.ShortCompass(math.OffsetHeading(approachHeading, 90))
+	dir, err := math.ParseCardinalOrdinalDirection(orthogonalDir)
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, nil)
+	AssertUnable(t, intent)
+}
+
+// TestCrossDistanceFromFixAtUsesUnderscoreNamedPriorWaypoint verifies that a
+// real prior waypoint with an underscore-prefixed name is still used as the leg start.
+func TestCrossDistanceFromFixAtUsesUnderscoreNamedPriorWaypoint(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	f.nav.Waypoints[0].Fix = "_THRESHOLD_HELPER"
+
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude),
+		f.nav.FlightState.MagneticVariation,
+	)
+	dir, err := math.ParseCardinalOrdinalDirection(math.ShortCompass(approachHeading))
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	ar := av.MakeAtAltitudeRestriction(5000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	if len(f.nav.Waypoints) < 3 {
+		t.Fatalf("expected inserted synthetic waypoint")
+	}
+	if !f.nav.Waypoints[1].SyntheticCrossing() {
+		t.Fatalf("expected synthetic waypoint at index 1, got %q", f.nav.Waypoints[1].Fix)
+	}
+	if got := math.NMDistance2LL(f.nav.Waypoints[1].Location, f.nav.Waypoints[2].Location); got < 4.5 || got > 5.5 {
+		t.Fatalf("expected synthetic waypoint about 5nm before DETGY on the actual leg, got %.2f", got)
 	}
 }
 

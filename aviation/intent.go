@@ -562,6 +562,7 @@ const (
 	NavDepartFixDirect
 	NavDepartFixHeading
 	NavCrossFixAt
+	NavCrossDistanceFromFixAt
 	NavResumeOwnNav
 	NavAltitudeDiscretion
 )
@@ -570,13 +571,15 @@ const (
 type NavigationIntent struct {
 	Type             NavigationType
 	Fix              string
-	SecondFix        string               // for DepartFixDirect
-	Heading          math.MagneticHeading // for DepartFixHeading
-	Turn             TurnDirection        // for NavDirectFix / NavDirectFixFromHold
-	HoldDirection    string               // "left" or "right" for holds
-	HoldLegLength    string               // e.g., "2 mile" or "1 minute"
-	AltRestriction   *AltitudeRestriction // for CrossFixAt
-	SpeedRestriction *SpeedRestriction    // for CrossFixAt
+	SecondFix        string                        // for DepartFixDirect
+	Heading          math.MagneticHeading          // for DepartFixHeading
+	Turn             TurnDirection                 // for NavDirectFix / NavDirectFixFromHold
+	HoldDirection    string                        // "left" or "right" for holds
+	HoldLegLength    string                        // e.g., "2 mile" or "1 minute"
+	AltRestriction   *AltitudeRestriction          // for CrossFixAt / CrossDistanceFromFixAt
+	SpeedRestriction *SpeedRestriction             // for CrossFixAt / CrossDistanceFromFixAt
+	Distance         float32                       // for CrossDistanceFromFixAt
+	Direction        math.CardinalOrdinalDirection // for CrossDistanceFromFixAt
 }
 
 func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
@@ -604,6 +607,21 @@ func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		rt.Add("depart {fix} heading {hdg}", n.Fix, n.Heading)
 	case NavCrossFixAt:
 		rt.Add("cross {fix}", n.Fix)
+		if n.AltRestriction != nil {
+			rt.Add("{altrest}", n.AltRestriction)
+		}
+		if n.SpeedRestriction != nil {
+			if n.SpeedRestriction.IsMach {
+				mach, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {mach}", mach)
+			} else {
+				speed, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {spd}", speed)
+			}
+		}
+	case NavCrossDistanceFromFixAt:
+		rt.Add("cross {num} miles "+math.Compass(n.Direction.Heading())+" of {fix}",
+			int(n.Distance), n.Fix)
 		if n.AltRestriction != nil {
 			rt.Add("{altrest}", n.AltRestriction)
 		}

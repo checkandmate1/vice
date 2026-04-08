@@ -1637,6 +1637,18 @@ func (s *Sim) CrossFixAt(tcw TCW, callsign av.ADSBCallsign, fix string, ar *av.A
 		})
 }
 
+func (s *Sim) CrossDistanceFromFixAt(tcw TCW, callsign av.ADSBCallsign, fix string, dist float32,
+	dir math.CardinalOrdinalDirection, ar *av.AltitudeRestriction,
+	sr *av.SpeedRestriction) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.CrossDistanceFromFixAt(fix, dist, dir, ar, sr)
+		})
+}
+
 func (s *Sim) AfterFixSpeed(tcw TCW, callsign av.ADSBCallsign, fix string, sr *av.SpeedRestriction) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -2817,21 +2829,6 @@ func (s *Sim) readbackCallsignSuffix(callsign av.ADSBCallsign, tcw TCW) *av.Radi
 	return av.MakeReadbackTransmission("{callsign}"+heavySuper, csArg)
 }
 
-// parseHold parses a hold command string in the format "FIX/[option]/[option]"
-// and returns the fix name and a controller-specified hold if options are present.
-// Returns (fixName, nil, true) if no options are specified (use published hold).
-// Returns (fixName, *Hold, true) if options are successfully parsed.
-// Returns ("", nil, false) if parsing fails.
-//
-// Options may be:
-// - L: left turns
-// - R: right turns
-// - xxNM: xx nautical mile legs
-// - xxM: xx minute legs
-// - Rxxx: inbound course on the xxx radial to the fix
-//
-// If options are specified, the Rxxx radial option is required.
-// Multiple options of the same type result in an error.
 // parseSpeedUntil parses the "until" specification from a speed command.
 // Formats:
 //   - "ROSLY" -> fix name
@@ -2916,6 +2913,21 @@ func parseCompoundSpeed(s string) ([]av.CompoundSpeedSegment, error) {
 	return segments, nil
 }
 
+// parseHold parses a hold command string in the format "FIX/[option]/[option]"
+// and returns the fix name and a controller-specified hold if options are present.
+// Returns (fixName, nil, true) if no options are specified (use published hold).
+// Returns (fixName, *Hold, true) if options are successfully parsed.
+// Returns ("", nil, false) if parsing fails.
+//
+// Options may be:
+// - L: left turns
+// - R: right turns
+// - xxNM: xx nautical mile legs
+// - xxM: xx minute legs
+// - Rxxx: inbound course on the xxx radial to the fix
+//
+// If options are specified, the Rxxx radial option is required.
+// Multiple options of the same type result in an error.
 func parseHold(command string) (string, *av.Hold, bool) {
 	fix, opts, ok := strings.Cut(command, "/")
 	fix = strings.ToUpper(fix)
@@ -3078,6 +3090,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			fix := components[0][1:]
 			var ar *av.AltitudeRestriction
 			var sr *av.SpeedRestriction
+			dist := float32(-1)
+			var dir math.CardinalOrdinalDirection
 			for _, cmd := range components[1:] {
 				if len(cmd) == 0 {
 					return nil, ErrInvalidCommandSyntax
@@ -3102,11 +3116,17 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 					if sr, err = av.ParseSpeedRestriction(cmd); err != nil {
 						return nil, err
 					}
+				} else if d, dd, err := av.ParseDistanceDirection(cmd); err == nil {
+					dist = float32(d)
+					dir = dd
 				} else {
 					return nil, ErrInvalidCommandSyntax
 				}
 			}
 
+			if dist >= 0 {
+				return s.CrossDistanceFromFixAt(tcw, callsign, fix, dist, dir, ar, sr)
+			}
 			return s.CrossFixAt(tcw, callsign, fix, ar, sr)
 		} else if strings.HasPrefix(command, "CT") && len(command) > 2 {
 			// Only treat as contact command if the TCP exists as a valid controller;

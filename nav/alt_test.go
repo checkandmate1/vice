@@ -5,9 +5,11 @@
 package nav
 
 import (
+	"slices"
 	"testing"
 
 	av "github.com/mmp/vice/aviation"
+	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/wx"
 )
 
@@ -162,6 +164,89 @@ func TestCrossFixAtAltitude(t *testing.T) {
 
 	f.AtFix("DETGY", func(f *FlightTest) {
 		f.AssertAltitudeNear(8000, 100)
+	})
+
+	f.Run()
+}
+
+// TestCrossDistanceFromFixAtAltitude verifies that "cross N miles dir of fix
+// at altitude" causes the aircraft to descend to the correct altitude at
+// the synthetic waypoint position.
+func TestCrossDistanceFromFixAtAltitude(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	// Find the correct approach direction.
+	fixLoc := f.nav.Waypoints[1].Location
+	priorLoc := f.nav.Waypoints[0].Location
+	approachHeading := math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude)
+	approachDir := math.ShortCompass(approachHeading)
+	dir, err := math.ParseCardinalOrdinalDirection(approachDir)
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	// "Cross 5 miles [dir] of DETGY at 8000"
+	ar := av.MakeAtAltitudeRestriction(8000)
+	intent := f.nav.CrossDistanceFromFixAt("DETGY", 5, dir, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	// The synthetic waypoint name starts with underscore.
+	syntheticFix := f.nav.Waypoints[1].Fix
+	f.AtFix(syntheticFix, func(f *FlightTest) {
+		f.AssertAltitudeNear(8000, 150)
+	})
+
+	f.Run()
+}
+
+func TestCrossDistanceFromApproachFixAtAltitudeBeforeClearance(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "HAUPT/a6000 LEFER/a4000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "B763",
+		InitialAltitude:  12000,
+		InitialSpeed:     250,
+	})
+
+	f.ExpectApproach("I22L")
+	f.DirectFix("ROSLY")
+
+	assignedWps := f.nav.AssignedWaypoints()
+	roslyIdx := slices.IndexFunc(assignedWps, func(wp av.Waypoint) bool { return wp.Fix == "ROSLY" })
+	if roslyIdx == -1 {
+		t.Fatalf("expected ROSLY in route, got %v", av.WaypointArray(assignedWps).Encode())
+	}
+	fixLoc := assignedWps[roslyIdx].Location
+	priorLoc := f.nav.FlightState.Position
+	if roslyIdx > 0 {
+		priorLoc = assignedWps[roslyIdx-1].Location
+	}
+	approachHeading := math.Heading2LL(fixLoc, priorLoc, f.nav.FlightState.NmPerLongitude)
+	dir, err := math.ParseCardinalOrdinalDirection(math.ShortCompass(approachHeading))
+	if err != nil {
+		t.Fatalf("failed to parse direction: %v", err)
+	}
+
+	ar := av.MakeAtAltitudeRestriction(3000)
+	intent := f.nav.CrossDistanceFromFixAt("ROSLY", 5, dir, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	f.AfterTicks(30, func(f *FlightTest) {
+		if f.nav.FlightState.Altitude >= 12000 {
+			f.t.Fatalf("expected aircraft to start descending for controller crossing restriction; altitude %.0f", f.nav.FlightState.Altitude)
+		}
 	})
 
 	f.Run()
