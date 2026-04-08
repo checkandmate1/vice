@@ -1627,13 +1627,13 @@ func (s *Sim) DepartFixHeading(tcw TCW, callsign av.ADSBCallsign, fix string, he
 		})
 }
 
-func (s *Sim) CrossFixAt(tcw TCW, callsign av.ADSBCallsign, fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction, mach float32) (av.CommandIntent, error) {
+func (s *Sim) CrossFixAt(tcw TCW, callsign av.ADSBCallsign, fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.CrossFixAt(fix, ar, sr, mach)
+			return ac.CrossFixAt(fix, ar, sr)
 		})
 }
 
@@ -3078,7 +3078,6 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			fix := components[0][1:]
 			var ar *av.AltitudeRestriction
 			var sr *av.SpeedRestriction
-			mach := float32(0)
 			for _, cmd := range components[1:] {
 				if len(cmd) == 0 {
 					return nil, ErrInvalidCommandSyntax
@@ -3099,23 +3098,16 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 						return nil, err
 					}
 				} else if cmd[0] == 'M' {
-					machStr := cmd[1:]
-					machStr = strings.TrimSuffix(machStr, "+")
-					machStr = strings.TrimSuffix(machStr, "-")
-					mach64, err := strconv.ParseFloat(machStr, 32)
-					if err != nil {
+					var err error
+					if sr, err = av.ParseSpeedRestriction(cmd); err != nil {
 						return nil, err
 					}
-					if mach64 >= 1 {
-						mach64 /= 100
-					}
-					mach = float32(mach64)
 				} else {
 					return nil, ErrInvalidCommandSyntax
 				}
 			}
 
-			return s.CrossFixAt(tcw, callsign, fix, ar, sr, mach)
+			return s.CrossFixAt(tcw, callsign, fix, ar, sr)
 		} else if strings.HasPrefix(command, "CT") && len(command) > 2 {
 			// Only treat as contact command if the TCP exists as a valid controller;
 			// otherwise treat as cleared approach (e.g., "CTTL" -> cleared for TTL approach)

@@ -1697,22 +1697,30 @@ const MaxSpeed float32 = 1000
 
 type SpeedRestriction struct {
 	NavigationRestriction
+	IsMach bool
 }
 
 func MakeAtSpeedRestriction(speed float32) SpeedRestriction {
-	return SpeedRestriction{NavigationRestriction{Range: [2]float32{speed, speed}}}
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{speed, speed}}}
+}
+
+func MakeMachRestriction(mach float32) SpeedRestriction {
+	return SpeedRestriction{
+		NavigationRestriction: NavigationRestriction{Range: [2]float32{mach, mach}},
+		IsMach:                true,
+	}
 }
 
 func MakeAtOrAboveSpeedRestriction(speed float32) SpeedRestriction {
-	return SpeedRestriction{NavigationRestriction{Range: [2]float32{speed, MaxSpeed}}}
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{speed, MaxSpeed}}}
 }
 
 func MakeAtOrBelowSpeedRestriction(speed float32) SpeedRestriction {
-	return SpeedRestriction{NavigationRestriction{Range: [2]float32{0, speed}}}
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{0, speed}}}
 }
 
 func MakeRangeSpeedRestriction(low, high float32) SpeedRestriction {
-	return SpeedRestriction{NavigationRestriction{Range: [2]float32{low, high}}}
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{low, high}}}
 }
 
 func (s *SpeedRestriction) UnmarshalJSON(b []byte) error {
@@ -1735,10 +1743,17 @@ func (s *SpeedRestriction) UnmarshalJSON(b []byte) error {
 		*s = *sr
 		return nil
 	}
-	// Struct form: {"Range": [lo, hi]}.
-	ar := struct{ Range [2]float32 }{}
+	// Struct form: {"Range": [lo, hi], "IsMach": bool}.
+	ar := struct {
+		Range  [2]float32
+		IsMach bool
+	}{}
 	if err := json.Unmarshal(b, &ar); err == nil {
 		s.Range = ar.Range
+		s.IsMach = ar.IsMach
+		if s.IsMach && s.Range[0] != s.Range[1] {
+			return fmt.Errorf("mach restriction must be exact")
+		}
 		return nil
 	} else {
 		return err
@@ -1747,6 +1762,12 @@ func (s *SpeedRestriction) UnmarshalJSON(b []byte) error {
 
 // Encoded returns the restriction in compact text form, e.g. "210+", "250-", "210".
 func (s SpeedRestriction) Encoded() string {
+	if s.IsMach {
+		if s.Range[0] != s.Range[1] {
+			return ""
+		}
+		return fmt.Sprintf("M%02d", int(s.Range[0]*100+.5))
+	}
 	return s.encoded(MaxSpeed)
 }
 
@@ -1770,6 +1791,17 @@ func (s SpeedRestriction) IsZero() bool {
 func ParseSpeedRestriction(s string) (*SpeedRestriction, error) {
 	if s == "" {
 		return nil, fmt.Errorf("empty speed restriction")
+	}
+	if strings.HasPrefix(s, "M") || strings.HasPrefix(s, "m") {
+		machStr := s[1:]
+		machStr = strings.TrimSuffix(machStr, "+")
+		machStr = strings.TrimSuffix(machStr, "-")
+		mach, err := strconv.Atoi(machStr)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+		}
+		sr := MakeMachRestriction(float32(mach) / 100)
+		return &sr, nil
 	}
 
 	if low, high, ok := strings.Cut(s, "-"); ok {

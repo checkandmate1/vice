@@ -158,7 +158,7 @@ func TestCrossFixAtAltitude(t *testing.T) {
 	// restriction to 8000. The aircraft must level at 8000, not
 	// descend through to the charted 7000.
 	ar := av.MakeAtAltitudeRestriction(8000)
-	f.nav.CrossFixAt("DETGY", &ar, nil, 0)
+	f.nav.CrossFixAt("DETGY", &ar, nil)
 
 	f.AtFix("DETGY", func(f *FlightTest) {
 		f.AssertAltitudeNear(8000, 100)

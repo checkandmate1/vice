@@ -195,7 +195,7 @@ func TestContactMessageIncludesCrossFixAltitude(t *testing.T) {
 	})
 
 	ar := av.MakeAtAltitudeRestriction(8000)
-	f.nav.CrossFixAt("DETGY", &ar, nil, 0)
+	f.nav.CrossFixAt("DETGY", &ar, nil)
 
 	written := strings.ToLower(f.nav.ContactMessage(nil, "", "", false, false).Written(f.nav.Rand))
 	if !strings.Contains(written, "cross") || !strings.Contains(written, "detgy") || !strings.Contains(written, "8,000") {
@@ -214,7 +214,7 @@ func TestContactMessageIncludesCrossFixSpeed(t *testing.T) {
 	})
 
 	sr := av.MakeAtSpeedRestriction(230)
-	f.nav.CrossFixAt("DETGY", nil, &sr, 0)
+	f.nav.CrossFixAt("DETGY", nil, &sr)
 
 	written := strings.ToLower(f.nav.ContactMessage(nil, "", "", false, false).Written(f.nav.Rand))
 	if !strings.Contains(written, "cross") || !strings.Contains(written, "detgy") || !strings.Contains(written, "230 knots") {

@@ -47,7 +47,7 @@ func TestCommandValidation(t *testing.T) {
 	t.Run("CrossFixNotInRoute", func(t *testing.T) {
 		f := makeNav(t)
 		ar := av.MakeAtAltitudeRestriction(5000)
-		intent := f.nav.CrossFixAt("NOTINROUTE", &ar, nil, 0)
+		intent := f.nav.CrossFixAt("NOTINROUTE", &ar, nil)
 		AssertUnable(t, intent)
 	})
 
