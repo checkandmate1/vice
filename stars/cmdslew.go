@@ -109,7 +109,7 @@ func registerSlewCommands() {
 				fp := trk.FlightPlan
 
 				// 5.6.1 Change ABC to RBC for track in mismatch (implied)
-				if trk.Squawk != fp.AssignedSquawk {
+				if !trk.IsUnsupportedDB() && trk.Squawk != fp.AssignedSquawk {
 					spec := sim.FlightPlanSpecifier{}
 					spec.ACID.Set(fp.ACID)
 					spec.ImplicitSquawkAssignment.Set(trk.Squawk)
