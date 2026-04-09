@@ -269,123 +269,90 @@ func registerOpsCommands() {
 	// 5.3.2 Modify regional or airport altimeter setting
 	// {(CommandModeMultiFunc,  "A[FIELD] [NUM]|A[FIELD] A|A[FIELD] [NUM]E")
 
+	updateATISGIText := func(sp *STARSPane, ctx *panes.Context, line int, auxiliary bool, atis *string, text *string) {
+		// Remember the expected shared-state result so the originating pane can
+		// suppress flashing for its own update once it comes back from the server.
+		sp.notePendingATISGITextUpdate(ctx, line, atis, text)
+		ctx.Client.UpdateATISGIText(line, auxiliary, atis, text, func(err error) {
+			if err != nil {
+				sp.clearPendingATISGITextUpdate(line)
+			}
+			sp.displayError(err, ctx, "")
+		})
+	}
+
 	// 5.3.3 Create or modify ATIS code and main Gen. info text (p. 5-58)
-	registerCommand(CommandModeMultiFunc, "S[FIELD:1]", func(ps *Preferences, alpha string) error {
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[0] = alpha
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[FIELD:1]", func(sp *STARSPane, ctx *panes.Context, alpha string) {
+		updateATISGIText(sp, ctx, 0, false, &alpha, nil)
 	})
-	registerCommand(CommandModeMultiFunc, "S[FIELD:1][ALL_TEXT]", func(ps *Preferences, alpha string, text string) error {
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[0] = alpha
-		ps.GIText[0] = text
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[FIELD:1][ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, alpha string, text string) {
+		updateATISGIText(sp, ctx, 0, false, &alpha, &text)
 	})
 
 	// 5.3.4 Delete system ATIS code and enter new main gen. info text
-	registerCommand(CommandModeMultiFunc, "S*", func(ps *Preferences) {
-		ps.ATIS[0] = ""
+	registerCommand(CommandModeMultiFunc, "S*", func(sp *STARSPane, ctx *panes.Context) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &empty, nil)
 	})
-	registerCommand(CommandModeMultiFunc, "S* [ALL_TEXT]", func(ps *Preferences, text string) {
-		ps.ATIS[0] = ""
-		ps.GIText[0] = text
+	registerCommand(CommandModeMultiFunc, "S* [ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, text string) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &empty, &text)
 	})
 
 	// 5.3.5 Delete main gen. info text and enter new ATIS code
-	registerCommand(CommandModeMultiFunc, "S[FIELD:1]*", func(ps *Preferences, alpha string) error {
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[0] = alpha
-		ps.GIText[0] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[FIELD:1]*", func(sp *STARSPane, ctx *panes.Context, alpha string) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &alpha, &empty)
 	})
 
 	// 5.3.6 Delete main Gen. info text and ATIS code (p. 5-62)
-	registerCommand(CommandModeMultiFunc, "S", func(ps *Preferences) {
-		ps.ATIS[0] = ""
-		ps.GIText[0] = ""
+	registerCommand(CommandModeMultiFunc, "S", func(sp *STARSPane, ctx *panes.Context) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &empty, &empty)
 	})
 
 	// 5.3.7 Create or modify auxiliary gen. info text and ATIS code
 	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1] [ALL_TEXT]",
-		func(ps *Preferences, line int, alpha, text string) error {
-			if line == 0 {
-				return ErrSTARSIllegalLine
-			}
-			if !isAlpha(alpha[0]) {
-				return ErrSTARSIllegalATIS
-			}
-			ps.ATIS[line] = alpha
-			ps.GIText[line] = text
-			return nil
+		func(sp *STARSPane, ctx *panes.Context, line int, alpha, text string) {
+			updateATISGIText(sp, ctx, line, true, &alpha, &text)
 		})
-	registerCommand(CommandModeMultiFunc, "S[#] [ALL_TEXT]", func(ps *Preferences, line int, text string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.GIText[line] = text
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] [ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, line int, text string) {
+		updateATISGIText(sp, ctx, line, true, nil, &text)
 	})
 
 	// 5.3.8 Create or modify auxiliary ATIS code
-	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]", func(ps *Preferences, line int, alpha string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[line] = alpha
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]", func(sp *STARSPane, ctx *panes.Context, line int, alpha string) {
+		updateATISGIText(sp, ctx, line, true, &alpha, nil)
 	})
 
 	// 5.3.9 Delete auxiliary ATIS code and enter new auxiliary gen. info text
-	registerCommand(CommandModeMultiFunc, "S[#] *", func(ps *Preferences, line int) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.ATIS[line] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] *", func(sp *STARSPane, ctx *panes.Context, line int) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &empty, nil)
 	})
-	registerCommand(CommandModeMultiFunc, "S[#] * [ALL_TEXT]", func(ps *Preferences, line int, text string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.ATIS[line] = ""
-		ps.GIText[line] = text
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] * [ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, line int, text string) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &empty, &text)
 	})
 
 	// 5.3.10 Delete auxiliary gen. info text and enter new auxiliary ATIS code
-	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]*", func(ps *Preferences, line int, alpha string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[line] = alpha
-		ps.GIText[line] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]*", func(sp *STARSPane, ctx *panes.Context, line int, alpha string) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &alpha, &empty)
 	})
 
 	// 5.3.11 Delete auxiliary Gen. info text and ATIS code
-	registerCommand(CommandModeMultiFunc, "S[#]", func(ps *Preferences, line int) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.ATIS[line] = ""
-		ps.GIText[line] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#]", func(sp *STARSPane, ctx *panes.Context, line int) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &empty, &empty)
 	})
 
 	// 5.3.13 Stop blinking ATIS and gen. info text
-	// registerCommand(CommandModeNone, STARSTriangleCharacter, ...)
+	registerCommand(CommandModeNone, STARSTriangleCharacter, func(sp *STARSPane) {
+		for i := range sp.FlashATIS {
+			sp.FlashATIS[i] = false
+		}
+	})
 
 	// 5.4.1 Activate FP and associate or create Unsupported data block (Implied command)
 	registerCommand(CommandModeNone, "[UNASSOC_FP][SLEW]",

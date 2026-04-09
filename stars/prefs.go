@@ -84,10 +84,6 @@ type Preferences struct {
 	// Whether we center them at RangeRingsCenter or Center
 	UseUserRangeRingsCenter bool `json:"RangeRingsUserCenter"`
 
-	// User-supplied text for the SSA list
-	ATIS   [10]string `json:"ATISes"` /* rename after making array */
-	GIText [10]string
-
 	// If empty, then then MULTI or FUSED mode, depending on
 	// FusedRadarMode.  The custom JSON name is so we don't get errors
 	// parsing old configs, which stored this as an array...
@@ -292,11 +288,6 @@ func (p *Preferences) Reset(ss client.SimState, sp *STARSPane) {
 	p.Range = ss.GetInitialRange()
 	p.QuickLookTCPs = nil
 	p.DisabledQLRegions = nil
-
-	for i := range p.ATIS {
-		p.ATIS[i] = ""
-		p.GIText[i] = ""
-	}
 
 	p.RadarSiteSelected = ""
 

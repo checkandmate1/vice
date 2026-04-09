@@ -98,6 +98,18 @@ func (c *ControlClient) ModifyFlightPlan(acid sim.ACID, spec sim.FlightPlanSpeci
 		}, &update, nil), &update, callback))
 }
 
+func (c *ControlClient) UpdateATISGIText(line int, auxiliary bool, atis *string, text *string, callback func(error)) {
+	var update server.SimStateUpdate
+	c.addCall(
+		makeStateUpdateRPCCall(c.client.Go(server.UpdateATISGITextRPC, &server.UpdateATISGITextArgs{
+			ControllerToken: c.controllerToken,
+			Line:            line,
+			Auxiliary:       auxiliary,
+			ATIS:            atis,
+			GIText:          text,
+		}, &update, nil), &update, callback))
+}
+
 func (c *ControlClient) AssociateFlightPlan(callsign av.ADSBCallsign, spec sim.FlightPlanSpecifier, callback func(error)) {
 	var update server.SimStateUpdate
 	c.addCall(

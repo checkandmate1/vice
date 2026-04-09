@@ -427,7 +427,8 @@ type FacilityAdaptation struct {
 	Lists struct {
 		Coordination []CoordinationList `json:"coordination"`
 		SSA          struct {
-			Altimeters []string `json:"altimeters"`
+			Altimeters        []string `json:"altimeters"`
+			FlashOnATISUpdate bool     `json:"flash_on_atis_update"`
 		} `json:"ssa"`
 		VFR struct {
 			Format string `json:"format"`

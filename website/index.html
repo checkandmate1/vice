@@ -6525,7 +6525,7 @@ SBA, SNA, SCTLA, DCA, Del Rey, SAN, PCT SHD (Ketan K), TPA (Nelson T), AAC, BOS 
                   </tr>
                 </tbody>
               </table>
-              <p>The SSA list also includes the ATIS letter and GI (General Information) text, which can be set with the following commands:</p>
+              <p>The SSA list also includes the ATIS letter and GI (General Information) text. These values are shared across all controllers in the sim. They can be set with the following commands:</p>
               <table class="table table-bordered">
                 <thead>
                   <tr>
@@ -6593,6 +6593,10 @@ SBA, SNA, SCTLA, DCA, Del Rey, SAN, PCT SHD (Ketan K), TPA (Nelson T), AAC, BOS 
                     <td><code>[MULTIFUNC]S(#) * (TEXT)</code></td>
                     <td>Clear ATIS in given line and set GI text
                     </td>
+                  </tr>
+                  <tr>
+                    <td><code>∆</code></td>
+                    <td>Stop blinking ATIS and GI text (signaling a change)</td>
                   </tr>
                 </tbody>
                 </table>

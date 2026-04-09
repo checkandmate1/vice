@@ -266,6 +266,30 @@ func (sd *dispatcher) ModifyFlightPlan(mfp *ModifyFlightPlanArgs, update *SimSta
 	return err
 }
 
+type UpdateATISGITextArgs struct {
+	ControllerToken string
+	Line            int
+	Auxiliary       bool
+	ATIS            *string
+	GIText          *string
+}
+
+const UpdateATISGITextRPC = "Sim.UpdateATISGIText"
+
+func (sd *dispatcher) UpdateATISGIText(args *UpdateATISGITextArgs, update *SimStateUpdate) error {
+	defer sd.sm.lg.CatchAndReportCrash()
+
+	c := sd.sm.LookupController(args.ControllerToken)
+	if c == nil {
+		return ErrNoSimForControllerToken
+	}
+	err := c.sim.UpdateATISGIText(c.tcw, args.Line, args.Auxiliary, args.ATIS, args.GIText)
+	if err == nil {
+		*update = c.GetStateUpdate()
+	}
+	return err
+}
+
 type AircraftSpecifier struct {
 	ControllerToken string
 	Callsign        av.ADSBCallsign

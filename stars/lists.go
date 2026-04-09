@@ -449,9 +449,14 @@ func (sp *STARSPane) drawSSAList(ctx *panes.Context, pw [2]float32, listStyle re
 	}
 
 	// ATIS/GI text. (Note that per 4-44 filter.All does not apply to GI text.)
-	for i := range ps.GIText {
-		if filter.GIText[i] && (ps.ATIS[i] != "" || ps.GIText[i] != "") {
-			pw = td.AddText(ps.ATIS[i]+" "+rewriteDelta(ps.GIText[i]), pw, listStyle)
+	halfSeconds := time.Now().UnixMilli() / 500
+	for i := range ctx.Client.State.GIText {
+		if filter.GIText[i] && (ctx.Client.State.ATIS[i] != "" || ctx.Client.State.GIText[i] != "") {
+			style := listStyle
+			if sp.FlashATIS[i] && halfSeconds&1 == 1 {
+				style.Color = style.Color.Scale(0.35)
+			}
+			pw = td.AddText(ctx.Client.State.ATIS[i]+" "+rewriteDelta(ctx.Client.State.GIText[i]), pw, style)
 			newline()
 		}
 	}

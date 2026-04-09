@@ -32,6 +32,8 @@ type DynamicState struct {
 
 	METAR      map[string]wx.METAR
 	ATISLetter map[string]string // airport ICAO -> single letter "A"-"Z"
+	ATIS       [10]string
+	GIText     [10]string
 
 	LaunchConfig LaunchConfig
 

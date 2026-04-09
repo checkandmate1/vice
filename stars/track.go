@@ -211,6 +211,23 @@ func (sp *STARSPane) trackStateForACID(ctx *panes.Context, acid sim.ACID) (*Trac
 }
 
 func (sp *STARSPane) processEvents(ctx *panes.Context) {
+	for i := range ctx.Client.State.ATIS {
+		if sp.LastATIS[i] != ctx.Client.State.ATIS[i] || sp.LastGIText[i] != ctx.Client.State.GIText[i] {
+			// Don't flash the controller's own edit when its RPC response or the
+			// next world update brings the shared state back to this pane.
+			if pending := sp.pendingATISGITextUpdate[i]; pending.Valid &&
+				pending.ExpectedATIS == ctx.Client.State.ATIS[i] &&
+				pending.ExpectedGIText == ctx.Client.State.GIText[i] {
+				sp.FlashATIS[i] = false
+				sp.clearPendingATISGITextUpdate(i)
+			} else {
+				sp.FlashATIS[i] = ctx.FacilityAdaptation.Lists.SSA.FlashOnATISUpdate
+			}
+			sp.LastATIS[i] = ctx.Client.State.ATIS[i]
+			sp.LastGIText[i] = ctx.Client.State.GIText[i]
+		}
+	}
+
 	// First handle changes in sim.State.Tracks
 	for _, trk := range ctx.Client.State.Tracks {
 		if _, ok := sp.TrackState[trk.ADSBCallsign]; !ok {

@@ -885,6 +885,40 @@ func (s *Sim) PostEvent(e Event) {
 	s.eventStream.Post(e)
 }
 
+func (s *Sim) UpdateATISGIText(_ TCW, line int, auxiliary bool, atis *string, text *string) error {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	// Main and auxiliary commands use different line domains even though they
+	// update the same shared arrays.
+	if auxiliary {
+		if line <= 0 || line >= len(s.State.ATIS) {
+			return ErrIllegalLine
+		}
+	} else if line != 0 {
+		return ErrIllegalLine
+	}
+	if atis != nil {
+		// nil means "leave ATIS unchanged"; empty string means "clear ATIS".
+		switch len(*atis) {
+		case 0:
+			s.State.ATIS[line] = ""
+		case 1:
+			if ch := (*atis)[0]; ch < 'A' || ch > 'Z' {
+				return ErrIllegalATIS
+			}
+			s.State.ATIS[line] = *atis
+		default:
+			return ErrIllegalATIS
+		}
+	}
+	if text != nil {
+		s.State.GIText[line] = *text
+	}
+
+	return nil
+}
+
 // GetUserState returns a deep copy of the simulation state for a client.
 // Server-only fields (like Airport.Departures) are pruned to reduce bandwidth.
 func (s *Sim) GetUserState() *UserState {

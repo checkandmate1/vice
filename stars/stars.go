@@ -164,6 +164,17 @@ type STARSPane struct {
 	lastHistoryTrackUpdate sim.Time
 	discardTracks          bool
 
+	LastATIS   [10]string
+	LastGIText [10]string
+	FlashATIS  [10]bool
+	// Suppresses flashing when this pane later receives the state update for
+	// an ATIS/GIText change that originated locally.
+	pendingATISGITextUpdate [10]struct {
+		ExpectedATIS   string
+		ExpectedGIText string
+		Valid          bool
+	}
+
 	// The start of a RBL--one click received, waiting for the second.
 	wipRBL *STARSRangeBearingLine
 
@@ -230,6 +241,29 @@ type STARSPane struct {
 	pdbArena util.ObjectArena[partialDatablock]
 	ldbArena util.ObjectArena[limitedDatablock]
 	sdbArena util.ObjectArena[suspendedDatablock]
+}
+
+func (sp *STARSPane) notePendingATISGITextUpdate(ctx *panes.Context, line int, atis, text *string) {
+	update := &sp.pendingATISGITextUpdate[line]
+	update.ExpectedATIS = ctx.Client.State.ATIS[line]
+	update.ExpectedGIText = ctx.Client.State.GIText[line]
+	// nil means "leave unchanged", so start from the current state and only
+	// override the fields this command is modifying.
+	if atis != nil {
+		update.ExpectedATIS = *atis
+	}
+	if text != nil {
+		update.ExpectedGIText = *text
+	}
+	update.Valid = true
+}
+
+func (sp *STARSPane) clearPendingATISGITextUpdate(line int) {
+	sp.pendingATISGITextUpdate[line] = struct {
+		ExpectedATIS   string
+		ExpectedGIText string
+		Valid          bool
+	}{}
 }
 
 type PointOutControllers struct {
@@ -819,6 +853,9 @@ func (sp *STARSPane) ResetSim(client *client.ControlClient, pl platform.Platform
 	clear(sp.ForceQLACIDs)
 	sp.RangeBearingLines = nil
 	sp.MinSepAircraft = [2]av.ADSBCallsign{}
+	sp.LastATIS = client.State.ATIS
+	sp.LastGIText = client.State.GIText
+	sp.FlashATIS = [10]bool{}
 
 	sp.lastTrackUpdate = sim.Time{} // force update
 	sp.lastHistoryTrackUpdate = sim.Time{}
