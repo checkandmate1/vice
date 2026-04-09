@@ -357,6 +357,7 @@ func (s *Sim) createOverflightNoLock(group string) (*Aircraft, error) {
 	nasFp.SecondaryScratchpad = of.SecondaryScratchpad
 	nasFp.AssignedAltitude = util.Select(!isTRACON, int(of.AssignedAltitude), 0)
 	nasFp.RNAV = s.State.FacilityAdaptation.Datablocks.DisplayRNAVSymbol && of.IsRNAV
+	nasFp.TypeOfFlight = of.TypeOfFlight
 
 	if err := s.assignSquawk(ac, &nasFp); err != nil {
 		return nil, err

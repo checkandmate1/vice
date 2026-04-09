@@ -16,5 +16,6 @@
   - Fixed bug where WX3 would never have any contents
 - Facility engineering:
   - Support "at or above/at or below" speed restrictions
-  - Removed "speed_restriction" from departure routes; this was unused/redundant.
+  - Removed "speed_restriction" from departure routes; this was unused/redundant
   - Added "thick_20nm_range_ring" STARS adaptation
+  - Added "flight_type" for overflights so aircraft flight types can be specified as "departure" or "arrival" (rather than always being "overflight")

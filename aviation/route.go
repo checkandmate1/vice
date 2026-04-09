@@ -2180,6 +2180,8 @@ type Overflight struct {
 	Description         string                  `json:"description"`
 	IsRNAV              bool                    `json:"is_rnav"`
 	Airlines            []OverflightAirline     `json:"airlines"`
+	TypeOfFlightString  string                  `json:"flight_type"`
+	TypeOfFlight        TypeOfFlight            // set via TypeOfFlightString
 }
 
 type OverflightAirline struct {
@@ -2246,6 +2248,19 @@ func (of *Overflight) PostDeserialize(loc Locator, nmPerLongitude float32, magne
 	if !checkScratchpad(of.SecondaryScratchpad) {
 		e.ErrorString("%s: invalid secondary scratchpad", of.SecondaryScratchpad)
 	}
+
+	switch of.TypeOfFlightString {
+	case "", "overflight":
+		of.TypeOfFlight = FlightTypeOverflight
+	case "departure":
+		of.TypeOfFlight = FlightTypeDeparture
+	case "arrival":
+		of.TypeOfFlight = FlightTypeArrival
+	default:
+		e.ErrorString(`%s: unknown "flight_type" value. Options: "departure", "arrival", "overflight".`,
+			of.TypeOfFlightString)
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////

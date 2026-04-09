@@ -3786,6 +3786,13 @@
                     <td>(<i>Optional</i>) A description of the overflight for use in <i>vice</i>'s user interface.</td>
                   </tr>
                   <tr>
+                    <td>"flight_type"</td>
+                    <td>String</td>
+                    <td>(<i>Optional</i>) How STARS should classify aircraft spawned from this overflight. Valid values are
+                      <code>"overflight"</code>, <code>"arrival"</code>, and <code>"departure"</code>. If omitted,
+                      <code>"overflight"</code> is used.</td>
+                  </tr>
+                  <tr>
                     <td>"initial_altitude"</td>
                     <td>Number or array of numbers</td>
                     <td>The altitude aircraft will have when they are spawned at the initial fix.
