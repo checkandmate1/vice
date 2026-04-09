@@ -941,6 +941,21 @@ func TestNavigationCommands(t *testing.T) {
 			expected: "DAL8499 AFERGI/CRIV",
 		},
 		{
+			name:       "at fix cleared straight in approach",
+			transcript: "Delta 8499 at Fergi cleared straight in River Visual runway one niner approach",
+			aircraft: map[string]Aircraft{
+				"Delta 8499": {
+					Callsign:            "DAL8499",
+					Altitude:            4000,
+					State:               "arrival",
+					AssignedApproach:    "RIV",
+					Fixes:               map[string]string{"Fergi": "FERGI"},
+					CandidateApproaches: map[string]string{"River Visual runway one niner": "RIV"},
+				},
+			},
+			expected: "DAL8499 AFERGI/CSIRIV",
+		},
+		{
 			name:       "at fix intercept localizer",
 			transcript: "Delta 8499 at Fergi intercept the localizer",
 			aircraft: map[string]Aircraft{

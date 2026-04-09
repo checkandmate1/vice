@@ -904,6 +904,15 @@ func registerAllCommands() {
 
 	// === APPROACH COMMANDS ===
 	registerSTTCommand(
+		"at {fix} [cleared] [clear] straight [in] [for] [approach] {approach}",
+		func(fix, appr string) string { return fmt.Sprintf("A%s/CSI%s", fix, appr) },
+		WithName("at_fix_cleared_straight_in_approach"),
+		WithPriority(16),
+		WithSayAgainOnFail(),
+		WithSayAgainMinTokens(3),
+	)
+
+	registerSTTCommand(
 		"at {fix} [cleared] [clear] [for] [approach] {approach}",
 		func(fix, appr string) string { return fmt.Sprintf("A%s/C%s", fix, appr) },
 		WithName("at_fix_cleared_approach"),
