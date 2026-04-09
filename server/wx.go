@@ -23,7 +23,7 @@ import (
 )
 
 func MakeWXProvider(ctx context.Context, serverAddress string, lg *log.Logger) (wx.Provider, error) {
-	if g, err := MakeGCSProvider(lg); err == nil {
+	if g, err := MakeGCSProvider(ctx, lg); err == nil {
 		return g, nil
 	} else if r, err := MakeRPCProvider(ctx, serverAddress, lg); err == nil {
 		return r, nil
@@ -126,7 +126,7 @@ type GCSProvider struct {
 	lg        *log.Logger
 }
 
-func MakeGCSProvider(lg *log.Logger) (wx.Provider, error) {
+func MakeGCSProvider(ctx context.Context, lg *log.Logger) (wx.Provider, error) {
 	g := &GCSProvider{
 		metarFetchDone: make(chan struct{}),
 		atmosFetchDone: make(chan struct{}),
@@ -138,7 +138,18 @@ func MakeGCSProvider(lg *log.Logger) (wx.Provider, error) {
 	if creds == "" {
 		return nil, errors.New("No GCS credentials; WX unavailable")
 	}
-	conf := util.GCSClientConfig{Timeout: time.Hour, Credentials: []byte(creds)}
+	timeout := 4 * time.Second
+	if deadline, ok := ctx.Deadline(); ok {
+		timeout = time.Until(deadline)
+		if timeout <= 0 {
+			return nil, context.DeadlineExceeded
+		}
+	}
+	conf := util.GCSClientConfig{
+		Context:     ctx,
+		Timeout:     timeout,
+		Credentials: []byte(creds),
+	}
 
 	var err error
 	g.gcsClient, err = util.MakeGCSClient("vice-wx", conf)
