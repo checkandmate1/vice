@@ -376,7 +376,7 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 
 		case imgui.KeyF9:
 			if ctx.Keyboard.KeyControl() {
-				sp.resetInputState(ctx)
+				sp.resetInputState(ctx.Platform)
 				ps.DisplayDCB = !ps.DisplayDCB
 			} else {
 				sp.setCommandMode(ctx, CommandModeVFRPlan)
@@ -690,7 +690,7 @@ func (sp *STARSPane) consumeMouseEvents(ctx *panes.Context, ghosts []*av.GhostTr
 			switch status.Clear {
 			case ClearAll:
 				if sp.commandMode != CommandModeTargetGenLock {
-					sp.resetInputState(ctx)
+					sp.resetInputState(ctx.Platform)
 				} else {
 					sp.previewAreaInput = ""
 				}
@@ -792,7 +792,7 @@ func (sp *STARSPane) consumeMouseEvents(ctx *panes.Context, ghosts []*av.GhostTr
 }
 
 func (sp *STARSPane) setCommandMode(ctx *panes.Context, mode CommandMode) {
-	sp.resetInputState(ctx)
+	sp.resetInputState(ctx.Platform)
 	sp.commandMode = mode
 
 	if mode == CommandModeTargetGen || mode == CommandModeTargetGenLock {
@@ -800,7 +800,7 @@ func (sp *STARSPane) setCommandMode(ctx *panes.Context, mode CommandMode) {
 	}
 }
 
-func (sp *STARSPane) resetInputState(ctx *panes.Context) {
+func (sp *STARSPane) resetInputState(pl platform.Platform) {
 	sp.previewAreaInput = ""
 	sp.previewAreaOutput = ""
 	sp.commandMode = CommandModeNone
@@ -814,8 +814,8 @@ func (sp *STARSPane) resetInputState(ctx *panes.Context) {
 
 	sp.drawRoutePoints = nil
 
-	ctx.Platform.EndCaptureMouse()
-	ctx.Platform.StopMouseDeltaMode()
+	pl.EndCaptureMouse()
+	pl.StopMouseDeltaMode()
 }
 
 // installCommandHandlers sets transient command handlers for the next keyboard Enter or scope click.

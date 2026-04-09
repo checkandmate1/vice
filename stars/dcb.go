@@ -1104,7 +1104,7 @@ func (sp *STARSPane) drawDCBMouseDeltaButton(ctx *panes.Context, text string, co
 
 		sp.installCommandHandlers(makeCommandHandlers(
 			"[POS]", func(sp *STARSPane, ctx *panes.Context, _ math.Point2LL) {
-				sp.resetInputState(ctx)
+				sp.resetInputState(ctx.Platform)
 				ctx.Platform.StopMouseDeltaMode()
 				ctx.SetMousePosition(savedMousePosition)
 			},
@@ -1136,7 +1136,7 @@ func (sp *STARSPane) drawDCBSpinner(ctx *panes.Context, spinner dcbSpinner, comm
 		// Clicking an active spinner deselects it
 		modeAfter := spinner.ModeAfter()
 		if modeAfter == CommandModeNone {
-			sp.resetInputState(ctx)
+			sp.resetInputState(ctx.Platform)
 		} else {
 			sp.commandMode = modeAfter
 			sp.activeSpinner = nil
@@ -1159,7 +1159,7 @@ func (sp *STARSPane) drawDCBSpinner(ctx *panes.Context, spinner dcbSpinner, comm
 		sp.installCommandHandlers(makeCommandHandlers(
 			"[POS]", func(sp *STARSPane, ctx *panes.Context, _ math.Point2LL) CommandStatus {
 				if modeAfter == CommandModeNone {
-					sp.resetInputState(ctx)
+					sp.resetInputState(ctx.Platform)
 					return CommandStatus{}
 				}
 				sp.commandMode = modeAfter

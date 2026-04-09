@@ -790,6 +790,8 @@ func (sp *STARSPane) ResetSim(client *client.ControlClient, pl platform.Platform
 	}
 	clear(sp.VFRFPFirstSeen)
 
+	sp.resetInputState(pl)
+
 	// Update maps before resetting the prefs since we may rewrite some map
 	// ids and we want to use the right ones when we're enabling the
 	// default maps.
@@ -804,6 +806,19 @@ func (sp *STARSPane) ResetSim(client *client.ControlClient, pl platform.Platform
 		sp.Monitor = "legacy"
 		sp.Colors = monitorColorSets[sp.Monitor]
 	}
+
+	sp.showVFRAirports = false
+	sp.showTRACONBoundary = false
+	sp.drawRoutePoints = nil
+	sp.showListFrames = false
+	sp.activeSpinner = nil
+	clear(sp.DuplicateBeacons)
+	clear(sp.ReleaseRequests)
+	clear(sp.PointOuts)
+	clear(sp.RejectedPointOuts)
+	clear(sp.ForceQLACIDs)
+	sp.RangeBearingLines = nil
+	sp.MinSepAircraft = [2]av.ADSBCallsign{}
 
 	sp.lastTrackUpdate = sim.Time{} // force update
 	sp.lastHistoryTrackUpdate = sim.Time{}
