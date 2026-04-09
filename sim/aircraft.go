@@ -373,8 +373,8 @@ func (ac *Aircraft) ExpectApproach(id string, ap *av.Airport, lahsoRunway string
 	return ac.Nav.ExpectApproach(ap, id, ac.STARRunwayWaypoints, lahsoRunway, lg)
 }
 
-func (ac *Aircraft) AtFixCleared(fix, approach string) av.CommandIntent {
-	return ac.Nav.AtFixCleared(fix, approach)
+func (ac *Aircraft) AtFixCleared(fix, approach string, straightIn bool) av.CommandIntent {
+	return ac.Nav.AtFixCleared(fix, approach, straightIn)
 }
 
 func (ac *Aircraft) AtFixIntercept(fix string, lg *log.Logger) av.CommandIntent {

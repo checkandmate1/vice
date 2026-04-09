@@ -1669,13 +1669,13 @@ func (s *Sim) AfterFixAltitude(tcw TCW, callsign av.ADSBCallsign, fix string, al
 		})
 }
 
-func (s *Sim) AtFixCleared(tcw TCW, callsign av.ADSBCallsign, fix, approach string) (av.CommandIntent, error) {
+func (s *Sim) AtFixCleared(tcw TCW, callsign av.ADSBCallsign, fix, approach string, straightIn bool) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.AtFixCleared(fix, approach)
+			return ac.AtFixCleared(fix, approach, straightIn)
 		})
 }
 
@@ -3048,6 +3048,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			switch components[1][0] {
 			case 'C':
 				rest := components[1][1:]
+				straightIn := strings.HasPrefix(rest, "SI")
+				rest = strings.TrimPrefix(rest, "SI")
 				if util.IsAllNumbers(rest) && len(rest) > 0 {
 					alt, err := strconv.Atoi(rest)
 					if err != nil {
@@ -3055,7 +3057,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 					}
 					return s.AfterFixAltitude(tcw, callsign, fix, alt*100)
 				}
-				return s.AtFixCleared(tcw, callsign, fix, rest)
+				return s.AtFixCleared(tcw, callsign, fix, rest, straightIn)
 			case 'D':
 				rest := components[1][1:]
 				if !util.IsAllNumbers(rest) || len(rest) == 0 {

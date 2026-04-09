@@ -83,7 +83,7 @@ func TestAtFixClearedApproach(t *testing.T) {
 	})
 
 	f.ExpectApproach("I22L")
-	f.AtFixCleared("ROSLY", "I22L")
+	f.AtFixCleared("ROSLY", "I22L", false)
 
 	// Before ROSLY: approach should NOT be cleared
 	f.BeforeFix("ROSLY", func(f *FlightTest) {

@@ -591,6 +591,6 @@ func TestAtFixClearedInvalidFix(t *testing.T) {
 	})
 
 	f.ExpectApproach("I22L")
-	intent := f.nav.AtFixCleared("BOGUS", "I22L")
+	intent := f.nav.AtFixCleared("BOGUS", "I22L", false)
 	AssertUnable(t, intent)
 }

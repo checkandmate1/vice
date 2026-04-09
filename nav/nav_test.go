@@ -665,9 +665,9 @@ func (f *FlightTest) CompoundSpeed(segments []av.CompoundSpeedSegment) {
 	f.nav.AssignCompoundSpeed(segments)
 }
 
-func (f *FlightTest) AtFixCleared(fix, approach string) {
+func (f *FlightTest) AtFixCleared(fix, approach string, straightIn bool) {
 	f.t.Helper()
-	f.nav.AtFixCleared(fix, approach)
+	f.nav.AtFixCleared(fix, approach, straightIn)
 }
 
 func (f *FlightTest) InterceptApproach() {
