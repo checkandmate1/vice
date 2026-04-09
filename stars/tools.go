@@ -235,6 +235,7 @@ func (sp *STARSPane) drawRBLs(ctx *panes.Context, transforms radar.ScopeTransfor
 		Font:  sp.systemFont(ctx, ps.CharSize.Tools),
 		Color: color,
 	}
+	paneBounds := math.Extent2D{P1: [2]float32{ctx.PaneExtent.Width(), ctx.PaneExtent.Height()}}
 
 	drawRBL := func(p0 math.Point2LL, p1 math.Point2LL, idx int, gs float32) {
 		// Format the range-bearing line text for the two positions.
@@ -248,9 +249,25 @@ func (sp *STARSPane) drawRBLs(ctx *panes.Context, transforms radar.ScopeTransfor
 		}
 		text += fmt.Sprintf("-%d", idx)
 
-		// And draw the line and the text.
+		// Draw the line and the text.
 		pText := transforms.WindowFromLatLongP(p1) // draw at right endpoint
-		//pText[1] += float32(style.Font.Size / 2)   // vertically align
+		bx, by := style.Font.BoundText(text, style.LineSpacing)
+		p0Text := transforms.WindowFromLatLongP(p0)
+		offsetRight := pText[0] > paneBounds.P1[0]-float32(bx)
+		offsetUp := p0Text[1] < pText[1]
+		if !paneBounds.Inside(pText) {
+			// Place text at the window edge if it would otherwise be partially or fully offscreen.
+			if isect, t0, _ := paneBounds.IntersectRay(pText, math.Sub2f(p0Text, pText)); isect {
+				pText = math.Add2f(pText, math.Scale2f(math.Sub2f(p0Text, pText), t0))
+			}
+		}
+		if offsetRight {
+			// If it's off the right side of the window, offset vertically so that it's not too
+			// close to the line.
+			pText[1] += float32(util.Select(offsetUp, 4+by, -4))
+		}
+		pText[0] = math.Clamp(pText[0], 0, paneBounds.P1[0]-float32(bx))
+		pText[1] = math.Clamp(pText[1], float32(by), paneBounds.P1[1])
 		td.AddText(text, pText, style)
 		ld.AddLine(p0, p1, color)
 	}
