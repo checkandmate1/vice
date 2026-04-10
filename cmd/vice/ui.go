@@ -864,17 +864,24 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 		imgui.Checkbox("Start in full-screen", &config.StartInFullScreen)
 
 		monitorNames := p.GetAllMonitorNames()
-		if imgui.BeginComboV("Monitor", monitorNames[config.FullScreenMonitor], imgui.ComboFlagsHeightLarge) {
-			for index, monitor := range monitorNames {
-				label := fmt.Sprintf("%s##monitor%d", monitor, index)
-				if imgui.SelectableBoolV(label, monitor == monitorNames[config.FullScreenMonitor], 0, imgui.Vec2{}) {
-					config.FullScreenMonitor = index
-
-					p.EnableFullScreen(p.IsFullScreen())
-				}
+		if len(monitorNames) == 0 {
+			imgui.TextDisabled("Monitor information unavailable")
+		} else {
+			if config.FullScreenMonitor >= len(monitorNames) {
+				config.FullScreenMonitor = 0
 			}
+			if imgui.BeginComboV("Monitor", monitorNames[config.FullScreenMonitor], imgui.ComboFlagsHeightLarge) {
+				for index, monitor := range monitorNames {
+					label := fmt.Sprintf("%s##monitor%d", monitor, index)
+					if imgui.SelectableBoolV(label, monitor == monitorNames[config.FullScreenMonitor], 0, imgui.Vec2{}) {
+						config.FullScreenMonitor = index
 
-			imgui.EndCombo()
+						p.EnableFullScreen(p.IsFullScreen())
+					}
+				}
+
+				imgui.EndCombo()
+			}
 		}
 	}
 

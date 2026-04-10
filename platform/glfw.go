@@ -290,6 +290,7 @@ func (g *glfwPlatform) NewFrame() {
 	// Let the imgui backends update their internal state for viewport management.
 	implogl3.NewFrame()
 	implglfw.NewFrame()
+	g.ensureViewportMonitors()
 	clampMonitorWorkBounds()
 
 	// Re-apply the macOS Ctrl↔Super swap. The imgui GLFW backend's
@@ -354,6 +355,22 @@ func (g *glfwPlatform) NewFrame() {
 		g.mouseDelta = math.Sub2f(g.getCursorPos(), g.mouseDeltaWindowCenter)
 		g.window.SetCursorPos(float64(g.mouseDeltaWindowCenter[0]), float64(g.mouseDeltaWindowCenter[1]))
 	}
+}
+
+func (g *glfwPlatform) ensureViewportMonitors() {
+	io := imgui.CurrentIO()
+	if io.ConfigFlags()&imgui.ConfigFlagsViewportsEnable == 0 {
+		return
+	}
+	if imgui.CurrentPlatformIO().Monitors().Size > 0 {
+		return
+	}
+
+	backendFlags := io.BackendFlags()
+	backendFlags &^= imgui.BackendFlagsPlatformHasViewports
+	backendFlags &^= imgui.BackendFlagsHasMouseHoveredViewport
+	io.SetBackendFlags(backendFlags)
+	io.SetConfigFlags(io.ConfigFlags() &^ imgui.ConfigFlagsViewportsEnable)
 }
 
 // clampMonitorWorkBounds fixes a bug where glfwGetMonitorWorkarea returns
@@ -473,6 +490,7 @@ func (g *glfwPlatform) InitViewportBackends() {
 
 	// Initialize the OpenGL3 backend with GLSL 1.20 for OpenGL 2.1 compatibility.
 	implogl3.InitV("#version 120")
+	g.ensureViewportMonitors()
 
 }
 
