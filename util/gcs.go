@@ -15,6 +15,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -58,16 +59,18 @@ func MakeGCSClient(bucket string, config GCSClientConfig) (*GCSClient, error) {
 		timeout = 30 * time.Second
 	}
 
+	baseTransport := &http.Transport{
+		DialContext:           (&net.Dialer{Timeout: timeout}).DialContext,
+		TLSHandshakeTimeout:   timeout,
+		ResponseHeaderTimeout: timeout,
+	}
+
 	// Create unauthenticated client if no credentials provided
 	if config.Credentials == nil {
 		return &GCSClient{
-			httpClient: &http.Client{
-				Transport: &http.Transport{
-					ResponseHeaderTimeout: timeout,
-				},
-			},
-			bucket: bucket,
-			ctx:    ctx,
+			httpClient: &http.Client{Transport: baseTransport},
+			bucket:     bucket,
+			ctx:        ctx,
 		}, nil
 	}
 
@@ -104,11 +107,11 @@ func MakeGCSClient(bucket string, config GCSClientConfig) (*GCSClient, error) {
 		}
 	}
 
-	// Create a transport with ResponseHeaderTimeout so that large file downloads
-	// don't timeout, but slow/stalled connections still do.
-	baseTransport := &http.Transport{
-		ResponseHeaderTimeout: timeout,
-	}
+	// Use a bounded client for token acquisition. The GCS data client
+	// deliberately does not set http.Client.Timeout, so large file downloads
+	// can continue after the response headers arrive.
+	tokenClient := &http.Client{Transport: baseTransport, Timeout: timeout}
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, tokenClient)
 	httpClient := &http.Client{
 		Transport: &oauth2.Transport{
 			Source: jwtConfig.TokenSource(ctx),
