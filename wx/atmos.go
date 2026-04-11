@@ -798,6 +798,34 @@ func MakeAtmosGrid(sampleStacks map[math.Point2LL]*AtmosSampleStack) *AtmosGrid 
 		}
 	}
 
+	// METAR/local fallback grids may only have one sample point. Treat those as
+	// uniform fields so consumers like STARS .WIND don't render empty grid cells
+	// as zero wind.
+	if len(sampleStacks) == 1 {
+		for z := range g.Res[2] {
+			var sample Sample
+		findSample:
+			for y := range g.Res[1] {
+				for x := range g.Res[0] {
+					idx := x + y*g.Res[0] + z*g.Res[0]*g.Res[1]
+					if g.Points[idx].temperature != 0 || g.Points[idx].pressure != 0 {
+						sample = g.Points[idx]
+						break findSample
+					}
+				}
+			}
+			if sample.temperature == 0 && sample.pressure == 0 {
+				continue
+			}
+			for y := range g.Res[1] {
+				for x := range g.Res[0] {
+					idx := x + y*g.Res[0] + z*g.Res[0]*g.Res[1]
+					g.Points[idx] = sample
+				}
+			}
+		}
+	}
+
 	return g
 }
 
