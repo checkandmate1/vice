@@ -162,12 +162,20 @@ func (m METAR) Ceiling() (int, error) {
 }
 
 func METARForTime(metar []METAR, t time.Time) METAR {
-	if idx, _ := slices.BinarySearchFunc(metar, t, func(m METAR, t time.Time) int {
+	if len(metar) == 0 {
+		return METAR{}
+	}
+
+	idx, ok := slices.BinarySearchFunc(metar, t, func(m METAR, t time.Time) int {
 		return m.Time.Compare(t)
-	}); idx < len(metar) {
+	})
+	if ok {
 		return metar[idx]
 	}
-	return METAR{}
+	if idx > 0 {
+		return metar[idx-1]
+	}
+	return metar[0]
 }
 
 // Given an average headings (e.g. runway directions) and a slice of valid time intervals,
