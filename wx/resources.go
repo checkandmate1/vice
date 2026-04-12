@@ -107,6 +107,85 @@ func initResources() {
 	}()
 }
 
+///////////////////////////////////////////////////////////////////////////
+// Resource availability intervals
+
+const (
+	metarIntervalTolerance  = 75 * time.Minute
+	precipIntervalTolerance = 40 * time.Minute
+	atmosIntervalTolerance  = 65 * time.Minute
+)
+
+// METARIntervals converts METAR timestamps to time intervals suitable for weather data.
+func METARIntervals(times []time.Time) []util.TimeInterval {
+	return util.FindTimeIntervals(times, metarIntervalTolerance)
+}
+
+// PrecipIntervals converts precipitation timestamps to time intervals suitable for weather data.
+func PrecipIntervals(times []time.Time) []util.TimeInterval {
+	return util.FindTimeIntervals(times, precipIntervalTolerance)
+}
+
+// AtmosIntervals converts atmosphere timestamps to time intervals suitable for weather data.
+func AtmosIntervals(times []time.Time) []util.TimeInterval {
+	return util.FindTimeIntervals(times, atmosIntervalTolerance)
+}
+
+// MergeAndAlignToMidnight merges multiple sets of time intervals and aligns them to
+// full 24-hour periods starting and ending at midnight UTC (0000Z).
+func MergeAndAlignToMidnight(intervals ...[]util.TimeInterval) []util.TimeInterval {
+	if len(intervals) == 0 {
+		return nil
+	}
+
+	iv := util.IntersectAllIntervals(intervals...)
+
+	iv = util.MapSlice(iv, func(ti util.TimeInterval) util.TimeInterval {
+		// Make sure we're in UTC.
+		ti = util.TimeInterval{ti[0].UTC(), ti[1].UTC()}
+
+		// Ensure that all intervals start and end at 0000Z by
+		// advancing the start and pulling back the end as needed. Note
+		// that this may give us some invalid intervals, but we will
+		// cull those shortly.
+		start := ti.Start().Truncate(24 * time.Hour)
+		if !ti.Start().Equal(start) {
+			// Interval doesn't start at midnight, so this day isn't fully covered
+			start = start.Add(24 * time.Hour)
+		}
+		end := ti.End().Truncate(24 * time.Hour)
+
+		return util.TimeInterval{start, end}
+	})
+
+	iv = util.FilterSliceInPlace(iv, func(in util.TimeInterval) bool {
+		return in.Start().Before(in.End())
+	})
+
+	return iv
+}
+
+// FullDataDays computes time intervals where all three data sources (METAR, precip, atmos)
+// have continuous coverage, aligned to full 24-hour periods at midnight UTC.
+func FullDataDays(metar, precip, atmos []time.Time) []util.TimeInterval {
+	var intervals [][]util.TimeInterval
+
+	if metar != nil {
+		intervals = append(intervals, METARIntervals(metar))
+	}
+	if precip != nil {
+		intervals = append(intervals, PrecipIntervals(precip))
+	}
+	if atmos != nil {
+		intervals = append(intervals, AtmosIntervals(atmos))
+	}
+
+	return MergeAndAlignToMidnight(intervals...)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Resource data access
+
 // GetMETAR returns METAR data from bundled resources for the specified airports.
 func GetMETAR(airports []string) (map[string]METARSOA, error) {
 	Init()

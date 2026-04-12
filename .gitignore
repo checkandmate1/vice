@@ -10,6 +10,7 @@ resources/models/kokoro-multi-lang-v1_0/
 /vice
 /wxingest
 /wxscrape
+AGENTS.md
 CLAUDE.md
 SDL2.dll
 Vice.App/

@@ -53,7 +53,7 @@ type Sim struct {
 	VFRReportingPoints []av.VFRReportingPoint
 
 	wxModel    *wx.Model
-	wxProvider wx.Provider
+	wxProvider *wx.Provider
 	METAR      map[string][]wx.METAR
 
 	ATISChangedTime map[string]Time
@@ -251,7 +251,7 @@ type NewSimConfiguration struct {
 
 	PilotErrorInterval float32
 
-	WXProvider wx.Provider
+	WXProvider *wx.Provider
 
 	Emergencies []Emergency
 
@@ -482,7 +482,7 @@ func (s *Sim) ReplayScenario(waypointCommands string, durationSpec string, lg *l
 	return nil
 }
 
-func (s *Sim) Activate(lg *log.Logger, provider wx.Provider) {
+func (s *Sim) Activate(lg *log.Logger, provider *wx.Provider) {
 	s.lg = lg
 
 	if s.eventStream == nil {

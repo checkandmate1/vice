@@ -479,12 +479,12 @@ func (c *ControlClient) LastTTSCallsign() av.ADSBCallsign {
 }
 
 func (c *ControlClient) GetPrecipURL(t sim.Time, callback func(url string, nextTime sim.Time, err error)) {
-	args := server.PrecipURLArgs{
+	args := wx.PrecipURLArgs{
 		Facility: c.State.Facility,
 		Time:     t.Time(),
 	}
-	var result server.PrecipURL
-	c.addCall(makeRPCCall(c.client.Go(server.GetPrecipURLRPC, args, &result, nil),
+	var result wx.PrecipURL
+	c.addCall(makeRPCCall(c.client.Go(wx.GetPrecipURLRPC, args, &result, nil),
 		func(err error) {
 			if callback != nil {
 				callback(result.URL, sim.NewSimTime(result.NextTime), err)
@@ -493,13 +493,13 @@ func (c *ControlClient) GetPrecipURL(t sim.Time, callback func(url string, nextT
 }
 
 func (c *ControlClient) GetAtmosGrid(t time.Time, callback func(*wx.AtmosGrid, error)) {
-	spec := server.GetAtmosArgs{
+	spec := wx.GetAtmosArgs{
 		Facility:       c.State.Facility,
 		Time:           t,
 		PrimaryAirport: c.State.PrimaryAirport,
 	}
-	var result server.GetAtmosResult
-	c.addCall(makeRPCCall(c.client.Go(server.GetAtmosGridRPC, spec, &result, nil),
+	var result wx.GetAtmosResult
+	c.addCall(makeRPCCall(c.client.Go(wx.GetAtmosGridRPC, spec, &result, nil),
 		func(err error) {
 			if callback != nil {
 				if result.AtmosByPointSOA != nil {

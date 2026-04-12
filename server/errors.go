@@ -25,7 +25,6 @@ var (
 	ErrRPCVersionMismatch        = errors.New("Client and server RPC versions don't match")
 	ErrServerDisconnected        = errors.New("Server disconnected")
 	ErrTCWAlreadyOccupied        = errors.New("TCW is already occupied")
-	ErrWeatherUnavailable        = errors.New("Unable to reach weather server")
 	ErrSTTUnavailable            = errors.New("STT service unavailable")
 )
 

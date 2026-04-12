@@ -5,7 +5,6 @@
 package server
 
 import (
-	"context"
 	crand "crypto/rand"
 	"encoding/base64"
 	"log/slog"
@@ -36,7 +35,7 @@ type SimManager struct {
 	sessionsByToken map[string]*simSession
 
 	// Helpers and such
-	wxProvider     wx.Provider
+	wxProvider     *wx.Provider
 	providersReady chan struct{}
 	mapManifests   map[string]*sim.VideoMapManifest
 	lg             *log.Logger
@@ -102,25 +101,17 @@ func NewSimManager(scenarioGroups map[string]map[string]*scenarioGroup, scenario
 	// Initialize WX provider asynchronously so the server can start
 	// accepting connections immediately. Callers that need providers will
 	// block in getProviders() until initialization completes or times out.
-	go sm.initRemoteProviders(serverAddress, lg)
+	go func() {
+		defer close(sm.providersReady)
+		sm.wxProvider = wx.MakeProvider(serverAddress, lg)
+	}()
 
 	sm.launchHTTPServer()
 
 	return sm
 }
 
-func (sm *SimManager) initRemoteProviders(serverAddress string, lg *log.Logger) {
-	defer close(sm.providersReady)
-
-	// Use a single context to control all provider initialization.
-	// This must complete before the client RPC timeout (5 seconds).
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	defer cancel()
-
-	sm.wxProvider, _ = MakeWXProvider(ctx, serverAddress, lg)
-}
-
-func (sm *SimManager) getWXProvider() wx.Provider {
+func (sm *SimManager) getWXProvider() *wx.Provider {
 	<-sm.providersReady
 	return sm.wxProvider
 }
@@ -728,53 +719,24 @@ func (sm *SimManager) GetSerializeSim(token string, s *sim.Sim) error {
 ///////////////////////////////////////////////////////////////////////////
 // Weather
 
-type PrecipURLArgs struct {
-	Facility string
-	Time     time.Time
-}
-
-type PrecipURL struct {
-	URL      string
-	NextTime time.Time
-}
-
-const GetPrecipURLRPC = "SimManager.GetPrecipURL"
-
-func (sm *SimManager) GetPrecipURL(args PrecipURLArgs, result *PrecipURL) error {
+func (sm *SimManager) GetPrecipURL(args wx.PrecipURLArgs, result *wx.PrecipURL) error {
 	defer sm.lg.CatchAndReportCrash()
 
-	if sm.wxProvider == nil {
-		return ErrWeatherUnavailable
-	}
+	provider := sm.getWXProvider()
 
 	var err error
-	result.URL, result.NextTime, err = sm.wxProvider.GetPrecipURL(args.Facility, args.Time)
+	result.URL, result.NextTime, err = provider.GetPrecipURL(args.Facility, args.Time)
 	return err
 }
 
-type GetAtmosArgs struct {
-	Facility       string
-	Time           time.Time
-	PrimaryAirport string
-}
-
-type GetAtmosResult struct {
-	AtmosByPointSOA *wx.AtmosByPointSOA
-	Time            time.Time
-	NextTime        time.Time
-}
-
-const GetAtmosGridRPC = "SimManager.GetAtmosGrid"
-
-func (sm *SimManager) GetAtmosGrid(args GetAtmosArgs, result *GetAtmosResult) error {
+func (sm *SimManager) GetAtmosGrid(args wx.GetAtmosArgs, result *wx.GetAtmosResult) error {
 	defer sm.lg.CatchAndReportCrash()
 
-	if sm.wxProvider == nil {
-		return ErrWeatherUnavailable
-	}
+	provider := sm.getWXProvider()
 
 	var err error
-	result.AtmosByPointSOA, result.Time, result.NextTime, err = sm.wxProvider.GetAtmosGrid(args.Facility, args.Time, args.PrimaryAirport)
+	result.AtmosByPointSOA, result.Time, result.NextTime, err =
+		provider.GetAtmosGrid(args.Facility, args.Time, args.PrimaryAirport)
 	return err
 }
 
