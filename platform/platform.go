@@ -62,6 +62,9 @@ type Platform interface {
 	// IsFullScreen() returns true if the application is in full-screen mode.
 	IsFullScreen() bool
 
+	// SetMainWindowSquare enables or disables a square aspect ratio for the main window.
+	SetMainWindowSquare(square bool)
+
 	// IsAppFocused returns true if the application has OS focus.
 	IsAppFocused() bool
 

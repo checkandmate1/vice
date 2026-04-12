@@ -22,3 +22,4 @@
   - Added "thick_20nm_range_ring" STARS adaptation
   - Added "flight_type" for overflights so aircraft flight types can be specified as "departure" or "arrival" (rather than always being "overflight")
   - Added "flash_on_atis_update" adaptation for STARS SSA lists
+- Added UI option to force (realistic) square windows for STARS/ERAM radar displays
