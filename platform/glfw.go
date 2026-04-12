@@ -448,6 +448,8 @@ func clampMonitorWorkBounds() {
 		if mainSizeX <= 0 || mainSizeY <= 0 {
 			*(*float32)(unsafe.Add(mon, 8)) = 1
 			*(*float32)(unsafe.Add(mon, 12)) = 1
+			*(*float32)(unsafe.Add(mon, 16)) = mainPosX // WorkPos = MainPos
+			*(*float32)(unsafe.Add(mon, 20)) = mainPosY
 			*(*float32)(unsafe.Add(mon, 24)) = 1
 			*(*float32)(unsafe.Add(mon, 28)) = 1
 			continue
@@ -474,6 +476,19 @@ func clampMonitorWorkBounds() {
 		}
 		if *workPosY+*workSizeY > mainBottom {
 			*workSizeY = mainBottom - *workPosY
+		}
+
+		// Safety net: if work bounds are still invalid after clamping
+		// (e.g. negative size from work area entirely outside main
+		// bounds, or GLFW reporting bogus coordinates during display
+		// changes), fall back to main bounds as imgui recommends.
+		if *workSizeX <= 0 || *workSizeY <= 0 ||
+			*workPosX < mainPosX || *workPosY < mainPosY ||
+			*workPosX+*workSizeX > mainRight || *workPosY+*workSizeY > mainBottom {
+			*workPosX = mainPosX
+			*workPosY = mainPosY
+			*workSizeX = mainSizeX
+			*workSizeY = mainSizeY
 		}
 	}
 }
