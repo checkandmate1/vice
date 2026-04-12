@@ -1853,9 +1853,9 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 			return nil
 		},
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			// Pilot must have the field or preceding traffic in sight
-			// before accepting a visual approach clearance.
-			if !ac.FieldInSight && !ac.RequestedVisual && !ac.TrafficInSight {
+			// Pilot must have the field or approach-cleared preceding
+			// traffic in sight before accepting a visual approach clearance.
+			if !ac.FieldInSight && !ac.RequestedVisual && !s.hasRecentApproachTrafficInSight(ac) {
 				return av.MakeUnableIntent("unable, we don't have the field in sight")
 			}
 
@@ -1869,6 +1869,9 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 			// If the aircraft is too close for a stable approach, go around.
 			intent, ok := ac.ClearedDirectVisual(runway, s.State.SimTime)
 			if !ok {
+				if !ac.Nav.SetDirectVisualApproach(runway) {
+					return av.MakeUnableIntent("unable, we don't know runway " + runway)
+				}
 				s.goAround(ac)
 				return av.MakeUnableIntent("unable, going around")
 			}
@@ -2035,7 +2038,8 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	const horizontalToleranceNM = 2.0
 	const verticalToleranceFeet = 1000.0
 
-	trafficFound := false
+	var trafficFound av.ADSBCallsign
+	trafficDist := float32(999999)
 	for cs, other := range s.Aircraft {
 		if cs == ac.ADSBCallsign {
 			continue // Skip self
@@ -2044,14 +2048,16 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 		dist := math.NMDistance2LL(trafficPos, other.Position())
 		altDiff := math.Abs(other.Altitude() - trafficAltFeet)
 
-		if dist <= horizontalToleranceNM && altDiff <= verticalToleranceFeet {
-			trafficFound = true
-			break
+		if dist <= horizontalToleranceNM && altDiff <= verticalToleranceFeet && dist < trafficDist {
+			trafficFound = cs
+			trafficDist = dist
 		}
 	}
 
-	if !trafficFound {
+	if trafficFound == "" {
 		// No traffic found - respond "looking"
+		ac.TrafficLookingCallsign = ""
+		ac.TrafficLookingUntil = Time{}
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 	}
 
@@ -2082,31 +2088,55 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	// Roll the dice
 	if s.Rand.Float32() < seeProb {
 		ac.TrafficInSight = true
+		ac.TrafficInSightCallsign = trafficFound
 		ac.TrafficInSightTime = s.State.SimTime
+		ac.TrafficLookingCallsign = ""
+		ac.TrafficLookingUntil = Time{}
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseTrafficSeen, WillMaintainSeparation: s.Rand.Float32() < 0.3}
 	}
 
 	// "Looking" - schedule possible delayed traffic-in-sight call
+	ac.TrafficLookingCallsign = trafficFound
 	ac.TrafficLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
 	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 }
 
 // checkDelayedTrafficInSight checks if an aircraft that said "looking" should now report traffic in sight.
 func (s *Sim) checkDelayedTrafficInSight(ac *Aircraft) {
-	if ac.TrafficLookingUntil.IsZero() || s.State.SimTime.Before(ac.TrafficLookingUntil) {
+	if ac.TrafficLookingUntil.IsZero() {
 		return
 	}
 
-	ac.TrafficLookingUntil = Time{}
+	if s.State.SimTime.After(ac.TrafficLookingUntil) {
+		ac.TrafficLookingCallsign = ""
+		ac.TrafficLookingUntil = Time{}
+		return
+	}
 
 	if ac.ControllerFrequency == "" {
 		return
 	}
 
+	if s.Rand.Float32() >= 0.1 {
+		return
+	}
+
 	ac.TrafficInSight = true
+	ac.TrafficInSightCallsign = ac.TrafficLookingCallsign
 	ac.TrafficInSightTime = s.State.SimTime
+	ac.TrafficLookingCallsign = ""
+	ac.TrafficLookingUntil = Time{}
 
 	s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionTrafficInSight)
+}
+
+func (s *Sim) hasRecentApproachTrafficInSight(ac *Aircraft) bool {
+	if !ac.TrafficInSight || s.State.SimTime.Sub(ac.TrafficInSightTime) > 30*time.Second {
+		return false
+	}
+
+	traffic, ok := s.Aircraft[ac.TrafficInSightCallsign]
+	return ok && traffic.Nav.Approach.Cleared
 }
 
 // checkDelayedFieldInSight checks if an aircraft that said "looking" (in response to an

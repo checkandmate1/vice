@@ -117,9 +117,11 @@ type Aircraft struct {
 	ReportedATIS string
 
 	// Traffic advisory state
-	TrafficInSight      bool // True if aircraft has reported traffic in sight
-	TrafficInSightTime  Time // When traffic was reported in sight
-	TrafficLookingUntil Time // If non-zero, aircraft may report traffic in sight before this time
+	TrafficInSight         bool            // True if aircraft has reported traffic in sight
+	TrafficInSightCallsign av.ADSBCallsign // Traffic the aircraft has reported in sight
+	TrafficInSightTime     Time            // When traffic was reported in sight
+	TrafficLookingCallsign av.ADSBCallsign // Traffic the aircraft is looking for
+	TrafficLookingUntil    Time            // If non-zero, aircraft may report traffic in sight before this time
 
 	// FieldInSight is set when the pilot has confirmed the airport is in sight
 	// (either via AP command response or spontaneous report).

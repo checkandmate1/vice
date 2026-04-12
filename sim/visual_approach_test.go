@@ -542,11 +542,16 @@ func TestVisualRequestBearingFilter(t *testing.T) {
 // for the duration of the test, then removes it on cleanup.
 func setupTestRunway(t *testing.T, icao string, rwy av.Runway) {
 	t.Helper()
+	setupTestRunways(t, icao, []av.Runway{rwy})
+}
+
+func setupTestRunways(t *testing.T, icao string, runways []av.Runway) {
+	t.Helper()
 	if av.DB == nil {
 		av.DB = &av.StaticDatabase{Airports: map[string]av.FAAAirport{}}
 	}
 	old, hadAirport := av.DB.Airports[icao]
-	ap := av.FAAAirport{Id: icao, Runways: []av.Runway{rwy}}
+	ap := av.FAAAirport{Id: icao, Runways: runways}
 	av.DB.Airports[icao] = ap
 	t.Cleanup(func() {
 		if hadAirport {
@@ -867,6 +872,56 @@ func TestDelayedFieldInSight(t *testing.T) {
 	}
 }
 
+func TestDelayedTrafficInSightCanExpireWithoutSeeingTraffic(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	sim := makeVisualTestSim(airportLoc, "13L")
+	sim.State.SimTime = NewSimTime(time.Now())
+	sim.PendingContacts = make(map[TCP][]PendingContact)
+
+	ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180)
+	ac.TrafficLookingCallsign = "DAL456"
+	ac.TrafficLookingUntil = sim.State.SimTime.Add(-time.Second)
+
+	sim.checkDelayedTrafficInSight(ac)
+
+	if ac.TrafficInSight {
+		t.Fatal("expired looking window should not guarantee traffic in sight")
+	}
+	if !ac.TrafficLookingUntil.IsZero() || ac.TrafficLookingCallsign != "" {
+		t.Fatal("expired looking window should be cleared")
+	}
+}
+
+func TestCVAFollowTrafficRequiresRecentApproachClearedTraffic(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc, Elevation: 13})
+
+	vs := NewVisualScenario(t, airportLoc, "13L", math.Point2LL{0, 5.0 / 60}, 180)
+	traffic := makeVisualTestAircraft(math.Point2LL{0, 4.0 / 60}, 180)
+	traffic.ADSBCallsign = "DAL456"
+	traffic.Nav.Approach.Cleared = true
+	vs.Sim.Aircraft[traffic.ADSBCallsign] = traffic
+
+	vs.AC.TrafficInSight = true
+	vs.AC.TrafficInSightCallsign = traffic.ADSBCallsign
+	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime.Add(-31 * time.Second)
+
+	if vs.Sim.hasRecentApproachTrafficInSight(vs.AC) {
+		t.Fatal("stale traffic report should not allow follow-traffic visual")
+	}
+
+	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
+	traffic.Nav.Approach.Cleared = false
+	if vs.Sim.hasRecentApproachTrafficInSight(vs.AC) {
+		t.Fatal("traffic that is not approach-cleared should not allow follow-traffic visual")
+	}
+
+	traffic.Nav.Approach.Cleared = true
+	if !vs.Sim.hasRecentApproachTrafficInSight(vs.AC) {
+		t.Fatal("recent approach-cleared traffic should allow follow-traffic visual")
+	}
+}
+
 func TestCVARequiresFieldInSight(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -1020,6 +1075,36 @@ func TestTransmissionStringsNoDoubleApproach(t *testing.T) {
 }
 
 // === Scenario tests using VisualScenario helper ===
+
+func TestScenarioCVATooCloseGoesAroundOnVisualRunwayWithoutPriorApproach(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	oppositeLoc := math.Point2LL{0, 1.0 / 60}
+	setupTestRunways(t, "KJFK", []av.Runway{
+		{Id: "36", Heading: 360, Threshold: airportLoc, Elevation: 13},
+		{Id: "18", Heading: 180, Threshold: oppositeLoc, Elevation: 13},
+	})
+
+	// North of the runway 36 threshold and heading north: too close/behind
+	// for a stable visual, so CVA should trigger go-around.
+	vs := NewVisualScenario(t, airportLoc, "36", math.Point2LL{0, 1.0 / 60}, 360)
+	vs.AC.FieldInSight = true
+	vs.AC.Nav.Approach.Assigned = nil
+	vs.AC.Nav.Approach.AssignedId = ""
+
+	intent, err := vs.ClearedVisual("36")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok := intent.(av.UnableIntent); !ok {
+		t.Fatalf("expected UnableIntent for too-close CVA, got %T", intent)
+	}
+	if !vs.AC.WentAround {
+		t.Fatal("too-close CVA should trigger go-around")
+	}
+	if len(vs.AC.Nav.Waypoints) == 0 || vs.AC.Nav.Waypoints[0].Location != oppositeLoc {
+		t.Fatalf("go-around should use visual runway 36 opposite threshold, got %v", vs.AC.Nav.Waypoints)
+	}
+}
 
 func TestScenarioAPThenClearedVisual(t *testing.T) {
 	// Full flow: AP advisory → field in sight → CVA clearance.

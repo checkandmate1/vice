@@ -767,6 +767,30 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 	return wps
 }
 
+// SetDirectVisualApproach synthesizes approach metadata for an uncharted
+// visual approach to runway.
+func (nav *Nav) SetDirectVisualApproach(runway string) bool {
+	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
+	if !ok {
+		return false
+	}
+	opp, ok := av.LookupOppositeRunway(nav.FlightState.ArrivalAirport.Fix, runway)
+	if !ok {
+		opp.Threshold = rwy.Threshold
+	}
+
+	nav.Approach.Assigned = &av.Approach{
+		Id:                "V" + runway,
+		FullName:          "Visual Approach Runway " + runway,
+		Runway:            runway,
+		Threshold:         rwy.Threshold,
+		OppositeThreshold: opp.Threshold,
+	}
+	nav.Approach.AssignedId = "V" + runway
+	nav.Approach.Cleared = true
+	return true
+}
+
 // ClearedDirectVisual sets up the aircraft to fly a visual approach to
 // the runway threshold. The aircraft flies a 3nm final aligned with the
 // runway heading to the threshold. Returns (intent, true) on success.
@@ -792,19 +816,9 @@ func (nav *Nav) ClearedDirectVisual(runway string, simTime time.Time) (av.Comman
 	// Synthesize an Approach so downstream consumers (go-around,
 	// spacing checks, landing bookkeeping, departure scheduling) have
 	// the runway data they need.
-	rwy, _ := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
-	opp, _ := av.LookupOppositeRunway(nav.FlightState.ArrivalAirport.Fix, runway)
-	nav.Approach.Assigned = &av.Approach{
-		Id:                "V" + runway,
-		FullName:          "Visual Approach Runway " + runway,
-		Runway:            runway,
-		Threshold:         rwy.Threshold,
-		OppositeThreshold: opp.Threshold,
-	}
-	nav.Approach.AssignedId = "V" + runway
+	nav.SetDirectVisualApproach(runway)
 
 	// Mark as cleared and allow descent.
-	nav.Approach.Cleared = true
 	nav.Altitude = NavAltitude{}
 	nav.Speed = NavSpeed{}
 
