@@ -861,6 +861,10 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 				}, p), true)
 		}
 
+		if imgui.Checkbox("Maintain square main window", &config.MainWindowSquare) {
+			p.SetMainWindowSquare(config.MainWindowSquare)
+		}
+
 		imgui.Checkbox("Start in full-screen", &config.StartInFullScreen)
 
 		monitorNames := p.GetAllMonitorNames()

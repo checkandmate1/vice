@@ -63,6 +63,8 @@ type Config struct {
 	InitialWindowSize     [2]int
 	InitialWindowPosition [2]int
 
+	MainWindowSquare bool
+
 	EnableMSAA bool
 
 	StartInFullScreen bool
@@ -108,6 +110,9 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 			config.InitialWindowSize[1] = vm.Height - 150
 		}
 	}
+	if config.MainWindowSquare {
+		config.InitialWindowSize = squareWindowSize(config.InitialWindowSize)
+	}
 
 	// If window position is out of bounds, create the window at (100, 100)
 	if config.InitialWindowPosition[0] < 0 || config.InitialWindowPosition[1] < 0 ||
@@ -138,6 +143,9 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 		glfw.Terminate()
 		return nil, fmt.Errorf("failed to create window: %w", err)
 	}
+	if config.MainWindowSquare {
+		window.SetAspectRatio(1, 1)
+	}
 	window.SetPos(config.InitialWindowPosition[0], config.InitialWindowPosition[1])
 	window.Show()
 	window.MakeContextCurrent()
@@ -162,6 +170,27 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 	platform.audioEngine.Initialize(lg)
 
 	return platform, nil
+}
+
+func squareWindowSize(size [2]int) [2]int {
+	if size[0] <= 0 || size[1] <= 0 {
+		return size
+	}
+	s := min(size[0], size[1])
+	return [2]int{s, s}
+}
+
+func (g *glfwPlatform) SetMainWindowSquare(square bool) {
+	g.config.MainWindowSquare = square
+	if square {
+		g.window.SetAspectRatio(1, 1)
+		if !g.IsFullScreen() {
+			size := squareWindowSize(g.WindowSize())
+			g.window.SetSize(size[0], size[1])
+		}
+	} else {
+		g.window.SetAspectRatio(glfw.DontCare, glfw.DontCare)
+	}
 }
 
 func (g *glfwPlatform) DPIScale() float32 {
