@@ -25,7 +25,6 @@ var (
 	ErrRPCVersionMismatch        = errors.New("Client and server RPC versions don't match")
 	ErrServerDisconnected        = errors.New("Server disconnected")
 	ErrTCWAlreadyOccupied        = errors.New("TCW is already occupied")
-	ErrSTTUnavailable            = errors.New("STT service unavailable")
 )
 
 var errorStringToError = map[string]error{
@@ -116,7 +115,6 @@ var errorStringToError = map[string]error{
 	ErrRPCVersionMismatch.Error():        ErrRPCVersionMismatch,
 	ErrServerDisconnected.Error():        ErrServerDisconnected,
 	ErrTCWAlreadyOccupied.Error():        ErrTCWAlreadyOccupied,
-	ErrSTTUnavailable.Error():            ErrSTTUnavailable,
 }
 
 func TryDecodeError(e error) error {
