@@ -7,11 +7,158 @@ package nav
 import (
 	"slices"
 	"testing"
+	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/wx"
 )
+
+func TestAssignAltitudeDelaysVerticalGuidance(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL DETGY HAUPT",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  8000,
+		InitialSpeed:     250,
+	})
+
+	f.AssignAltitude(3000)
+	if f.nav.Altitude.Assigned == nil || *f.nav.Altitude.Assigned != 3000 {
+		t.Fatalf("expected Assigned=3000, got %v", f.nav.Altitude.Assigned)
+	}
+	if f.nav.Altitude.ActiveAssigned != nil {
+		t.Fatalf("expected no active assigned altitude before delay, got %.0f", *f.nav.Altitude.ActiveAssigned)
+	}
+	if f.nav.Altitude.ActivateAt.IsZero() {
+		t.Fatal("expected delayed altitude activation")
+	}
+
+	wxs := f.weather(f.nav.FlightState.Altitude)
+	f.nav.UpdateWithWeather(f.callsign, wxs, &f.fp, f.simTime, nil)
+	f.AssertLevelFlight()
+
+	f.simTime = f.nav.Altitude.ActivateAt
+	wxs = f.weather(f.nav.FlightState.Altitude)
+	f.nav.UpdateWithWeather(f.callsign, wxs, &f.fp, f.simTime, nil)
+
+	if f.nav.Altitude.ActiveAssigned == nil || *f.nav.Altitude.ActiveAssigned != 3000 {
+		t.Fatalf("expected ActiveAssigned=3000 after delay, got %v", f.nav.Altitude.ActiveAssigned)
+	}
+	if !f.nav.Altitude.ActivateAt.IsZero() {
+		t.Fatalf("expected activation time to be cleared, got %v", f.nav.Altitude.ActivateAt)
+	}
+	f.AssertDescending()
+}
+
+func TestAssignAltitudeKeepsPreviousActiveAltitudeDuringDelay(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL DETGY HAUPT",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  8000,
+		InitialSpeed:     250,
+	})
+	f.nav.setAssignedAltitude(5000)
+
+	f.AssignAltitude(3000)
+	target, _, _ := f.nav.TargetAltitude()
+	if target != 5000 {
+		t.Fatalf("expected previous active assigned altitude 5000 during delay, got %.0f", target)
+	}
+
+	f.simTime = f.nav.Altitude.ActivateAt
+	f.nav.UpdateWithWeather(f.callsign, f.weather(f.nav.FlightState.Altitude), &f.fp, f.simTime, nil)
+	target, _, _ = f.nav.TargetAltitude()
+	if target != 3000 {
+		t.Fatalf("expected new assigned altitude 3000 after delay, got %.0f", target)
+	}
+}
+
+func TestAssignAltitudeKeepsSTARDescentDuringDelay(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  11000,
+		InitialSpeed:     250,
+	})
+
+	for range 300 {
+		wxs := f.weather(f.nav.FlightState.Altitude)
+		f.nav.UpdateWithWeather(f.callsign, wxs, &f.fp, f.simTime, nil)
+		f.simTime = f.simTime.Add(time.Second)
+		if f.nav.FlightState.AltitudeRate < -50 {
+			break
+		}
+	}
+	if f.nav.FlightState.AltitudeRate >= -50 {
+		t.Fatal("expected STAR descent to have started before assigning altitude")
+	}
+
+	f.AssignAltitude(3000)
+	target, _, _ := f.nav.TargetAltitude()
+	if target == 3000 {
+		t.Fatal("expected STAR target, not pending controller altitude, during delay")
+	}
+	if target == f.nav.FlightState.Altitude {
+		t.Fatalf("expected STAR descent to continue during delay, target %.0f current %.0f",
+			target, f.nav.FlightState.Altitude)
+	}
+}
+
+func TestSayAltitudeReportsPendingAssignedAltitude(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL DETGY HAUPT",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  8000,
+		InitialSpeed:     250,
+	})
+
+	f.AssignAltitude(3000)
+	intent, ok := f.nav.SayAltitude().(av.ReportAltitudeIntent)
+	if !ok {
+		t.Fatalf("expected ReportAltitudeIntent, got %T", intent)
+	}
+	if intent.Assigned == nil || *intent.Assigned != 3000 {
+		t.Fatalf("expected say altitude to report Assigned=3000, got %v", intent.Assigned)
+	}
+	if intent.Direction != av.AltitudeDescend {
+		t.Fatalf("expected descent direction, got %v", intent.Direction)
+	}
+}
+
+func TestExpediteDuringAssignedAltitudeDelay(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL DETGY HAUPT",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  8000,
+		InitialSpeed:     250,
+	})
+
+	f.AssignAltitude(3000)
+	intent := f.nav.ExpediteDescent()
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("expected expedite to apply to pending assigned altitude, got unable: %v", intent)
+	}
+	if f.nav.Altitude.Rate != RateExpedite {
+		t.Fatalf("expected expedite rate to be saved during delay, got %v", f.nav.Altitude.Rate)
+	}
+
+	f.simTime = f.nav.Altitude.ActivateAt.Add(time.Second)
+	f.nav.UpdateWithWeather(f.callsign, f.weather(f.nav.FlightState.Altitude), &f.fp, f.simTime, nil)
+	if f.nav.Altitude.Rate != RateExpedite {
+		t.Fatalf("expected expedite rate after delayed activation, got %v", f.nav.Altitude.Rate)
+	}
+	f.AssertDescending()
+}
 
 // TestSTARDescentMeetsRestrictions verifies that an aircraft descending
 // via a STAR meets altitude restrictions at each fix.
@@ -333,18 +480,30 @@ func TestSpeedAssignmentPausesDescentWhenLarge(t *testing.T) {
 
 	f.AssignAltitude(3000)
 
-	// Let descent start for a few ticks
-	f.AfterTicks(10, func(f *FlightTest) {
+	assignedSpeed := false
+	assignedTick := -1
+	f.BeforeFix("HAUPT", func(f *FlightTest) {
+		if assignedSpeed {
+			return
+		}
+		if f.nav.Altitude.ActiveAssigned == nil {
+			return
+		}
 		f.AssertDescending()
-		// Assign a large speed change (70kt delta)
 		f.AssignSpeed(180)
+		assignedSpeed = true
+		assignedTick = f.tick
 	})
 
 	// Shortly after the speed assignment, descent should be paused
-	f.AfterTicks(12, func(f *FlightTest) {
-		if f.nav.Altitude.AfterSpeed == nil {
-			t.Errorf("tick %d: expected AfterSpeed to be set (altitude deferred for speed change)", f.tick)
+	f.BeforeFix("HAUPT", func(f *FlightTest) {
+		if !assignedSpeed || f.tick == assignedTick {
+			return
 		}
+		if f.nav.Altitude.AfterSpeed == nil {
+			return
+		}
+		f.AssertNotDescending()
 	})
 
 	f.AtFix("HAUPT", func(f *FlightTest) {
@@ -353,6 +512,51 @@ func TestSpeedAssignmentPausesDescentWhenLarge(t *testing.T) {
 	})
 
 	f.Run()
+}
+
+func TestAltitudeAfterSpeedDelaysAfterSpeedReached(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL DETGY HAUPT",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  8000,
+		InitialSpeed:     250,
+	})
+	f.AssignSpeed(180)
+	intent := f.nav.AssignAltitude(3000, true, f.simTime)
+	if altIntent, ok := intent.(av.AltitudeIntent); !ok || altIntent.AfterSpeed == nil || *altIntent.AfterSpeed != 180 {
+		t.Fatalf("expected altitude after speed intent, got %T: %v", intent, intent)
+	}
+
+	for range 300 {
+		wxs := f.weather(f.nav.FlightState.Altitude)
+		f.nav.UpdateWithWeather(f.callsign, wxs, &f.fp, f.simTime, nil)
+		f.simTime = f.simTime.Add(time.Second)
+		if f.nav.Altitude.AfterSpeed == nil {
+			break
+		}
+	}
+	if f.nav.Altitude.AfterSpeed != nil {
+		t.Fatal("expected speed condition to schedule altitude assignment")
+	}
+	if f.nav.Altitude.Assigned == nil || *f.nav.Altitude.Assigned != 3000 {
+		t.Fatalf("expected Assigned=3000 after speed reached, got %v", f.nav.Altitude.Assigned)
+	}
+	if f.nav.Altitude.ActiveAssigned != nil {
+		t.Fatalf("expected altitude to remain inactive after speed reached, got %.0f", *f.nav.Altitude.ActiveAssigned)
+	}
+	if f.nav.Altitude.ActivateAt.IsZero() {
+		t.Fatal("expected delayed activation after speed reached")
+	}
+	f.AssertLevelFlight()
+
+	f.simTime = f.nav.Altitude.ActivateAt.Add(time.Second)
+	f.nav.UpdateWithWeather(f.callsign, f.weather(f.nav.FlightState.Altitude), &f.fp, f.simTime, nil)
+	if f.nav.Altitude.ActiveAssigned == nil || *f.nav.Altitude.ActiveAssigned != 3000 {
+		t.Fatalf("expected ActiveAssigned=3000 after delayed activation, got %v", f.nav.Altitude.ActiveAssigned)
+	}
+	f.AssertDescending()
 }
 
 // TestSmallSpeedChangeDuringDescentContinues verifies that a small speed
@@ -465,13 +669,13 @@ func TestGoodRateDescentFasterThanNormal(t *testing.T) {
 
 	// Normal rate
 	fNormal := makeTestFlight()
-	fNormal.nav.AssignAltitude(3000, false)
+	fNormal.nav.AssignAltitude(3000, false, fNormal.simTime)
 	runForTicks(fNormal, 120)
 	normalAlt := fNormal.nav.FlightState.Altitude
 
 	// Good rate
 	fGood := makeTestFlight()
-	fGood.nav.AssignAltitude(3000, false)
+	fGood.nav.AssignAltitude(3000, false, fGood.simTime)
 	fGood.nav.GoodRateDescent()
 	runForTicks(fGood, 120)
 	goodAlt := fGood.nav.FlightState.Altitude

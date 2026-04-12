@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
@@ -21,18 +22,23 @@ func (nav *Nav) GoAroundWithProcedure(altitude float32, runwayEndWP av.Waypoint)
 	nav.DeferredNavHeading = nil
 	nav.Speed = NavSpeed{}
 	nav.Approach = NavApproach{}
-	nav.Altitude = NavAltitude{Assigned: &altitude}
+	nav.setAssignedAltitude(altitude)
 	nav.Waypoints = av.WaypointArray{runwayEndWP, nav.FlightState.ArrivalAirport}
 }
 
-func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
+func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool, simTime Time) av.CommandIntent {
 	nav.clearFixAltitudes()
-	return nav.assignAltitude(alt, afterSpeed)
+	intent, ok := nav.prepareAltitudeAssignment(alt, afterSpeed)
+	if !ok {
+		return intent
+	}
+	nav.enqueueAssignedAltitude(alt, simTime)
+	return intent
 }
 
-func (nav *Nav) assignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
+func (nav *Nav) prepareAltitudeAssignment(alt float32, afterSpeed bool) (av.CommandIntent, bool) {
 	if alt > nav.Perf.Ceiling {
-		return av.MakeUnableIntent("unable. That altitude is above our ceiling.")
+		return av.MakeUnableIntent("unable. That altitude is above our ceiling."), false
 	}
 
 	var direction av.AltitudeDirection
@@ -56,7 +62,7 @@ func (nav *Nav) assignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 				AfterSpeedSpeed: &spd,
 			}
 			intent.AfterSpeed = &spd
-			return intent
+			return intent, false
 		}
 	}
 
@@ -72,9 +78,46 @@ func (nav *Nav) assignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 			}
 		}
 	}
-	nav.Altitude = NavAltitude{Assigned: &alt}
 
+	return intent, true
+}
+
+func (nav *Nav) assignAltitudeNow(alt float32, afterSpeed bool) av.CommandIntent {
+	intent, ok := nav.prepareAltitudeAssignment(alt, afterSpeed)
+	if ok {
+		nav.setAssignedAltitude(alt)
+	}
 	return intent
+}
+
+func (nav *Nav) setAssignedAltitude(alt float32) {
+	nav.Altitude = NavAltitude{
+		Assigned:       &alt,
+		ActiveAssigned: &alt,
+	}
+}
+
+func (nav *Nav) enqueueAssignedAltitude(alt float32, simTime Time) {
+	active := nav.activeAssignedAltitude()
+	delay := 2 + 2*nav.Rand.Float32()
+	nav.Altitude = NavAltitude{
+		Assigned:       &alt,
+		ActiveAssigned: active,
+		ActivateAt:     simTime.Add(time.Duration(delay * float32(time.Second))),
+	}
+}
+
+func (nav *Nav) enqueueAltitudeAfterSpeed(simTime Time) {
+	alt := *nav.Altitude.AfterSpeed
+	rate := nav.Altitude.RateAfterSpeed
+	active := nav.activeAssignedAltitude()
+	delay := 2 + 2*nav.Rand.Float32()
+	nav.Altitude = NavAltitude{
+		Assigned:       &alt,
+		ActiveAssigned: active,
+		ActivateAt:     simTime.Add(time.Duration(delay * float32(time.Second))),
+		Rate:           rate,
+	}
 }
 
 func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {
@@ -338,6 +381,9 @@ func (nav *Nav) GoodRateThrough(throughAlt float32) av.CommandIntent {
 
 func (nav *Nav) setRate(rate RateQualifier, throughAlt *float32, direction av.AltitudeDirection) av.CommandIntent {
 	alt, _, _ := nav.TargetAltitude()
+	if nav.Altitude.Assigned != nil {
+		alt = *nav.Altitude.Assigned
+	}
 
 	wrongDir := (direction == av.AltitudeDescend && alt >= nav.FlightState.Altitude) ||
 		(direction == av.AltitudeClimb && alt <= nav.FlightState.Altitude)

@@ -161,8 +161,7 @@ func NewArrivalFlight(t *testing.T, cfg ArrivalConfig) *FlightTest {
 	}
 
 	if cfg.AssignedAltitude > 0 {
-		alt := cfg.AssignedAltitude
-		n.Altitude.Assigned = &alt
+		n.setAssignedAltitude(cfg.AssignedAltitude)
 	}
 	if cfg.ClearedAltitude > 0 {
 		alt := cfg.ClearedAltitude
@@ -532,7 +531,7 @@ func AssertUnable(t *testing.T, intent av.CommandIntent) {
 
 func (f *FlightTest) AssignAltitude(alt float32) {
 	f.t.Helper()
-	f.nav.AssignAltitude(alt, false)
+	f.nav.AssignAltitude(alt, false, f.simTime)
 }
 
 func (f *FlightTest) AssignSpeed(spd float32) {
