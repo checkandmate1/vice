@@ -692,10 +692,19 @@ func runBenchmark(lg *log.Logger, deviceID string) {
 		allResults = append(allResults, benchResult{modelName, latencyMs, ""})
 
 		if latencyMs > acceptThresholdMs {
-			// Too slow (>350ms) - can't use this model, use the previous one
-			fmt.Printf("[whisper-benchmark] %s too slow (%dms > %dms), using previous\n",
-				modelName, latencyMs, acceptThresholdMs)
-			model.Close()
+			// Too slow - can't use this model
+			if selectedModel != nil {
+				// We have a faster model from a previous iteration; use it
+				lg.Infof("Whisper: %s too slow (%dms), using previous selection", modelName, latencyMs)
+				model.Close()
+			} else {
+				// Even the smallest model is too slow; use it anyway as a
+				// fallback so that STT is available (albeit with higher latency).
+				lg.Warnf("Whisper: even smallest model is slow (%dms), using as fallback", latencyMs)
+				selectedModel = model
+				selectedName = modelName
+				selectedLatency = latencyMs
+			}
 			break
 		}
 
@@ -708,20 +717,20 @@ func runBenchmark(lg *log.Logger, deviceID string) {
 		selectedLatency = latencyMs
 
 		if latencyMs > continueThresholdMs {
-			// Acceptable but not fast (250-350ms) - stop here
+			// Acceptable but not fast (300-450ms) - stop here
 			fmt.Printf("[whisper-benchmark] %s acceptable (%dms), stopping\n", modelName, latencyMs)
 			break
 		}
 
-		// Fast enough (<250ms) - continue to try larger model
+		// Fast enough (<300ms) - continue to try larger model
 		fmt.Printf("[whisper-benchmark] %s fast (%dms), trying larger\n", modelName, latencyMs)
 	}
 
 	// Check if we found any usable model
 	if selectedModel == nil {
-		whisperModelErr = errors.New("no model fast enough (need <350ms for 1s of speech)")
-		lg.Error("No whisper model fast enough")
-		setWhisperBenchmarkStatus("No model fast enough")
+		whisperModelErr = errors.New("all whisper models failed to load")
+		lg.Error("No whisper model could be loaded")
+		setWhisperBenchmarkStatus("No model available")
 		return
 	}
 
@@ -786,6 +795,15 @@ func runBenchmark(lg *log.Logger, deviceID string) {
 // This can be used to check if STT is available and show an error dialog if not.
 func WhisperModelError() error {
 	<-whisperModelDone
+	return whisperModelErr
+}
+
+// GetWhisperModelError returns the model loading error without blocking.
+// Returns nil if benchmarking is still in progress or if no error occurred.
+func GetWhisperModelError() error {
+	if !IsWhisperBenchmarkDone() {
+		return nil
+	}
 	return whisperModelErr
 }
 

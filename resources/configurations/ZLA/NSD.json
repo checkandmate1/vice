@@ -1,0 +1,31 @@
+{
+  "control_positions": {
+    "1N": {
+      "callsign": "NSD_N_FACSFAC",
+      "frequency": 120850,
+      "radio_name": "Beaver"
+    },
+    "1S": {
+      "callsign": "NSD_N_FACSFAC",
+      "frequency": 118650,
+      "radio_name": "Beaver"
+    }
+  },
+  "facility_adaptations": {
+    "configurations": {}
+  },
+  "handoff_ids": [
+    {
+      "id": "SCT",
+      "prefix": "1"
+    },
+    {
+      "id": "ZLA",
+      "prefix": "L"
+    },
+    {
+      "id": "ZOA",
+      "prefix": "O"
+    }
+  ]
+}

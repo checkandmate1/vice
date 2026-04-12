@@ -49,26 +49,30 @@ func loadAllMETAR(sb StorageBackend) (map[string][]FileMETAR, []toArchive, error
 	metar := make(map[string][]FileMETAR)
 	var arch []toArchive
 	var mu sync.Mutex // protects both metar and arch
-	var eg errgroup.Group
+	eg, ctx := errgroup.WithContext(context.Background())
 
 	scrapedCh := make(chan string)
 
 	for range *nWorkers {
 		eg.Go(func() error {
 			for path := range scrapedCh {
-				if fm, b, err := loadScrapedMETAR(sb, path); err != nil {
-					return err
-				} else {
-					mu.Lock()
-
-					if len(fm.METAR) > 0 {
-						metar[fm.ICAO] = append(metar[fm.ICAO], fm)
-					}
-
-					// Add this to the list of objects to archive (if ingest is successful).
-					arch = append(arch, toArchive{path: path, b: b})
-					mu.Unlock()
+				b, err := readWithRetry(sb, path)
+				if err != nil {
+					LogError("scrape/metar: %s: read: %v", path, err)
+					continue
 				}
+
+				fm, err := decodeMETAR(bytes.NewReader(b))
+				if err != nil {
+					LogError("scrape/metar: %s: %v", path, err)
+				}
+
+				mu.Lock()
+				if len(fm.METAR) > 0 {
+					metar[fm.ICAO] = append(metar[fm.ICAO], fm)
+				}
+				arch = append(arch, toArchive{path: path, b: b})
+				mu.Unlock()
 			}
 			return nil
 		})
@@ -76,7 +80,7 @@ func loadAllMETAR(sb StorageBackend) (map[string][]FileMETAR, []toArchive, error
 
 	eg.Go(func() error {
 		defer close(scrapedCh)
-		return sb.ChanList(context.Background(), "scrape/metar", scrapedCh)
+		return sb.ChanList(ctx, "scrape/metar", scrapedCh)
 	})
 
 	archivedPathCh := make(chan string)
@@ -84,19 +88,25 @@ func loadAllMETAR(sb StorageBackend) (map[string][]FileMETAR, []toArchive, error
 	for range *nWorkers {
 		eg.Go(func() error {
 			for path := range archivedPathCh {
-				recs, err := readZipMETAREntries(sb, path)
-
+				b, err := readWithRetry(sb, path)
 				if err != nil {
-					return err
-				} else {
-					mu.Lock()
-					for _, fm := range recs {
-						if len(fm.METAR) > 0 { // skip ones for empty files; they don't have ICAO set in any case
-							metar[fm.ICAO] = append(metar[fm.ICAO], fm)
-						}
-					}
-					mu.Unlock()
+					LogError("archive/metar: %s: read: %v", path, err)
+					continue
 				}
+
+				recs, err := parseMETARZip(b)
+				if err != nil {
+					LogError("archive/metar: %s: %v", path, err)
+					continue
+				}
+
+				mu.Lock()
+				for _, fm := range recs {
+					if len(fm.METAR) > 0 { // skip ones for empty files; they don't have ICAO set in any case
+						metar[fm.ICAO] = append(metar[fm.ICAO], fm)
+					}
+				}
+				mu.Unlock()
 			}
 			return nil
 		})
@@ -104,7 +114,7 @@ func loadAllMETAR(sb StorageBackend) (map[string][]FileMETAR, []toArchive, error
 
 	eg.Go(func() error {
 		defer close(archivedPathCh)
-		return sb.ChanList(context.Background(), "archive/metar", archivedPathCh)
+		return sb.ChanList(ctx, "archive/metar", archivedPathCh)
 	})
 
 	err := eg.Wait()
@@ -112,22 +122,6 @@ func loadAllMETAR(sb StorageBackend) (map[string][]FileMETAR, []toArchive, error
 	LogInfo("Loaded all METAR")
 
 	return metar, arch, err
-}
-
-func loadScrapedMETAR(sb StorageBackend, path string) (FileMETAR, []byte, error) {
-	r, err := sb.OpenRead(path)
-	if err != nil {
-		return FileMETAR{}, nil, err
-	}
-	defer r.Close()
-
-	b, err := io.ReadAll(r)
-	if err != nil {
-		return FileMETAR{}, nil, err
-	}
-
-	m, err := decodeMETAR(bytes.NewReader(b))
-	return m, b, err
 }
 
 func decodeMETAR(r io.Reader) (FileMETAR, error) {
@@ -143,20 +137,7 @@ func decodeMETAR(r io.Reader) (FileMETAR, error) {
 	return fm, nil
 }
 
-func readZipMETAREntries(sb StorageBackend, path string) ([]FileMETAR, error) {
-	r, err := sb.OpenRead(path)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	// Read the contents into a buffer so we can provide an io.ReaderAt as
-	// well as total size to the zip.Reader.
-	b, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
+func parseMETARZip(b []byte) ([]FileMETAR, error) {
 	zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
 	if err != nil {
 		return nil, err

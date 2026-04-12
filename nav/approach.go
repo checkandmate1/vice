@@ -16,88 +16,143 @@ import (
 	"github.com/mmp/vice/wx"
 )
 
-func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Time) (heading float32, turn av.TurnDirection) {
+func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (heading math.MagneticHeading, turn av.TurnDirection) {
 	// Baseline
 	heading, turn = *nav.Heading.Assigned, av.TurnClosest
 
 	ap := nav.Approach.Assigned
+	hasLocalizer := ap.Type == av.ILSApproach || ap.Type == av.LocalizerApproach
+
+	// Determine the course and line to intercept.
+	var courseTrue math.TrueHeading
+	var courseLine [2]math.Point2LL
+	var interceptWaypoints []av.Waypoint // waypoints from intercept point forward
+	if hasLocalizer {
+		courseTrue = ap.RunwayHeading(nav.FlightState.NmPerLongitude)
+		courseLine = ap.ExtendedCenterline(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+	} else if nav.Approach.InterceptState == TurningToJoin {
+		// Already committed to a segment; use cached values.
+		courseLine = nav.Approach.InterceptCourseLine
+		courseTrue = math.Heading2LL(courseLine[0], courseLine[1], nav.FlightState.NmPerLongitude)
+		interceptWaypoints = nav.Approach.InterceptWaypoints
+	} else {
+		// For non-ILS approaches, find the approach segment that the
+		// aircraft's heading ray will cross.
+		var ok bool
+		courseTrue, courseLine, interceptWaypoints, ok = nav.findInterceptSegment(ap, wxs)
+		if !ok {
+			nav.approachOvershootRequestVectors()
+			return
+		}
+	}
 
 	switch nav.Approach.InterceptState {
 	case InitialHeading:
-		// On a heading. Is it time to turn?  Allow a lot of slop, but just
-		// fly through the localizer if it's too sharp an intercept
-		hdg := ap.RunwayHeading(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-		if d := math.HeadingDifference(hdg, nav.FlightState.Heading); d > 45 {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading: intercept angle %.1f too sharp, continuing heading %.0f", d, nav.FlightState.Heading)
+		assignedMag, _ := nav.AssignedHeading() // use the deferred heading for the following
+		assignedTrue := math.MagneticToTrue(assignedMag, nav.FlightState.MagneticVariation)
+		if d := math.HeadingDifference(courseTrue, assignedTrue); d > 45 {
+			// Too big an intercept angle; request vectors
+			nav.approachOvershootRequestVectors()
 			return
 		}
+		hdgMag := math.TrueToMagnetic(courseTrue, nav.FlightState.MagneticVariation)
+		switch nav.shouldTurnToIntercept(courseLine[0], hdgMag, av.TurnClosest, wxs) {
+		case turnToInterceptWait:
+			// Still too far; keep flying the assigned heading.
 
-		loc := ap.ExtendedCenterline(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-
-		if nav.shouldTurnToIntercept(loc[0], hdg, av.TurnClosest, wxs) {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading->TurningToJoin: turning to intercept runway hdg %.0f", hdg)
+		case turnToInterceptTurn:
+			if hasLocalizer && !nav.approachRecoveryFeasible(ap) {
+				nav.approachOvershootRequestVectors()
+				return
+			}
 			nav.Approach.InterceptState = TurningToJoin
-			// The autopilot is doing this, so start the turn immediately;
-			// don't use EnqueueHeading. However, leave any deferred
-			// heading/direct fix in place, as it represents a controller
-			// command that should still be followed.
-			nav.Heading = NavHeading{Assigned: &hdg}
-			// Just in case.. Thus we will be ready to pick up the
-			// approach waypoints once we capture.
+			if !hasLocalizer {
+				nav.Approach.InterceptCourseLine = courseLine
+				nav.Approach.InterceptWaypoints = interceptWaypoints
+			}
+			nav.Heading = NavHeading{Assigned: &hdgMag}
+			nav.DeferredNavHeading = nil
 			nav.Waypoints = []av.Waypoint{nav.FlightState.ArrivalAirport}
-		} else {
-			NavLog(callsign, simTime, NavLogApproach, "InitialHeading: not yet time to turn, acft hdg %.0f rwy hdg %.0f", nav.FlightState.Heading, hdg)
+
+		case turnToInterceptCorrectableOvershoot:
+			if hasLocalizer && !nav.approachRecoveryFeasible(ap) {
+				nav.approachOvershootRequestVectors()
+				return
+			}
+			acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
+			signed := math.HeadingSignedTurn(acftTrue, courseTrue)
+			offset := float32(20)
+			if signed < 0 {
+				offset = -20
+			}
+			recoveryTrue := math.OffsetHeading(courseTrue, offset)
+			recoveryHdg := math.TrueToMagnetic(recoveryTrue, nav.FlightState.MagneticVariation)
+			nav.Approach.InterceptState = TurningToJoin
+			if !hasLocalizer {
+				nav.Approach.InterceptCourseLine = courseLine
+				nav.Approach.InterceptWaypoints = interceptWaypoints
+			}
+			nav.Heading = NavHeading{Assigned: &recoveryHdg}
+			nav.DeferredNavHeading = nil
+			nav.Waypoints = []av.Waypoint{nav.FlightState.ArrivalAirport}
+
+		case turnToInterceptMajorOvershoot:
+			nav.approachOvershootRequestVectors()
 		}
 		return
 
 	case TurningToJoin:
 		// we've turned to intercept. have we intercepted?
-		if !nav.OnExtendedCenterline(.2) {
-			// Apply wind correction to track the localizer course, not just
-			// fly the runway heading. Without this, strong crosswind would
-			// blow the aircraft off the localizer.
-			hdgTrue := *nav.Heading.Assigned - nav.FlightState.MagneticVariation
-			heading = nav.headingForTrack(hdgTrue, wxs)
-			NavLog(callsign, simTime, NavLogApproach, "TurningToJoin: not on centerline, flying wind-corrected hdg %.0f (rwy hdg %.0f)", heading, *nav.Heading.Assigned)
+		if !nav.onCourseLine(courseLine, .2) {
+			// Apply wind correction to track the approach course, not just
+			// fly the course heading. Without this, strong crosswind would
+			// blow the aircraft off the course.
+			heading = nav.headingForTrack(*nav.Heading.Assigned, wxs)
+			NavLog(callsign, simTime, NavLogApproach, "TurningToJoin: not on course, flying wind-corrected hdg %.0f (course hdg %.0f)", heading, *nav.Heading.Assigned)
 			return
 		}
-		NavLog(callsign, simTime, NavLogApproach, "TurningToJoin->OnApproachCourse: established on localizer")
+		NavLog(callsign, simTime, NavLogApproach, "TurningToJoin->OnApproachCourse: established on approach course")
 
-		// we'll call that good enough. Now we need to figure out which
-		// fixes in the approach are still ahead and then add them to
-		// the aircraft's waypoints.
-		apHeading := ap.RunwayHeading(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+		// We're established on the approach course. Figure out which
+		// fixes are still ahead and add them to the aircraft's waypoints.
+		if hasLocalizer {
+			apHeading := ap.RunwayHeading(nav.FlightState.NmPerLongitude)
+			wps, idx := ap.FAFSegment(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+			acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
+			for idx > 0 {
+				prev := wps[idx-1]
+				hdg := math.Heading2LL(prev.Location, wps[idx].Location,
+					nav.FlightState.NmPerLongitude)
 
-		wps, idx := ap.FAFSegment(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-		for idx > 0 {
-			prev := wps[idx-1]
-			hdg := math.Heading2LL(prev.Location, wps[idx].Location,
-				nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+				if math.HeadingDifference(hdg, apHeading) > 5 { // not on the final approach course
+					break
+				}
 
-			if math.HeadingDifference(hdg, apHeading) > 5 { // not on the final approach course
-				break
+				acToWpHeading := math.Heading2LL(nav.FlightState.Position, wps[idx].Location,
+					nav.FlightState.NmPerLongitude)
+				acToPrevHeading := math.Heading2LL(nav.FlightState.Position, wps[idx-1].Location,
+					nav.FlightState.NmPerLongitude)
+
+				da := math.Mod(float32(acToWpHeading-acftTrue)+360, 360)
+				db := math.Mod(float32(acToPrevHeading-acftTrue)+360, 360)
+				if (da < 180 && db > 180) || (da > 180 && db < 180) {
+					// prev and current are on different sides of the current
+					// heading, so don't take the prev so we don't turn away
+					// from where we should be going.
+					break
+				}
+				idx--
 			}
-
-			acToWpHeading := math.Heading2LL(nav.FlightState.Position, wps[idx].Location,
-				nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-			acToPrevHeading := math.Heading2LL(nav.FlightState.Position, wps[idx-1].Location,
-				nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-
-			da := math.Mod(acToWpHeading-nav.FlightState.Heading+360, 360)
-			db := math.Mod(acToPrevHeading-nav.FlightState.Heading+360, 360)
-			if (da < 180 && db > 180) || (da > 180 && db < 180) {
-				// prev and current are on different sides of the current
-				// heading, so don't take the prev so we don't turn away
-				// from where we should be going.
-				break
-			}
-			idx--
+			nav.Waypoints = append(util.DuplicateSlice(wps[idx:]), nav.FlightState.ArrivalAirport)
+		} else {
+			nav.Waypoints = append(util.DuplicateSlice(interceptWaypoints),
+				nav.FlightState.ArrivalAirport)
 		}
-		nav.Waypoints = append(util.DuplicateSlice(wps[idx:]), nav.FlightState.ArrivalAirport)
+
 		// Ignore the approach altitude constraints if the aircraft is only
 		// intercepting but isn't cleared.
 		if nav.Approach.Cleared {
-			nav.Altitude = NavAltitude{}
+			nav.clearAltitudeForApproach()
 		}
 		// As with the heading assignment above under the InitialHeading
 		// case, do this immediately.
@@ -112,6 +167,92 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime time.Tim
 
 	return
 }
+
+// findInterceptSegment finds the approach segment that the aircraft's
+// ground track will cross. Returns the segment course, the two endpoints
+// defining the line, the remaining waypoints from the intercept point
+// forward, and whether a valid segment was found.
+func (nav *Nav) findInterceptSegment(ap *av.Approach, wxs wx.Sample) (math.TrueHeading, [2]math.Point2LL, []av.Waypoint, bool) {
+	nmPerLong := nav.FlightState.NmPerLongitude
+	posNM := math.LL2NM(nav.FlightState.Position, nmPerLong)
+
+	// Build a ray from the aircraft's position along its ground track
+	// (heading + wind), extending far enough to cross any approach segment.
+	hdgTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
+	TAS := nav.TAS(wxs.Temperature()) / 3600
+	flightVec := math.Scale2f(math.SinCos(math.Radians(hdgTrue)), TAS)
+	groundVec := math.Add2f(flightVec, wxs.WindVec())
+	dir := math.Normalize2f(groundVec)
+	rayEnd := math.Add2f(posNM, math.Scale2f(dir, 50)) // 50nm ray
+
+	bestDist := float32(1e9)
+	var bestCourse math.TrueHeading
+	var bestLine [2]math.Point2LL
+	var bestWaypoints []av.Waypoint
+	found := false
+
+	for _, route := range ap.Waypoints {
+		for i := 0; i < len(route)-1; i++ {
+			p0 := math.LL2NM(route[i].Location, nmPerLong)
+			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
+
+			// Check if the aircraft's heading ray crosses this segment.
+			pt, ok := math.SegmentSegmentIntersect(posNM, rayEnd, p0, p1)
+			if !ok {
+				continue
+			}
+
+			// Use the closest crossing point.
+			dist := math.Distance2f(posNM, pt)
+			if dist < bestDist {
+				bestDist = dist
+				bestCourse = math.Heading2LL(route[i].Location, route[i+1].Location, nmPerLong)
+				bestLine = [2]math.Point2LL{route[i].Location, route[i+1].Location}
+				bestWaypoints = route[i+1:]
+				found = true
+			}
+		}
+	}
+
+	return bestCourse, bestLine, bestWaypoints, found
+}
+
+// approachRecoveryFeasible returns true if the aircraft's current position
+// allows a turn back to the localizer: it must not be too close to the FAF
+// and must be within the localizer capture cone (2° half-width).
+func (nav *Nav) approachRecoveryFeasible(ap *av.Approach) bool {
+	nmPerLong := nav.FlightState.NmPerLongitude
+	magVar := nav.FlightState.MagneticVariation
+	pos := nav.FlightState.Position
+
+	// Check proximity to the FAF: need at least 2nm along the course.
+	wps, fafIdx := ap.FAFSegment(nmPerLong, magVar)
+	if wps != nil {
+		fafDist := math.NMDistance2LLFast(pos, wps[fafIdx].Location, nmPerLong)
+		if fafDist < 2 {
+			return false
+		}
+	}
+
+	// Check if within the localizer capture cone (2° half-width from threshold).
+	cl := ap.ExtendedCenterline(nmPerLong, magVar)
+	posNM := math.LL2NM(pos, nmPerLong)
+	cl0NM := math.LL2NM(cl[0], nmPerLong)
+	cl1NM := math.LL2NM(cl[1], nmPerLong)
+	lateralOffset := math.Abs(math.SignedPointLineDistance(posNM, cl0NM, cl1NM))
+	distFromThreshold := math.NMDistance2LLFast(pos, ap.Threshold, nmPerLong)
+	coneHalfWidth := distFromThreshold * math.Tan(math.Radians(float32(2)))
+	return lateralOffset <= coneHalfWidth
+}
+
+// approachOvershootRequestVectors cancels the approach and flags the
+// pilot to request new vectors from ATC.
+func (nav *Nav) approachOvershootRequestVectors() {
+	nav.Approach.InterceptState = NotIntercepting
+	nav.Approach.Cleared = false
+	nav.Approach.RequestVectors = true
+}
+
 func (nav *Nav) getApproach(airport *av.Airport, id string, lg *log.Logger) (*av.Approach, error) {
 	if id == "" {
 		return nil, ErrInvalidApproach
@@ -250,7 +391,7 @@ func (nav *Nav) InterceptApproach(airport string, lg *log.Logger) av.CommandInte
 	}
 }
 
-func (nav *Nav) AtFixCleared(fix, id string) av.CommandIntent {
+func (nav *Nav) AtFixCleared(fix, id string, straightIn bool) av.CommandIntent {
 	if nav.Approach.AssignedId == "" {
 		return av.MakeUnableIntent("unable. you never told us to expect an approach")
 	}
@@ -275,10 +416,18 @@ func (nav *Nav) AtFixCleared(fix, id string) av.CommandIntent {
 		}
 	}
 
+	if nav.Approach.AtFixClearedRoute == nil {
+		return av.MakeUnableIntent("unable. {fix} is not on the {appr} approach", fix, ap.FullName)
+	}
+	if straightIn && len(nav.Approach.AtFixClearedRoute) > 0 {
+		nav.Approach.AtFixClearedRoute[0].SetNoPT(true)
+	}
+
 	return av.ApproachIntent{
 		Type:         av.ApproachAtFixCleared,
 		ApproachName: ap.FullName,
 		Fix:          fix,
+		StraightIn:   straightIn,
 	}
 }
 
@@ -303,6 +452,7 @@ func (nav *Nav) AtFixIntercept(fix, airport string, lg *log.Logger) av.CommandIn
 		Type:         av.ApproachAtFixIntercept,
 		ApproachName: ap.FullName,
 		Fix:          fix,
+		HasLocalizer: ap.Type == av.ILSApproach || ap.Type == av.LocalizerApproach,
 	}
 }
 
@@ -321,30 +471,52 @@ func (nav *Nav) prepareForApproach(straightIn bool) av.CommandIntent {
 	directApproachFix := false
 	_, assignedHeading := nav.AssignedHeading()
 	if !assignedHeading {
-		// See if any of the waypoints in our route connect to the approach
+		// See if any of the waypoints in our route connect to the approach. Prefer a route where
+		// the fix has a procedure turn; some approaches have multiple transitions where a fix
+		// appears both with and without a PT.
 		navwps := nav.AssignedWaypoints()
-	outer:
-		for i, wp := range navwps {
-			for _, app := range ap.Waypoints {
-				if idx := slices.IndexFunc(app, func(awp av.Waypoint) bool { return wp.Fix == awp.Fix }); idx != -1 {
-					// Splice the routes
-					directApproachFix = true
-					navwps = append(navwps[:i], app[idx:]...)
-					navwps = append(navwps, nav.FlightState.ArrivalAirport)
-
-					if dh := nav.DeferredNavHeading; dh != nil && len(dh.Waypoints) > 0 {
-						dh.Waypoints = navwps
-					} else {
-						nav.Waypoints = navwps
+		bestRoute, bestIdx, navIdx := func() ([]av.Waypoint, int, int) {
+			for i, wp := range navwps {
+				var candidate []av.Waypoint
+				var candidateIdx int
+				for _, route := range ap.Waypoints {
+					idx := slices.IndexFunc(route, func(awp av.Waypoint) bool { return wp.Fix == awp.Fix })
+					if idx == -1 {
+						continue
 					}
-					break outer
+					if route[idx].ProcedureTurn() != nil {
+						return route, idx, i
+					}
+					if candidate == nil {
+						candidate, candidateIdx = route, idx
+					}
 				}
+				if candidate != nil {
+					return candidate, candidateIdx, i
+				}
+			}
+			return nil, 0, 0
+		}()
+
+		if bestRoute != nil {
+			directApproachFix = true
+			navwps = append(navwps[:navIdx], bestRoute[bestIdx:]...)
+			navwps = append(navwps, nav.FlightState.ArrivalAirport)
+			if dh := nav.DeferredNavHeading; dh != nil && len(dh.Waypoints) > 0 {
+				dh.Waypoints = navwps
+			} else {
+				nav.Waypoints = navwps
 			}
 		}
 	}
 
 	if directApproachFix {
-		// all good
+		// The aircraft is going direct to an approach fix; clear any
+		// OnApproachCourse state that DirectFix may have set (which
+		// is used to gate altitude before clearance). Without this,
+		// ClearedApproach incorrectly sets NoPT when it sees
+		// OnApproachCourse, skipping the procedure turn.
+		nav.Approach.InterceptState = NotIntercepting
 	} else if assignedHeading {
 		nav.Approach.InterceptState = InitialHeading
 	} else {
@@ -368,11 +540,12 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	// First try to find the first (if any) waypoint along the approach
 	// that is within 15 degrees of the aircraft's current heading.
 	intercept := -1
+	acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	for i := range wp {
 		h := math.Heading2LL(nav.FlightState.Position, wp[i].Location,
-			nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+			nav.FlightState.NmPerLongitude)
 
-		if math.HeadingDifference(h, nav.FlightState.Heading) < 30 {
+		if math.HeadingDifference(h, acftTrue) < 30 {
 			intercept = i
 			break
 		}
@@ -393,7 +566,7 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	// Work in nm coordinates
 	pac0 := math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude)
 	// Find a second point along its current course (note: ignoring wind)
-	hdg := nav.FlightState.Heading - nav.FlightState.MagneticVariation
+	hdg := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	dir := math.SinCos(math.Radians(hdg))
 	pac1 := math.Add2f(pac0, dir)
 
@@ -452,7 +625,7 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	return nil
 }
 
-func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simTime time.Time) (av.CommandIntent, bool) {
+func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simTime Time) (av.CommandIntent, bool) {
 	ap := nav.Approach.Assigned
 	if ap == nil {
 		return av.MakeUnableIntent("unable. We haven't been told to expect an approach"), false
@@ -469,23 +642,20 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 	nav.Approach.StandbyApproach = false
 	if nav.Approach.PassedApproachFix {
 		// We've already passed an approach fix, so allow it to start descending.
-		nav.Altitude = NavAltitude{}
+		nav.clearAltitudeForApproach()
 	} else if nav.Approach.InterceptState == OnApproachCourse {
 		// First intercepted then cleared or otherwise passed an
 		// approach fix, so allow it to start descending.
-		nav.Altitude = NavAltitude{}
+		nav.clearAltitudeForApproach()
 		// No procedure turn needed if we were vectored to intercept.
 		nav.Approach.NoPT = true
 	}
 	// Cleared approach also cancels speed restrictions.
 	nav.Speed = NavSpeed{}
 
-	// Follow LNAV instructions more quickly given an approach clearance;
-	// assume that at this point they are expecting them and ready to dial things in.
+	// Minimal delay for heading changes given an approach clearance.
 	if dh := nav.DeferredNavHeading; dh != nil {
-		if dh.Time.Sub(simTime) > 6*time.Second {
-			dh.Time = simTime.Add(time.Duration((3 + 3*nav.Rand.Float32()) * float32(time.Second)))
-		}
+		dh.Time = simTime.Add(time.Duration((1 + 2*nav.Rand.Float32()) * float32(time.Second)))
 	}
 
 	nav.flyProcedureTurnIfNecessary()
@@ -520,11 +690,11 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 	magVar := nav.FlightState.MagneticVariation
 
 	alt := rwy.Elevation + rwy.ThresholdCrossingHeight
-	threshold := math.Offset2LL(rwy.Threshold, rwy.Heading, rwy.DisplacedThresholdDistance,
-		nmPerLong, magVar)
+	rwyTrue := math.MagneticToTrue(rwy.Heading, magVar)
+	threshold := math.Offset2LL(rwy.Threshold, rwyTrue, rwy.DisplacedThresholdDistance, nmPerLong)
 
-	reciprocal := math.NormalizeHeading(rwy.Heading + 180)
-	final3nm := math.Offset2LL(threshold, reciprocal, 3, nmPerLong, magVar)
+	reciprocal := math.TrueHeading(math.NormalizeHeading(float32(rwyTrue) + 180))
+	final3nm := math.Offset2LL(threshold, reciprocal, 3, nmPerLong)
 
 	// Work in nm-space to compute cross-track offset from extended centerline.
 	thresholdNM := math.LL2NM(threshold, nmPerLong)
@@ -557,8 +727,8 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 
 		// Go-around check: if the first waypoint is behind the aircraft,
 		// it can't set up a stable approach.
-		bearingToBase := math.Heading2LL(nav.FlightState.Position, baseLoc, nmPerLong, magVar)
-		if math.HeadingDifference(bearingToBase, nav.FlightState.Heading) > 90 {
+		bearingToBase := math.Heading2LL(nav.FlightState.Position, baseLoc, nmPerLong)
+		if math.HeadingDifference(bearingToBase, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
 			return nil
 		}
 
@@ -570,8 +740,8 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 		wps = append(wps, base)
 	} else {
 		// Roughly aligned. Go-around check on the 3nm final point.
-		bearingTo3nm := math.Heading2LL(nav.FlightState.Position, final3nm, nmPerLong, magVar)
-		if math.HeadingDifference(bearingTo3nm, nav.FlightState.Heading) > 90 {
+		bearingTo3nm := math.Heading2LL(nav.FlightState.Position, final3nm, nmPerLong)
+		if math.HeadingDifference(bearingTo3nm, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
 			return nil
 		}
 	}
@@ -581,7 +751,7 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 		Location: final3nm,
 	}
 	finalWp.SetOnApproach(true)
-	finalWp.SetAltitudeRestriction(av.AltitudeRestriction{Range: [2]float32{final3nmAlt, final3nmAlt}})
+	finalWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(final3nmAlt))
 
 	thresholdWp := av.Waypoint{
 		Fix:      "_" + runway + "_THRESHOLD",
@@ -590,7 +760,7 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 	thresholdWp.SetOnApproach(true)
 	thresholdWp.SetLand(true)
 	thresholdWp.SetFlyOver(true)
-	thresholdWp.SetAltitudeRestriction(av.AltitudeRestriction{Range: [2]float32{float32(alt), float32(alt)}})
+	thresholdWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(alt)))
 
 	wps = append(wps, finalWp, thresholdWp)
 

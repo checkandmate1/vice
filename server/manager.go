@@ -5,7 +5,6 @@
 package server
 
 import (
-	"context"
 	crand "crypto/rand"
 	"encoding/base64"
 	"log/slog"
@@ -36,7 +35,7 @@ type SimManager struct {
 	sessionsByToken map[string]*simSession
 
 	// Helpers and such
-	wxProvider     wx.Provider
+	wxProvider     *wx.Provider
 	providersReady chan struct{}
 	mapManifests   map[string]*sim.VideoMapManifest
 	lg             *log.Logger
@@ -102,25 +101,17 @@ func NewSimManager(scenarioGroups map[string]map[string]*scenarioGroup, scenario
 	// Initialize WX provider asynchronously so the server can start
 	// accepting connections immediately. Callers that need providers will
 	// block in getProviders() until initialization completes or times out.
-	go sm.initRemoteProviders(serverAddress, lg)
+	go func() {
+		defer close(sm.providersReady)
+		sm.wxProvider = wx.MakeProvider(serverAddress, lg)
+	}()
 
 	sm.launchHTTPServer()
 
 	return sm
 }
 
-func (sm *SimManager) initRemoteProviders(serverAddress string, lg *log.Logger) {
-	defer close(sm.providersReady)
-
-	// Use a single context to control all provider initialization.
-	// This must complete before the client RPC timeout (5 seconds).
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	defer cancel()
-
-	sm.wxProvider, _ = MakeWXProvider(ctx, serverAddress, lg)
-}
-
-func (sm *SimManager) getWXProvider() wx.Provider {
+func (sm *SimManager) getWXProvider() *wx.Provider {
 	<-sm.providersReady
 	return sm.wxProvider
 }
@@ -137,7 +128,6 @@ type NewSimRequest struct {
 	ScenarioSpec *ScenarioSpec
 	StartTime    time.Time
 
-	TFRs        []av.TFR
 	Emergencies []sim.Emergency
 
 	RequirePassword bool
@@ -173,6 +163,8 @@ type SimState struct {
 	ControllerVideoMaps                 []string
 	ControllerDefaultVideoMaps          []string
 	ControllerMonitoredBeaconCodeBlocks []av.Squawk
+	ControllerVideoMapFile              string
+	ControllerVideoMapLibraryHash       []byte
 
 	UserIsPrivileged bool // Whether this user has elevated privileges (can control any aircraft)
 
@@ -191,8 +183,7 @@ func (sm *SimManager) NewSim(req *NewSimRequest, result *NewSimResult) error {
 	lg := sm.lg.With(slog.String("sim_name", req.NewSimName))
 
 	if nsc := sm.makeSimConfiguration(req, lg); nsc != nil {
-		manifest := sm.mapManifests[nsc.FacilityAdaptation.VideoMapFile]
-		s := sim.NewSim(*nsc, manifest, lg)
+		s := sim.NewSim(*nsc, lg)
 		session := makeSimSession(req.NewSimName, req.GroupName, req.ScenarioName, req.Password, s, sm.lg)
 		pos := s.ScenarioRootPosition()
 		return sm.Add(session, result, pos, req.Initials, req.Privileged, true)
@@ -223,10 +214,10 @@ func (sm *SimManager) makeSimConfiguration(req *NewSimRequest, lg *log.Logger) *
 	wxp := sm.getWXProvider()
 
 	nsc := sim.NewSimConfiguration{
-		TFRs:                        req.TFRs,
 		Facility:                    req.Facility,
 		LaunchConfig:                req.ScenarioSpec.LaunchConfig,
-		FacilityAdaptation:          deep.MustCopy(sg.FacilityAdaptation),
+		FacilityAdaptation:          deep.MustCopy(sg.FacilityConfig.FacilityAdaptation),
+		DisableTFRRestrictionAreas:  sg.FacilityConfig.DisableTFRRestrictionAreas,
 		EnforceUniqueCallsignSuffix: req.EnforceUniqueCallsignSuffix,
 		PilotErrorInterval:          req.PilotErrorInterval,
 		DepartureRunways:            sc.DepartureRunways,
@@ -240,21 +231,44 @@ func (sm *SimManager) makeSimConfiguration(req *NewSimRequest, lg *log.Logger) *
 		Airports:                    sg.Airports,
 		Fixes:                       sg.Fixes,
 		PrimaryAirport:              sg.PrimaryAirport,
-		Center:                      util.Select(sc.Center.IsZero(), sg.FacilityAdaptation.Center, sc.Center),
-		Range:                       util.Select(sc.Range == 0, sg.FacilityAdaptation.Range, sc.Range),
+		Center:                      util.Select(sc.Center.IsZero(), sg.FacilityConfig.FacilityAdaptation.Center, sc.Center),
+		Range:                       util.Select(sc.Range == 0, sg.FacilityConfig.FacilityAdaptation.Range, sc.Range),
 		DefaultMaps:                 sc.DefaultMaps,
 		DefaultMapGroup:             sc.DefaultMapGroup,
 		InboundFlows:                sg.InboundFlows,
 		Airspace:                    sg.Airspace,
 		ControllerAirspace:          sc.Airspace,
-		ControlPositions:            sg.ControlPositions,
+		ControlPositions:            sg.FacilityConfig.ControlPositions,
 		VirtualControllers:          sc.VirtualControllers,
-		ControllerConfiguration:     sc.ControllerConfiguration,
+		ControllerConfiguration:     &sc.ControllerConfiguration,
+		ConfigurationId:             sc.ConfigurationString,
 		WXProvider:                  wxp,
 		Emergencies:                 req.Emergencies,
 		StartTime:                   req.StartTime,
-		HandoffIDs:                  sg.HandoffIDs,
-		FixPairs:                    sg.FixPairs,
+		HandoffIDs:                  sg.FacilityConfig.HandoffIDs,
+		FixPairs:                    sg.FacilityConfig.FixPairs,
+	}
+
+	// Look up historical TFRs for this facility and time.
+	artcc := sg.ARTCC
+	if artcc == "" {
+		if info, ok := av.DB.TRACONs[req.Facility]; ok {
+			artcc = info.ARTCC
+		} else if info, ok := av.DB.ATCTs[req.Facility]; ok {
+			artcc = info.ARTCC
+		}
+	}
+	if artcc != "" {
+		var err error
+		if isARTCC(req.Facility) {
+			nsc.TFRs, err = wx.GetCachedTFRsForARTCC(artcc, req.StartTime)
+		} else {
+			nsc.TFRs, err = wx.GetCachedTFRsForTRACON(artcc, nsc.Center, nsc.Range,
+				req.StartTime)
+		}
+		if err != nil {
+			lg.Warnf("unable to load TFRs for %s: %v", artcc, err)
+		}
 	}
 
 	return &nsc
@@ -346,6 +360,12 @@ func (sm *SimManager) checkTCWAvailable(ss *simSession, tcw sim.TCW) error {
 func (sm *SimManager) buildNewSimResult(session *simSession, tcw sim.TCW, token string) *NewSimResult {
 	videoMaps, defaultMaps, beaconCodes := session.sim.GetControllerVideoMaps(tcw)
 
+	vmFile := session.sim.GetControllerVideoMapFile(tcw)
+	var vmHash []byte
+	if manifest, ok := sm.mapManifests[vmFile]; ok {
+		vmHash, _ = manifest.Hash()
+	}
+
 	return &NewSimResult{
 		SimState: &SimState{
 			UserState:                           *session.sim.GetUserState(),
@@ -354,6 +374,8 @@ func (sm *SimManager) buildNewSimResult(session *simSession, tcw sim.TCW, token 
 			ControllerVideoMaps:                 videoMaps,
 			ControllerDefaultVideoMaps:          defaultMaps,
 			ControllerMonitoredBeaconCodeBlocks: beaconCodes,
+			ControllerVideoMapFile:              vmFile,
+			ControllerVideoMapLibraryHash:       vmHash,
 			UserIsPrivileged:                    session.sim.TCWIsPrivileged(tcw),
 		},
 		ControllerToken: token,
@@ -697,53 +719,24 @@ func (sm *SimManager) GetSerializeSim(token string, s *sim.Sim) error {
 ///////////////////////////////////////////////////////////////////////////
 // Weather
 
-type PrecipURLArgs struct {
-	Facility string
-	Time     time.Time
-}
-
-type PrecipURL struct {
-	URL      string
-	NextTime time.Time
-}
-
-const GetPrecipURLRPC = "SimManager.GetPrecipURL"
-
-func (sm *SimManager) GetPrecipURL(args PrecipURLArgs, result *PrecipURL) error {
+func (sm *SimManager) GetPrecipURL(args wx.PrecipURLArgs, result *wx.PrecipURL) error {
 	defer sm.lg.CatchAndReportCrash()
 
-	if sm.wxProvider == nil {
-		return ErrWeatherUnavailable
-	}
+	provider := sm.getWXProvider()
 
 	var err error
-	result.URL, result.NextTime, err = sm.wxProvider.GetPrecipURL(args.Facility, args.Time)
+	result.URL, result.NextTime, err = provider.GetPrecipURL(args.Facility, args.Time)
 	return err
 }
 
-type GetAtmosArgs struct {
-	Facility       string
-	Time           time.Time
-	PrimaryAirport string
-}
-
-type GetAtmosResult struct {
-	AtmosByPointSOA *wx.AtmosByPointSOA
-	Time            time.Time
-	NextTime        time.Time
-}
-
-const GetAtmosGridRPC = "SimManager.GetAtmosGrid"
-
-func (sm *SimManager) GetAtmosGrid(args GetAtmosArgs, result *GetAtmosResult) error {
+func (sm *SimManager) GetAtmosGrid(args wx.GetAtmosArgs, result *wx.GetAtmosResult) error {
 	defer sm.lg.CatchAndReportCrash()
 
-	if sm.wxProvider == nil {
-		return ErrWeatherUnavailable
-	}
+	provider := sm.getWXProvider()
 
 	var err error
-	result.AtmosByPointSOA, result.Time, result.NextTime, err = sm.wxProvider.GetAtmosGrid(args.Facility, args.Time, args.PrimaryAirport)
+	result.AtmosByPointSOA, result.Time, result.NextTime, err =
+		provider.GetAtmosGrid(args.Facility, args.Time, args.PrimaryAirport)
 	return err
 }
 

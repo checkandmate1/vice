@@ -10,6 +10,7 @@ import (
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/panes"
 	"github.com/mmp/vice/renderer"
+	"github.com/mmp/vice/sim"
 	"github.com/mmp/vice/util"
 	"github.com/mmp/vice/wx"
 )
@@ -20,7 +21,7 @@ import (
 // from the server and displaying it in radar scopes.
 type WeatherRadar struct {
 	facility        string
-	nextFetchTime   time.Time
+	nextFetchTime   sim.Time
 	fetchInProgress bool
 	precipCh        chan *wx.Precip
 	errCh           chan error
@@ -43,12 +44,13 @@ func (w *WeatherRadar) fetchPrecipitation(ctx *panes.Context) {
 		w.errCh = make(chan error)
 	}
 
-	ctx.Client.GetPrecipURL(ctx.Client.State.SimTime, func(url string, nextTime time.Time, err error) {
+	fetchTime := ctx.SimTime
+	ctx.Client.GetPrecipURL(fetchTime, func(url string, nextTime sim.Time, err error) {
 		w.mu.Lock(ctx.Lg)
 		defer w.mu.Unlock(ctx.Lg)
 
 		if err != nil {
-			w.nextFetchTime = time.Now().Add(time.Minute)
+			w.nextFetchTime = fetchTime.Add(time.Minute)
 			ctx.Lg.Infof("Failed to get precip URL: %v", err)
 			w.fetchInProgress = false
 			return
@@ -253,7 +255,7 @@ func reverseStippleBytes(stipple [32]uint32) [32]uint32 {
 
 // Draw draws the current weather radar data, if available.
 func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32,
-	wxColors [2]renderer.RGB, wxStippleColor renderer.RGB,
+	wxColors [NumWxLevels]renderer.RGB, wxStippleColor renderer.RGB, wxLevelStipple [NumWxLevels]int,
 	active [NumWxLevels]bool, transforms ScopeTransformations, cb *renderer.CommandBuffer) {
 	w.mu.Lock(ctx.Lg)
 	defer w.mu.Unlock(ctx.Lg)
@@ -275,10 +277,10 @@ func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32,
 	if facilityChanged {
 		w.facility = ctx.Client.State.Facility
 		w.fetchInProgress = false
-		w.nextFetchTime = time.Time{}
+		w.nextFetchTime = sim.Time{}
 		w.cb = [numWxHistory][NumWxLevels]*renderer.CommandBuffer{}
 	}
-	shouldFetch := ctx.Client.State.SimTime.After(w.nextFetchTime) && !w.fetchInProgress
+	shouldFetch := ctx.SimTime.After(w.nextFetchTime) && !w.fetchInProgress
 
 	if shouldFetch {
 		w.fetchPrecipitation(ctx)
@@ -288,25 +290,20 @@ func (w *WeatherRadar) Draw(ctx *panes.Context, hist int, intensity float32,
 	transforms.LoadLatLongViewingMatrices(cb)
 	for i := range w.cb[hist] {
 		if active[i] && w.cb[hist][i] != nil {
-			baseColor := util.Select(i < 3, wxColors[0], wxColors[1])
-			cb.SetRGB(baseColor.Scale(intensity))
+			cb.SetRGB(wxColors[i].Scale(intensity))
 			cb.Call(*w.cb[hist][i])
 
-			if i == 0 || i == 3 {
-				// No stipple
-				continue
+			if wxLevelStipple[i] > 0 {
+				cb.EnablePolygonStipple()
+				if wxLevelStipple[i] == 1 {
+					cb.PolygonStipple(reverseStippleBytes(wxStippleLight))
+				} else {
+					cb.PolygonStipple(reverseStippleBytes(wxStippleDense))
+				}
+				cb.SetRGB(wxStippleColor)
+				cb.Call(*w.cb[hist][i])
+				cb.DisablePolygonStipple()
 			}
-
-			cb.EnablePolygonStipple()
-			if i == 1 || i == 4 {
-				cb.PolygonStipple(reverseStippleBytes(wxStippleLight))
-			} else if i == 2 || i == 5 {
-				cb.PolygonStipple(reverseStippleBytes(wxStippleDense))
-			}
-			// Draw the same quads again, just with a different color and stippled.
-			cb.SetRGB(wxStippleColor)
-			cb.Call(*w.cb[hist][i])
-			cb.DisablePolygonStipple()
 		}
 	}
 }

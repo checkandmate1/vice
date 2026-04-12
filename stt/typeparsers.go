@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	av "github.com/mmp/vice/aviation"
 )
 
 // typeParser is the interface for type-specific value extraction.
@@ -167,7 +169,7 @@ func (p *headingParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, s
 		// where "to" is STT mishearing of "two" → heading 290.
 		if t.Type == TokenWord && i+1 < len(tokens) && tokens[i+1].Type == TokenNumber {
 			text := strings.ToLower(t.Text)
-			if text == "to" || text == "too" || text == "tu" {
+			if text == "to" || text == "too" || text == "tu" || text == "t" {
 				nextVal := tokens[i+1].Value
 				// Try prepending 2: "to 90" → 290, "to 70" → 270
 				if nextVal >= 0 && nextVal <= 160 {
@@ -201,6 +203,17 @@ func (p *headingParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, s
 						hdg = better
 					}
 				}
+				return hdg, i - pos + 1, ""
+			}
+		}
+
+		// Handle leading-zero 4-digit values where the trailing digit is noise.
+		// ATC headings use leading zeros for headings < 100 ("zero one zero").
+		// A trailing digit that makes the heading not a multiple of 5 is
+		// almost certainly noise (headings are always multiples of 5 or 10).
+		if t.Type == TokenNumber && len(t.Text) == 4 && t.Text[0] == '0' && t.Value%5 != 0 {
+			hdg := ParseNumber(t.Text[:3])
+			if hdg >= 1 {
 				return hdg, i - pos + 1, ""
 			}
 		}
@@ -268,6 +281,43 @@ func headingByRemovingDuplicateDigit(text string) (int, bool) {
 	return 0, false
 }
 
+// adjustSpeedForPerformance checks if a parsed speed is below the aircraft's
+// minimum speed and, if so, tries bumping by +100/+200/+300 to find a
+// plausible speed. This handles cases where the leading digit was garbled
+// or lost in transcription (e.g., "one one zero" when the controller said
+// "two one zero").
+func adjustSpeedForPerformance(speed int, ac Aircraft) int {
+	if ac.AircraftType == "" || av.DB == nil {
+		return speed
+	}
+	perf, ok := av.DB.AircraftPerformance[ac.AircraftType]
+	if !ok {
+		return speed
+	}
+	minSpeed := perf.Speed.Min
+	if minSpeed <= 0 || float32(speed) >= minSpeed {
+		return speed
+	}
+
+	// Speed is below aircraft min; the leading digit was likely garbled.
+	// Try bumping by 100 at a time to find the lowest plausible speed.
+	for bump := 100; bump <= 300; bump += 100 {
+		candidate := speed + bump
+		if candidate > 400 {
+			break
+		}
+		if float32(candidate) >= minSpeed {
+			// Below 10,000' the speed limit is 250 kts; prefer
+			// candidates that respect this when possible.
+			if ac.Altitude > 0 && ac.Altitude < 10000 && candidate > 250 {
+				continue
+			}
+			return candidate
+		}
+	}
+	return speed
+}
+
 // speedParser extracts speed values (100-400 knots).
 type speedParser struct{}
 
@@ -299,7 +349,14 @@ func (p *speedParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, str
 			// Round down to nearest 10 - ATC speeds are always multiples of 10.
 			if t.Value >= 100 && t.Value <= 400 {
 				rounded := (t.Value / 10) * 10
-				return rounded, i - pos + 1, ""
+				// STT teen/ty confusion: e.g., "one eighteen" (118) when
+				// the controller said "one eighty" (180). If the last two
+				// digits are 11-19, reinterpret as the -ty form.
+				lastTwo := t.Value % 100
+				if lastTwo >= 11 && lastTwo <= 19 {
+					rounded = (t.Value/100)*100 + (t.Value%10)*10
+				}
+				return adjustSpeedForPerformance(rounded, ac), i - pos + 1, ""
 			}
 
 			// 4-digit starting with 2 and ending in 0: the leading "2"
@@ -308,15 +365,28 @@ func (p *speedParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, str
 			if t.Value >= 2000 && t.Value < 3000 && t.Value%10 == 0 {
 				last3 := t.Value % 1000
 				if last3 >= 100 && last3 <= 400 {
-					return last3, i - pos + 1, ""
+					return adjustSpeedForPerformance(last3, ac), i - pos + 1, ""
 				}
 			}
 
-			// 4-digit with extra digit (e.g., 1909 → 190)
+			// 4-digit with extra digit: try both /10 (drop trailing) and
+			// %1000 (drop leading). Prefer the one that's a multiple of 10.
+			// e.g., 1160: /10=116 (not round), %1000=160 (round) → 160
 			if t.Value > 400 {
-				corrected := t.Value / 10
-				if corrected >= 100 && corrected <= 400 {
-					return corrected, i - pos + 1, ""
+				div10 := t.Value / 10
+				mod1000 := t.Value % 1000
+				div10Valid := div10 >= 100 && div10 <= 400
+				mod1000Valid := mod1000 >= 100 && mod1000 <= 400
+				if div10Valid && mod1000Valid {
+					// Both valid: prefer the one that's a multiple of 10
+					if mod1000%10 == 0 && div10%10 != 0 {
+						return adjustSpeedForPerformance(mod1000, ac), i - pos + 1, ""
+					}
+					return adjustSpeedForPerformance(div10, ac), i - pos + 1, ""
+				} else if mod1000Valid {
+					return adjustSpeedForPerformance(mod1000, ac), i - pos + 1, ""
+				} else if div10Valid {
+					return adjustSpeedForPerformance(div10, ac), i - pos + 1, ""
 				}
 			}
 
@@ -327,7 +397,40 @@ func (p *speedParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, str
 				if next.Type == TokenNumber && next.Value == 0 {
 					combined := t.Value * 10
 					if combined >= 100 && combined <= 400 {
-						return combined, i - pos + 2, ""
+						return adjustSpeedForPerformance(combined, ac), i - pos + 2, ""
+					}
+				}
+				// Filler word after 2-digit speed: garbled zero
+				// e.g., "one seven day" → 17, "day" is garbled "zero" → 170
+				if IsFillerWord(next.Text) {
+					combined := t.Value * 10
+					if combined >= 100 && combined <= 400 {
+						return adjustSpeedForPerformance(combined, ac), i - pos + 2, ""
+					}
+				}
+				// "knots" after 2-digit speed: "two zero knots" → 200
+				// The word "knots" confirms speed context and implies a dropped
+				// trailing zero. Require combined >= 150 to avoid false positives
+				// with ambiguous values like "one zero" (10 → 100, below min
+				// speed for most aircraft). Don't consume "knots".
+				if strings.ToLower(next.Text) == "knots" {
+					combined := t.Value * 10
+					if combined >= 150 && combined <= 400 {
+						return adjustSpeedForPerformance(combined, ac), i - pos + 1, ""
+					}
+				}
+			}
+
+			// Handle "to" + 2-digit value as garbled "two" prefix.
+			// "speed to one zero" → tokens: ..., "to", "10" → speed 210.
+			// "to" sounds like "two" and was consumed as optional [to] or
+			// skipped as filler, but it was really the leading digit.
+			if t.Value >= 10 && t.Value <= 40 && i > 0 {
+				if strings.ToLower(tokens[i-1].Text) == "to" {
+					combined := 200 + t.Value
+					rounded := (combined / 10) * 10
+					if rounded >= 100 && rounded <= 400 {
+						return adjustSpeedForPerformance(rounded, ac), i - pos + 1, ""
 					}
 				}
 			}
@@ -832,6 +935,36 @@ func (p *contactFrequencyParser) parse(tokens []Token, pos int, ac Aircraft) (an
 	return nil, 0, ""
 }
 
+// compassDirParser extracts a cardinal/ordinal compass direction.
+// Matches: north, south, east, west, northeast, northwest, southeast, southwest.
+// Returns the short abbreviation (N, S, E, W, NE, NW, SE, SW) as a string.
+type compassDirParser struct{}
+
+func (p *compassDirParser) identifier() string   { return "compass_dir" }
+func (p *compassDirParser) goType() reflect.Type { return reflect.TypeOf("") }
+
+var compassDirections = map[string]string{
+	"north": "N", "south": "S", "east": "E", "west": "W",
+	"northeast": "NE", "northwest": "NW", "southeast": "SE", "southwest": "SW",
+}
+
+func (p *compassDirParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, string) {
+	if pos >= len(tokens) {
+		return nil, 0, ""
+	}
+	text := strings.ToLower(tokens[pos].Text)
+	if short, ok := compassDirections[text]; ok {
+		return short, 1, ""
+	}
+	// Fuzzy match
+	for long, short := range compassDirections {
+		if len(text) >= 3 && FuzzyMatch(text, long, 0.80) {
+			return short, 1, ""
+		}
+	}
+	return nil, 0, ""
+}
+
 // getTypeParser returns the appropriate parser for a type identifier.
 func getTypeParser(typeID string) typeParser {
 	switch typeID {
@@ -875,6 +1008,8 @@ func getTypeParser(typeID string) typeParser {
 		return &contactFrequencyParser{}
 	case "standalone_altitude":
 		return &standaloneAltitudeParser{}
+	case "compass_dir":
+		return &compassDirParser{}
 	default:
 		// Check for range pattern: num:min-max
 		if strings.HasPrefix(typeID, "num:") {

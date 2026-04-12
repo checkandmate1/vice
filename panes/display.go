@@ -10,7 +10,6 @@ package panes
 
 import (
 	"runtime"
-	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/mmp/vice/client"
@@ -125,7 +124,7 @@ func DrawPanes(pane Pane, p platform.Platform, r renderer.Renderer,
 		Renderer:           r,
 		Keyboard:           keyboard,
 		HaveFocus:          haveFocus,
-		Now:                time.Now(),
+		SimTime:            controlClient.InterpolatedSimTime(),
 		Lg:                 lg,
 		MenuBarHeight:      menuBarHeight,
 		KeyboardFocus:      &wm.focus,

@@ -56,11 +56,14 @@ type glfwPlatform struct {
 	mouseDelta             [2]float32
 
 	audioRecorder *AudioRecorder
+	appFocused    bool
 }
 
 type Config struct {
 	InitialWindowSize     [2]int
 	InitialWindowPosition [2]int
+
+	MainWindowSquare bool
 
 	EnableMSAA bool
 
@@ -107,6 +110,9 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 			config.InitialWindowSize[1] = vm.Height - 150
 		}
 	}
+	if config.MainWindowSquare {
+		config.InitialWindowSize = squareWindowSize(config.InitialWindowSize)
+	}
 
 	// If window position is out of bounds, create the window at (100, 100)
 	if config.InitialWindowPosition[0] < 0 || config.InitialWindowPosition[1] < 0 ||
@@ -137,6 +143,9 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 		glfw.Terminate()
 		return nil, fmt.Errorf("failed to create window: %w", err)
 	}
+	if config.MainWindowSquare {
+		window.SetAspectRatio(1, 1)
+	}
 	window.SetPos(config.InitialWindowPosition[0], config.InitialWindowPosition[1])
 	window.Show()
 	window.MakeContextCurrent()
@@ -148,6 +157,7 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 		multisample:   config.EnableMSAA,
 		heldFKeys:     make(map[imgui.Key]any),
 		audioRecorder: NewAudioRecorder(lg),
+		appFocused:    true,
 	}
 	platform.installCallbacks()
 	platform.createMouseCursors()
@@ -160,6 +170,27 @@ func New(config *Config, lg *log.Logger) (Platform, error) {
 	platform.audioEngine.Initialize(lg)
 
 	return platform, nil
+}
+
+func squareWindowSize(size [2]int) [2]int {
+	if size[0] <= 0 || size[1] <= 0 {
+		return size
+	}
+	s := min(size[0], size[1])
+	return [2]int{s, s}
+}
+
+func (g *glfwPlatform) SetMainWindowSquare(square bool) {
+	g.config.MainWindowSquare = square
+	if square {
+		g.window.SetAspectRatio(1, 1)
+		if !g.IsFullScreen() {
+			size := squareWindowSize(g.WindowSize())
+			g.window.SetSize(size[0], size[1])
+		}
+	} else {
+		g.window.SetAspectRatio(glfw.DontCare, glfw.DontCare)
+	}
 }
 
 func (g *glfwPlatform) DPIScale() float32 {
@@ -288,6 +319,7 @@ func (g *glfwPlatform) NewFrame() {
 	// Let the imgui backends update their internal state for viewport management.
 	implogl3.NewFrame()
 	implglfw.NewFrame()
+	g.ensureViewportMonitors()
 	clampMonitorWorkBounds()
 
 	// Re-apply the macOS Ctrl↔Super swap. The imgui GLFW backend's
@@ -354,6 +386,22 @@ func (g *glfwPlatform) NewFrame() {
 	}
 }
 
+func (g *glfwPlatform) ensureViewportMonitors() {
+	io := imgui.CurrentIO()
+	if io.ConfigFlags()&imgui.ConfigFlagsViewportsEnable == 0 {
+		return
+	}
+	if imgui.CurrentPlatformIO().Monitors().Size > 0 {
+		return
+	}
+
+	backendFlags := io.BackendFlags()
+	backendFlags &^= imgui.BackendFlagsPlatformHasViewports
+	backendFlags &^= imgui.BackendFlagsHasMouseHoveredViewport
+	io.SetBackendFlags(backendFlags)
+	io.SetConfigFlags(io.ConfigFlags() &^ imgui.ConfigFlagsViewportsEnable)
+}
+
 // clampMonitorWorkBounds fixes a bug where glfwGetMonitorWorkarea returns
 // work bounds that extend outside the monitor's main bounds on Windows
 // with certain DPI scaling configurations. imgui asserts that WorkRect is
@@ -394,6 +442,19 @@ func clampMonitorWorkBounds() {
 		mainPosY := *(*float32)(unsafe.Add(mon, 4))
 		mainSizeX := *(*float32)(unsafe.Add(mon, 8))
 		mainSizeY := *(*float32)(unsafe.Add(mon, 12))
+
+		// Guard against monitors with uninitialized main bounds (e.g. during
+		// hot-plug or driver quirks). imgui asserts MainSize > 0 in NewFrame.
+		if mainSizeX <= 0 || mainSizeY <= 0 {
+			*(*float32)(unsafe.Add(mon, 8)) = 1
+			*(*float32)(unsafe.Add(mon, 12)) = 1
+			*(*float32)(unsafe.Add(mon, 16)) = mainPosX // WorkPos = MainPos
+			*(*float32)(unsafe.Add(mon, 20)) = mainPosY
+			*(*float32)(unsafe.Add(mon, 24)) = 1
+			*(*float32)(unsafe.Add(mon, 28)) = 1
+			continue
+		}
+
 		workPosX := (*float32)(unsafe.Add(mon, 16))
 		workPosY := (*float32)(unsafe.Add(mon, 20))
 		workSizeX := (*float32)(unsafe.Add(mon, 24))
@@ -416,6 +477,19 @@ func clampMonitorWorkBounds() {
 		if *workPosY+*workSizeY > mainBottom {
 			*workSizeY = mainBottom - *workPosY
 		}
+
+		// Safety net: if work bounds are still invalid after clamping
+		// (e.g. negative size from work area entirely outside main
+		// bounds, or GLFW reporting bogus coordinates during display
+		// changes), fall back to main bounds as imgui recommends.
+		if *workSizeX <= 0 || *workSizeY <= 0 ||
+			*workPosX < mainPosX || *workPosY < mainPosY ||
+			*workPosX+*workSizeX > mainRight || *workPosY+*workSizeY > mainBottom {
+			*workPosX = mainPosX
+			*workPosY = mainPosY
+			*workSizeX = mainSizeX
+			*workSizeY = mainSizeY
+		}
 	}
 }
 
@@ -429,6 +503,15 @@ func (g *glfwPlatform) PostRender() {
 }
 
 func (g *glfwPlatform) MakeContextCurrent() {
+	defer func() {
+		if r := recover(); r != nil {
+			// The GLFW Go bindings queue errors in a channel and
+			// panic on the next GLFW call if the error wasn't
+			// consumed. Clipboard FormatUnavailable errors on
+			// Windows can leak through imgui's internal GLFW calls
+			// and surface here.
+		}
+	}()
 	g.window.MakeContextCurrent()
 }
 
@@ -451,7 +534,32 @@ func (g *glfwPlatform) InitViewportBackends() {
 
 	// Initialize the OpenGL3 backend with GLSL 1.20 for OpenGL 2.1 compatibility.
 	implogl3.InitV("#version 120")
+	g.ensureViewportMonitors()
 
+}
+
+// SetViewportFloating sets the GLFW_FLOATING attribute on a secondary
+// viewport window identified by its raw GLFWwindow* handle. The GLFW
+// backend only sets this at window creation; this function allows dynamic
+// toggling for pin/unpin behavior.
+func SetViewportFloating(handle uintptr, floating bool) {
+	if handle == 0 {
+		return
+	}
+	// Wrap the raw GLFWwindow* as a go-gl/glfw Window.
+	// glfw.Window's first field is data *C.GLFWwindow.
+	var win glfw.Window
+	*(*unsafe.Pointer)(unsafe.Pointer(&win)) = unsafe.Add(nil, handle)
+
+	val := 0
+	if floating {
+		val = 1
+	}
+	win.SetAttrib(glfw.Floating, val)
+}
+
+func (g *glfwPlatform) IsAppFocused() bool {
+	return g.appFocused
 }
 
 func (g *glfwPlatform) installCallbacks() {
@@ -459,6 +567,12 @@ func (g *glfwPlatform) installCallbacks() {
 	g.window.SetScrollCallback(g.mouseScrollChange)
 	g.window.SetKeyCallback(g.keyChange)
 	g.window.SetCharCallback(g.charChange)
+	g.window.SetFocusCallback(g.focusChange)
+}
+
+func (g *glfwPlatform) focusChange(window *glfw.Window, focused bool) {
+	g.appFocused = focused
+	g.anyEvents = true
 }
 
 var glfwButtonIndexByID = map[glfw.MouseButton]imgui.MouseButton{
@@ -564,7 +678,15 @@ type glfwClipboard struct {
 	window *glfw.Window
 }
 
-func (cb glfwClipboard) GetClipboard() string {
+func (cb glfwClipboard) GetClipboard() (result string) {
+	defer func() {
+		if r := recover(); r != nil {
+			// On Windows, the GLFW clipboard can panic with
+			// FormatUnavailable if the clipboard contents can't be
+			// converted to a string (e.g., an image is copied).
+			result = ""
+		}
+	}()
 	return cb.window.GetClipboardString()
 }
 
@@ -932,6 +1054,10 @@ func (g *glfwPlatform) IsAudioRecording() bool {
 
 func (g *glfwPlatform) GetAudioInputDevices() []string {
 	return GetAudioInputDevices()
+}
+
+func (g *glfwPlatform) AppendSpeechPCM(pcm []int16) {
+	g.audioEngine.AppendSpeechPCM(pcm)
 }
 
 func (g *glfwPlatform) SetAudioStreamCallback(cb func([]int16)) {

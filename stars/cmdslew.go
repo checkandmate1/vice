@@ -109,7 +109,7 @@ func registerSlewCommands() {
 				fp := trk.FlightPlan
 
 				// 5.6.1 Change ABC to RBC for track in mismatch (implied)
-				if trk.Squawk != fp.AssignedSquawk {
+				if !trk.IsUnsupportedDB() && trk.Squawk != fp.AssignedSquawk {
 					spec := sim.FlightPlanSpecifier{}
 					spec.ACID.Set(fp.ACID)
 					spec.ImplicitSquawkAssignment.Set(trk.Squawk)
@@ -118,7 +118,7 @@ func registerSlewCommands() {
 				}
 
 				if fp.Suspended {
-					state.SuspendedShowAltitudeEndTime = ctx.Now.Add(5 * time.Second)
+					state.SuspendedShowAltitudeEndTime = ctx.SimTime.Add(5 * time.Second)
 					// 5.7.2 Display suspended track's flight plan in preview area
 					return CommandStatus{Output: formatFlightPlan(sp, ctx, trk.FlightPlan, trk)}
 				}
@@ -148,8 +148,8 @@ func registerSlewCommands() {
 			// 6.13.20 Return data block to unowned color (implied)
 			if state.OutboundHandoffAccepted {
 				state.OutboundHandoffAccepted = false
-				state.OutboundHandoffFlashEnd = ctx.Now
-				state.RDIndicatorEnd = time.Time{}
+				state.OutboundHandoffFlashEnd = ctx.SimTime
+				state.RDIndicatorEnd = sim.Time{}
 				return CommandStatus{}
 			}
 
@@ -197,12 +197,12 @@ func registerSlewCommands() {
 			// Beacon Readout −− unassociated track
 			if trk.IsUnassociated() {
 				// 6.13.2 Beacon readout - unassociated track (implied)
-				s := ctx.FacilityAdaptation.FullLDBSeconds
+				s := ctx.FacilityAdaptation.Datablocks.LDB.FullSeconds
 				if s == 0 {
 					s = 5
 				}
 				state := sp.TrackState[trk.ADSBCallsign]
-				state.FullLDBEndTime = ctx.Now.Add(time.Duration(s) * time.Second)
+				state.FullLDBEndTime = ctx.SimTime.Add(time.Duration(s) * time.Second)
 			}
 
 			return CommandStatus{}

@@ -147,10 +147,12 @@ func TestNormalizeHeading(t *testing.T) {
 }
 
 func TestHeadingSignedTurn(t *testing.T) {
-	turns := [][3]float32{{10, 90, 80}, {10, 350, -20}, {120, 10, -110}, {120, 270, 150}}
-	for _, turn := range turns {
-		if result := HeadingSignedTurn(turn[0], turn[1]); result != turn[2] {
-			t.Errorf("HeadingSignedTurn(%f, %f) = %f; expected %f", turn[0], turn[1], result, turn[2])
+	type st struct {
+		cur, target, expected float32
+	}
+	for _, turn := range []st{{10, 90, 80}, {10, 350, -20}, {120, 10, -110}, {120, 270, 150}} {
+		if result := HeadingSignedTurn(turn.cur, turn.target); result != turn.expected {
+			t.Errorf("HeadingSignedTurn(%f, %f) = %f; expected %f", turn.cur, turn.target, result, turn.expected)
 		}
 	}
 }
@@ -224,8 +226,7 @@ func TestHeading2LL(t *testing.T) {
 		from           Point2LL
 		to             Point2LL
 		nmPerLongitude float32
-		magCorrection  float32
-		expected       float32
+		expected       TrueHeading
 		tolerance      float32
 	}{
 		{
@@ -233,7 +234,6 @@ func TestHeading2LL(t *testing.T) {
 			from:           Point2LL{-73, 40},
 			to:             Point2LL{-73, 41},
 			nmPerLongitude: 50,
-			magCorrection:  0,
 			expected:       0,
 			tolerance:      0.1,
 		},
@@ -242,7 +242,6 @@ func TestHeading2LL(t *testing.T) {
 			from:           Point2LL{-73, 40},
 			to:             Point2LL{-72, 40},
 			nmPerLongitude: 50,
-			magCorrection:  0,
 			expected:       90,
 			tolerance:      0.1,
 		},
@@ -251,7 +250,6 @@ func TestHeading2LL(t *testing.T) {
 			from:           Point2LL{-73, 41},
 			to:             Point2LL{-73, 40},
 			nmPerLongitude: 50,
-			magCorrection:  0,
 			expected:       180,
 			tolerance:      0.1,
 		},
@@ -260,28 +258,41 @@ func TestHeading2LL(t *testing.T) {
 			from:           Point2LL{-72, 40},
 			to:             Point2LL{-73, 40},
 			nmPerLongitude: 50,
-			magCorrection:  0,
 			expected:       270,
-			tolerance:      0.1,
-		},
-		{
-			name:           "with magnetic correction",
-			from:           Point2LL{-73, 40},
-			to:             Point2LL{-73, 41},
-			nmPerLongitude: 50,
-			magCorrection:  10,
-			expected:       10,
 			tolerance:      0.1,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Heading2LL(tt.from, tt.to, tt.nmPerLongitude, tt.magCorrection)
-			if Abs(result-tt.expected) > tt.tolerance {
+			result := Heading2LL(tt.from, tt.to, tt.nmPerLongitude)
+			if Abs(float32(result)-float32(tt.expected)) > tt.tolerance {
 				t.Errorf("Heading2LL() = %f, expected %f", result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestMagneticTrueConversion(t *testing.T) {
+	tests := []struct {
+		magnetic  MagneticHeading
+		variation float32
+		true_     TrueHeading
+	}{
+		{90, 10, 80},
+		{10, 10, 0},
+		{5, 10, 355},
+		{180, -5, 185},
+	}
+	for _, tt := range tests {
+		result := MagneticToTrue(tt.magnetic, tt.variation)
+		if result != tt.true_ {
+			t.Errorf("MagneticToTrue(%f, %f) = %f, expected %f", tt.magnetic, tt.variation, result, tt.true_)
+		}
+		back := TrueToMagnetic(tt.true_, tt.variation)
+		if back != tt.magnetic {
+			t.Errorf("TrueToMagnetic(%f, %f) = %f, expected %f", tt.true_, tt.variation, back, tt.magnetic)
+		}
 	}
 }
 
@@ -289,7 +300,7 @@ func TestVectorHeading(t *testing.T) {
 	tests := []struct {
 		name      string
 		vector    [2]float32
-		expected  float32
+		expected  TrueHeading
 		tolerance float32
 	}{
 		{"north", [2]float32{0, 1}, 0, 0.01},
@@ -305,7 +316,7 @@ func TestVectorHeading(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := VectorHeading(tt.vector)
-			if Abs(result-tt.expected) > tt.tolerance {
+			if Abs(float32(result)-float32(tt.expected)) > tt.tolerance {
 				t.Errorf("VectorHeading(%v) = %f, expected %f", tt.vector, result, tt.expected)
 			}
 		})
@@ -315,7 +326,7 @@ func TestVectorHeading(t *testing.T) {
 func TestHeadingVector(t *testing.T) {
 	tests := []struct {
 		name      string
-		heading   float32
+		heading   TrueHeading
 		tolerance float32
 	}{
 		{"north", 0, 0.01},
@@ -333,7 +344,7 @@ func TestHeadingVector(t *testing.T) {
 			result := HeadingVector(tt.heading)
 			// Check that the vector points in the right direction
 			calculatedHeading := VectorHeading(result)
-			if Abs(calculatedHeading-tt.heading) > tt.tolerance {
+			if Abs(float32(calculatedHeading)-float32(tt.heading)) > tt.tolerance {
 				t.Errorf("HeadingVector(%f) produced vector with heading %f", tt.heading, calculatedHeading)
 			}
 			// Check that it's a unit vector

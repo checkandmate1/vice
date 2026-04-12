@@ -1,0 +1,25 @@
+- Scenario updates: ZNY (Ryan G), SCT (Ketan K), ZJX, F11 (manaphy)
+- Navigation / flight model:
+  - Handle "at or above/at or below" speed restrictions more reasonably (don't treat them all as "at")
+  - Added support for intercepting RNAV t-segments
+  - Added support for "join the approach" for non-ILS/LOC approaches
+  - Fixed a few bugs with "at (fix), cleared straight in (approach)"
+- Added multiple new control instructions:
+  - "after FIX, climb/descend and maintain ALT"
+  - "after FIX, reduce/maintain/increase SPEED"
+  - "speed SPEED1 until FIX1, then SPEED2 until FIX2, then SPEED3", etc.
+  - "cross {fix} {miles} miles {direction} of {fix}"
+  - "good rate" for climbs/descents: "descend and maintain 3,000, good rate through 5,000", etc.
+  - optional altitudes to expedite to: "expedite through 5,000", etc.
+  - Fixed bugs with aircraft on approach not descending as much as they should.
+- STARS
+  - Added support for "Create interfacility VFR flight plan from active local track"
+  - Fixed bug where WX3 would never have any contents
+  - GI and ATIS text in the SSA list is managed by the server (so updates are shared among controllers)
+- Facility engineering:
+  - Support "at or above/at or below" speed restrictions
+  - Removed "speed_restriction" from departure routes; this was unused/redundant
+  - Added "thick_20nm_range_ring" STARS adaptation
+  - Added "flight_type" for overflights so aircraft flight types can be specified as "departure" or "arrival" (rather than always being "overflight")
+  - Added "flash_on_atis_update" adaptation for STARS SSA lists
+- Added UI option to force (realistic) square windows for STARS/ERAM radar displays

@@ -70,7 +70,7 @@ func main() {
 	flag.Parse()
 
 	usage := func() {
-		fmt.Fprintf(os.Stderr, "usage: wxingest [flags] [metar|precip|atmos]...\nwhere [flags] may be:\n")
+		fmt.Fprintf(os.Stderr, "usage: wxingest [flags] [metar|precip|atmos|tfr]...\nwhere [flags] may be:\n")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -121,6 +121,7 @@ func main() {
 		eg.Go(func() error { return ingestMETAR(sb) })
 		eg.Go(func() error { return ingestPrecip(sb) })
 		eg.Go(func() error { return ingestHRRR(sb) })
+		eg.Go(func() error { return ingestTFRs(sb) })
 	} else {
 		for _, a := range flag.Args() {
 			switch strings.ToLower(a) {
@@ -130,6 +131,8 @@ func main() {
 				eg.Go(func() error { return ingestPrecip(sb) })
 			case "atmos":
 				eg.Go(func() error { return ingestHRRR(sb) })
+			case "tfr", "tfrs":
+				eg.Go(func() error { return ingestTFRs(sb) })
 			default:
 				usage()
 			}
@@ -188,6 +191,21 @@ func retry(attempts int, sleep time.Duration, fn func() error) error {
 		sleep *= 2
 	}
 	return err
+}
+
+// readWithRetry reads an object from storage, retrying transient I/O errors.
+func readWithRetry(sb StorageBackend, path string) ([]byte, error) {
+	var b []byte
+	err := retry(3, 5*time.Second, func() error {
+		r, err := sb.OpenRead(path)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+		b, err = io.ReadAll(r)
+		return err
+	})
+	return b, err
 }
 
 // storeObjectLocal writes a msgpack+zstd encoded object to a local file.

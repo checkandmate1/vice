@@ -31,7 +31,7 @@ type VisualScenario struct {
 // NewVisualScenario creates a scenario with an airport at the given location,
 // VMC METAR, and a single aircraft positioned at acPos heading in the given
 // direction. The aircraft has an ILS approach assigned for the given runway.
-func NewVisualScenario(t *testing.T, airportLoc math.Point2LL, runway string, acPos math.Point2LL, heading float32) *VisualScenario {
+func NewVisualScenario(t *testing.T, airportLoc math.Point2LL, runway string, acPos math.Point2LL, heading math.MagneticHeading) *VisualScenario {
 	t.Helper()
 
 	callsign := av.ADSBCallsign("AAL123")
@@ -77,7 +77,7 @@ func NewVisualScenario(t *testing.T, airportLoc math.Point2LL, runway string, ac
 				METAR: map[string]wx.METAR{
 					"KJFK": {Raw: "KJFK 10SM BKN050"},
 				},
-				SimTime:              time.Now(),
+				SimTime:              NewSimTime(time.Now()),
 				CurrentConsolidation: map[TCW]*TCPConsolidation{tcw: {PrimaryTCP: TCP(freq)}},
 			},
 			Airports: map[string]*av.Airport{
@@ -216,11 +216,11 @@ func (vs *VisualScenario) ExpectIMC(intent av.CommandIntent) {
 // assigned, on frequency, positioned at the given location heading in the
 // given direction. Suitable for canRequestVisualApproach and
 // checkSpontaneousVisualRequest tests.
-func makeVisualTestAircraft(pos math.Point2LL, heading float32) *Aircraft {
+func makeVisualTestAircraft(pos math.Point2LL, heading math.MagneticHeading) *Aircraft {
 	return makeVisualTestAircraftAlt(pos, heading, 3000) // default 3000ft MSL
 }
 
-func makeVisualTestAircraftAlt(pos math.Point2LL, heading float32, altitude float32) *Aircraft {
+func makeVisualTestAircraftAlt(pos math.Point2LL, heading math.MagneticHeading, altitude float32) *Aircraft {
 	return &Aircraft{
 		ADSBCallsign:        "AAL123",
 		TypeOfFlight:        av.FlightTypeArrival,
@@ -510,7 +510,7 @@ func TestVisualRequestBearingFilter(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		heading            float32
+		heading            math.MagneticHeading
 		shouldBePastFilter bool // true = bearing difference <= 120
 	}{
 		{"Heading south toward airport", 180, true},
@@ -526,8 +526,7 @@ func TestVisualRequestBearingFilter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			nmPerLong := float32(52)
-			magVar := float32(0)
-			bearing := math.Heading2LL(acPos, airportLoc, nmPerLong, magVar)
+			bearing := math.TrueToMagnetic(math.Heading2LL(acPos, airportLoc, nmPerLong), 0)
 			diff := math.HeadingDifference(tt.heading, bearing)
 			pastFilter := diff <= 120
 
@@ -574,7 +573,7 @@ func TestVisualApproachWaypoints(t *testing.T) {
 	tests := []struct {
 		name     string
 		pos      math.Point2LL
-		heading  float32
+		heading  math.MagneticHeading
 		wantNil  bool   // expect go-around (nil)
 		wantBase bool   // expect a _BASE waypoint
 		baseSide string // "left" or "right" of centerline (looking inbound, i.e. north)
@@ -847,7 +846,7 @@ func TestDelayedFieldInSight(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
 	sim := makeVisualTestSim(airportLoc, "13L")
-	sim.State.SimTime = time.Now()
+	sim.State.SimTime = NewSimTime(time.Now())
 
 	ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180) // 5nm north heading south
 	ac.FieldLookingUntil = sim.State.SimTime.Add(20 * time.Second)

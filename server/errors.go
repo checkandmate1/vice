@@ -25,7 +25,6 @@ var (
 	ErrRPCVersionMismatch        = errors.New("Client and server RPC versions don't match")
 	ErrServerDisconnected        = errors.New("Server disconnected")
 	ErrTCWAlreadyOccupied        = errors.New("TCW is already occupied")
-	ErrWeatherUnavailable        = errors.New("Unable to reach weather server")
 	ErrSTTUnavailable            = errors.New("STT service unavailable")
 )
 
@@ -72,15 +71,20 @@ var errorStringToError = map[string]error{
 	sim.ErrDuplicateBeacon.Error():                 sim.ErrDuplicateBeacon,
 	sim.ErrIllegalACID.Error():                     sim.ErrIllegalACID,
 	sim.ErrIllegalACType.Error():                   sim.ErrIllegalACType,
+	sim.ErrIllegalATIS.Error():                     sim.ErrIllegalATIS,
 	sim.ErrIllegalBeaconCode.Error():               sim.ErrIllegalBeaconCode,
 	sim.ErrIllegalFunction.Error():                 sim.ErrIllegalFunction,
+	sim.ErrIllegalLine.Error():                     sim.ErrIllegalLine,
+	sim.ErrIllegalTrackLocalFP.Error():             sim.ErrIllegalTrackLocalFP,
 	sim.ErrIllegalScratchpad.Error():               sim.ErrIllegalScratchpad,
 	sim.ErrInvalidAbbreviatedFP.Error():            sim.ErrInvalidAbbreviatedFP,
 	sim.ErrInvalidDepartureController.Error():      sim.ErrInvalidDepartureController,
 	sim.ErrInvalidRestrictionAreaIndex.Error():     sim.ErrInvalidRestrictionAreaIndex,
 	sim.ErrInvalidVolumeId.Error():                 sim.ErrInvalidVolumeId,
+	sim.ErrNoACType.Error():                        sim.ErrNoACType,
 	sim.ErrNoMatchingFlight.Error():                sim.ErrNoMatchingFlight,
 	sim.ErrNoMatchingFlightPlan.Error():            sim.ErrNoMatchingFlightPlan,
+	sim.ErrNoScratchpad.Error():                    sim.ErrNoScratchpad,
 	sim.ErrNoVFRAircraftForFlightFollowing.Error(): sim.ErrNoVFRAircraftForFlightFollowing,
 	sim.ErrNotLaunchController.Error():             sim.ErrNotLaunchController,
 	sim.ErrTCPAlreadyConsolidated.Error():          sim.ErrTCPAlreadyConsolidated,

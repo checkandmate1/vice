@@ -67,6 +67,28 @@ func Tokenize(words []string) []Token {
 			}
 		}
 
+		// Check for standalone "N hundred" pattern (not part of "N thousand M hundred").
+		// e.g., "two hundred knots" -> "2 hundred" -> TokenNumber 200.
+		// parseAltitudePattern above requires "thousand", so if we're here,
+		// this is a standalone "N hundred".
+		if (IsDigit(w) || IsNumber(w)) && i+1 < len(words) && words[i+1] == "hundred" {
+			n := 0
+			if IsDigit(w) {
+				n = ParseDigit(w)
+			} else if v, err := strconv.Atoi(w); err == nil {
+				n = v
+			}
+			if n >= 1 && n <= 9 {
+				tokens = append(tokens, Token{
+					Text:  strconv.Itoa(n * 100),
+					Type:  TokenNumber,
+					Value: n * 100,
+				})
+				i += 2
+				continue
+			}
+		}
+
 		// Check for multi-digit numbers (callsign parts, squawk codes, etc.)
 		// Type classification (heading, speed) is deferred to command parsing
 		// where context determines meaning.
@@ -172,12 +194,27 @@ func parseAltitudePattern(words []string) (int, int) {
 	var thousands int
 	consumed := 0
 
-	// Handle multi-digit thousands (e.g., "1 1" for 11, or "11" as word)
+	// Handle multi-digit thousands (e.g., "1 1" for 11, or "11" as word).
+	// Cap at 60 (FL600 = 60,000 ft ceiling) to prevent greedy accumulation
+	// like "8 3 thousand" → 830 instead of correctly splitting "3 thousand" → 30.
 	for consumed < len(words) {
 		if IsDigit(words[consumed]) {
-			thousands = thousands*10 + ParseDigit(words[consumed])
+			candidate := thousands*10 + ParseDigit(words[consumed])
+			if candidate > 60 {
+				break
+			}
+			thousands = candidate
 			consumed++
 		} else if n, err := strconv.Atoi(words[consumed]); err == nil && n < 100 {
+			if n > 60 {
+				// Numbers 61-99 before "thousand" represent garbled altitudes
+				// like "76 thousand" (STT for "seven thousand six hundred" = 7,600 ft).
+				// The tens digit is thousands and the units digit is hundreds.
+				if consumed+1 < len(words) && FuzzyMatch(words[consumed+1], "thousand", 0.90) {
+					return n, consumed + 2
+				}
+				break
+			}
 			thousands = n
 			consumed++
 			break
@@ -261,6 +298,15 @@ func parseDigitSequence(words []string) (int, string, int) {
 			// pattern like "18 3 thousand" where "3 thousand" means 3000 feet.
 			if num > 0 && consumed+1 < len(words) && words[consumed+1] == "thousand" {
 				break // Let this digit be parsed with "thousand" as an altitude
+			}
+			// Don't merge a single digit if "mile"/"miles" follows and we already
+			// have a meaningful number. This prevents "speed 180 5 miles final"
+			// from merging "5" into the speed (producing 1805).
+			if num >= 10 && consumed+1 < len(words) {
+				next := words[consumed+1]
+				if next == "mile" || next == "miles" {
+					break // Let this digit be parsed as a distance
+				}
 			}
 			num = candidate
 			text += w

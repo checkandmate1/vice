@@ -350,11 +350,11 @@ func LL2NM(p Point2LL, nmPerLongitude float32) [2]float32 {
 	return [2]float32{p[0] * nmPerLongitude, p[1] * NMPerLatitude}
 }
 
-// Offset2LL returns the point at distance dist along the vector with heading hdg from
-// the given point. It assumes a (locally) flat earth.
-func Offset2LL(pll Point2LL, hdg float32, dist float32, nmPerLongitude, magneticVariation float32) Point2LL {
+// Offset2LL returns the point at distance dist along the vector with true
+// heading hdg from the given point. It assumes a (locally) flat earth.
+func Offset2LL(pll Point2LL, hdg TrueHeading, dist float32, nmPerLongitude float32) Point2LL {
 	p := LL2NM(pll, nmPerLongitude)
-	h := Radians(float32(hdg - magneticVariation))
+	h := Radians(hdg)
 	v := [2]float32{Sin(h), Cos(h)}
 	v = Scale2f(v, float32(dist))
 	p = Add2f(p, v)
@@ -386,7 +386,7 @@ func (p *Point2LL) UnmarshalJSON(b []byte) error {
 		}
 
 		if locr == nil {
-			panic("Must provide location resolver via SetLocationResolver")
+			return fmt.Errorf("%s: unable to parse latlong and no location resolver available", string(b))
 		}
 
 		*p, err = locr.Resolve(string(b))

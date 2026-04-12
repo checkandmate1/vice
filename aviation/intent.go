@@ -128,8 +128,11 @@ const (
 type AltitudeIntent struct {
 	Altitude          float32
 	Direction         AltitudeDirection
+	AfterFix          string   // altitude change conditional on passing this fix
 	AfterSpeed        *float32 // changing altitude only after reaching a speed
 	Expedite          bool
+	GoodRate          bool
+	RateThrough       *float32 // "through/to" altitude for expedite or good rate
 	AlreadyExpediting bool
 	ThenSpeed         *float32 // speed once we reach the altitude
 	ThenSpeedType     SpeedType
@@ -137,7 +140,23 @@ type AltitudeIntent struct {
 
 func (a AltitudeIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	if a.AlreadyExpediting {
-		rt.Add("[we're already expediting|that's our best rate]")
+		if a.GoodRate {
+			rt.Add("[we're already at a good rate|that's already our good rate]")
+		} else {
+			rt.Add("[we're already expediting|that's our best rate]")
+		}
+		return
+	}
+
+	if a.AfterFix != "" {
+		switch a.Direction {
+		case AltitudeClimb:
+			rt.Add("[after {fix} climb-and-maintain|after {fix} up to] {alt}", a.AfterFix, a.Altitude)
+		case AltitudeDescend:
+			rt.Add("[after {fix} descend-and-maintain|after {fix} down to] {alt}", a.AfterFix, a.Altitude)
+		case AltitudeMaintain:
+			rt.Add("[after {fix} maintain|after {fix}] {alt}", a.AfterFix, a.Altitude)
+		}
 		return
 	}
 
@@ -147,10 +166,28 @@ func (a AltitudeIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	}
 
 	if a.Expedite {
-		if a.Direction == AltitudeClimb {
+		if a.RateThrough != nil {
+			rt.Add("[expedite through|expediting through] {alt}", *a.RateThrough)
+			// After the through-altitude, just read back the target without repeating "expediting"
+			rt.Add("[up to|] {alt}", a.Altitude)
+		} else if a.Direction == AltitudeClimb {
 			rt.Add("[expediting up to|expedite] {alt}", a.Altitude)
 		} else {
 			rt.Add("[expediting down to|expedite] {alt}", a.Altitude)
+		}
+	} else if a.GoodRate {
+		if a.RateThrough != nil {
+			rt.Add("[good rate through|good rate to] {alt}", *a.RateThrough)
+		} else {
+			rt.Add("[good rate|we'll give you a good rate]")
+		}
+		switch a.Direction {
+		case AltitudeClimb:
+			rt.Add("[climb-and-maintain|up to|] {alt}", a.Altitude)
+		case AltitudeDescend:
+			rt.Add("[descend-and-maintain|down to|] {alt}", a.Altitude)
+		case AltitudeMaintain:
+			rt.Add("[maintain|we'll keep it at|] {alt}", a.Altitude)
 		}
 	} else {
 		switch a.Direction {
@@ -193,6 +230,8 @@ const (
 	SpeedMaximumForward
 	SpeedPresentSpeed
 	SpeedUntilFinal // speed restriction until 5 mile final
+	SpeedAtOrAbove  // "maintain X or greater"
+	SpeedAtOrBelow  // "do not exceed X"
 )
 
 // SpeedUntil specifies when a speed restriction ends.
@@ -208,6 +247,7 @@ type SpeedIntent struct {
 	Speed         float32
 	Type          SpeedType
 	AfterAltitude *float32    // speed change conditional on reaching this altitude
+	AfterFix      string      // speed change conditional on passing this fix
 	Until         *SpeedUntil // what the speed restriction is "until"
 	Mach          bool
 }
@@ -240,22 +280,40 @@ func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 			rt.Add("[speed {spd} for now|we'll keep it at {spd} for now]", s.Speed)
 		}
 	case SpeedReduce:
-		if s.AfterAltitude != nil {
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd}|after {fix} {spd}]", s.AfterFix, s.Speed)
+		} else if s.AfterAltitude != nil {
 			rt.Add("[at {alt} maintain {spd}|at {alt} {spd}|{alt} then {spd}]", *s.AfterAltitude, s.Speed)
 		} else {
 			rt.Add("[reduce to {spd}|speed {spd}|slow to {spd}|{spd}]", s.Speed)
 		}
 	case SpeedIncrease:
-		if s.AfterAltitude != nil {
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd}|after {fix} {spd}]", s.AfterFix, s.Speed)
+		} else if s.AfterAltitude != nil {
 			rt.Add("[at {alt} maintain {spd}|at {alt} {spd}|{alt} then {spd}]", *s.AfterAltitude, s.Speed)
 		} else {
 			rt.Add("[increase to {spd}|speed {spd}|maintain {spd}|{spd}]", s.Speed)
 		}
 	case SpeedAssign:
-		if s.AfterAltitude != nil {
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd}|after {fix} {spd}]", s.AfterFix, s.Speed)
+		} else if s.AfterAltitude != nil {
 			rt.Add("[at {alt} maintain {spd}|at {alt} {spd}|{alt} then {spd}]", *s.AfterAltitude, s.Speed)
 		} else {
 			rt.Add("[speed {spd}|maintain {spd}|{spd}]", s.Speed)
+		}
+	case SpeedAtOrAbove:
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} maintain {spd} or greater|after {fix} {spd} or greater]", s.AfterFix, s.Speed)
+		} else {
+			rt.Add("[maintain {spd} or greater|{spd} or greater|{spd} or above]", s.Speed)
+		}
+	case SpeedAtOrBelow:
+		if s.AfterFix != "" {
+			rt.Add("[after {fix} do not exceed {spd}|after {fix} {spd} or less]", s.AfterFix, s.Speed)
+		} else {
+			rt.Add("[do not exceed {spd}|not exceeding {spd}|{spd} or less]", s.Speed)
 		}
 	}
 }
@@ -281,6 +339,54 @@ func (s SpeedIntent) renderMach(rt *RadioTransmission, r *rand.Rand) {
 			rt.Add("[at {alt} {mach}|{alt} then {mach}]", *s.AfterAltitude, s.Speed)
 		} else {
 			rt.Add("[{mach}|maintain {mach}]", s.Speed)
+		}
+	}
+}
+
+// CompoundSpeedSegment represents one segment of a compound speed assignment.
+type CompoundSpeedSegment struct {
+	Speed    *SpeedRestriction
+	UntilFix string // empty for last (open-ended) segment
+}
+
+// CompoundSpeedIntent represents a compound speed assignment readback,
+// e.g., "speed 250 until FIX1, then 210 until FIX2, then 180".
+type CompoundSpeedIntent struct {
+	Segments []CompoundSpeedSegment
+}
+
+func (c CompoundSpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
+	for i, seg := range c.Segments {
+		speed, exact := seg.Speed.ExactValue()
+		if !exact {
+			speed = seg.Speed.Range[0]
+			if speed == 0 {
+				speed = seg.Speed.Range[1]
+			}
+		}
+
+		isAbove := !exact && seg.Speed.Range[0] > 0 && seg.Speed.Range[1] == MaxSpeed
+		isBelow := !exact && seg.Speed.Range[0] == 0
+
+		suffix := ""
+		if isAbove {
+			suffix = " or greater"
+		} else if isBelow {
+			suffix = " or less"
+		}
+
+		if i == 0 {
+			if seg.UntilFix != "" {
+				rt.Add("[speed|] {spd}"+suffix+" until {fix}", speed, seg.UntilFix)
+			} else {
+				rt.Add("[speed|] {spd}"+suffix, speed)
+			}
+		} else {
+			if seg.UntilFix != "" {
+				rt.Add("[then|] {spd}"+suffix+" until {fix}", speed, seg.UntilFix)
+			} else {
+				rt.Add("[then|] {spd}"+suffix, speed)
+			}
 		}
 	}
 }
@@ -349,7 +455,7 @@ const (
 
 // HeadingIntent represents heading assignment commands
 type HeadingIntent struct {
-	Heading    float32
+	Heading    math.MagneticHeading
 	Type       HeadingType
 	Turn       HeadingTurn // for HeadingAssign: which way to turn
 	Degrees    int         // for HeadingTurnLeft/Right: how many degrees
@@ -383,15 +489,15 @@ func (h HeadingIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 
 // ReportHeadingIntent represents "say heading" responses
 type ReportHeadingIntent struct {
-	Current  float32
-	Assigned *float32
+	Current  math.MagneticHeading
+	Assigned *math.MagneticHeading
 }
 
 func (r ReportHeadingIntent) Render(rt *RadioTransmission, rnd *rand.Rand) {
 	if r.Assigned != nil && *r.Assigned != r.Current {
 		// Round current heading to multiple of 5 toward assigned heading
-		current := r.Current
-		assigned := *r.Assigned
+		current := float32(r.Current)
+		assigned := float32(*r.Assigned)
 
 		lower := math.Floor(current/5) * 5
 		upper := math.Ceil(current/5) * 5
@@ -417,7 +523,7 @@ func (r ReportHeadingIntent) Render(rt *RadioTransmission, rnd *rand.Rand) {
 			// Rounded heading equals assigned, just report current
 			rt.Add("[heading|] {hdg}", r.Current)
 		} else {
-			rt.Add("[heading|at|] {hdg} [turning to|turning|] {hdg}", rounded, assigned)
+			rt.Add("[heading|at|] {hdg} [turning to|turning|] {hdg}", rounded, *r.Assigned)
 		}
 	} else {
 		rt.Add("[heading|] {hdg}", r.Current)
@@ -457,27 +563,37 @@ const (
 	NavDepartFixDirect
 	NavDepartFixHeading
 	NavCrossFixAt
+	NavCrossDistanceFromFixAt
 	NavResumeOwnNav
 	NavAltitudeDiscretion
 )
 
 // NavigationIntent represents navigation commands (direct, hold, depart fix, etc.)
 type NavigationIntent struct {
-	Type           NavigationType
-	Fix            string
-	SecondFix      string               // for DepartFixDirect
-	Heading        float32              // for DepartFixHeading
-	HoldDirection  string               // "left" or "right" for holds
-	HoldLegLength  string               // e.g., "2 mile" or "1 minute"
-	AltRestriction *AltitudeRestriction // for CrossFixAt
-	Speed          *float32             // for CrossFixAt
-	Mach           *float32             // for CrossFixAt
+	Type             NavigationType
+	Fix              string
+	SecondFix        string                        // for DepartFixDirect
+	Heading          math.MagneticHeading          // for DepartFixHeading
+	Turn             TurnDirection                 // for NavDirectFix / NavDirectFixFromHold
+	HoldDirection    string                        // "left" or "right" for holds
+	HoldLegLength    string                        // e.g., "2 mile" or "1 minute"
+	AltRestriction   *AltitudeRestriction          // for CrossFixAt / CrossDistanceFromFixAt
+	SpeedRestriction *SpeedRestriction             // for CrossFixAt / CrossDistanceFromFixAt
+	Distance         float32                       // for CrossDistanceFromFixAt
+	Direction        math.CardinalOrdinalDirection // for CrossDistanceFromFixAt
 }
 
 func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	switch n.Type {
 	case NavDirectFix:
-		rt.Add("direct {fix}", n.Fix)
+		switch n.Turn {
+		case TurnLeft:
+			rt.Add("[turn] left direct {fix}", n.Fix)
+		case TurnRight:
+			rt.Add("[turn] right direct {fix}", n.Fix)
+		default:
+			rt.Add("direct {fix}", n.Fix)
+		}
 	case NavDirectFixFromHold:
 		rt.Add("cancel [the|] hold[ and|,] depart {fix} direct {fix}", n.Fix, n.SecondFix)
 	case NavHold:
@@ -495,10 +611,29 @@ func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		if n.AltRestriction != nil {
 			rt.Add("{altrest}", n.AltRestriction)
 		}
-		if n.Speed != nil {
-			rt.Add("at {spd}", *n.Speed)
-		} else if n.Mach != nil {
-			rt.Add("at {mach}", *n.Mach)
+		if n.SpeedRestriction != nil {
+			if n.SpeedRestriction.IsMach {
+				mach, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {mach}", mach)
+			} else {
+				speed, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {spd}", speed)
+			}
+		}
+	case NavCrossDistanceFromFixAt:
+		rt.Add("cross {num} miles "+math.Compass(n.Direction.Heading())+" of {fix}",
+			int(n.Distance), n.Fix)
+		if n.AltRestriction != nil {
+			rt.Add("{altrest}", n.AltRestriction)
+		}
+		if n.SpeedRestriction != nil {
+			if n.SpeedRestriction.IsMach {
+				mach, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {mach}", mach)
+			} else {
+				speed, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {spd}", speed)
+			}
 		}
 	case NavResumeOwnNav:
 		rt.Add("[own navigation|resuming own navigation]")
@@ -527,6 +662,8 @@ type ApproachIntent struct {
 	ApproachName string // full name of the approach (e.g., "ILS Runway 22L")
 	Fix          string // for AtFixCleared
 	LAHSORunway  string // runway to hold short of (for LAHSO operations)
+	HasLocalizer bool
+	StraightIn   bool
 }
 
 func (a ApproachIntent) Render(rt *RadioTransmission, r *rand.Rand) {
@@ -545,11 +682,19 @@ func (a ApproachIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	case ApproachJoin:
 		rt.Add("[joining the {appr} approach course|joining {appr}]", a.ApproachName)
 	case ApproachAtFixCleared:
-		rt.Add("at {fix} cleared {appr}", a.Fix, a.ApproachName)
+		if a.StraightIn {
+			rt.Add("at {fix} cleared straight in {appr}", a.Fix, a.ApproachName)
+		} else {
+			rt.Add("at {fix} cleared {appr}", a.Fix, a.ApproachName)
+		}
 	case ApproachAtFixIntercept:
-		rt.Add("[intercept at {fix}|at {fix} intercept the localizer|at {fix} join the localizer]", a.Fix)
+		if a.HasLocalizer {
+			rt.Add("[intercept at {fix}|at {fix} intercept the localizer|at {fix} join the localizer]", a.Fix)
+		} else {
+			rt.Add("[intercept at {fix}|at {fix} intercept the approach course|at {fix} join the approach course]", a.Fix)
+		}
 	case ApproachCancel:
-		rt.Add("cancel approach clearance.")
+		rt.Add("cancel approach clearance")
 	}
 }
 
@@ -901,12 +1046,14 @@ restart:
 }
 
 // mergeAltitudeExpedite merges an AltitudeIntent representing an altitude assignment followed by
-// AltitudeIntent with an expedite command into a single AltitudeIntent with Expedite=true.
+// AltitudeIntent with an expedite or good-rate command into a single AltitudeIntent.
 func mergeAltitudeExpedite(alt AltitudeIntent, exp AltitudeIntent) ([]CommandIntent, bool) {
 	// Leave the second one if we're going to say we're already expediting so that we still have a
 	// read-back of the altitude for the first one.
-	if exp.Expedite && !exp.AlreadyExpediting {
+	if (exp.Expedite || exp.GoodRate) && !exp.AlreadyExpediting {
 		alt.Expedite = exp.Expedite
+		alt.GoodRate = exp.GoodRate
+		alt.RateThrough = exp.RateThrough
 		return []CommandIntent{alt}, true
 	}
 	return nil, false

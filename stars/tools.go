@@ -144,6 +144,15 @@ func (sp *STARSPane) drawRangeRings(ctx *panes.Context, transforms radar.ScopeTr
 	cb.SetRGB(color)
 	transforms.LoadWindowViewingMatrices(cb)
 	ld.GenerateCommands(cb)
+
+	if ctx.FacilityAdaptation.Thick20NmRangeRing {
+		// There is always a 20nm range ring--don't need to check ps.RangeRingRadius.
+		ld.Reset()
+		r := 20.0 / pixelDistanceNm
+		ld.AddCircle(centerWindow, r, 360)
+		cb.LineWidth(2, ctx.DPIScale)
+		ld.GenerateCommands(cb)
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -153,7 +162,7 @@ func (sp *STARSPane) drawRangeRings(ctx *panes.Context, transforms radar.ScopeTr
 // run the "find" command to highlight a point in the world, draw a blinking
 // square at that point for a few seconds.
 func (sp *STARSPane) drawHighlighted(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
-	remaining := time.Until(sp.highlightedLocationEndTime)
+	remaining := sp.highlightedLocationEndTime.Sub(ctx.SimTime)
 	if remaining < 0 {
 		return
 	}
@@ -162,7 +171,7 @@ func (sp *STARSPane) drawHighlighted(ctx *panes.Context, transforms radar.ScopeT
 	// data block information"(?)
 	ps := sp.currentPrefs()
 	color := ps.Brightness.FullDatablocks.ScaleRGB(sp.Colors.UnownedDatablock)
-	halfSeconds := ctx.Now.UnixMilli() / 500
+	halfSeconds := time.Now().UnixMilli() / 500
 	blinkDim := halfSeconds&1 == 0
 	if blinkDim {
 		color = color.Scale(0.5)
@@ -226,10 +235,11 @@ func (sp *STARSPane) drawRBLs(ctx *panes.Context, transforms radar.ScopeTransfor
 		Font:  sp.systemFont(ctx, ps.CharSize.Tools),
 		Color: color,
 	}
+	paneBounds := math.Extent2D{P1: [2]float32{ctx.PaneExtent.Width(), ctx.PaneExtent.Height()}}
 
 	drawRBL := func(p0 math.Point2LL, p1 math.Point2LL, idx int, gs float32) {
 		// Format the range-bearing line text for the two positions.
-		hdg := math.Heading2LL(p0, p1, ctx.NmPerLongitude, ctx.MagneticVariation)
+		hdg := float32(math.TrueToMagnetic(math.Heading2LL(p0, p1, ctx.NmPerLongitude), ctx.MagneticVariation))
 		dist := math.NMDistance2LL(p0, p1)
 		text := fmt.Sprintf(" %03d/%.2f", int(hdg+.5), dist) // leading space for alignment
 		if gs != 0 {
@@ -239,9 +249,25 @@ func (sp *STARSPane) drawRBLs(ctx *panes.Context, transforms radar.ScopeTransfor
 		}
 		text += fmt.Sprintf("-%d", idx)
 
-		// And draw the line and the text.
+		// Draw the line and the text.
 		pText := transforms.WindowFromLatLongP(p1) // draw at right endpoint
-		//pText[1] += float32(style.Font.Size / 2)   // vertically align
+		bx, by := style.Font.BoundText(text, style.LineSpacing)
+		p0Text := transforms.WindowFromLatLongP(p0)
+		offsetRight := pText[0] > paneBounds.P1[0]-float32(bx)
+		offsetUp := p0Text[1] < pText[1]
+		if !paneBounds.Inside(pText) {
+			// Place text at the window edge if it would otherwise be partially or fully offscreen.
+			if isect, t0, _ := paneBounds.IntersectRay(pText, math.Sub2f(p0Text, pText)); isect {
+				pText = math.Add2f(pText, math.Scale2f(math.Sub2f(p0Text, pText), t0))
+			}
+		}
+		if offsetRight {
+			// If it's off the right side of the window, offset vertically so that it's not too
+			// close to the line.
+			pText[1] += float32(util.Select(offsetUp, 4+by, -4))
+		}
+		pText[0] = math.Clamp(pText[0], 0, paneBounds.P1[0]-float32(bx))
+		pText[1] = math.Clamp(pText[1], float32(by), paneBounds.P1[1])
 		td.AddText(text, pText, style)
 		ld.AddLine(p0, p1, color)
 	}
@@ -483,7 +509,7 @@ func (sp *STARSPane) drawScenarioArrivalRoutes(ctx *panes.Context, transforms ra
 						} else if wp[0].Heading != 0 {
 							// This should be the only other case... The heading arrow is drawn
 							// up to 2nm out, so put the runway 1nm along its axis.
-							a := math.Radians(float32(wp[0].Heading) - ctx.MagneticVariation)
+							a := math.Radians(math.MagneticToTrue(wp[0].MagneticHeading(), ctx.MagneticVariation))
 							v := math.SinCos(a)
 							pend := math.LL2NM(wp[0].Location, ctx.NmPerLongitude)
 							pend = math.Add2f(pend, v)
@@ -702,7 +728,7 @@ func (sp *STARSPane) drawPTLs(ctx *panes.Context, transforms radar.ScopeTransfor
 		dist := float32(state.track.Groundspeed) / 60 * ps.PTLLength
 
 		// h is a vector in nm coordinates with length l=dist
-		hdg := state.TrackHeading(ctx.NmPerLongitude)
+		hdg := float32(state.TrackHeading(ctx.NmPerLongitude))
 		h := math.SinCos(math.Radians(hdg))
 		h = math.Scale2f(h, dist)
 		end := math.Add2f(math.LL2NM(state.track.Location, ctx.NmPerLongitude), h)
@@ -724,9 +750,9 @@ func (sp *STARSPane) drawRingsAndCones(ctx *panes.Context, transforms radar.Scop
 
 	ps := sp.currentPrefs()
 	font := sp.systemFont(ctx, ps.CharSize.Datablocks)
-	color := ps.Brightness.Lines.ScaleRGB(sp.Colors.JRingCone)
 
 	for _, trk := range sp.visibleTracks {
+		color := ps.Brightness.TPA.ScaleRGB(sp.Colors.JRingCone)
 		state := sp.TrackState[trk.ADSBCallsign]
 
 		// Format a radius/length for printing, ditching the ".0" if it's
@@ -791,26 +817,28 @@ func (sp *STARSPane) drawRingsAndCones(ctx *panes.Context, transforms radar.Scop
 			// Now we'll rotate the vertices so that it points in the
 			// appropriate direction.
 			var coneHeading float32
+			var coneColor renderer.RGB
 			if drawATPACone {
 				// The cone is oriented to point toward the leading aircraft.
 				if sfront, ok := sp.TrackState[state.ATPALeadAircraftCallsign]; ok {
-					coneHeading = math.Heading2LL(state.track.Location, sfront.track.Location,
-						ctx.NmPerLongitude, ctx.MagneticVariation)
+					coneHeading = float32(math.TrueToMagnetic(math.Heading2LL(state.track.Location, sfront.track.Location,
+						ctx.NmPerLongitude), ctx.MagneticVariation))
 				}
+				coneColor = ps.Brightness.ATPA.ScaleRGB(sp.Colors.JRingCone)
 			} else {
 				// The cone is oriented along the aircraft's heading.
-				coneHeading = state.TrackHeading(ctx.NmPerLongitude) + ctx.MagneticVariation
+				coneHeading = float32(math.TrueToMagnetic(state.TrackHeading(ctx.NmPerLongitude), ctx.MagneticVariation))
+				coneColor = ps.Brightness.TPA.ScaleRGB(sp.Colors.JRingCone)
 			}
 			rot := math.Rotator2f(coneHeading)
 			for i := range pts {
 				pts[i] = rot(pts[i])
 			}
 
-			coneColor := ps.Brightness.Lines.ScaleRGB(sp.Colors.JRingCone)
 			if atpaStatus == ATPAStatusWarning {
-				coneColor = ps.Brightness.Lines.ScaleRGB(sp.Colors.ATPAWarning)
+				coneColor = ps.Brightness.ATPA.ScaleRGB(sp.Colors.ATPAWarning)
 			} else if atpaStatus == ATPAStatusAlert {
-				coneColor = ps.Brightness.Lines.ScaleRGB(sp.Colors.ATPAAlert)
+				coneColor = ps.Brightness.ATPA.ScaleRGB(sp.Colors.ATPAAlert)
 			}
 
 			// We've got what we need to draw a polyline with the
@@ -932,7 +960,7 @@ func (sp *STARSPane) drawWind(ctx *panes.Context, transforms radar.ScopeTransfor
 
 		// Rotate so we can draw an arrow pointing in the wind direction;
 		// add an extra 180 so it points where the wind is blowing.
-		rot := math.Rotator2f(samp.WindDirection() + 180)
+		rot := math.Rotator2f(float32(samp.WindDirection()) + 180)
 
 		// Draw arrow shaft
 		shaftStart := math.Add2f(pw, rot([2]float32{0, -arrowLength / 2}))
@@ -980,7 +1008,7 @@ func (rbl STARSRangeBearingLine) GetPoints(ctx *panes.Context, sp *STARSPane) (m
 	return getLoc(0), getLoc(1)
 }
 
-func (sp *STARSPane) displaySignificantPointInfo(p0, p1 math.Point2LL, nmPerLongitude, magneticVariation float32) CommandStatus {
+func (sp *STARSPane) displaySignificantPointInfo(p0, p1 math.Point2LL, nmPerLongitude, magneticVariation float32, now sim.Time) CommandStatus {
 	// Find the closest significant point to p1.
 	minDist := float32(1000000)
 	var closest *sim.SignificantPoint
@@ -999,14 +1027,14 @@ func (sp *STARSPane) displaySignificantPointInfo(p0, p1 math.Point2LL, nmPerLong
 
 	// Display a blinking square at the point
 	sp.highlightedLocation = closest.Location
-	sp.highlightedLocationEndTime = time.Now().Add(5 * time.Second)
+	sp.highlightedLocationEndTime = now.Add(5 * time.Second)
 
 	// 6-148
 	format := func(sig sim.SignificantPoint) string {
 		d := math.NMDistance2LL(p0, sig.Location)
 		str := ""
 		if d > 1 { // no bearing range if within 1nm
-			hdg := math.Heading2LL(p0, sig.Location, nmPerLongitude, magneticVariation)
+			hdg := float32(math.TrueToMagnetic(math.Heading2LL(p0, sig.Location, nmPerLongitude), magneticVariation))
 			str = fmt.Sprintf("%03d/%.2f ", int(hdg), d)
 			for len(str) < 9 {
 				str += " "
@@ -1079,7 +1107,7 @@ func (sp *STARSPane) drawHoldPattern(ctx *panes.Context, transforms radar.ScopeT
 
 	// Inbound course (magnetic to true)
 	inboundMag := hold.InboundCourse
-	inboundTrue := inboundMag - ctx.MagneticVariation
+	inboundTrue := math.MagneticToTrue(inboundMag, ctx.MagneticVariation)
 	inboundRad := math.Radians(inboundTrue)
 
 	// Outbound is 180° from inbound
@@ -1091,10 +1119,8 @@ func (sp *STARSPane) drawHoldPattern(ctx *panes.Context, transforms radar.ScopeT
 	// Outbound vector (pointing away from fix)
 	outboundVec := [2]float32{-inboundVec[0], -inboundVec[1]}
 
-	// Calculate turn radius for standard rate turn at 120 knots
-	// Turn radius = speed / (turning rate in rad/s) / 60
-	// At 120 knots, standard rate (3°/s): radius ≈ 0.67 nm
-	turnRadius := float32(0.67)
+	// Use 1nm turn radius to match the racetrack drawing in DrawWaypoints.
+	turnRadius := float32(1)
 
 	// Perpendicular vector for turn offset (depends on turn direction)
 	var perpVec [2]float32
@@ -1147,10 +1173,10 @@ func (sp *STARSPane) drawHoldPattern(ctx *panes.Context, transforms radar.ScopeT
 
 	// Draw arrow on outbound leg showing direction of flight
 	outboundMid := math.Mid2f(outboundStart, outboundEnd)
-	aa := outboundRad + math.Radians(180+30)
+	aa := outboundRad + math.Radians(float32(180+30))
 	pa := math.Add2f(outboundMid, math.Scale2f(math.SinCos(aa), 0.5))
 	ld.AddLine(math.NM2LL(outboundMid, ctx.NmPerLongitude), math.NM2LL(pa, ctx.NmPerLongitude), color)
-	ba := outboundRad - math.Radians(180+30)
+	ba := outboundRad - math.Radians(float32(180+30))
 	pb := math.Add2f(outboundMid, math.Scale2f(math.SinCos(ba), 0.5))
 	ld.AddLine(math.NM2LL(outboundMid, ctx.NmPerLongitude), math.NM2LL(pb, ctx.NmPerLongitude), color)
 

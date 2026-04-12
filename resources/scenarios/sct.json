@@ -7597,13 +7597,8 @@
           ]
         },
         "VRA": {
-          "runway": "1",
-          "full_name": "VOR-A into the El Monte Airport (runway 1)",
-          "type": "RNAV",
-          "waypoints": [
-            "PDZ/nopt/a4000 POM/if/iaf/a4000/hilpt/nopt180 FLYIN/a3700 SELAW/a3000/faf N034.05.37.664,W118.05.07.012 N034.03.22.024,W118.06.19.275 N034.02.47.033,W118.03.08.580",
-            "PRADO/iaf/a4000/nopt POM/if/iaf/a4000/hilpt/nopt180 FLYIN/a3700 SELAW/a3000/faf N034.05.37.664,W118.05.07.012 N034.03.22.024,W118.06.19.275 N034.02.47.033,W118.03.08.580"
-          ]
+          "cifp_id": "VAOR",
+          "runway": "1"
         }
       },
       "departure_routes": {
@@ -9708,7 +9703,7 @@
           },
           "route": "BRUEN2",
           "initial_controller": "C39",
-          "initial_altitude": 33000,
+          "initial_altitude": 29000,
           "initial_speed": 310,
           "expect_approach": null,
           "airlines": {
@@ -11257,7 +11252,7 @@
         {
           "waypoints": "MOMAR/a24000-26000 DSURT/a19000-23000 TRIXI/a12000-14000/s270/ho HSKER/a8700+ BARET/a8000+ HNAHH/a6100+ LUCKI/a6000 LYNDI/a5000+/s210",
           "cruise_altitude": 36000,
-          "route": "LUCKI/a6000 LYNDI/a5000+/s210",
+          "route": "/. LUCKI LYNDI",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 280,
@@ -11346,7 +11341,7 @@
         {
           "waypoints": "CMPOE/a19000-23000 HEELX/a12000-15000/s270/ho JACKK/a10000-11000/s250 AZTEK/a8000+ JEEVS/a6100+ LUCKI/a6000 LYNDI/a5000+/s210",
           "cruise_altitude": 36000,
-          "route": "LUCKI/a6000 LYNDI/a5000+/s210",
+          "route": "/. LUCKI LYNDI",
           "initial_controller": "C09",
           "initial_altitude": 20000,
           "initial_speed": 280,
@@ -12390,7 +12385,7 @@
           "waypoints": "CMA N034.12.55.469,W119.01.23.193/ho GINNA",
           "cruise_altitude": 5000,
           "star": "SBAP2",
-          "initial_controller": "61T",
+          "initial_controller": "61H",
           "initial_altitude": 5000,
           "initial_speed": 150,
           "expect_approach": "RA2",
@@ -12916,7 +12911,7 @@
         {
           "waypoints": "MOMAR/a24000+ DSURT/a19000+ TRIXI/a12000+/s270/ho TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
           "cruise_altitude": 36000,
-          "route": "TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
+          "route": "/. TOPGN ISEMN ZIPPP TMCAT",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 270,
@@ -13005,7 +13000,7 @@
         {
           "waypoints": "IPL/a24000+ BLUZE/a17000+/ho GUUSE/a12000+/s270 TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
           "cruise_altitude": 36000,
-          "route": "TOPGN/a9000+ ISEMN/a6400+ ZIPPP/a6000+ TMCAT/a6000/s210/h270",
+          "route": "/. TOPGN ISEMN ZIPPP TMCAT",
           "initial_controller": "C09",
           "initial_altitude": 24000,
           "initial_speed": 270,
@@ -13612,9 +13607,7 @@
           "KSBD": 1
         }
       },
-      "configuration": {
-        "config_id": "81X"
-      },
+      "configuration": "81X",
       "default_maps": ["099S SCT NORMAL CFG SCT"],
       "departure_runways": [
         {
@@ -13923,9 +13916,7 @@
           "KSBD": 1
         }
       },
-      "configuration": {
-        "config_id": "SC2"
-      },
+      "configuration": "SC2",
       "default_maps": ["099S SCT NORMAL CFG SCT"],
       "departure_runways": [
         {
@@ -14133,9 +14124,7 @@
         }
       },
       "vfr_rate_scale": 0.2,
-      "configuration": {
-        "config_id": "SCT"
-      },
+      "configuration": "SCT",
       "default_maps": ["099S SCT NORMAL CFG SCT"],
       "departure_runways": [
         {

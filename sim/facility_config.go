@@ -6,6 +6,7 @@ package sim
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -20,10 +21,11 @@ import (
 // contains control positions, STARS configuration, handoff IDs, and
 // fix pair definitions for a facility (TRACON or ARTCC).
 type FacilityConfig struct {
-	ControlPositions   map[TCP]*av.Controller `json:"control_positions"`
-	FacilityAdaptation FacilityAdaptation     `json:"config"`
-	HandoffIDs         []HandoffID            `json:"handoff_ids"`
-	FixPairs           []FixPairDefinition    `json:"fix_pairs"`
+	ControlPositions           map[TCP]*av.Controller `json:"control_positions"`
+	FacilityAdaptation         FacilityAdaptation     `json:"facility_adaptations"`
+	HandoffIDs                 []HandoffID            `json:"handoff_ids"`
+	FixPairs                   []FixPairDefinition    `json:"fix_pairs"`
+	DisableTFRRestrictionAreas bool                   `json:"disable_tfr_restriction_areas"`
 }
 
 // HandoffID maps a neighboring facility to its STARS identifiers at
@@ -61,10 +63,13 @@ type FixPairAssignment struct {
 }
 
 // PostDeserialize validates the facility config right after JSON
-// deserialization. The facility name is the base filename without
-// extension (e.g. "N90", "ZDC"). Errors are accumulated in e.
-func (fc *FacilityConfig) PostDeserialize(facility string, e *util.ErrorLogger) {
+// deserialization. configPath is the relative path to the config file
+// (e.g. "configurations/ZBW/A90.json"). Errors are accumulated in e.
+func (fc *FacilityConfig) PostDeserialize(configPath string, e *util.ErrorLogger) {
 	defer e.CheckDepth(e.CurrentDepth())
+
+	// Derive the facility name from the config path.
+	facility := strings.TrimSuffix(filepath.Base(configPath), ".json")
 
 	// Determine whether this facility is an ARTCC.
 	_, isARTCC := av.DB.ARTCCs[facility]
@@ -85,7 +90,7 @@ func (fc *FacilityConfig) PostDeserialize(facility string, e *util.ErrorLogger) 
 		}
 	}
 
-	e.Push("facility " + facility)
+	e.Push(configPath)
 	defer e.Pop()
 
 	// Validate control positions (before auto-deriving Area, so
@@ -244,7 +249,7 @@ func (fc *FacilityConfig) PostDeserialize(facility string, e *util.ErrorLogger) 
 
 func (fc *FacilityConfig) validateAdaptation(isARTCC bool, e *util.ErrorLogger) {
 	fa := &fc.FacilityAdaptation
-	e.Push("config")
+	e.Push("facility_adaptations")
 	defer e.Pop()
 
 	// Validate configurations (facility configurations).
@@ -276,6 +281,46 @@ func (fc *FacilityConfig) validateAdaptation(isARTCC bool, e *util.ErrorLogger) 
 			for _, child := range children {
 				if _, ok := fc.ControlPositions[child]; !ok {
 					e.ErrorString(`default_consolidation: child %q (under %q) is not in "control_positions"`, child, parent)
+				}
+			}
+		}
+
+		// Check for exactly one root position.
+		if _, err := config.DefaultConsolidation.RootPosition(); err != nil {
+			e.Error(err)
+		}
+
+		// Check for cycles (a position can't be its own ancestor).
+		getConsolidatedInto := func(tcp TCP) TCP {
+			for parent, children := range config.DefaultConsolidation {
+				if slices.Contains(children, tcp) {
+					return parent
+				}
+			}
+			return ""
+		}
+		for tcp := range config.DefaultConsolidation {
+			visited := make(map[TCP]bool)
+			current := tcp
+			for current != "" {
+				if visited[current] {
+					e.ErrorString("cycle detected in consolidation hierarchy involving %q", tcp)
+					break
+				}
+				visited[current] = true
+				current = getConsolidatedInto(current)
+			}
+		}
+
+		// Check that no position appears as a child of multiple parents.
+		childParent := make(map[TCP]TCP)
+		for parent, children := range config.DefaultConsolidation {
+			for _, child := range children {
+				if existingParent, ok := childParent[child]; ok {
+					e.ErrorString(`position %q appears as a child of both %q and %q in "default_consolidation"`,
+						child, existingParent, parent)
+				} else {
+					childParent[child] = parent
 				}
 			}
 		}
@@ -315,6 +360,15 @@ func (fc *FacilityConfig) validateAdaptation(isARTCC bool, e *util.ErrorLogger) 
 		}
 	}
 
+	switch fa.Monitor {
+	// Ugly: we need to keep this in sync with colorSets in stars/stars.go
+	case "":
+		fa.Monitor = "legacy" // default
+	case "legacy", "mdm3", "mdm4":
+	default:
+		e.ErrorString(`%s: invalid value for "monitor": must be "legacy", "mdm3", or "mdm4"`, fa.Monitor)
+	}
+
 	if isARTCC {
 		fc.validateERAMAdaptation(e)
 	} else {
@@ -327,7 +381,7 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 
 	// Collect all video map names across all area configs.
 	var allAreaVideoMaps []string
-	for _, ac := range fa.AreaConfigs {
+	for _, ac := range fa.Areas {
 		allAreaVideoMaps = append(allAreaVideoMaps, ac.VideoMapNames...)
 	}
 
@@ -339,53 +393,74 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 	}
 
 	// controller_configs TCP existence.
-	if len(fa.ControllerConfigs) > 0 {
-		for tcp := range fa.ControllerConfigs {
+	if len(fa.Controllers) > 0 {
+		for tcp := range fa.Controllers {
 			if ctrl, ok := fc.ControlPositions[TCP(tcp)]; !ok {
-				e.ErrorString(`Control position %q in "controller_configs" not defined in "control_positions"`, tcp)
+				e.ErrorString(`Control position %q in "controllers" not defined in "control_positions"`, tcp)
 			} else if ctrl.IsExternal() {
-				e.ErrorString(`Control position %q in "controller_configs" is external and not in this TRACON.`, tcp)
+				e.ErrorString(`Control position %q in "controllers" is external and not in this TRACON.`, tcp)
 			}
 		}
 		var err error
-		fa.ControllerConfigs, err = util.CommaKeyExpand(fa.ControllerConfigs)
+		fa.Controllers, err = util.CommaKeyExpand(fa.Controllers)
 		if err != nil {
 			e.Error(err)
 		}
-	} else if len(allAreaVideoMaps) == 0 {
-		e.ErrorString(`must specify either "controller_configs" or "video_maps" in "area_configs"`)
 	}
 
 	if fa.Range == 0 {
 		fa.Range = 50
 	}
-	if fa.HandoffAcceptFlashDuration == 0 {
-		fa.HandoffAcceptFlashDuration = 5
+	if fa.Datablocks.FDB.AcceptFlashDuration == 0 {
+		fa.Datablocks.FDB.AcceptFlashDuration = 5
+	}
+
+	// Clock phase defaults.
+	if len(fa.Datablocks.ClockPhase.Sequence) == 0 {
+		fa.Datablocks.ClockPhase.Sequence = []int{1, 2, 1, 3}
+		fa.Datablocks.ClockPhase.Intervals = []float32{2, 1, 2, 1}
+	}
+	// Validate clock phase.
+	cp := &fa.Datablocks.ClockPhase
+	if len(cp.Sequence) != len(cp.Intervals) {
+		e.ErrorString(`"clock_phase" sequence and "intervals" must have the same length`)
+	}
+	for _, p := range cp.Sequence {
+		if p < 1 || p > 4 {
+			e.ErrorString(`"clock_phase" sequence values must be 1-4, got %d`, p)
+			break
+		}
+	}
+	for _, d := range cp.Intervals {
+		if d < 0.5 || d > 5.0 {
+			e.ErrorString(`"clock_phase" intervals must be 0.5-5.0 seconds, got %.1f`, d)
+			break
+		}
 	}
 
 	// PDB mutual exclusion.
-	if fa.PDB.SplitGSAndCWT && fa.PDB.ShowAircraftType {
+	if fa.Datablocks.PDB.SplitGSAndCWT && fa.Datablocks.PDB.ShowAircraftType {
 		e.ErrorString(`Both "split_gs_and_cwt" and "show_aircraft_type" cannot be specified for "pdb" adaption.`)
 	}
-	if fa.PDB.SplitGSAndCWT && fa.PDB.HideGroundspeed {
+	if fa.Datablocks.PDB.SplitGSAndCWT && fa.Datablocks.PDB.HideGroundspeed {
 		e.ErrorString(`Both "split_gs_and_cwt" and "hide_gs" cannot be specified for "pdb" adaption.`)
 	}
-	if fa.PDB.DisplayCustomSPCs && len(fa.CustomSPCs) == 0 {
+	if fa.Datablocks.PDB.DisplayCustomSPCs && len(fa.Datablocks.CustomSPCs) == 0 {
 		e.ErrorString(`"display_custom_spcs" was set but none were defined in "custom_spcs".`)
 	}
 
 	// Scratchpad1 mutual exclusion.
 	disp := make(map[string]any)
-	if fa.Scratchpad1.DisplayExitFix {
+	if fa.Datablocks.Scratchpad1.DisplayExitFix {
 		disp["display_exit_fix"] = nil
 	}
-	if fa.Scratchpad1.DisplayExitFix1 {
+	if fa.Datablocks.Scratchpad1.DisplayExitFix1 {
 		disp["display_exit_fix_1"] = nil
 	}
-	if fa.Scratchpad1.DisplayExitGate {
+	if fa.Datablocks.Scratchpad1.DisplayExitGate {
 		disp["display_exit_gate"] = nil
 	}
-	if fa.Scratchpad1.DisplayAltExitGate {
+	if fa.Datablocks.Scratchpad1.DisplayAltExitGate {
 		disp["display_alternate_exit_gate"] = nil
 	}
 	if len(disp) > 1 {
@@ -395,7 +470,7 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 	}
 
 	// Custom SPCs.
-	for _, spc := range fa.CustomSPCs {
+	for _, spc := range fa.Datablocks.CustomSPCs {
 		if len(spc) != 2 || spc[0] < 'A' || spc[0] > 'Z' || spc[1] < 'A' || spc[1] > 'Z' {
 			e.ErrorString(`Invalid "custom_spcs" code %q: must be two characters between A-Z`, spc)
 		}
@@ -438,7 +513,7 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 
 	// Coordination lists: name/id required, id uniqueness.
 	seenIds := make(map[string][]string)
-	for _, list := range fa.CoordinationLists {
+	for _, list := range fa.Lists.Coordination {
 		e.Push(`"coordination_lists" ` + list.Name)
 
 		if list.Name == "" {
@@ -463,15 +538,14 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 
 	// Restriction areas: non-spatial checks.
 	e.Push(`"restriction_areas"`)
-	if len(fa.RestrictionAreas) > av.MaxRestrictionAreas {
-		e.ErrorString("No more than %d restriction areas may be specified; %d were given.",
-			av.MaxRestrictionAreas, len(fa.RestrictionAreas))
-	}
-	for idx := range fa.RestrictionAreas {
-		ra := &fa.RestrictionAreas[idx]
+	for idx, ra := range fa.RestrictionAreas {
+		if idx < 1 || idx > 2*av.MaxRestrictionAreas {
+			e.ErrorString("restriction area key %d must be between 1 and %d", idx, 2*av.MaxRestrictionAreas)
+			continue
+		}
 
 		if ra.Title == "" {
-			e.ErrorString(`Must define "title" for restriction area.`)
+			e.ErrorString(`Must define "title" for restriction area %d.`, idx)
 		}
 		for i := range 2 {
 			if len(ra.Text[i]) > 32 {
@@ -487,22 +561,176 @@ func (fc *FacilityConfig) validateSTARSAdaptation(e *util.ErrorLogger) {
 		}
 	}
 	e.Pop()
+
+	// Scratchpad validity.
+	for _, sp := range fa.Scratchpads {
+		if !fa.CheckScratchpad(sp) {
+			e.ErrorString(`%s: invalid scratchpad in "scratchpads"`, sp)
+		}
+	}
+
+	// Scratchpads + display_exit_fix mutual exclusion.
+	if len(fa.Scratchpads) > 0 {
+		sp1 := fa.Datablocks.Scratchpad1
+		if sp1.DisplayExitFix || sp1.DisplayExitFix1 || sp1.DisplayExitGate || sp1.DisplayAltExitGate {
+			e.ErrorString(`cannot both specify "scratchpads" and "display_exit_fix"/"display_exit_fix_1"/"display_exit_gate"/"display_alternate_exit_gate"`)
+		}
+	}
+
+	// Area scratchpad validity and beacon code block parsing.
+	for areaNum, ac := range fa.Areas {
+		e.Push(fmt.Sprintf("areas[%s]", areaNum))
+
+		for _, sp := range ac.Scratchpads {
+			if !fa.CheckScratchpad(sp) {
+				e.ErrorString(`%s: invalid scratchpad in area "scratchpads"`, sp)
+			}
+		}
+
+		// Auto-generate flight following airspace IDs/descriptions.
+		for i := range ac.FlightFollowingAirspace {
+			if ac.FlightFollowingAirspace[i].Id == "" {
+				ac.FlightFollowingAirspace[i].Id = fmt.Sprintf("FFA%s-%d", areaNum, i+1)
+			}
+			if ac.FlightFollowingAirspace[i].Description == "" {
+				ac.FlightFollowingAirspace[i].Description = fmt.Sprintf("FLIGHT FOLLOWING AREA %s %d", areaNum, i+1)
+			}
+		}
+
+		// Parse area beacon code blocks.
+		if ac.MonitoredBeaconCodeBlocksString != nil {
+			for s := range strings.SplitSeq(*ac.MonitoredBeaconCodeBlocksString, ",") {
+				s = strings.TrimSpace(s)
+				if code, err := av.ParseSquawkOrBlock(s); err != nil {
+					e.ErrorString(`invalid beacon code %q in "beacon_code_blocks": %v`, s, err)
+				} else {
+					ac.MonitoredBeaconCodeBlocks = append(ac.MonitoredBeaconCodeBlocks, code)
+				}
+			}
+		}
+
+		e.Pop()
+	}
+
+	// Controller beacon code blocks and flight following auto-generation.
+	if len(fa.Controllers) > 0 {
+		for tcp, config := range fa.Controllers {
+			// Auto-generate flight following airspace IDs/descriptions.
+			for i := range config.FlightFollowingAirspace {
+				if config.FlightFollowingAirspace[i].Id == "" {
+					config.FlightFollowingAirspace[i].Id = "FF" + string(tcp) + strconv.Itoa(i+1)
+				}
+				if config.FlightFollowingAirspace[i].Description == "" {
+					config.FlightFollowingAirspace[i].Description = "FLIGHT FOLLOWING " + string(tcp) + " " + strconv.Itoa(i+1)
+				}
+			}
+
+			// Parse controller beacon code blocks.
+			config.MonitoredBeaconCodeBlocks = nil
+			if config.MonitoredBeaconCodeBlocksString == nil {
+				config.MonitoredBeaconCodeBlocks = append(config.MonitoredBeaconCodeBlocks, 0o12)
+			} else {
+				for s := range strings.SplitSeq(*config.MonitoredBeaconCodeBlocksString, ",") {
+					s = strings.TrimSpace(s)
+					if code, err := av.ParseSquawkOrBlock(s); err != nil {
+						e.ErrorString(`invalid beacon code %q in "beacon_code_blocks": %v`, s, err)
+					} else {
+						config.MonitoredBeaconCodeBlocks = append(config.MonitoredBeaconCodeBlocks, code)
+					}
+				}
+			}
+		}
+	}
+
+	// Validate TCP references in Quicklook and FDAM filter regions
+	// against this facility's ControlPositions.
+	for i, filt := range fa.Filters.Quicklook {
+		e.Push(filt.Description)
+		fa.Filters.Quicklook[i].ValidateTCPs(fc.ControlPositions, e)
+		e.Pop()
+	}
+	for i, filt := range fa.Filters.FDAM {
+		e.Push(filt.Description)
+		fa.Filters.FDAM[i].ValidateTCPs(fc.ControlPositions, e)
+		e.Pop()
+	}
+
+	// Validate macros.
+	seenMacroInputs := make(map[string]bool)
+	for i, macro := range fa.STARSMacros {
+		e.Push(fmt.Sprintf("stars_macros[%d]", i))
+
+		input := macro.Input
+
+		// [SLEW] must only appear at the very end.
+		if idx := strings.Index(input, "[SLEW]"); idx != -1 {
+			if idx != len(input)-len("[SLEW]") {
+				e.ErrorString("[SLEW] must only appear at the end of input %q", input)
+			}
+		}
+
+		// Parse and validate the optional [MODE] prefix.
+		remainder := strings.TrimSuffix(input, "[SLEW]")
+		hasMode := false
+		if strings.HasPrefix(remainder, "[") {
+			if end := strings.Index(remainder, "]"); end == -1 {
+				e.ErrorString("unclosed bracket in input mode prefix %q", input)
+			} else {
+				hasMode = true
+				modeStr := remainder[1:end]
+				if ValidateMacroCommandMode != nil && !ValidateMacroCommandMode(modeStr) {
+					e.ErrorString("invalid input command mode %q", modeStr)
+				}
+				remainder = remainder[end+1:]
+			}
+		}
+		if !hasMode && remainder == "" {
+			e.ErrorString(`macro "input" must not be empty`)
+		}
+
+		if seenMacroInputs[macro.Input] {
+			e.ErrorString("duplicate macro input %q", macro.Input)
+		}
+		seenMacroInputs[macro.Input] = true
+
+		if len(macro.Commands) == 0 {
+			e.ErrorString("macro must have at least one command")
+		}
+
+		for j, cmd := range macro.Commands {
+			// Commands may optionally start with a [MODE] prefix.
+			// If present, validate the mode string.
+			if strings.HasPrefix(cmd, "[") {
+				endBracket := strings.Index(cmd, "]")
+				if endBracket == -1 {
+					e.ErrorString("command[%d] %q: unclosed bracket in mode prefix", j, cmd)
+					continue
+				}
+				modeStr := cmd[1:endBracket]
+				if ValidateMacroCommandMode != nil && !ValidateMacroCommandMode(modeStr) {
+					e.ErrorString("command[%d]: invalid command mode %q", j, modeStr)
+				}
+			}
+		}
+
+		e.Pop()
+	}
 }
 
 func (fc *FacilityConfig) validateERAMAdaptation(e *util.ErrorLogger) {
 	fa := &fc.FacilityAdaptation
 
 	// Validate area configs if present.
-	if len(fa.AreaConfigs) > 0 {
+	if len(fa.Areas) > 0 {
 		usedAreas := make(map[string]bool)
 		for _, ctrl := range fc.ControlPositions {
 			if ctrl.Area != "" {
 				usedAreas[ctrl.Area] = true
 			}
 		}
-		for areaNum := range fa.AreaConfigs {
+		for areaNum := range fa.Areas {
 			if !usedAreas[areaNum] {
-				e.ErrorString("area_configs: area %s has no controllers assigned to it", areaNum)
+				e.ErrorString("areas: area %s has no controllers assigned to it", areaNum)
 			}
 		}
 	}

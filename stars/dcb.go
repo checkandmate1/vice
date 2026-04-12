@@ -80,11 +80,16 @@ func (sp *STARSPane) dcbButtonScale(ctx *panes.Context) float32 {
 	ps := sp.currentPrefs()
 	// Sigh; on windows we want the button size in pixels on high DPI displays
 	ds := ctx.DrawPixelScale
-	// Scale based on width or height available depending on DCB position
+	width := ds*ctx.PaneExtent.Width() - 4
+	height := ds*ctx.PaneExtent.Height() - 4
 	if ps.DCBPosition == dcbPositionTop || ps.DCBPosition == dcbPositionBottom {
-		return min(ds, (ds*ctx.PaneExtent.Width()-4)/(numDCBSlots*dcbButtonSize))
+		mainScale := width / (numDCBSlots * dcbButtonSize)
+		crossScale := height / dcbButtonSize
+		return min(ds, mainScale, crossScale)
 	} else {
-		return min(ds, (ds*ctx.PaneExtent.Height()-4)/(numDCBSlots*dcbButtonSize))
+		mainScale := height / (numDCBSlots * dcbButtonSize)
+		crossScale := width / dcbButtonSize
+		return min(ds, mainScale, crossScale)
 	}
 }
 
@@ -160,8 +165,10 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 			m == CommandModeTrackSuspend || m == CommandModeTerminateControl ||
 			m == CommandModeHandOff || m == CommandModeVFRPlan || m == CommandModeMultiFunc ||
 			m == CommandModeFlightData || m == CommandModeCollisionAlert || m == CommandModeMin ||
+			m == CommandModeFMA_TSAS || m == CommandModeIFDT ||
 			m == CommandModeTargetGen || m == CommandModeTargetGenLock || m == CommandModeReleaseDeparture ||
-			m == CommandModeRestrictionArea || m == CommandModeDrawRoute || m == CommandModeDrawWind
+			m == CommandModeRestrictionArea || m == CommandModeDrawRoute || m == CommandModeDrawWind ||
+			m == CommandModeMacro
 	}
 	isMainMenuMode := func(m CommandMode) bool {
 		return m == CommandModeRange || m == CommandModePlaceCenter || m == CommandModeRangeRings ||
@@ -381,7 +388,7 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 	}
 
 	if sp.commandMode == CommandModeBrite || sp.commandMode == CommandModeBriteSpinner {
-		rewindDCBCursor(7, buttonScale)
+		rewindDCBCursor(10, buttonScale)
 		dcbStartCaptureMouseRegion()
 
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("DCB", &ps.Brightness.DCB, 25, false),
@@ -394,13 +401,13 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("FDB", &ps.Brightness.FullDatablocks, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LST", &ps.Brightness.Lists, 25, false),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LST", &ps.Brightness.Lists, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("POS", &ps.Brightness.Positions, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LDB", &ps.Brightness.LimitedDatablocks, 5, true),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("LDB", &ps.Brightness.LimitedDatablocks, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("OTH", &ps.Brightness.OtherTracks, 5, true),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("OTH", &ps.Brightness.OtherTracks, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("TLS", &ps.Brightness.Lines, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
@@ -414,10 +421,20 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("HST", &ps.Brightness.History, 5, true),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
-		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("WX", &ps.Brightness.Weather, 5, true),
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("WX", &ps.Brightness.Weather, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
 		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("WXC", &ps.Brightness.WxContrast, 5, false),
 			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("TPA", &ps.Brightness.TPA, 5, false),
+			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
+		sp.drawDCBSpinner(ctx, makeBrightnessSpinner("ATPA", &ps.Brightness.ATPA, 5, false),
+			CommandModeBriteSpinner, buttonHalfVertical, buttonScale)
+		// These are all related to FMA alerts
+		sp.disabledButton(ctx, "AMZ", buttonHalfVertical, buttonScale) // 5-100, true
+		sp.disabledButton(ctx, "RWY", buttonHalfVertical, buttonScale) // 5-100, true
+		sp.disabledButton(ctx, "NTZ", buttonHalfVertical, buttonScale) // 50-100, false
+		sp.disabledButton(ctx, "REF", buttonHalfVertical, buttonScale) // 5-100, false
+
 		if sp.selectButton(ctx, "DONE", buttonHalfVertical, buttonScale) {
 			sp.setCommandMode(ctx, CommandModeNone)
 		} else if sp.activeSpinner == nil { // let spinner capture take precedence
@@ -1087,7 +1104,7 @@ func (sp *STARSPane) drawDCBMouseDeltaButton(ctx *panes.Context, text string, co
 
 		sp.installCommandHandlers(makeCommandHandlers(
 			"[POS]", func(sp *STARSPane, ctx *panes.Context, _ math.Point2LL) {
-				sp.resetInputState(ctx)
+				sp.resetInputState(ctx.Platform)
 				ctx.Platform.StopMouseDeltaMode()
 				ctx.SetMousePosition(savedMousePosition)
 			},
@@ -1119,7 +1136,7 @@ func (sp *STARSPane) drawDCBSpinner(ctx *panes.Context, spinner dcbSpinner, comm
 		// Clicking an active spinner deselects it
 		modeAfter := spinner.ModeAfter()
 		if modeAfter == CommandModeNone {
-			sp.resetInputState(ctx)
+			sp.resetInputState(ctx.Platform)
 		} else {
 			sp.commandMode = modeAfter
 			sp.activeSpinner = nil
@@ -1142,7 +1159,7 @@ func (sp *STARSPane) drawDCBSpinner(ctx *panes.Context, spinner dcbSpinner, comm
 		sp.installCommandHandlers(makeCommandHandlers(
 			"[POS]", func(sp *STARSPane, ctx *panes.Context, _ math.Point2LL) CommandStatus {
 				if modeAfter == CommandModeNone {
-					sp.resetInputState(ctx)
+					sp.resetInputState(ctx.Platform)
 					return CommandStatus{}
 				}
 				sp.commandMode = modeAfter
@@ -1623,7 +1640,7 @@ func (s *dcbBrightnessSpinner) MouseDelta() float32 {
 func (s *dcbBrightnessSpinner) KeyboardInput(text string) (CommandMode, error) {
 	if v, err := strconv.Atoi(text); err != nil {
 		return CommandModeNone, ErrSTARSCommandFormat
-	} else if v < int(s.min) || v > 100 || (v == 0 && !s.allowOff) {
+	} else if v > 100 || (v < int(s.min) && !(v == 0 && s.allowOff)) {
 		return CommandModeNone, ErrSTARSIllegalValue
 	} else {
 		*s.b = radar.Brightness(v)

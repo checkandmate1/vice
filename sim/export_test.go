@@ -23,7 +23,7 @@ func NewTestSim(lg *log.Logger) *Sim {
 		State: &CommonState{
 			DynamicState: DynamicState{
 				METAR:                map[string]wx.METAR{},
-				SimTime:              time.Now(),
+				SimTime:              NewSimTime(time.Now()),
 				CurrentConsolidation: map[TCW]*TCPConsolidation{tcw: {PrimaryTCP: TCP(freq)}},
 			},
 			Airports: map[string]*av.Airport{},

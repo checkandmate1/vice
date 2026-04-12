@@ -97,7 +97,7 @@ func (sp *STARSPane) formatListEntry(ctx *panes.Context, format string, fp *sim.
 			return fmt.Sprintf("%4s", fp.AircraftType)
 		},
 		"BEACON": func(fp *sim.NASFlightPlan) string {
-			haveCode := fp.Rules == av.FlightRulesIFR || ctx.Now.Sub(sp.VFRFPFirstSeen[fp.ACID]) > 2*time.Second
+			haveCode := fp.Rules == av.FlightRulesIFR || ctx.SimTime.Sub(sp.VFRFPFirstSeen[fp.ACID]) > 2*time.Second
 			if haveCode {
 				return fp.AssignedSquawk.String()
 			} else {
@@ -121,7 +121,7 @@ func (sp *STARSPane) formatListEntry(ctx *panes.Context, format string, fp *sim.
 		},
 		"EXIT_GATE": func(fp *sim.NASFlightPlan) string {
 			exit := rewriteFixForList(fp.ExitFix)
-			if ctx.FacilityAdaptation.AllowLongScratchpad {
+			if ctx.FacilityAdaptation.Datablocks.AllowLongScratchpad {
 				return exit + fmt.Sprintf("%03d", fp.RequestedAltitude/100)
 			} else {
 				return exit + fmt.Sprintf("%02d", fp.RequestedAltitude/1000)
@@ -437,7 +437,7 @@ func (sp *STARSPane) drawSSAList(ctx *panes.Context, pw [2]float32, listStyle re
 	if filter.All || filter.Time || filter.Altimeter {
 		text := ""
 		if filter.All || filter.Time {
-			text += ctx.Client.CurrentTime().UTC().Format("1504/05 ")
+			text += ctx.SimTime.UTC().Format("1504/05 ")
 		}
 		if filter.All || filter.Altimeter {
 			if metar, ok := ctx.Client.State.METAR[ctx.Client.State.PrimaryAirport]; ok {
@@ -449,9 +449,14 @@ func (sp *STARSPane) drawSSAList(ctx *panes.Context, pw [2]float32, listStyle re
 	}
 
 	// ATIS/GI text. (Note that per 4-44 filter.All does not apply to GI text.)
-	for i := range ps.GIText {
-		if filter.GIText[i] && (ps.ATIS[i] != "" || ps.GIText[i] != "") {
-			pw = td.AddText(ps.ATIS[i]+" "+rewriteDelta(ps.GIText[i]), pw, listStyle)
+	halfSeconds := time.Now().UnixMilli() / 500
+	for i := range ctx.Client.State.GIText {
+		if filter.GIText[i] && (ctx.Client.State.ATIS[i] != "" || ctx.Client.State.GIText[i] != "") {
+			style := listStyle
+			if sp.FlashATIS[i] && halfSeconds&1 == 1 {
+				style.Color = style.Color.Scale(0.35)
+			}
+			pw = td.AddText(ctx.Client.State.ATIS[i]+" "+rewriteDelta(ctx.Client.State.GIText[i]), pw, style)
 			newline()
 		}
 	}
@@ -617,7 +622,22 @@ func (sp *STARSPane) drawSSAList(ctx *panes.Context, pw [2]float32, listStyle re
 	}
 
 	if filter.All || filter.AirportWeather {
-		airports := ctx.FacilityAdaptation.Altimeters
+		// Check for controller-specific altimeters first, then per-area,
+		// then facility-level SSA altimeters, then auto-discover.
+		var airports []string
+		if cc, ok := ctx.FacilityAdaptation.Controllers[ctx.UserPrimaryPosition()]; ok {
+			airports = cc.Altimeters
+		}
+		if len(airports) == 0 {
+			if area := ctx.UserController().Area; area != "" {
+				if ac, ok := ctx.FacilityAdaptation.Areas[area]; ok {
+					airports = ac.Altimeters
+				}
+			}
+		}
+		if len(airports) == 0 {
+			airports = ctx.FacilityAdaptation.Lists.SSA.Altimeters
+		}
 		if len(airports) == 0 {
 			airports = util.SortedMapKeys(ctx.Client.State.Airports)
 
@@ -816,7 +836,13 @@ func (sp *STARSPane) drawVFRList(ctx *panes.Context, paneExtent math.Extent2D, s
 
 	for _, fp := range vfr {
 		if _, ok := sp.VFRFPFirstSeen[fp.ACID]; !ok {
-			sp.VFRFPFirstSeen[fp.ACID] = ctx.Now
+			sp.VFRFPFirstSeen[fp.ACID] = ctx.SimTime
+		}
+	}
+	// Prune entries for plans no longer in the unassociated list.
+	for acid := range sp.VFRFPFirstSeen {
+		if !slices.ContainsFunc(vfr, func(fp *sim.NASFlightPlan) bool { return fp.ACID == acid }) {
+			delete(sp.VFRFPFirstSeen, acid)
 		}
 	}
 	slices.SortFunc(vfr, func(a, b *sim.NASFlightPlan) int {
@@ -830,9 +856,16 @@ func (sp *STARSPane) drawVFRList(ctx *panes.Context, paneExtent math.Extent2D, s
 		Entries:    len(vfr),
 		FormatLine: func(idx int, sb *strings.Builder) {
 			fp := vfr[idx]
-			format := ctx.FacilityAdaptation.VFRList.Format
+			format := ctx.FacilityAdaptation.Lists.VFR.Format
 			// TODO: default after INDEX: + in-out-in flight, / dupe acid, * DM message on departure
-			sb.WriteString(sp.formatListEntry(ctx, format, fp, nil))
+			sb.WriteString(sp.formatListEntry(ctx, format, fp, map[string]func() string{
+				"VFR_STATUS": func() string {
+					if seen, ok := sp.VFRFPFirstSeen[fp.ACID]; ok && ctx.SimTime.Sub(seen) > 2*time.Second {
+						return "VFR"
+					}
+					return "   "
+				},
+			}))
 		},
 	})
 }
@@ -848,7 +881,7 @@ func (sp *STARSPane) drawTABList(ctx *panes.Context, paneExtent math.Extent2D, s
 		func(fp *sim.NASFlightPlan) bool {
 			if seen, ok := sp.VFRFPFirstSeen[fp.ACID]; ok {
 				// If it's a VFR still waiting for a NAS code, don't show it yet.
-				if ctx.Now.Sub(seen) < 2*time.Second {
+				if ctx.SimTime.Sub(seen) < 2*time.Second {
 					return false
 				}
 			}
@@ -888,8 +921,8 @@ func (sp *STARSPane) drawTABList(ctx *panes.Context, paneExtent math.Extent2D, s
 		FormatLine: func(idx int, sb *strings.Builder) {
 			fp := plans[idx]
 			// TODO: after INDEX, + in-out-in flight, / dupe acid, * DM message on departure
-			haveCode := fp.Rules == av.FlightRulesIFR || ctx.Now.Sub(sp.VFRFPFirstSeen[fp.ACID]) > 2*time.Second
-			sb.WriteString(sp.formatListEntry(ctx, ctx.FacilityAdaptation.TABList.Format, fp, map[string]func() string{
+			haveCode := fp.Rules == av.FlightRulesIFR || ctx.SimTime.Sub(sp.VFRFPFirstSeen[fp.ACID]) > 2*time.Second
+			sb.WriteString(sp.formatListEntry(ctx, ctx.FacilityAdaptation.Lists.TAB.Format, fp, map[string]func() string{
 				"DUPE_BEACON": func() string {
 					if _, ok := dupes[fp.AssignedSquawk]; ok && haveCode {
 						return "/"
@@ -927,20 +960,27 @@ func (sp *STARSPane) drawAlertList(ctx *panes.Context, paneExtent math.Extent2D,
 			return sa.MSAWStart.Compare(sb.MSAWStart)
 		})
 	}
+	cmpCA := func(a, b CAAircraft) int {
+		if c := strings.Compare(string(a.ADSBCallsigns[0]), string(b.ADSBCallsigns[0])); c != 0 {
+			return c
+		}
+		return strings.Compare(string(a.ADSBCallsigns[1]), string(b.ADSBCallsigns[1]))
+	}
+
 	var ca, mci []CAAircraft
 	if !ps.DisableCAWarnings {
 		lists = append(lists, "CA")
-		ca = sp.CAAircraft
+		ca = slices.SortedFunc(slices.Values(sp.CAAircraft), cmpCA)
 		// TODO: filter out suppressed CA pairs
 	}
 	if !ps.DisableMCIWarnings {
 		lists = append(lists, "MCI")
-		mci = util.FilterSlice(sp.MCIAircraft, func(mci CAAircraft) bool {
+		mci = slices.SortedFunc(slices.Values(util.FilterSlice(sp.MCIAircraft, func(mci CAAircraft) bool {
 			// remove suppressed ones
 			trk0, ok0 := ctx.GetTrackByCallsign(mci.ADSBCallsigns[0])
 			trk1, ok1 := ctx.GetTrackByCallsign(mci.ADSBCallsigns[1])
 			return ok0 && ok1 && trk0.IsAssociated() && trk0.FlightPlan.MCISuppressedCode != trk1.Squawk
-		})
+		})), cmpCA)
 	}
 
 	n := len(msaw) + len(ca) + len(mci)
@@ -1025,7 +1065,7 @@ func (sp *STARSPane) drawCoastList(ctx *panes.Context, paneExtent math.Extent2D,
 		FormatLine: func(idx int, sb *strings.Builder) {
 			trk := tracks[idx]
 			fp := trk.FlightPlan
-			sb.WriteString(sp.formatListEntry(ctx, ctx.FacilityAdaptation.CoastSuspendList.Format, fp,
+			sb.WriteString(sp.formatListEntry(ctx, ctx.FacilityAdaptation.Lists.CoastSuspend.Format, fp,
 				map[string]func() string{
 					"ALT": func() string {
 						// For suspended, we always just show altitude (of one sort or another)
@@ -1132,15 +1172,8 @@ func (sp *STARSPane) drawRestrictionAreasList(ctx *panes.Context, paneExtent mat
 		idx int
 	}
 	var areas []indexedRA
-	for i, ra := range ctx.Client.State.UserRestrictionAreas {
-		if !ra.Deleted {
-			areas = append(areas, indexedRA{ra, i + 1})
-		}
-	}
-	for i, ra := range ctx.FacilityAdaptation.RestrictionAreas {
-		if !ra.Deleted {
-			areas = append(areas, indexedRA{ra, i + 101})
-		}
+	for idx, ra := range util.SortedMap(ctx.Client.State.RestrictionAreas) {
+		areas = append(areas, indexedRA{ra, idx})
 	}
 
 	return sp.drawSystemList(ctx, paneExtent, &ps.RestrictionAreaList.Position, style, td, ld, ListFormatter{
@@ -1227,7 +1260,7 @@ func (sp *STARSPane) drawMCISuppressionList(ctx *panes.Context, paneExtent math.
 		FormatLine: func(idx int, sb *strings.Builder) {
 			trk := mciTracks[idx]
 			fp := trk.FlightPlan
-			sb.WriteString(sp.formatListEntry(ctx, ctx.FacilityAdaptation.MCISuppressionList.Format, fp,
+			sb.WriteString(sp.formatListEntry(ctx, ctx.FacilityAdaptation.Lists.MCISuppression.Format, fp,
 				map[string]func() string{
 					"SUPP_BEACON": func() string { return trk.FlightPlan.MCISuppressedCode.String() },
 				}))
@@ -1253,7 +1286,7 @@ func (sp *STARSPane) drawTowerList(ctx *panes.Context, paneExtent math.Extent2D,
 			dist := math.NMDistance2LL(loc, trk.Location)
 			// We'll punt on the chance that two aircraft have the
 			// exact same distance to the airport...
-			m[dist] = sp.formatListEntry(ctx, ctx.FacilityAdaptation.TowerList.Format, trk.FlightPlan, nil)
+			m[dist] = sp.formatListEntry(ctx, ctx.FacilityAdaptation.Lists.Tower.Format, trk.FlightPlan, nil)
 		}
 	}
 
@@ -1307,7 +1340,7 @@ func (sp *STARSPane) drawCoordinationLists(ctx *panes.Context, paneExtent math.E
 
 	var allBounds []math.Extent2D
 	fa := ctx.FacilityAdaptation
-	for i, cl := range fa.CoordinationLists {
+	for i, cl := range fa.Lists.Coordination {
 		listStyle := renderer.TextStyle{
 			Font:  font,
 			Color: ps.Brightness.Lists.ScaleRGB(util.Select(cl.YellowEntries, sp.Colors.TextWarning, sp.Colors.List)),
@@ -1360,7 +1393,7 @@ func (sp *STARSPane) drawCoordinationLists(ctx *panes.Context, paneExtent math.E
 		pw := startPos
 		maxX := pw[0]
 
-		halfSeconds := ctx.Now.UnixMilli() / 500
+		halfSeconds := time.Now().UnixMilli() / 500
 		blinkDim := halfSeconds&1 == 0
 
 		if list.AutoRelease {

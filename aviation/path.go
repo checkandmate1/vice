@@ -141,13 +141,13 @@ func (path *Path) Polyline() [][2]float32 {
 // defined by a reference point, heading, and length. The path goes from
 // far end toward the reference point (matching the aircraft travel
 // direction convention).
-func PathFromReferenceLine(refPoint math.Point2LL, heading, length, nmPerLongitude, magneticVariation float32) Path {
+func PathFromReferenceLine(refPoint math.Point2LL, heading math.MagneticHeading, length, nmPerLongitude, magneticVariation float32) Path {
 	// The reference point is at the convergence end (path end).
 	// The heading is the magnetic heading aircraft fly (toward ref point).
 	// We build the path from far end to ref point.
 	pref := math.LL2NM(refPoint, nmPerLongitude)
 	// Direction aircraft are flying: heading corrected for magnetic variation
-	hdg := math.Radians(heading + 180 - magneticVariation)
+	hdg := math.Radians(math.MagneticToTrue(math.OppositeHeading(heading), magneticVariation))
 	v := math.SinCos(hdg)
 
 	// Far end is at distance=length from reference point, along the reverse heading
@@ -197,7 +197,7 @@ func PathFromRoutePoints(pts []CRDARoutePoint, nmPerLongitude float32) Path {
 
 			// Determine sweep based on clockwise/counterclockwise
 			sweep := endAngle - startAngle
-			if arc.Clockwise {
+			if arc.Direction.IsClockwise() {
 				// CW = negative sweep
 				if sweep > 0 {
 					sweep -= 2 * math.Pi

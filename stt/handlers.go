@@ -59,6 +59,51 @@ func registerAllCommands() {
 		WithPriority(1), // Very low priority - only matches if nothing else does
 	)
 
+	// "{altitude} until established [on] [the] [localizer|glide|slope|glideslope]"
+	registerSTTCommand(
+		"{standalone_altitude} until established|establishing [on] [the] [localizer|glide|slope|glideslope]",
+		func(alt int) string { return fmt.Sprintf("A%d", alt) },
+		WithName("altitude_until_established"),
+		WithPriority(12),
+	)
+
+	// Absorb "expect further clearance" so it doesn't trigger "expect approach"
+	registerSTTCommand(
+		"expect further clearance",
+		func() string { return "" },
+		WithName("expect_further_clearance"),
+		WithPriority(25),
+	)
+
+	// Expedite through/to altitude (descent) - higher priority than plain expedite.
+	// Two patterns: one with explicit "through", one without (handles "to" stripped as filler).
+	registerSTTCommand(
+		"expedite descent|descend through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("expedite_descent_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"expedite descent|descend {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("expedite_descent_to"),
+		WithPriority(15),
+	)
+
+	// Expedite through/to altitude (climb)
+	registerSTTCommand(
+		"expedite climb through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("expedite_climb_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"expedite climb {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("expedite_climb_to"),
+		WithPriority(15),
+	)
+
 	registerSTTCommand(
 		"expedite descent|descend|your",
 		func() string { return "ED" },
@@ -71,6 +116,77 @@ func registerAllCommands() {
 		func() string { return "EC" },
 		WithName("expedite_climb"),
 		WithPriority(10),
+	)
+
+	// Best rate = synonym for expedite (no altitude)
+	registerSTTCommand(
+		"best rate descent|descend",
+		func() string { return "ED" },
+		WithName("best_rate_descent"),
+		WithPriority(10),
+	)
+
+	registerSTTCommand(
+		"best rate climb",
+		func() string { return "EC" },
+		WithName("best_rate_climb"),
+		WithPriority(10),
+	)
+
+	// Best rate through/to altitude (descent)
+	registerSTTCommand(
+		"best rate descent|descend through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("best_rate_descent_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"best rate descent|descend {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("ED%d", alt) },
+		WithName("best_rate_descent_to"),
+		WithPriority(15),
+	)
+
+	// Best rate through/to altitude (climb)
+	registerSTTCommand(
+		"best rate climb through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("best_rate_climb_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"best rate climb {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("EC%d", alt) },
+		WithName("best_rate_climb_to"),
+		WithPriority(15),
+	)
+
+	// Good rate without altitude (direction explicit)
+	registerSTTCommand(
+		"good rate [of] descent|descend",
+		func() string { return "GRD" },
+		WithName("good_rate_descent"),
+		WithPriority(10),
+	)
+	registerSTTCommand(
+		"good rate [of] climb",
+		func() string { return "GRC" },
+		WithName("good_rate_climb"),
+		WithPriority(10),
+	)
+
+	// Good rate through/to altitude (direction inferred)
+	registerSTTCommand(
+		"good rate through {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("GR%d", alt) },
+		WithName("good_rate_through"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"good rate {altitude_fl}",
+		func(alt int) string { return fmt.Sprintf("GR%d", alt) },
+		WithName("good_rate_to"),
+		WithPriority(15),
 	)
 
 	registerSTTCommand(
@@ -344,6 +460,56 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
+		"[maintain] {speed} [knots] or less {speed_until}",
+		func(spd int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d-/U%s", spd, until.suffix)
+		},
+		WithName("speed_or_less_until"),
+		WithPriority(15),
+	)
+
+	registerSTTCommand(
+		"[maintain] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("speed_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
+		"speed [to] {speed} [knots] or less {speed_until}",
+		func(spd int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d-/U%s", spd, until.suffix)
+		},
+		WithName("speed_keyword_or_less_until"),
+		WithPriority(15),
+	)
+
+	registerSTTCommand(
+		"speed [to] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("speed_keyword_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("reduce_speed_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
+		"increase [speed] [to] {speed} [knots] or less",
+		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
+		WithName("increase_speed_or_less"),
+		WithPriority(12),
+		WithThenVariant("TS%d-"),
+	)
+
+	registerSTTCommand(
 		"do not exceed {speed}",
 		func(spd int) string { return fmt.Sprintf("S%d-", spd) },
 		WithName("do_not_exceed"),
@@ -373,7 +539,7 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
-		"reduce [to] final|minimum approach speed",
+		"reduce|slow [to] final|minimum [approach] [speed]",
 		func() string { return "SMIN" },
 		WithName("final_approach_speed"),
 		WithPriority(15),
@@ -447,6 +613,76 @@ func registerAllCommands() {
 		WithPriority(12),
 	)
 
+	// === COMPOUND SPEED COMMANDS ===
+	// 2-segment: speed until fix, then speed (open-ended)
+	registerSTTCommand(
+		"speed [to] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix string, spd2 int) string {
+			return fmt.Sprintf("S%d/U%s/%d", spd1, fix, spd2)
+		},
+		WithName("compound_speed_2seg"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix string, spd2 int) string {
+			return fmt.Sprintf("S%d/U%s/%d", spd1, fix, spd2)
+		},
+		WithName("compound_reduce_speed_2seg"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"maintain [speed] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix string, spd2 int) string {
+			return fmt.Sprintf("S%d/U%s/%d", spd1, fix, spd2)
+		},
+		WithName("compound_maintain_speed_2seg"), WithPriority(16),
+	)
+
+	// 2-segment: speed until fix, speed until fix
+	registerSTTCommand(
+		"speed [to] {speed} until {fix} [,] [then] [speed [to]] {speed} {speed_until}",
+		func(spd1 int, fix string, spd2 int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s", spd1, fix, spd2, until.suffix)
+		},
+		WithName("compound_speed_2seg_until"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} until {fix} [,] [then] [speed [to]] {speed} {speed_until}",
+		func(spd1 int, fix string, spd2 int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s", spd1, fix, spd2, until.suffix)
+		},
+		WithName("compound_reduce_speed_2seg_until"), WithPriority(16),
+	)
+	registerSTTCommand(
+		"maintain [speed] {speed} until {fix} [,] [then] [speed [to]] {speed} {speed_until}",
+		func(spd1 int, fix string, spd2 int, until speedUntilResult) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s", spd1, fix, spd2, until.suffix)
+		},
+		WithName("compound_maintain_speed_2seg_until"), WithPriority(16),
+	)
+
+	// 3-segment: speed until fix, speed until fix, then speed
+	registerSTTCommand(
+		"speed [to] {speed} until {fix} [,] [speed [to]] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix1 string, spd2 int, fix2 string, spd3 int) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s/%d", spd1, fix1, spd2, fix2, spd3)
+		},
+		WithName("compound_speed_3seg"), WithPriority(18),
+	)
+	registerSTTCommand(
+		"reduce|slow [speed] [to] {speed} until {fix} [,] [speed [to]] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix1 string, spd2 int, fix2 string, spd3 int) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s/%d", spd1, fix1, spd2, fix2, spd3)
+		},
+		WithName("compound_reduce_speed_3seg"), WithPriority(18),
+	)
+	registerSTTCommand(
+		"maintain [speed] {speed} until {fix} [,] [speed [to]] {speed} until {fix} [,] [then] [speed [to]] {speed} [knots]",
+		func(spd1 int, fix1 string, spd2 int, fix2 string, spd3 int) string {
+			return fmt.Sprintf("S%d/U%s/%d/U%s/%d", spd1, fix1, spd2, fix2, spd3)
+		},
+		WithName("compound_maintain_speed_3seg"), WithPriority(18),
+	)
+
 	registerSTTCommand(
 		"reduce|slow [speed] [to] mach [point] {mach}",
 		func(mach int) string { return fmt.Sprintf("M%d", mach) },
@@ -470,18 +706,30 @@ func registerAllCommands() {
 
 	// === NAVIGATION COMMANDS ===
 	registerSTTCommand(
+		"[proceed] left [turn] direct [to] [at] {fix}",
+		func(fix string) string { return fmt.Sprintf("LD%s", fix) },
+		WithName("left_direct_fix"),
+		WithPriority(11),
+	)
+	registerSTTCommand(
+		"[proceed] right [turn] direct [to] [at] {fix}",
+		func(fix string) string { return fmt.Sprintf("RD%s", fix) },
+		WithName("right_direct_fix"),
+		WithPriority(11),
+	)
+	registerSTTCommand(
 		"direct|proceed [direct] [to] [at] {fix}",
 		func(fix string) string { return fmt.Sprintf("D%s", fix) },
 		WithName("direct_fix"),
 		WithPriority(10),
 	)
 
-	// "cleared direct [fix]" - high priority pattern with SAYAGAIN when fix is garbled
+	// "cleared direct [fix]" - SAYAGAIN when fix is garbled.
 	registerSTTCommand(
 		"cleared direct {fix}",
 		func(fix string) string { return fmt.Sprintf("D%s", fix) },
 		WithName("cleared_direct_fix_explicit"),
-		WithPriority(12), // Higher than cleared_approach so "cleared direct [garbled]" becomes SAYAGAIN/FIX
+		WithPriority(12),
 		WithSayAgainOnFail(),
 	)
 
@@ -491,6 +739,19 @@ func registerAllCommands() {
 		func(fix string) string { return fmt.Sprintf("D%s", fix) },
 		WithName("cleared_to_fix"),
 		WithPriority(7),
+	)
+
+	registerSTTCommand(
+		"expect [to] [go] direct [to] {fix}",
+		func(fix string) string { return fmt.Sprintf("EXPDIR%s", fix) },
+		WithName("expect_direct_fix"),
+		WithPriority(14),
+	)
+	registerSTTCommand(
+		"expect [to] rejoin|resume [the] arrival [at] {fix}",
+		func(fix string) string { return fmt.Sprintf("EXPDIR%s", fix) },
+		WithName("expect_rejoin_arrival"),
+		WithPriority(16),
 	)
 
 	registerSTTCommand(
@@ -536,6 +797,51 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [and] [maintain] {altitude_fl}",
+		func(dist int, dir string, fix string, alt int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d", fix, dist, dir, alt)
+		},
+		WithName("cross_distance_direction_fix_altitude"),
+		WithPriority(14),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] {speed}",
+		func(dist int, dir string, fix string, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/S%d", fix, dist, dir, spd)
+		},
+		WithName("cross_distance_direction_fix_speed"),
+		WithPriority(14),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] {speed} or greater|better",
+		func(dist int, dir string, fix string, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/S%d+", fix, dist, dir, spd)
+		},
+		WithName("cross_distance_direction_fix_speed_or_greater"),
+		WithPriority(16),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [or] [and|at] [do] not [to] exceed {speed}",
+		func(dist int, dir string, fix string, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/S%d-", fix, dist, dir, spd)
+		},
+		WithName("cross_distance_direction_fix_do_not_exceed"),
+		WithPriority(16),
+	)
+
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] mach [point] {mach}",
+		func(dist int, dir string, fix string, mach int) string {
+			return fmt.Sprintf("C%s/%d%s/M%d", fix, dist, dir, mach)
+		},
+		WithName("cross_distance_direction_fix_mach"),
+		WithPriority(14),
+	)
+
+	registerSTTCommand(
 		"depart {fix} [heading] {heading}",
 		func(fix string, hdg int) string { return fmt.Sprintf("D%s/H%03d", fix, hdg) },
 		WithName("depart_fix_heading"),
@@ -550,12 +856,69 @@ func registerAllCommands() {
 		WithPriority(15),
 	)
 
+	// === AFTER FIX SPEED COMMANDS ===
+	registerSTTCommand(
+		"after|at {fix} [,] maintain [speed] {speed} [knots]",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d", fix, spd) },
+		WithName("after_fix_maintain_speed"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] [maintain] [speed] {speed} [knots] or greater|better",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d+", fix, spd) },
+		WithName("after_fix_speed_or_greater"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] [maintain] [speed] {speed} [knots] or less",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d-", fix, spd) },
+		WithName("after_fix_speed_or_less"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] reduce|slow|increase [speed] [to] {speed} [knots]",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d", fix, spd) },
+		WithName("after_fix_reduce_speed"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] [speed] {speed} [knots]",
+		func(fix string, spd int) string { return fmt.Sprintf("A%s/S%d", fix, spd) },
+		WithName("after_fix_speed_bare"),
+		WithPriority(14),
+	)
+
+	// === AFTER FIX ALTITUDE COMMANDS ===
+	registerSTTCommand(
+		"after|at {fix} [,] climb [and] maintain {altitude_fl}",
+		func(fix string, alt int) string { return fmt.Sprintf("A%s/C%d", fix, alt) },
+		WithName("after_fix_climb_maintain"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"after|at {fix} [,] descend [and] maintain {altitude_fl}",
+		func(fix string, alt int) string { return fmt.Sprintf("A%s/D%d", fix, alt) },
+		WithName("after_fix_descend_maintain"),
+		WithPriority(15),
+	)
+
 	// === APPROACH COMMANDS ===
+	registerSTTCommand(
+		"at {fix} [cleared] [clear] straight [in] [for] [approach] {approach}",
+		func(fix, appr string) string { return fmt.Sprintf("A%s/CSI%s", fix, appr) },
+		WithName("at_fix_cleared_straight_in_approach"),
+		WithPriority(16),
+		WithSayAgainOnFail(),
+		WithSayAgainMinTokens(3),
+	)
+
 	registerSTTCommand(
 		"at {fix} [cleared] [clear] [for] [approach] {approach}",
 		func(fix, appr string) string { return fmt.Sprintf("A%s/C%s", fix, appr) },
 		WithName("at_fix_cleared_approach"),
 		WithPriority(15),
+		WithSayAgainOnFail(),
+		WithSayAgainMinTokens(3),
 	)
 
 	// These templates handle "at FIX intercept the localizer" with varying runway info
@@ -572,6 +935,13 @@ func registerAllCommands() {
 		WithName("at_fix_intercept_localizer_runway"),
 		WithPriority(16), // Higher priority for more specific match
 	)
+	// Non-ILS: "at FIX intercept the approach course"
+	registerSTTCommand(
+		"at {fix} intercept|join [the] [final] approach [course]",
+		func(fix string) string { return fmt.Sprintf("A%s/I", fix) },
+		WithName("at_fix_intercept_approach"),
+		WithPriority(15),
+	)
 
 	registerSTTCommand(
 		"expect [vectors] [for] [to] [the] {approach_lahso}",
@@ -581,17 +951,11 @@ func registerAllCommands() {
 		WithSayAgainOnFail(), // "expect [approach]" should ask for clarification if approach unrecognized
 	)
 
+	// "standby for the approach" is informational — swallow it silently.
 	registerSTTCommand(
 		"standby [for] [the] approach",
-		func() string { return "E" },
+		func() string { return "" },
 		WithName("standby_approach"),
-		WithPriority(14),
-	)
-
-	registerSTTCommand(
-		"expect [the] approach",
-		func() string { return "E" },
-		WithName("expect_the_approach"),
 		WithPriority(14),
 	)
 
@@ -686,8 +1050,9 @@ func registerAllCommands() {
 		"cleared [approach] [for] {approach}",
 		func(appr string) string { return fmt.Sprintf("C%s", appr) },
 		WithName("cleared_approach"),
-		WithPriority(8),
-		WithSayAgainOnFail(), // Garbled approach clearances should ask for clarification
+		WithPriority(13),
+		WithSayAgainOnFail(),     // Garbled approach clearances should ask for clarification
+		WithSayAgainMinTokens(2), // Require approach type keyword, not just "cleared"
 	)
 
 	registerSTTCommand(
@@ -758,6 +1123,14 @@ func registerAllCommands() {
 		func() string { return "I" },
 		WithName("intercept_localizer"),
 		WithPriority(10),
+	)
+	// Pattern: "intercept the final approach course" / "intercept the approach" -
+	// ATC equivalent of "intercept the localizer". Used for both ILS and RNAV.
+	registerSTTCommand(
+		"intercept|join|set [the] [final] approach [course]",
+		func() string { return "I" },
+		WithName("intercept_approach_course"),
+		WithPriority(11),
 	)
 	// Pattern: standalone "localizer" without "intercept" keyword.
 	// When "localizer" appears alone (e.g., after a heading command), it means

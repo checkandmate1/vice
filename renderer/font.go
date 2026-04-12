@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"unicode/utf8"
@@ -225,6 +226,7 @@ var (
 	FontAwesomeIconSnowflake           = faUsedIcons["Snowflake"]
 	FontAwesomeIconSquare              = faUsedIcons["Square"]
 	FontAwesomeIconSun                 = faUsedIcons["Sun"]
+	FontAwesomeIconThumbtack           = faUsedIcons["Thumbtack"]
 	FontAwesomeIconTrash               = faUsedIcons["Trash"]
 	FontAwesomeIconWind                = faUsedIcons["Wind"]
 )
@@ -278,6 +280,7 @@ var (
 		"Snowflake":           FontAwesomeString("Snowflake"),
 		"Square":              FontAwesomeString("Square"),
 		"Sun":                 FontAwesomeString("Sun"),
+		"Thumbtack":           FontAwesomeString("Thumbtack"),
 		"Trash":               FontAwesomeString("Trash"),
 		"Wind":                FontAwesomeString("Wind"),
 	}
@@ -504,6 +507,16 @@ func FontAwesomeBrandsString(id string) string {
 		panic(fmt.Sprintf("%s: FA string unknown", id))
 	}
 	return s
+}
+
+// FixedFontSize returns a font size for the fixed-width font that is
+// slightly larger than the given base size, by picking the size one slot
+// ahead in the available sizes for the font.
+func FixedFontSize(baseSize int) int {
+	sizes := AvailableFontSizes(RobotoMono)
+	idx := slices.IndexFunc(sizes, func(s int) bool { return s >= baseSize })
+	idx = min(idx+1, len(sizes)-1)
+	return sizes[idx]
 }
 
 func AvailableFontSizes(name string) []int {

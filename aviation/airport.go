@@ -167,7 +167,7 @@ func (ar *CRDARegion) TryMakeGhost(trk RadarTrack, heading float32,
 	}
 }
 
-func (a *ATPAVolume) Inside(p math.Point2LL, alt, hdg, nmPerLongitude, magneticVariation float32) bool {
+func (a *ATPAVolume) Inside(p math.Point2LL, alt float32, hdg math.MagneticHeading, nmPerLongitude, magneticVariation float32) bool {
 	if alt < a.Floor || alt > a.Ceiling {
 		return false
 	}
@@ -182,7 +182,7 @@ func (a *ATPAVolume) Inside(p math.Point2LL, alt, hdg, nmPerLongitude, magneticV
 func (a *ATPAVolume) GetRect(nmPerLongitude, magneticVariation float32) [4]math.Point2LL {
 	// Segment along the approach course
 	p0 := math.LL2NM(a.Threshold, nmPerLongitude)
-	hdg := a.Heading - magneticVariation + 180
+	hdg := float32(math.MagneticToTrue(math.OppositeHeading(a.Heading), magneticVariation))
 	v := math.SinCos(math.Radians(hdg))
 	p1 := math.Add2f(p0, math.Scale2f(v, a.Length))
 
@@ -270,42 +270,15 @@ func (ap *Airport) PostDeserialize(icao string, loc Locator, nmPerLongitude floa
 				e.ErrorString(`Must specify "waypoints"`)
 			}
 		}
-		rwy, ok := LookupRunway(icao, appr.Runway)
-		if !ok {
-			e.ErrorString(`"runway" %q is unknown. Options: %s`, appr.Runway,
-				DB.Airports[icao].ValidRunways())
-		}
-		appr.Threshold = rwy.Threshold
-
-		if opp, ok := LookupOppositeRunway(icao, appr.Runway); ok {
-			appr.OppositeThreshold = opp.Threshold
-		} else {
-			e.ErrorString("no opposite runway found for %q\n", appr.Runway)
-		}
+		appr.InitializeWaypoints(icao, loc, nmPerLongitude, magneticVariation, e)
 
 		for i := range appr.Waypoints {
-			appr.Waypoints[i] =
-				appr.Waypoints[i].InitializeLocations(loc, nmPerLongitude, magneticVariation, false, e)
-
-			// Add the final fix at the runway threshold.
-			alt := rwy.Elevation + rwy.ThresholdCrossingHeight
-			threshold := math.Offset2LL(rwy.Threshold, rwy.Heading, rwy.DisplacedThresholdDistance,
-				nmPerLongitude, magneticVariation)
-
-			thresholdWP := Waypoint{
-				Fix:      "_" + appr.Runway + "_THRESHOLD",
-				Location: threshold,
-				Flags:    WaypointFlagLand | WaypointFlagFlyOver,
-			}
-			thresholdWP.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt), float32(alt)}})
-			appr.Waypoints[i] = append(appr.Waypoints[i], thresholdWP)
 			n := len(appr.Waypoints[i])
 
 			if appr.Waypoints[i][n-1].ProcedureTurn() != nil {
 				e.ErrorString("ProcedureTurn cannot be specified at the final waypoint")
 			}
 			for j, wp := range appr.Waypoints[i] {
-				appr.Waypoints[i][j].SetOnApproach(true)
 				e.Push("Fix " + wp.Fix)
 				if wp.NoPT() {
 					if !slices.ContainsFunc(appr.Waypoints[i][j+1:],
@@ -324,10 +297,10 @@ func (ap *Airport) PostDeserialize(icao string, loc Locator, nmPerLongitude floa
 				e.ErrorString(`Must provide "full_name" for charted visual approach`)
 			} else {
 				appr.FullName = appr.Type.String() + " "
-				if len(appr.Id) > 3 && appr.Id[1] >= 'W' && appr.Id[1] <= 'Z' {
+				if len(appr.Id) >= 3 && appr.Id[1] >= 'W' && appr.Id[1] <= 'Z' {
 					appr.FullName += string(appr.Id[1]) + " "
 				}
-				if len(appr.Id) > 3 && appr.Id[0] == 'G' {
+				if len(appr.Id) >= 3 && appr.Id[0] == 'G' {
 					appr.FullName += "GPS "
 				}
 				appr.FullName += "Runway " + appr.Runway
@@ -532,7 +505,17 @@ func (ap *Airport) PostDeserialize(icao string, loc Locator, nmPerLongitude floa
 		if len(spec.Waypoints) == 0 {
 			e.ErrorString(`must specify "waypoints"`)
 		} else {
-			spec.Waypoints[len(spec.Waypoints)-1].SetLand(true)
+			// Convert any /land from route parsing to SequenceVFRLanding;
+			// we know these are VFR routes so Land is never appropriate.
+			for j := range spec.Waypoints {
+				if spec.Waypoints[j].Land() {
+					spec.Waypoints[j].SetLand(false)
+					spec.Waypoints[j].SetSequenceVFRLanding(true)
+				}
+			}
+			// Ensure the last waypoint always has it, even if /land
+			// wasn't specified in the route.
+			spec.Waypoints[len(spec.Waypoints)-1].SetSequenceVFRLanding(true)
 		}
 		if _, ok := DB.Airports[spec.Destination]; !ok {
 			e.ErrorString("Destination airport %q unknown", spec.Destination)
@@ -738,7 +721,6 @@ type ExitRoute struct {
 	SID              string        `json:"sid"`
 	AssignedAltitude int           `json:"assigned_altitude"`
 	ClearedAltitude  int           `json:"cleared_altitude"`
-	SpeedRestriction int           `json:"speed_restriction"`
 	Waypoints        WaypointArray `json:"waypoints"`
 	Description      string        `json:"description"`
 	IsRNAV           bool          `json:"is_rnav"`
@@ -856,11 +838,52 @@ type Approach struct {
 	OppositeThreshold math.Point2LL
 }
 
+// InitializeWaypoints resolves waypoint locations and adds the runway
+// threshold waypoint to each route. It also sets the OnApproach flag,
+// Threshold, and OppositeThreshold fields.
+func (ap *Approach) InitializeWaypoints(icao string, loc Locator, nmPerLongitude float32,
+	magneticVariation float32, e *util.ErrorLogger) {
+	rwy, ok := LookupRunway(icao, ap.Runway)
+	if !ok {
+		e.ErrorString(`"runway" %q is unknown. Options: %s`, ap.Runway,
+			DB.Airports[icao].ValidRunways())
+	}
+	ap.Threshold = rwy.Threshold
+
+	if opp, ok := LookupOppositeRunway(icao, ap.Runway); ok {
+		ap.OppositeThreshold = opp.Threshold
+	} else {
+		e.ErrorString("no opposite runway found for %q\n", ap.Runway)
+	}
+
+	for i := range ap.Waypoints {
+		ap.Waypoints[i] =
+			ap.Waypoints[i].InitializeLocations(loc, nmPerLongitude, magneticVariation, false, e)
+
+		// Add the final fix at the runway threshold.
+		alt := rwy.Elevation + rwy.ThresholdCrossingHeight
+		threshold := math.Offset2LL(rwy.Threshold, math.MagneticToTrue(rwy.Heading, magneticVariation),
+			rwy.DisplacedThresholdDistance, nmPerLongitude)
+
+		thresholdWP := Waypoint{
+			Fix:      "_" + ap.Runway + "_THRESHOLD",
+			Location: threshold,
+			Flags:    WaypointFlagLand | WaypointFlagFlyOver,
+		}
+		thresholdWP.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt)))
+		ap.Waypoints[i] = append(ap.Waypoints[i], thresholdWP)
+
+		for j := range ap.Waypoints[i] {
+			ap.Waypoints[i][j].SetOnApproach(true)
+		}
+	}
+}
+
 // Find the FAF: return the corresponding waypoint array and the index of the FAF within it.
 func (ap *Approach) FAFSegment(nmPerLongitude, magneticVariation float32) ([]Waypoint, int) {
 	// For approaches with multiple segments, want the segment that is most
 	// closely aligned with the runway.
-	rwyHdg := ap.RunwayHeading(nmPerLongitude, magneticVariation)
+	rwyHdg := ap.RunwayHeading(nmPerLongitude)
 
 	bestWpsIdx, bestWpsFAFIdx := -1, -1
 	minDiff := float32(360)
@@ -883,7 +906,7 @@ func (ap *Approach) FAFSegment(nmPerLongitude, magneticVariation float32) ([]Way
 			fafIdx++
 		}
 
-		hdg := math.Heading2LL(wps[fafIdx-1].Location, wps[fafIdx].Location, nmPerLongitude, magneticVariation)
+		hdg := math.Heading2LL(wps[fafIdx-1].Location, wps[fafIdx].Location, nmPerLongitude)
 
 		diff := math.HeadingDifference(hdg, rwyHdg)
 		if diff < minDiff {
@@ -905,6 +928,6 @@ func (ap *Approach) ExtendedCenterline(nmPerLongitude, magneticVariation float32
 	return [2]math.Point2LL{ap.Threshold, ap.OppositeThreshold}
 }
 
-func (ap *Approach) RunwayHeading(nmPerLongitude, magneticVariation float32) float32 {
-	return math.Heading2LL(ap.Threshold, ap.OppositeThreshold, nmPerLongitude, magneticVariation)
+func (ap *Approach) RunwayHeading(nmPerLongitude float32) math.TrueHeading {
+	return math.Heading2LL(ap.Threshold, ap.OppositeThreshold, nmPerLongitude)
 }

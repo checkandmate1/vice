@@ -44,22 +44,40 @@ const (
 	WaypointFlagTransferComms
 	WaypointFlagTurnLeft
 	WaypointFlagTurnRight
+	WaypointFlagSyntheticCrossing
 	WaypointFlagHasAltRestriction
+	WaypointFlagHasSpeedRestriction
+	WaypointFlagSequenceVFRLanding
+	WaypointFlagHeadingIsTrack
 )
 
 // Waypoint is the core waypoint struct. Most waypoints only use Fix,
 // Location, and a few flags; Extra fields are heap-allocated only when
-// needed. AltRestriction, Heading, and Speed are inline because they
-// are used by ~48% of waypoints, avoiding a heap allocation for those.
+// needed. AltRestriction, Heading, and SpdRestriction are inline because
+// they are used by ~48% of waypoints, avoiding a heap allocation for those.
 type Waypoint struct {
 	Fix            string              `json:"fix"`
 	Location       math.Point2LL       `json:"location,omitempty"`
 	AltRestriction AltitudeRestriction // valid iff WaypointFlagHasAltRestriction set
+	SpdRestriction SpeedRestriction    // valid iff WaypointFlagHasSpeedRestriction set
 	Extra          *WaypointExtra
 	Flags          WaypointFlags
 	Heading        int16 // 0 = unset
-	Speed          int16 // 0 = unset
+	VFRPhase       uint8 // VFRPhaseNone for non-VFR-pattern waypoints
 }
+
+// VFRPhase constants identify which leg of the VFR traffic pattern a waypoint belongs to.
+const (
+	VFRPhaseNone       uint8 = 0
+	VFRPhaseRollout    uint8 = 1
+	VFRPhaseUpwind     uint8 = 2
+	VFRPhaseCrosswind  uint8 = 3
+	VFRPhaseDownwind   uint8 = 4
+	VFRPhaseBase       uint8 = 5
+	VFRPhaseFinal      uint8 = 6
+	VFRPhaseStraightIn uint8 = 7
+	VFRPhaseOrbit      uint8 = 8
+)
 
 // WaypointExtra holds the rarely-used fields, heap-allocated only when needed.
 type WaypointExtra struct {
@@ -87,6 +105,11 @@ func (wp *Waypoint) InitExtra() *WaypointExtra {
 	return wp.Extra
 }
 
+// MagneticHeading returns the waypoint's heading as MagneticHeading.
+func (wp Waypoint) MagneticHeading() math.MagneticHeading {
+	return math.MagneticHeading(wp.Heading)
+}
+
 // Flag readers (value receiver)
 func (wp Waypoint) PresentHeading() bool { return wp.Flags&WaypointFlagPresentHeading != 0 }
 func (wp Waypoint) NoPT() bool           { return wp.Flags&WaypointFlagNoPT != 0 }
@@ -101,14 +124,26 @@ func (wp Waypoint) FAF() bool            { return wp.Flags&WaypointFlagFAF != 0 
 func (wp Waypoint) OnSID() bool          { return wp.Flags&WaypointFlagOnSID != 0 }
 func (wp Waypoint) OnSTAR() bool         { return wp.Flags&WaypointFlagOnSTAR != 0 }
 func (wp Waypoint) OnApproach() bool     { return wp.Flags&WaypointFlagOnApproach != 0 }
+func (wp Waypoint) SyntheticCrossing() bool {
+	return wp.Flags&WaypointFlagSyntheticCrossing != 0
+}
+func (wp Waypoint) HasAltitudeRestriction() bool {
+	return wp.Flags&WaypointFlagHasAltRestriction != 0
+}
+func (wp Waypoint) HasSpeedRestriction() bool {
+	return wp.Flags&WaypointFlagHasSpeedRestriction != 0
+}
 func (wp Waypoint) ClearPrimaryScratchpad() bool {
 	return wp.Flags&WaypointFlagClearPrimaryScratchpad != 0
 }
 func (wp Waypoint) ClearSecondaryScratchpad() bool {
 	return wp.Flags&WaypointFlagClearSecondaryScratchpad != 0
 }
-func (wp Waypoint) TransferComms() bool { return wp.Flags&WaypointFlagTransferComms != 0 }
-
+func (wp Waypoint) TransferComms() bool  { return wp.Flags&WaypointFlagTransferComms != 0 }
+func (wp Waypoint) HeadingIsTrack() bool { return wp.Flags&WaypointFlagHeadingIsTrack != 0 }
+func (wp Waypoint) SequenceVFRLanding() bool {
+	return wp.Flags&WaypointFlagSequenceVFRLanding != 0
+}
 func (wp Waypoint) Turn() TurnDirection {
 	if wp.Flags&WaypointFlagTurnLeft != 0 {
 		return TurnLeft
@@ -141,6 +176,9 @@ func (wp *Waypoint) SetFAF(v bool)            { wp.setFlag(WaypointFlagFAF, v) }
 func (wp *Waypoint) SetOnSID(v bool)          { wp.setFlag(WaypointFlagOnSID, v) }
 func (wp *Waypoint) SetOnSTAR(v bool)         { wp.setFlag(WaypointFlagOnSTAR, v) }
 func (wp *Waypoint) SetOnApproach(v bool)     { wp.setFlag(WaypointFlagOnApproach, v) }
+func (wp *Waypoint) SetSyntheticCrossing(v bool) {
+	wp.setFlag(WaypointFlagSyntheticCrossing, v)
+}
 func (wp *Waypoint) SetClearPrimaryScratchpad(v bool) {
 	wp.setFlag(WaypointFlagClearPrimaryScratchpad, v)
 }
@@ -148,7 +186,9 @@ func (wp *Waypoint) SetClearSecondaryScratchpad(v bool) {
 	wp.setFlag(WaypointFlagClearSecondaryScratchpad, v)
 }
 func (wp *Waypoint) SetTransferComms(v bool) { wp.setFlag(WaypointFlagTransferComms, v) }
-
+func (wp *Waypoint) SetSequenceVFRLanding(v bool) {
+	wp.setFlag(WaypointFlagSequenceVFRLanding, v)
+}
 func (wp *Waypoint) SetTurn(t TurnDirection) {
 	wp.Flags &^= WaypointFlagTurnLeft | WaypointFlagTurnRight
 	switch t {
@@ -161,7 +201,7 @@ func (wp *Waypoint) SetTurn(t TurnDirection) {
 
 // AltitudeRestriction returns a pointer to the inline restriction if the flag is set, else nil.
 func (wp *Waypoint) AltitudeRestriction() *AltitudeRestriction {
-	if wp.Flags&WaypointFlagHasAltRestriction != 0 {
+	if wp.HasAltitudeRestriction() {
 		return &wp.AltRestriction
 	}
 	return nil
@@ -171,6 +211,32 @@ func (wp *Waypoint) AltitudeRestriction() *AltitudeRestriction {
 func (wp *Waypoint) SetAltitudeRestriction(ar AltitudeRestriction) {
 	wp.AltRestriction = ar
 	wp.Flags |= WaypointFlagHasAltRestriction
+}
+
+// ClearAltitudeRestriction removes the inline restriction and clears the flag.
+func (wp *Waypoint) ClearAltitudeRestriction() {
+	wp.AltRestriction = AltitudeRestriction{}
+	wp.Flags &^= WaypointFlagHasAltRestriction
+}
+
+// SpeedRestriction returns a pointer to the inline restriction if the flag is set, else nil.
+func (wp *Waypoint) SpeedRestriction() *SpeedRestriction {
+	if wp.HasSpeedRestriction() {
+		return &wp.SpdRestriction
+	}
+	return nil
+}
+
+// SetSpeedRestriction stores the restriction inline and sets the flag.
+func (wp *Waypoint) SetSpeedRestriction(sr SpeedRestriction) {
+	wp.SpdRestriction = sr
+	wp.Flags |= WaypointFlagHasSpeedRestriction
+}
+
+// ClearSpeedRestriction removes the inline restriction and clears the flag.
+func (wp *Waypoint) ClearSpeedRestriction() {
+	wp.SpdRestriction = SpeedRestriction{}
+	wp.Flags &^= WaypointFlagHasSpeedRestriction
 }
 
 // Extra field readers (value receiver, nil-safe)
@@ -264,8 +330,8 @@ func (wp Waypoint) LogValue() slog.Value {
 	if ar := wp.AltitudeRestriction(); ar != nil {
 		attrs = append(attrs, slog.Any("altitude_restriction", ar))
 	}
-	if wp.Speed != 0 {
-		attrs = append(attrs, slog.Int("speed", int(wp.Speed)))
+	if sr := wp.SpeedRestriction(); sr != nil {
+		attrs = append(attrs, slog.String("speed_restriction", sr.Encoded()))
 	}
 	if wp.Heading != 0 {
 		attrs = append(attrs, slog.Int("heading", int(wp.Heading)))
@@ -372,8 +438,8 @@ func (wa WaypointArray) Encode() string {
 		if ar := w.AltitudeRestriction(); ar != nil {
 			s += "/a" + ar.Encoded()
 		}
-		if w.Speed != 0 {
-			s += fmt.Sprintf("/s%d", w.Speed)
+		if sr := w.SpeedRestriction(); sr != nil {
+			s += "/s" + sr.Encoded()
 		}
 		if pt := w.ProcedureTurn(); pt != nil {
 			if pt.Type == PTStandard45 {
@@ -391,7 +457,7 @@ func (wa WaypointArray) Encode() string {
 			}
 			if pt.MinuteLimit != 0 {
 				s += fmt.Sprintf("%.1fmin", pt.MinuteLimit)
-			} else {
+			} else if pt.NmLimit != 0 {
 				s += fmt.Sprintf("%.1fnm", pt.NmLimit)
 			}
 			if pt.Entry180NoPT {
@@ -551,7 +617,8 @@ func (wa WaypointArray) CheckDeparture(e *util.ErrorLogger, controllers map[Cont
 		}
 		if war := wp.AltitudeRestriction(); war != nil {
 			// Make sure it's generally reasonable
-			if war.Range[0] < 0 || war.Range[0] >= 50000 || war.Range[1] < 0 || war.Range[1] >= 50000 {
+			if war.Range[0] < 0 || war.Range[0] >= 50000 ||
+				war.Range[1] < 0 || (war.Range[1] != MaxAltitude && war.Range[1] >= 50000) {
 				e.ErrorString("Invalid altitude range: should be between 0 and FL500: %s-%s",
 					FormatAltitude(war.Range[0]), FormatAltitude(war.Range[1]))
 			}
@@ -575,14 +642,16 @@ func (wa WaypointArray) checkBasics(e *util.ErrorLogger, controllers map[Control
 
 	for i, wp := range wa {
 		e.Push(wp.Fix)
-		if wp.Speed < 0 || wp.Speed > 300 {
-			e.ErrorString("invalid speed restriction %d", wp.Speed)
+		if sr := wp.SpeedRestriction(); sr != nil {
+			if sr.Range[0] < 0 || (sr.Range[1] > 300 && sr.Range[1] != MaxSpeed) {
+				e.ErrorString("invalid speed restriction %s", sr.Encoded())
+			}
 		}
 
 		if wp.AirworkMinutes() > 0 {
 			if ar := wp.AltitudeRestriction(); ar == nil {
 				e.ErrorString(`Must provide altitude range via "/aXXX-YYY" with /airwork`)
-			} else if ar.Range[0] == 0 || ar.Range[1] == 0 {
+			} else if ar.Range[0] == 0 || ar.Range[1] == MaxAltitude {
 				e.ErrorString(`Must provide top and bottom in altitude range "/aXXX-YYY" with /airwork`)
 			} else if ar.Range[1]-ar.Range[0] < 2000 {
 				e.ErrorString("Must provide at least 2,000' of altitude range with /airwork")
@@ -700,13 +769,14 @@ func (wa WaypointArray) checkDescending(e *util.ErrorLogger) {
 		e.Push(wp.Fix)
 
 		if war := wp.AltitudeRestriction(); war != nil {
-			if war.Range[0] != 0 && war.Range[1] != 0 && war.Range[0] > war.Range[1] {
+			if war.Range[0] > war.Range[1] {
 				e.ErrorString("Minimum altitude %s is higher than maximum %s",
 					FormatAltitude(war.Range[0]), FormatAltitude(war.Range[1]))
 			}
 
 			// Make sure it's generally reasonable
-			if war.Range[0] < 0 || war.Range[0] >= 50000 || war.Range[1] < 0 || war.Range[1] >= 50000 {
+			if war.Range[0] < 0 || war.Range[0] >= 50000 ||
+				war.Range[1] < 0 || (war.Range[1] != MaxAltitude && war.Range[1] >= 50000) {
 				e.ErrorString("Invalid altitude range: should be between 0 and FL500: %s-%s",
 					FormatAltitude(war.Range[0]), FormatAltitude(war.Range[1]))
 			}
@@ -714,7 +784,7 @@ func (wa WaypointArray) checkDescending(e *util.ErrorLogger) {
 			if war.Range[0] != 0 {
 				if minFix != "" && war.Range[0] > lastMin {
 					e.ErrorString("Minimum altitude %s is higher than previous fix %s's minimum %s",
-						FormatAltitude(war.Range[1]), minFix, FormatAltitude(lastMin))
+						FormatAltitude(war.Range[0]), minFix, FormatAltitude(lastMin))
 				}
 				minFix = wp.Fix
 				lastMin = war.Range[0]
@@ -781,7 +851,7 @@ func RandomizeRoute(w []Waypoint, r *rand.Rand, randomizeAltitudeRange bool, per
 				low, high := ar.Range[0], ar.Range[1]
 				// We should clamp low to be a few hundred feet AGL, but
 				// hopefully we'll generally be given a full range.
-				if high == 0 {
+				if high == MaxAltitude {
 					high = low + 3000
 				}
 				// Cap at VFR max (17,500') since randomizeAltitudeRange is only true for VFR.
@@ -792,99 +862,12 @@ func RandomizeRoute(w []Waypoint, r *rand.Rand, randomizeAltitudeRange bool, per
 				alt := math.Lerp(ralt, low, high)
 
 				// Update the altitude restriction to just be the single altitude.
-				wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{alt, alt}})
+				wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(alt))
 
 				ralt = jitter(ralt)
 			}
 		}
 	}
-}
-
-// Takes waypoints up to the one with the Land specifier. Rewrite that one and then append the landing route.
-func AppendVFRLanding(wps []Waypoint, perf AircraftPerformance, airport string, windDir float32, nmPerLongitude float32,
-	magneticVariation float32, lg *log.Logger) []Waypoint {
-	wp := &wps[len(wps)-1]
-	wp.SetLand(false)
-	wp.SetDelete(false)
-
-	ap, ok := DB.Airports[airport]
-	if !ok {
-		lg.Errorf("%s: couldn't find arrival airport", airport)
-		wp.SetDelete(true)
-		return wps // best we can do
-	}
-
-	rwy, opp := ap.SelectBestRunway(windDir, magneticVariation)
-	if rwy == nil || opp == nil {
-		lg.Error("couldn't find a runway to land on", slog.String("airport", airport), slog.Any("runways", ap.Runways))
-		wp.SetDelete(true)
-		return wps // best we can do
-	}
-
-	rg := MakeRouteGenerator(rwy.Threshold, opp.Threshold, nmPerLongitude)
-
-	// Calculate aircraft heading from current position to runway threshold
-	aircraftHeading := math.Heading2LL(wp.Location, rwy.Threshold, nmPerLongitude, magneticVariation)
-
-	// Check if aircraft is aligned with runway (within +/- 90 degrees)
-	headingDiff := math.HeadingDifference(aircraftHeading, rwy.Heading)
-
-	addpt := func(n string, dx, dy, dalt float32, fo bool, slow bool) {
-		wp := rg.Waypoint("_"+n, dx, dy)
-		alt := float32(ap.Elevation) + dalt
-		wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{alt, alt}})
-		wp.SetFlyOver(fo)
-		if slow {
-			wp.Speed = 70
-		}
-
-		wps = append(wps, wp)
-	}
-
-	if headingDiff <= 60 {
-		// Aircraft is aligned with runway - create straight-in approach
-
-		// Waypoint 1 mile out at 300' AGL on extended centerline
-		addpt("lineup", -2, 0, 300, false, true)
-		addpt("threshold", -1, 0, 0, true, true)
-		addpt("end", 1, 0, 0, true, true)
-	} else {
-		// Aircraft not aligned - use standard traffic pattern
-		// Scale the points according to min speed so that if they have to be
-		// fast, they're given more space to work with.
-		sc := perf.Speed.Min / 80
-		pdist := sc // pattern offset from runway
-
-		// Slightly sketchy to do in lat-long but works in this case.
-		sd := math.SignedPointLineDistance(wp.Location, rwy.Threshold, opp.Threshold)
-		if sd < 0 {
-			// coming from the left side of the extended runway centerline; just
-			// add a point so that they enter the pattern at 45 degrees.
-			addpt("enter45", 1, 1+pdist, 1000, false, true)
-		} else {
-			// coming from the right side; cross perpendicularly midfield, make
-			// a descending right 270 and join the pattern.
-			addpt("crossmidfield1", 0, -pdist, 1500, false, false)
-			addpt("crossmidfield2", 0, pdist, 1500, true, false)
-			addpt("crossmidfield3", 0, 1.5*pdist, 1500, true, true) // make some space to turn
-			addpt("right270-1", sc, 2.5*pdist, 1250, false, true)
-			addpt("right270-2", sc*2, 2*pdist, 1150, false, true)
-			addpt("right270-2", sc*1.5, 1.5*pdist, 1000, false, true)
-		}
-		// both sides are the same from here.
-		addpt("joindownwind", 0, pdist, 1000, false, true)
-		addpt("base1", -1.5, pdist, 500, false, true)
-		addpt("base2", -3, pdist/2, 250, false, true)
-		addpt("base2", -1.5, 0, 150, false, true)
-		addpt("threshold", -1, 0, 0, false, true)
-		// Last point is at the far end of the runway just to give plenty of
-		// slop to make sure we hit it so the aircraft is deleted.
-		addpt("fin", 1, 0, 0, false, true)
-	}
-
-	wps[len(wps)-1].SetDelete(true)
-
-	return wps
 }
 
 func parsePTExtent(pt *ProcedureTurn, extent string) error {
@@ -915,8 +898,16 @@ func parsePTExtent(pt *ProcedureTurn, extent string) error {
 	return nil
 }
 
+// ParseRoute parses a waypoint string like "SAJUL/a10000 DETGY/a7000"
+// into a WaypointArray. Fix locations are not resolved; call
+// InitializeLocations on the result to set them.
+func ParseRoute(str string) (WaypointArray, error) {
+	return parseWaypoints(str)
+}
+
 func parseWaypoints(str string) (WaypointArray, error) {
 	var waypoints WaypointArray
+	var nextWaypointTurn TurnDirection
 	entries := strings.Fields(str)
 	for ei, field := range entries {
 		if len(field) == 0 {
@@ -967,6 +958,10 @@ func parseWaypoints(str string) (WaypointArray, error) {
 		}
 
 		wp := Waypoint{}
+		if nextWaypointTurn != TurnClosest {
+			wp.SetTurn(nextWaypointTurn)
+			nextWaypointTurn = TurnClosest
+		}
 		for i, f := range components {
 			if i == 0 {
 				wp.Fix = f
@@ -1052,13 +1047,14 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					wp.SetClearSecondaryScratchpad(true)
 				} else if f == "tc" {
 					wp.SetTransferComms(true)
-				} else if (len(f) >= 4 && f[:4] == "pt45") || len(f) >= 5 && f[:5] == "lpt45" {
+				} else if (len(f) >= 4 && f[:4] == "pt45") || (len(f) >= 5 && f[:5] == "lpt45") {
 					pt := wp.InitExtra()
 					if pt.ProcedureTurn == nil {
 						pt.ProcedureTurn = &ProcedureTurn{}
 					}
 					pt.ProcedureTurn.Type = PTStandard45
 					pt.ProcedureTurn.RightTurns = f[0] == 'p'
+					wp.SetFlyOver(true)
 
 					extent := f[4:]
 					if !pt.ProcedureTurn.RightTurns {
@@ -1074,6 +1070,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					}
 					pt.ProcedureTurn.Type = PTRacetrack
 					pt.ProcedureTurn.RightTurns = f[0] == 'h'
+					wp.SetFlyOver(true)
 
 					extent := f[5:]
 					if !pt.ProcedureTurn.RightTurns {
@@ -1139,24 +1136,57 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					}
 					wp.SetAltitudeRestriction(*ar)
 				} else if f[0] == 's' {
-					kts, err := strconv.Atoi(f[1:])
+					sr, err := ParseSpeedRestriction(f[1:])
 					if err != nil {
-						return nil, fmt.Errorf("%s: error parsing number after speed restriction: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: error parsing speed restriction: %v", f[1:], err)
 					}
-					wp.Speed = int16(kts)
+					wp.SetSpeedRestriction(*sr)
 				} else if f[0] == 'h' { // after "ho" and "hilpt" check...
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
 					} else if hdg < 0 || hdg > 360 {
-						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360", f[1:])
 					} else {
 						wp.Heading = int16(hdg)
 					}
+				} else if f[0] == 't' { // after "tc" check...
+					if hdg, err := strconv.Atoi(f[1:]); err != nil {
+						return nil, fmt.Errorf("%s: invalid waypoint outbound track heading: %v", f[1:], err)
+					} else if hdg < 0 || hdg > 360 {
+						return nil, fmt.Errorf("%s: waypoint outbound track heading must be between 0-360", f[1:])
+					} else {
+						wp.Heading = int16(hdg)
+						wp.Flags |= WaypointFlagHeadingIsTrack
+					}
+				} else if len(f) >= 3 && f[:2] == "lt" {
+					if hdg, err := strconv.Atoi(f[2:]); err != nil {
+						return nil, fmt.Errorf("%s: invalid waypoint outbound track heading: %v", f[2:], err)
+					} else if hdg < 0 || hdg > 360 {
+						return nil, fmt.Errorf("%s: waypoint outbound track heading must be between 0-360", f[2:])
+					} else {
+						wp.Heading = int16(hdg)
+						wp.Flags |= WaypointFlagHeadingIsTrack
+						wp.SetTurn(TurnLeft)
+					}
+				} else if len(f) >= 3 && f[:2] == "rt" {
+					if hdg, err := strconv.Atoi(f[2:]); err != nil {
+						return nil, fmt.Errorf("%s: invalid waypoint outbound track heading: %v", f[2:], err)
+					} else if hdg < 0 || hdg > 360 {
+						return nil, fmt.Errorf("%s: waypoint outbound track heading must be between 0-360", f[2:])
+					} else {
+						wp.Heading = int16(hdg)
+						wp.Flags |= WaypointFlagHeadingIsTrack
+						wp.SetTurn(TurnRight)
+					}
+				} else if f == "ld" {
+					nextWaypointTurn = TurnLeft
+				} else if f == "rd" {
+					nextWaypointTurn = TurnRight
 				} else if f[0] == 'l' {
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
 					} else if hdg < 0 || hdg > 360 {
-						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360", f[1:])
 					} else {
 						wp.Heading = int16(hdg)
 						wp.SetTurn(TurnLeft)
@@ -1165,7 +1195,7 @@ func parseWaypoints(str string) (WaypointArray, error) {
 					if hdg, err := strconv.Atoi(f[1:]); err != nil {
 						return nil, fmt.Errorf("%s: invalid waypoint outbound heading: %v", f[1:], err)
 					} else if hdg < 0 || hdg > 360 {
-						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360: %v", f[1:], err)
+						return nil, fmt.Errorf("%s: waypoint outbound heading must be between 0-360", f[1:])
 					} else {
 						wp.Heading = int16(hdg)
 						wp.SetTurn(TurnRight)
@@ -1206,6 +1236,10 @@ func parseWaypoints(str string) (WaypointArray, error) {
 		waypoints = append(waypoints, wp)
 	}
 
+	if nextWaypointTurn != TurnClosest {
+		return nil, fmt.Errorf("/ld or /rd on the last waypoint has no next waypoint to apply to")
+	}
+
 	return waypoints, nil
 }
 
@@ -1223,14 +1257,16 @@ func ParseAltitudeRestriction(s string) (*AltitudeRestriction, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: error parsing altitude restriction: %v", s, err)
 		}
-		return &AltitudeRestriction{Range: [2]float32{0, float32(alt)}}, nil
+		ar := MakeAtOrBelowAltitudeRestriction(float32(alt))
+		return &ar, nil
 	} else if s[n-1] == '+' {
 		// At or above
 		alt, err := strconv.Atoi(s[:n-1])
 		if err != nil {
 			return nil, fmt.Errorf("%s: error parsing altitude restriction: %v", s, err)
 		}
-		return &AltitudeRestriction{Range: [2]float32{float32(alt), 0}}, nil
+		ar := MakeAtOrAboveAltitudeRestriction(float32(alt))
+		return &ar, nil
 	} else if alts := strings.Split(s, "-"); len(alts) == 2 {
 		// Between
 		if low, err := strconv.Atoi(alts[0]); err != nil {
@@ -1240,14 +1276,16 @@ func ParseAltitudeRestriction(s string) (*AltitudeRestriction, error) {
 		} else if low > high {
 			return nil, fmt.Errorf("%s: low altitude %d is above high altitude %d", s, low, high)
 		} else {
-			return &AltitudeRestriction{Range: [2]float32{float32(low), float32(high)}}, nil
+			ar := MakeRangeAltitudeRestriction(float32(low), float32(high))
+			return &ar, nil
 		}
 	} else {
 		// At
 		if alt, err := strconv.Atoi(s); err != nil {
 			return nil, fmt.Errorf("%s: error parsing altitude restriction: %v", s, err)
 		} else {
-			return &AltitudeRestriction{Range: [2]float32{float32(alt), float32(alt)}}, nil
+			ar := MakeAtAltitudeRestriction(float32(alt))
+			return &ar, nil
 		}
 	}
 }
@@ -1378,29 +1416,30 @@ func (wa WaypointArray) InitializeLocations(loc Locator, nmPerLongitude float32,
 			break
 		}
 
-		// Which way are we turning as we depart p0? Use either the
-		// previous waypoint or the next one after the end of the arc
-		// to figure it out.
-		var v0, v1 [2]float32
-		p0 := math.LL2NM(wa[i].Location, nmPerLongitude)
-		p1 := math.LL2NM(wa[i+1].Location, nmPerLongitude)
-		if i > 0 {
-			v0 = math.Sub2f(p0, math.LL2NM(wa[i-1].Location, nmPerLongitude))
-			v1 = math.Sub2f(p1, p0)
-		} else {
-			if i+2 == len(wa) {
-				if e != nil {
-					e.ErrorString("must have at least one waypoint before or after arc to determine its orientation")
-					e.Pop()
+		if wa[i].Arc().Direction == DMEArcDirectionUnset {
+			// Direction wasn't explicitly provided (e.g., from CIFP turn
+			// direction); infer it from the surrounding waypoints.
+			var v0, v1 [2]float32
+			p0 := math.LL2NM(wa[i].Location, nmPerLongitude)
+			p1 := math.LL2NM(wa[i+1].Location, nmPerLongitude)
+			if i > 0 {
+				v0 = math.Sub2f(p0, math.LL2NM(wa[i-1].Location, nmPerLongitude))
+				v1 = math.Sub2f(p1, p0)
+			} else {
+				if i+2 == len(wa) {
+					if e != nil {
+						e.ErrorString("must have at least one waypoint before or after arc to determine its orientation")
+						e.Pop()
+					}
+					continue
 				}
-				continue
+				v0 = math.Sub2f(p1, p0)
+				v1 = math.Sub2f(math.LL2NM(wa[i+2].Location, nmPerLongitude), p1)
 			}
-			v0 = math.Sub2f(p1, p0)
-			v1 = math.Sub2f(math.LL2NM(wa[i+2].Location, nmPerLongitude), p1)
+			// cross product
+			x := v0[0]*v1[1] - v0[1]*v1[0]
+			wa[i].InitExtra().Arc.Direction = util.Select(x < 0, DMEArcDirectionClockwise, DMEArcDirectionCounterClockwise)
 		}
-		// cross product
-		x := v0[0]*v1[1] - v0[1]*v1[0]
-		wa[i].InitExtra().Arc.Clockwise = x < 0
 
 		if !wa[i].Extra.Arc.Initialize(loc, wa[i].Location, wa[i+1].Location, nmPerLongitude, magneticVariation, e) {
 			wa[i].Extra.Arc = nil
@@ -1523,7 +1562,7 @@ func (e *RacetrackPTEntry) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading float32, aircraftFixHeading float32) RacetrackPTEntry {
+func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading math.MagneticHeading, aircraftFixHeading math.MagneticHeading) RacetrackPTEntry {
 	// Rotate so we can treat inboundHeading as 0.
 	hdg := aircraftFixHeading - inboundHeading
 	if hdg < 0 {
@@ -1554,12 +1593,89 @@ func (pt *ProcedureTurn) SelectRacetrackEntry(inboundHeading float32, aircraftFi
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// NavigationRestriction
+
+// NavigationRestriction is the shared base for altitude and speed restrictions.
+// Range[0] is the floor, Range[1] is the ceiling.
+// 0 means "no floor" (at or below); the type-specific max constant
+// means "no ceiling" (at or above).
+// Invariant: Range[0] <= Range[1].
+type NavigationRestriction struct {
+	Range [2]float32
+}
+
+// Target clamps val into the restriction's range.
+func (r NavigationRestriction) Target(val float32) float32 {
+	return math.Clamp(val, r.Range[0], r.Range[1])
+}
+
+// Satisfied returns true if val complies with the restriction.
+func (r NavigationRestriction) Satisfied(val float32) bool {
+	return val >= r.Range[0] && val <= r.Range[1]
+}
+
+// ExactValue returns the value if this is an "at" restriction (lo == hi),
+// or false if it's a range.
+func (r NavigationRestriction) ExactValue() (float32, bool) {
+	if r.Range[0] == r.Range[1] {
+		return r.Range[0], true
+	}
+	return 0, false
+}
+
+// ClampRange limits a range to satisfy the restriction;
+// the returned Boolean indicates whether the ranges overlapped.
+func (r NavigationRestriction) ClampRange(rng [2]float32) (c [2]float32, ok bool) {
+	ok = rng[0] <= r.Range[1] && rng[1] >= r.Range[0]
+	c[0] = math.Clamp(rng[0], r.Range[0], r.Range[1])
+	c[1] = math.Clamp(rng[1], r.Range[0], r.Range[1])
+	return
+}
+
+// encoded returns the restriction in compact text form, using maxVal as
+// the sentinel for "no ceiling".
+func (r NavigationRestriction) encoded(maxVal float32) string {
+	if r.Range[0] != 0 {
+		if r.Range[0] == r.Range[1] {
+			return fmt.Sprintf("%.0f", r.Range[0])
+		} else if r.Range[1] != maxVal {
+			return fmt.Sprintf("%.0f-%.0f", r.Range[0], r.Range[1])
+		} else {
+			return fmt.Sprintf("%.0f+", r.Range[0])
+		}
+	} else if r.Range[1] != 0 && r.Range[1] != maxVal {
+		return fmt.Sprintf("%.0f-", r.Range[1])
+	} else {
+		return ""
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
 // AltitudeRestriction
 
+// MaxAltitude is used as the upper bound for "at or
+// above" restrictions.  This lets the invariant Range[0] <= Range[1]
+// always hold, eliminating sentinel checks in clamping/bounding code.
+const MaxAltitude float32 = 100000
+
 type AltitudeRestriction struct {
-	// We treat 0 as "unset", which works naturally for the bottom but
-	// requires occasional care at the top.
-	Range [2]float32
+	NavigationRestriction
+}
+
+func MakeAtAltitudeRestriction(alt float32) AltitudeRestriction {
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{alt, alt}}}
+}
+
+func MakeAtOrAboveAltitudeRestriction(alt float32) AltitudeRestriction {
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{alt, MaxAltitude}}}
+}
+
+func MakeAtOrBelowAltitudeRestriction(alt float32) AltitudeRestriction {
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{0, alt}}}
+}
+
+func MakeRangeAltitudeRestriction(low, high float32) AltitudeRestriction {
+	return AltitudeRestriction{NavigationRestriction{Range: [2]float32{low, high}}}
 }
 
 func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
@@ -1576,6 +1692,10 @@ func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
 		ar := struct{ Range [2]float32 }{}
 		if err := json.Unmarshal(b, &ar); err == nil {
 			a.Range = ar.Range
+			// Migrate old serialized "at or above" {alt, 0} to {alt, MaxAlt}.
+			if a.Range[0] != 0 && a.Range[1] == 0 {
+				a.Range[1] = MaxAltitude
+			}
 			return nil
 		} else {
 			return err
@@ -1583,76 +1703,233 @@ func (a *AltitudeRestriction) UnmarshalJSON(b []byte) error {
 	}
 }
 
+// TargetAltitude clamps alt into the restriction's range.
 func (a AltitudeRestriction) TargetAltitude(alt float32) float32 {
-	if a.Range[1] != 0 {
-		return math.Clamp(alt, a.Range[0], a.Range[1])
-	} else {
-		return max(alt, a.Range[0])
-	}
+	return a.Target(alt)
 }
 
-// ClampRange limits a range of altitudes to satisfy the altitude
-// restriction; the returned Boolean indicates whether the ranges
-// overlapped.
-func (a AltitudeRestriction) ClampRange(r [2]float32) (c [2]float32, ok bool) {
-	// r: I could be at any of these altitudes and be fine for a future restriction
-	// a: working backwards, we have this additional restriction, how does it limit r?
-	// c: result
-	ok = true
-	c = r
-
-	if a.Range[0] != 0 { // at or above
-		ok = r[1] == 0 || r[1] >= a.Range[0]
-		c[0] = max(a.Range[0], r[0])
-		if r[1] != 0 {
-			c[1] = max(a.Range[0], r[1])
-		}
-	}
-
-	if a.Range[1] != 0 { // at or below
-		ok = ok && c[0] <= a.Range[1]
-		c[0] = min(c[0], a.Range[1])
-		c[1] = min(c[1], a.Range[1])
-	}
-
-	return
-}
-
-// Encoded returns the restriction in the encoded form in which it is
-// specified in scenario configuration files, e.g. "5000+" for "at or above
-// 5000".
+// Encoded returns the restriction in the encoded form used in scenario
+// configuration files, e.g. "5000+" for "at or above 5000".
 func (a AltitudeRestriction) Encoded() string {
-	if a.Range[0] != 0 {
-		if a.Range[0] == a.Range[1] {
-			return fmt.Sprintf("%.0f", a.Range[0])
-		} else if a.Range[1] != 0 {
-			return fmt.Sprintf("%.0f-%.0f", a.Range[0], a.Range[1])
-		} else {
-			return fmt.Sprintf("%.0f+", a.Range[0])
-		}
-	} else if a.Range[1] != 0 {
-		return fmt.Sprintf("%.0f-", a.Range[1])
-	} else {
-		return ""
+	return a.encoded(MaxAltitude)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// SpeedRestriction
+
+// MaxSpeed is used as the upper bound for "at or above" speed restrictions.
+const MaxSpeed float32 = 1000
+
+type SpeedRestriction struct {
+	NavigationRestriction
+	IsMach bool
+}
+
+func MakeAtSpeedRestriction(speed float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{speed, speed}}}
+}
+
+func MakeMachRestriction(mach float32) SpeedRestriction {
+	return SpeedRestriction{
+		NavigationRestriction: NavigationRestriction{Range: [2]float32{mach, mach}},
+		IsMach:                true,
 	}
+}
+
+func MakeAtOrAboveSpeedRestriction(speed float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{speed, MaxSpeed}}}
+}
+
+func MakeAtOrBelowSpeedRestriction(speed float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{0, speed}}}
+}
+
+func MakeRangeSpeedRestriction(low, high float32) SpeedRestriction {
+	return SpeedRestriction{NavigationRestriction: NavigationRestriction{Range: [2]float32{low, high}}}
+}
+
+func (s *SpeedRestriction) UnmarshalJSON(b []byte) error {
+	// null: leave as zero value (no restriction).
+	if string(b) == "null" {
+		return nil
+	}
+	// Plain number: treat as "at" restriction (backwards compat with existing JSON).
+	if spd, err := strconv.Atoi(string(b)); err == nil {
+		s.Range = [2]float32{float32(spd), float32(spd)}
+		return nil
+	}
+	// String form: "250-", "210+", "180-210", "210".
+	var str string
+	if err := json.Unmarshal(b, &str); err == nil {
+		sr, err := ParseSpeedRestriction(str)
+		if err != nil {
+			return err
+		}
+		*s = *sr
+		return nil
+	}
+	// Struct form: {"Range": [lo, hi], "IsMach": bool}.
+	ar := struct {
+		Range  [2]float32
+		IsMach bool
+	}{}
+	if err := json.Unmarshal(b, &ar); err == nil {
+		s.Range = ar.Range
+		s.IsMach = ar.IsMach
+		if s.IsMach && s.Range[0] != s.Range[1] {
+			return fmt.Errorf("mach restriction must be exact")
+		}
+		return nil
+	} else {
+		return err
+	}
+}
+
+// Encoded returns the restriction in compact text form, e.g. "210+", "250-", "210".
+func (s SpeedRestriction) Encoded() string {
+	if s.IsMach {
+		if s.Range[0] != s.Range[1] {
+			return ""
+		}
+		return fmt.Sprintf("M%02d", int(s.Range[0]*100+.5))
+	}
+	return s.encoded(MaxSpeed)
+}
+
+// CheckJSON implements util.JSONChecker so the JSON type checker accepts
+// plain numbers and strings in addition to the struct form.
+func (s SpeedRestriction) CheckJSON(json any) bool {
+	switch json.(type) {
+	case float64, string, map[string]any, nil:
+		return true
+	}
+	return false
+}
+
+// IsZero returns true if the speed restriction is unset.
+func (s SpeedRestriction) IsZero() bool {
+	return s.Range[0] == 0 && s.Range[1] == 0
+}
+
+// ParseSpeedRestriction parses a speed restriction from compact text form:
+// "210", "210+", "210-", "180-210".
+func ParseSpeedRestriction(s string) (*SpeedRestriction, error) {
+	if s == "" {
+		return nil, fmt.Errorf("empty speed restriction")
+	}
+	if strings.HasPrefix(s, "M") || strings.HasPrefix(s, "m") {
+		machStr := s[1:]
+		machStr = strings.TrimSuffix(machStr, "+")
+		machStr = strings.TrimSuffix(machStr, "-")
+		mach, err := strconv.Atoi(machStr)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+		}
+		sr := MakeMachRestriction(float32(mach) / 100)
+		return &sr, nil
+	}
+
+	if low, high, ok := strings.Cut(s, "-"); ok {
+		// Either a range or at-or-below
+		min, err := strconv.Atoi(low)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+		}
+		if high != "" {
+			max, err := strconv.Atoi(high)
+			if err != nil {
+				return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+			}
+			sr := MakeRangeSpeedRestriction(float32(min), float32(max))
+			return &sr, nil
+
+		} else {
+			sr := MakeAtOrBelowSpeedRestriction(float32(min))
+			return &sr, nil
+		}
+	} else {
+		// Single speed or at-or-above
+		low, aoa := strings.CutSuffix(s, "+")
+		min, err := strconv.Atoi(low)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error parsing speed restriction: %v", s, err)
+		}
+		if aoa {
+			sr := MakeAtOrAboveSpeedRestriction(float32(min))
+			return &sr, nil
+		} else {
+			sr := MakeAtSpeedRestriction(float32(min))
+			return &sr, nil
+		}
+	}
+}
+
+// ParseDistanceDirection parses strings like "5W" or "10NE" into a distance
+// in miles and a cardinal/ordinal direction.
+func ParseDistanceDirection(s string) (int, math.CardinalOrdinalDirection, error) {
+	i := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		i++
+	}
+	if i == 0 || i == len(s) {
+		return 0, 0, fmt.Errorf("invalid distance/direction")
+	}
+	dist, err := strconv.Atoi(s[:i])
+	if err != nil {
+		return 0, 0, err
+	}
+	dir, err := math.ParseCardinalOrdinalDirection(s[i:])
+	if err != nil {
+		return 0, 0, err
+	}
+	return dist, dir, nil
+}
+
+// ParseSyntheticCrossingFix parses a synthetic cross-distance waypoint name
+// like "_DETGY/5W" and returns the named fix, distance, and direction.
+func ParseSyntheticCrossingFix(fix string) (string, int, math.CardinalOrdinalDirection, bool) {
+	if !strings.HasPrefix(fix, "_") {
+		return "", 0, 0, false
+	}
+	parts := strings.Split(fix[1:], "/")
+	if len(parts) < 2 || parts[0] == "" {
+		return "", 0, 0, false
+	}
+	dist, dir, err := ParseDistanceDirection(parts[1])
+	if err != nil {
+		return "", 0, 0, false
+	}
+	return parts[0], dist, dir, true
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // DMEArc
 
-// Can either be specified with (Fix,Radius), or (Length,Clockwise); the
+type DMEArcDirection int
+
+const (
+	DMEArcDirectionUnset            DMEArcDirection = iota
+	DMEArcDirectionClockwise                        // right turn
+	DMEArcDirectionCounterClockwise                 // left turn
+)
+
+func (d DMEArcDirection) IsClockwise() bool {
+	return d == DMEArcDirectionClockwise
+}
+
+// Can either be specified with (Fix,Radius), or (Length,Direction); the
 // remaining fields are then derived from those.
 type DMEArc struct {
 	Fix            string
 	Center         math.Point2LL
 	Radius         float32
 	Length         float32
-	InitialHeading float32
-	Clockwise      bool
+	InitialHeading math.MagneticHeading
+	Direction      DMEArcDirection
 }
 
 // Initialize resolves the arc's center, radius, and initial heading from
-// its specification. Clockwise must be set before calling. startLoc and
+// its specification. Direction must be set before calling. startLoc and
 // endLoc are the waypoint positions at each end of the arc. Returns true
 // on success; returns false if the arc should be dropped (either due to
 // error or because it's approximately linear).
@@ -1695,7 +1972,7 @@ func (arc *DMEArc) Initialize(loc Locator, startLoc, endLoc math.Point2LL, nmPer
 		// negative steps in parametric t along the perpendicular line
 		// so that we're searching in the right direction to get the
 		// clockwise/counter clockwise route we want.
-		delta := float32(util.Select(arc.Clockwise, -.01, .01))
+		delta := float32(util.Select(arc.Direction.IsClockwise(), -.01, .01))
 
 		// We will search with uniform small steps along the line. Some
 		// sort of bisection search would probably be better, but...
@@ -1728,11 +2005,12 @@ func (arc *DMEArc) Initialize(loc Locator, startLoc, endLoc math.Point2LL, nmPer
 		}
 	}
 
-	// Heading from the center of the arc to the start fix
-	hfix := math.Heading2LL(arc.Center, startLoc, nmPerLongitude, magneticVariation)
-
-	// Then perpendicular to that, depending on the arc's direction
-	arc.InitialHeading = math.NormalizeHeading(hfix + float32(util.Select(arc.Clockwise, 90, -90)))
+	// Heading from the center of the arc to the start fix (true), then
+	// convert to magnetic; perpendicular depending on the arc's direction.
+	hfix := math.Heading2LL(arc.Center, startLoc, nmPerLongitude)
+	arc.InitialHeading = math.TrueToMagnetic(
+		math.OffsetHeading(hfix, float32(util.Select(arc.Direction.IsClockwise(), 90, -90))),
+		magneticVariation)
 
 	return true
 }
@@ -1755,8 +2033,8 @@ func (t TurnDirection) String() string {
 
 // Hold represents a charted holding pattern from CIFP or HPF
 type Hold struct {
-	Fix             string  // Fix identifier where hold is located
-	InboundCourse   float32 // Inbound magnetic course to the fix
+	Fix             string               // Fix identifier where hold is located
+	InboundCourse   math.MagneticHeading // Inbound magnetic course to the fix
 	TurnDirection   TurnDirection
 	LegLengthNM     float32 // Distance-based leg length (nautical miles), 0 if time-based
 	LegMinutes      float32 // Time-based leg duration (minutes), 0 if distance-based
@@ -1804,7 +2082,7 @@ func (e HoldEntry) String() string {
 	return []string{"Direct", "Parallel", "Teardrop"}[int(e)]
 }
 
-func (h Hold) Entry(headingToFix float32) HoldEntry {
+func (h Hold) Entry(headingToFix math.MagneticHeading) HoldEntry {
 	outboundCourse := math.OppositeHeading(h.InboundCourse)
 
 	// Dividing line is 70° from outbound on holding side This creates
@@ -1895,13 +2173,15 @@ type Overflight struct {
 	AssignedAltitude    float32                 `json:"assigned_altitude"`
 	InitialSpeed        float32                 `json:"initial_speed"`
 	AssignedSpeed       float32                 `json:"assigned_speed"`
-	SpeedRestriction    float32                 `json:"speed_restriction"`
+	SpeedRestriction    SpeedRestriction        `json:"speed_restriction"`
 	InitialController   ControlPosition         `json:"initial_controller"`
 	Scratchpad          string                  `json:"scratchpad"`
 	SecondaryScratchpad string                  `json:"secondary_scratchpad"`
 	Description         string                  `json:"description"`
 	IsRNAV              bool                    `json:"is_rnav"`
 	Airlines            []OverflightAirline     `json:"airlines"`
+	TypeOfFlightString  string                  `json:"flight_type"`
+	TypeOfFlight        TypeOfFlight            // set via TypeOfFlightString
 }
 
 type OverflightAirline struct {
@@ -1968,6 +2248,19 @@ func (of *Overflight) PostDeserialize(loc Locator, nmPerLongitude float32, magne
 	if !checkScratchpad(of.SecondaryScratchpad) {
 		e.ErrorString("%s: invalid secondary scratchpad", of.SecondaryScratchpad)
 	}
+
+	switch of.TypeOfFlightString {
+	case "", "overflight":
+		of.TypeOfFlight = FlightTypeOverflight
+	case "departure":
+		of.TypeOfFlight = FlightTypeDeparture
+	case "arrival":
+		of.TypeOfFlight = FlightTypeArrival
+	default:
+		e.ErrorString(`%s: unknown "flight_type" value. Options: "departure", "arrival", "overflight".`,
+			of.TypeOfFlightString)
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////

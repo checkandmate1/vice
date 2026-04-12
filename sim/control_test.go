@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	av "github.com/mmp/vice/aviation"
+	"github.com/mmp/vice/log"
+	"github.com/mmp/vice/math"
+	"github.com/mmp/vice/nav"
 )
 
 func TestParseHold(t *testing.T) {
@@ -23,7 +26,7 @@ func TestParseHold(t *testing.T) {
 		wantLegLength float32
 		wantLegTime   float32
 		checkRadial   bool
-		wantRadial    float32
+		wantRadial    math.MagneticHeading
 	}{
 		{
 			name:     "Published hold - no options",
@@ -282,5 +285,68 @@ func TestParseHold(t *testing.T) {
 				t.Errorf("parseHold() hold.InboundCourse = %v, want %v", gotHold.InboundCourse, tt.wantRadial)
 			}
 		})
+	}
+}
+
+func TestRunOneControlCommandAtFixClearedStraightInApproach(t *testing.T) {
+	lg := log.New(true, "error", t.TempDir())
+
+	appr := &av.Approach{
+		FullName: "RNAV Runway 24",
+		Waypoints: []av.WaypointArray{
+			{
+				{Fix: "MATTY"},
+			},
+		},
+	}
+
+	callsign := av.ADSBCallsign("TEST123")
+	s := &Sim{
+		State: &CommonState{
+			DynamicState: DynamicState{
+				CurrentConsolidation: map[TCW]*TCPConsolidation{
+					"TCW1": {PrimaryTCP: "1A"},
+				},
+			},
+		},
+		Aircraft: map[av.ADSBCallsign]*Aircraft{
+			callsign: {
+				ADSBCallsign:        callsign,
+				ControllerFrequency: "1A",
+				Nav: nav.Nav{
+					Waypoints: []av.Waypoint{
+						{Fix: "MATTY"},
+					},
+					Approach: nav.NavApproach{
+						Assigned:   appr,
+						AssignedId: "RG24",
+					},
+				},
+			},
+		},
+		PendingContacts: map[TCP][]PendingContact{},
+		lg:              lg,
+	}
+
+	intent, err := s.runOneControlCommand("TCW1", callsign, "AMATTY/CSIRG24")
+	if err != nil {
+		t.Fatalf("runOneControlCommand() returned error: %v", err)
+	}
+
+	approachIntent, ok := intent.(av.ApproachIntent)
+	if !ok {
+		t.Fatalf("runOneControlCommand() returned %T, want av.ApproachIntent", intent)
+	}
+	if approachIntent.Type != av.ApproachAtFixCleared {
+		t.Fatalf("runOneControlCommand() intent type = %v, want %v", approachIntent.Type, av.ApproachAtFixCleared)
+	}
+	if !approachIntent.StraightIn {
+		t.Fatal("runOneControlCommand() did not preserve straight-in clearance")
+	}
+	if approachIntent.Fix != "MATTY" {
+		t.Fatalf("runOneControlCommand() fix = %q, want %q", approachIntent.Fix, "MATTY")
+	}
+	if s.Aircraft[callsign].Nav.Approach.AtFixClearedRoute == nil {
+		t.Fatal("AtFixClearedRoute was not populated")
 	}
 }

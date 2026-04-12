@@ -9,9 +9,11 @@ import (
 	_ "embed"
 	"fmt"
 	"image/png"
+	gomath "math"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mmp/vice/client"
@@ -61,6 +63,12 @@ var (
 		pttCapture                bool      // capturing new PTT key assignment
 		pttPressTime              time.Time // for latency logging
 		audioCaptureWarningLogged bool      // only log audio capture failure once
+
+		// Test PTT state
+		testPTTActive   bool
+		testPTTLevelMu  sync.Mutex
+		testPTTLevels   [6]float32 // ring buffer of ~50ms RMS values
+		testPTTLevelIdx int
 	}
 
 	//go:embed icons/tower-256x256.png
@@ -100,7 +108,7 @@ func uiInit(r renderer.Renderer, p platform.Platform, config *Config, es *sim.Ev
 	}
 
 	ui.font = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: config.UIFontSize})
-	ui.fixedFont = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoMono, Size: config.UIFontSize + 2 /* better match regular size */})
+	ui.fixedFont = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoMono, Size: renderer.FixedFontSize(config.UIFontSize)})
 	ui.aboutFont = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: 18})
 	ui.aboutFontSmall = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: 14})
 	ui.eventsSubscription = es.Subscribe()
@@ -309,7 +317,7 @@ func uiDraw(mgr *client.ConnectionManager, config *Config, p platform.Platform, 
 	}
 	ui.menuBarHeight = imgui.CursorPos().Y - 1
 
-	if controlClient != nil {
+	if controlClient != nil && !hasActiveModalDialogs() {
 		uiDrawSettingsWindow(controlClient, config, activeRadarPane, p, lg)
 
 		if ui.showScenarioInfo {
@@ -320,14 +328,16 @@ func uiDraw(mgr *client.ConnectionManager, config *Config, p platform.Platform, 
 			if ui.launchControlWindow == nil {
 				ui.launchControlWindow = MakeLaunchControlWindow(controlClient, lg)
 			}
-			ui.launchControlWindow.Draw(eventStream, p)
+			ui.launchControlWindow.Draw(eventStream, p, config)
 		}
 
 		if ui.showMessages {
-			config.MessagesPane.DrawWindow(&ui.showMessages, controlClient, p, lg)
+			applyPinWindowClass("Messages", config, p)
+			config.MessagesPane.DrawWindow(&ui.showMessages, controlClient, p, config.UnpinnedWindows, lg)
 		}
 		if ui.showFlightStrips {
-			config.FlightStripPane.DrawWindow(&ui.showFlightStrips, controlClient, p, lg)
+			applyPinWindowClass("Flight Strips", config, p)
+			config.FlightStripPane.DrawWindow(&ui.showFlightStrips, controlClient, p, config.UnpinnedWindows, lg)
 		}
 	}
 
@@ -431,6 +441,8 @@ var primaryAcCommands = [][3]string{
 	{"*H_hdg", `"Fly heading _hdg_." If no heading is given, "fly present heading".`,
 		"*H050*, *H*"},
 	{"*D_fix", `"Proceed direct _fix_".`, "*DWAVEY*"},
+	{"*LD_fix", `"Proceed left direct _fix_".`, "*LDHAYES*"},
+	{"*RD_fix", `"Proceed right direct _fix_".`, "*RDHAYES*"},
 	{"*C_alt", `"Climb and maintain _alt_".`, "*C170*"},
 	{"*TC_alt", `"After reaching speed _kts_, climb and maintain _alt_", where _kts_ is a previously-assigned speed.`, "*TC170*"},
 	{"*D_alt", `"Descend and maintain _alt_".`, "*D20*"},
@@ -440,6 +452,7 @@ speed. (*TD* = 'then descend')`, "*TD20*"},
 If no speed is given, "cancel speed restrictions".`, "*S210*, *S*"},
 	{"*TS_kts", `"After reaching _alt_, reduce/increase speed to _kts_", where _alt_ is a previously-assigned
 altitude. (*TS* = 'then speed')`, "*TS210*"},
+	{"*M_mach", `"Maintain mach _mach_." Given as two digits (e.g., 78 for mach 0.78).`, "*M78*"},
 	{"*E_appr", `"Expect the _appr_ approach."`, "*EI2L*"},
 	{"*E*", `"Standby; re-issue expect for the assigned approach."`, "*E*"},
 	{"*C_appr", `"Cleared _appr_ approach."`, "*CI2L*"},
@@ -456,19 +469,29 @@ var secondaryAcCommands = [][3]string{
 	{"*R_hdg", `"Turn right heading _hdg_".`, "*R210*"},
 	{"*T_deg*R", `"Turn _deg_ degrees right".`, "*T20R*"},
 	{"*D_fix*/H_hdg", `"Depart _fix_ heading _hdg_".`, "*DLENDY/H180*"},
+	{"*D_fix*/D_fix2", `"Depart _fix_ direct _fix2_".`, "*DLENDY/DWAVEY*"},
 	{"*H_fix*", `"Hold at _fix_ (published hold)".`, "*HJIMEE*"},
 	{"*H_fix*/[opts]",
 		`"Hold at _fix_ (controller-specified)." Options: *L*/*R* (turns), *xxNM*/*xxM* (legs), *Rxxx* (radial, req'd).`, "*HJIMEE/L/5NM/R090*"},
 	{"*C_fix*/A_alt*/S_kts*/M_mach*",
 		`"Cross _fix_ at _alt_ / _kts_ knots / mach." Any combination of *A*, *S*, and *M* may be specified.`, "*CCAMRN/A110+*"},
-	{"*ED*", `"Expedite descent"`, "*ED*"},
-	{"*EC*", `"Expedite climb"`, "*EC*"},
+	{"*C_fix*/_dist__dir*/A_alt*/S_kts*/M_mach*",
+		`"Cross _dist_ miles _dir_ of _fix_ at _alt_ / _kts_ knots / mach." _dir_ is N/S/E/W/NE/NW/SE/SW.`, "*CDETGY/5W/A30*"},
+	{"*ED[_alt]*", `"Expedite descent", optionally through an altitude.`, "*ED*, *ED50*"},
+	{"*EC[_alt]*", `"Expedite climb", optionally through an altitude.`, "*EC*, *EC50*"},
+	{"*GRD*/*GRC*", `"Good rate" descent/climb. Faster than normal, not as fast as expedite.`, "*GRD*"},
+	{"*GR_alt*", `"Good rate" through an altitude. Direction inferred.`, "*GR50*"},
 	{"*SMIN*", `"Maintain slowest practical speed".`, "*SMIN*"},
 	{"*SMAX*", `"Maintain maximum forward speed".`, "*SMAX*"},
 	{"*SPRES*", `"Maintain present speed".`, "*SPRES*"},
 	{"*S_kts*+", `"Maintain _kts_ knots or greater" (speed floor). Currently treated as standard speed assignment.`, "*S180+*"},
 	{"*S_kts*-", `"Do not exceed _kts_ knots" (speed ceiling). Currently treated as standard speed assignment.`, "*S180-*"},
+	{"*S_kts*/U_spec", `"Maintain _kts_ knots until _spec_." _spec_ may be a fix name, a number (mile final), or a number followed by DME.`, "*S210/U5*, *S210/U5DME*, *S210/UROSLY*"},
+	{"*S_kts*/U_fix*/_kts*[/U_fix*/_kts*]...", `Compound speed: multiple speed segments separated by fixes. Each speed may have +/- suffix.`, "*S250/UROSLY/210*, *S250+/UFIX1/210-/UFIX2/180+*"},
+	{"*TM_mach", `"After reaching _alt_, maintain mach _mach_", where _alt_ is a previously-assigned altitude.`, "*TM78*"},
 	{"*SS*", `"Say airspeed".`, "*SS*"},
+	{"*SI*", `"Say indicated airspeed" (always responds with indicated airspeed, even above transition altitude).`, "*SI*"},
+	{"*SM*", `"Say mach number" (only works above transition altitude).`, "*SM*"},
 	{"*SA*", `"Say altitude".`, "*SA*"},
 	{"*SH*", `"Say heading".`, "*SH*"},
 	{"*SQ_code", `"Squawk _code_."`, "*SQ1200*"},
@@ -477,6 +500,9 @@ var secondaryAcCommands = [][3]string{
 	{"*SQON", `"Squawk on."`, "*SSON*"},
 	{"*A_fix*/C[_appr]", `"At _fix_, cleared [_appr_] approach." (approach is optional)`, "*AROSLY/C*"},
 	{"*A_fix*/I", `"At _fix_, intercept the localizer."`, "*AROSLY/I*"},
+	{"*A_fix*/S_kts[+|-]", `"After _fix_, maintain _kts_ knots." Append *+* for "or greater", *-* for "or less".`, "*AROSLY/S230*, *ACAMRN/S210+*"},
+	{"*A_fix*/C_alt", `"After _fix_, climb and maintain _alt_."`, "*AROSLY/C50*"},
+	{"*A_fix*/D_alt", `"After _fix_, descend and maintain _alt_."`, "*AROSLY/D30*"},
 	{"*CAC*", `"Cancel approach clearance".`, "*CAC*"},
 	{"*CSI_appr", `"Cleared straight-in _appr_ approach.`, "*CSII6*"},
 	{"*I*", `"Intercept the localizer."`, "*I*"},
@@ -485,6 +511,7 @@ var secondaryAcCommands = [][3]string{
 	{"*ID*", `"Ident."`, "*ID*"},
 	{"*CVS*", `"Climb via the SID"`, "*CVS*"},
 	{"*DVS*", `"Descend via the STAR"`, "*CVS*"},
+	{"*VISSEP*", `"Maintain visual separation".`, "*VISSEP*"},
 	{"*RON*", `"Resume own navigation" (VFR)`, "*RON*"},
 	{"*A*", `"Altitude your discretion, maintain VFR" (VFR)`, "*A*"},
 	{"*A_alt*", `"Maintain _alt_`, "*A120*"},
@@ -515,7 +542,9 @@ func uiDrawKeyboardWindow(c *client.ControlClient, config *Config, platform plat
 	}
 
 	imgui.SetNextWindowSizeConstraints(imgui.Vec2{300, 300}, imgui.Vec2{-1, float32(platform.WindowSize()[1]) * 19 / 20})
+	applyPinWindowClass("Keyboard Command Reference", config, platform)
 	imgui.BeginV("Keyboard Command Reference", &keyboardWindowVisible, imgui.WindowFlagsAlwaysAutoResize)
+	drawPinButton("Keyboard Command Reference", config, platform)
 
 	style := imgui.CurrentStyle()
 
@@ -757,12 +786,42 @@ func uiDrawMarkedupText(regularFont *renderer.Font, fixedFont *renderer.Font, it
 	imgui.PopFont() // regular font
 }
 
+// applyPinWindowClass sets the imgui WindowClass for the next window so
+// that its viewport is always-on-top when pinned. Must be called before
+// imgui.BeginV().
+func applyPinWindowClass(windowTitle string, config *Config, p platform.Platform) {
+	_, unpinned := config.UnpinnedWindows[windowTitle]
+	appFocused := p.IsAppFocused()
+
+	wc := imgui.NewWindowClass()
+	// Always keep child windows as separate OS windows, even when they
+	// overlap the main viewport.
+	setFlags := imgui.ViewportFlagsNoAutoMerge
+	clearFlags := imgui.ViewportFlags(0)
+	if !unpinned && appFocused {
+		setFlags |= imgui.ViewportFlagsTopMost
+	} else {
+		clearFlags |= imgui.ViewportFlagsTopMost
+	}
+	wc.SetViewportFlagsOverrideSet(setFlags)
+	wc.SetViewportFlagsOverrideClear(clearFlags)
+	imgui.SetNextWindowClass(wc)
+}
+
+// drawPinButton draws a thumbtack toggle in the title bar of the current
+// window. Call immediately after imgui.BeginV().
+func drawPinButton(windowTitle string, config *Config, p platform.Platform) {
+	panes.DrawPinButton(windowTitle, config.UnpinnedWindows, p)
+}
+
 func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPane panes.Pane, p platform.Platform, lg *log.Logger) {
 	if !ui.showSettings {
 		return
 	}
 
+	applyPinWindowClass("Settings", config, p)
 	imgui.BeginV("Settings", &ui.showSettings, imgui.WindowFlagsAlwaysAutoResize)
+	drawPinButton("Settings", config, p)
 
 	if imgui.SliderFloatV("Simulation speed", &c.State.SimRate, 1, 20, "%.1f", 0) {
 		c.SetSimRate(c.State.SimRate)
@@ -772,8 +831,10 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 	imgui.Checkbox("Update Discord activity status", &update)
 	config.InhibitDiscordActivity.Store(!update)
 
-	if c != nil {
-		imgui.Checkbox("Disable text-to-speech", &config.DisableTextToSpeech)
+	imgui.Checkbox("Disable text-to-speech", &config.DisableTextToSpeech)
+	if imgui.Checkbox("Enable tower initiated go-arounds due to separation", &config.EnableTowerGoArounds) {
+		c.State.LaunchConfig.EnableTowerGoArounds = config.EnableTowerGoArounds
+		c.SetLaunchConfig(c.State.LaunchConfig)
 	}
 
 	imgui.Separator()
@@ -784,6 +845,7 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 			if imgui.SelectableBoolV(strconv.Itoa(size), size == config.UIFontSize, 0, imgui.Vec2{}) {
 				config.UIFontSize = size
 				ui.font = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoRegular, Size: config.UIFontSize})
+				ui.fixedFont = renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoMono, Size: renderer.FixedFontSize(config.UIFontSize)})
 			}
 		}
 		imgui.EndCombo()
@@ -801,20 +863,31 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 				}, p), true)
 		}
 
+		if imgui.Checkbox("Maintain square main window", &config.MainWindowSquare) {
+			p.SetMainWindowSquare(config.MainWindowSquare)
+		}
+
 		imgui.Checkbox("Start in full-screen", &config.StartInFullScreen)
 
 		monitorNames := p.GetAllMonitorNames()
-		if imgui.BeginComboV("Monitor", monitorNames[config.FullScreenMonitor], imgui.ComboFlagsHeightLarge) {
-			for index, monitor := range monitorNames {
-				label := fmt.Sprintf("%s##monitor%d", monitor, index)
-				if imgui.SelectableBoolV(label, monitor == monitorNames[config.FullScreenMonitor], 0, imgui.Vec2{}) {
-					config.FullScreenMonitor = index
-
-					p.EnableFullScreen(p.IsFullScreen())
-				}
+		if len(monitorNames) == 0 {
+			imgui.TextDisabled("Monitor information unavailable")
+		} else {
+			if config.FullScreenMonitor >= len(monitorNames) {
+				config.FullScreenMonitor = 0
 			}
+			if imgui.BeginComboV("Monitor", monitorNames[config.FullScreenMonitor], imgui.ComboFlagsHeightLarge) {
+				for index, monitor := range monitorNames {
+					label := fmt.Sprintf("%s##monitor%d", monitor, index)
+					if imgui.SelectableBoolV(label, monitor == monitorNames[config.FullScreenMonitor], 0, imgui.Vec2{}) {
+						config.FullScreenMonitor = index
 
-			imgui.EndCombo()
+						p.EnableFullScreen(p.IsFullScreen())
+					}
+				}
+
+				imgui.EndCombo()
+			}
 		}
 	}
 
@@ -877,50 +950,122 @@ func uiDrawSettingsWindow(c *client.ControlClient, config *Config, activeRadarPa
 			imgui.EndCombo()
 		}
 
-		// Whisper model selection dropdown
-		if modelName := client.GetWhisperModelName(); modelName != "" {
-			imgui.Text("Model:")
-			imgui.SameLine()
-			// Format display name (remove ggml- prefix and .bin suffix for readability)
-			displayName := modelName
-			displayName = strings.TrimPrefix(displayName, "ggml-")
-			displayName = strings.TrimSuffix(displayName, ".bin")
-			if imgui.BeginComboV("##whispermodel", displayName, 0) {
-				// Auto option runs benchmark
-				if imgui.SelectableBoolV("Auto (Benchmark)", false, 0, imgui.Vec2{}) {
-					client.ForceWhisperRebenchmark(lg, func(modelName, deviceID string, benchmarkIndex int, realtimeFactor float64) {
-						config.WhisperModelName = modelName
-						config.WhisperDeviceID = deviceID
-						config.WhisperBenchmarkIndex = benchmarkIndex
-						config.WhisperRealtimeFactor = realtimeFactor
-					})
-					benchClient := &rebenchmarkModalClient{config: config, lg: lg}
-					uiShowModalDialog(NewModalDialogBox(benchClient, p), false)
-				}
-				imgui.Separator()
-				// Individual model options
-				for _, model := range client.GetWhisperModelTiers() {
-					modelDisplay := strings.TrimPrefix(model, "ggml-")
-					modelDisplay = strings.TrimSuffix(modelDisplay, ".bin")
-					isSelected := model == modelName
-					if imgui.SelectableBoolV(modelDisplay, isSelected, 0, imgui.Vec2{}) {
-						if model != modelName {
-							client.SelectWhisperModel(lg, model, func(modelName, deviceID string, benchmarkIndex int, realtimeFactor float64) {
-								config.WhisperModelName = modelName
-								config.WhisperDeviceID = deviceID
-								config.WhisperBenchmarkIndex = benchmarkIndex
-								config.WhisperRealtimeFactor = realtimeFactor
-							})
+		// Test PTT button
+		if ui.testPTTActive {
+			imgui.PushStyleColorVec4(imgui.ColButton, imgui.Vec4{0.8, 0.2, 0.2, 1})
+		}
+		imgui.Button("Test PTT (Hold)")
+		if ui.testPTTActive {
+			imgui.PopStyleColor()
+		}
+
+		// Handle Test PTT press (click starts, mouse-up ends)
+		if imgui.IsItemClicked() && !ui.testPTTActive && !ui.pttRecording {
+			ui.testPTTActive = true
+			ui.testPTTLevelMu.Lock()
+			ui.testPTTLevels = [6]float32{}
+			ui.testPTTLevelIdx = 0
+			ui.testPTTLevelMu.Unlock()
+
+			if err := p.StartAudioRecordingWithDevice(config.SelectedMicrophone); err != nil {
+				lg.Errorf("Test PTT: failed to start recording: %v", err)
+				ui.testPTTActive = false
+			} else {
+				p.SetAudioStreamCallback(func(samples []int16) {
+					// Update level meter
+					ui.testPTTLevelMu.Lock()
+					const windowSize = 800 // ~50ms at 16kHz
+					for offset := 0; offset < len(samples); offset += windowSize {
+						end := offset + windowSize
+						if end > len(samples) {
+							end = len(samples)
 						}
+						window := samples[offset:end]
+						var sumSq float64
+						for _, s := range window {
+							f := float64(s) / 32768.0
+							sumSq += f * f
+						}
+						rms := float32(gomath.Sqrt(sumSq / float64(len(window))))
+						ui.testPTTLevels[ui.testPTTLevelIdx%len(ui.testPTTLevels)] = rms
+						ui.testPTTLevelIdx++
 					}
-				}
-				imgui.EndCombo()
+					ui.testPTTLevelMu.Unlock()
+
+					// Resample and play back in real time
+					resampled := resample16kTo44k(samples)
+					p.AppendSpeechPCM(resampled)
+				})
 			}
 		}
 
-		if p.IsAudioRecording() {
+		// Handle Test PTT release (any mouse-up ends it)
+		if ui.testPTTActive && !imgui.IsMouseDown(0) {
+			ui.testPTTActive = false
+			p.SetAudioStreamCallback(nil)
+
+			if p.IsAudioRecording() {
+				p.StopAudioRecording()
+			}
+		}
+
+		// Sound meter and recording indicator (shown while Test PTT is held)
+		if ui.testPTTActive {
+			imgui.SameLine()
+			uiDrawAudioMeter()
+			imgui.SameLine()
 			imgui.TextColored(imgui.Vec4{1, 0, 0, 1}, "Recording...")
+		}
+
+		// Whisper model selection dropdown
+		imgui.Text("Model:")
+		imgui.SameLine()
+		modelName := client.GetWhisperModelName()
+		var displayName string
+		if modelName != "" {
+			// Format display name (remove ggml- prefix and .bin suffix for readability)
+			displayName = strings.TrimPrefix(modelName, "ggml-")
+			displayName = strings.TrimSuffix(displayName, ".bin")
+		} else if !client.IsWhisperBenchmarkDone() {
+			displayName = client.GetWhisperBenchmarkStatus()
 		} else {
+			displayName = "(no model)"
+		}
+		if imgui.BeginComboV("##whispermodel", displayName, 0) {
+			// Auto option runs benchmark
+			if imgui.SelectableBoolV("Auto (Benchmark)", false, 0, imgui.Vec2{}) {
+				client.ForceWhisperRebenchmark(lg, func(modelName, deviceID string, benchmarkIndex int, realtimeFactor float64) {
+					config.WhisperModelName = modelName
+					config.WhisperDeviceID = deviceID
+					config.WhisperBenchmarkIndex = benchmarkIndex
+					config.WhisperRealtimeFactor = realtimeFactor
+				})
+				benchClient := &rebenchmarkModalClient{config: config, lg: lg}
+				uiShowModalDialog(NewModalDialogBox(benchClient, p), false)
+			}
+			imgui.Separator()
+			// Individual model options
+			for _, model := range client.GetWhisperModelTiers() {
+				modelDisplay := strings.TrimPrefix(model, "ggml-")
+				modelDisplay = strings.TrimSuffix(modelDisplay, ".bin")
+				isSelected := model == modelName
+				if imgui.SelectableBoolV(modelDisplay, isSelected, 0, imgui.Vec2{}) {
+					if model != modelName {
+						client.SelectWhisperModel(lg, model, func(modelName, deviceID string, benchmarkIndex int, realtimeFactor float64) {
+							config.WhisperModelName = modelName
+							config.WhisperDeviceID = deviceID
+							config.WhisperBenchmarkIndex = benchmarkIndex
+							config.WhisperRealtimeFactor = realtimeFactor
+						})
+					}
+				}
+			}
+			imgui.EndCombo()
+		}
+
+		if p.IsAudioRecording() && !ui.testPTTActive {
+			imgui.TextColored(imgui.Vec4{1, 0, 0, 1}, "Recording...")
+		} else if !p.IsAudioRecording() {
 			if transcription := c.GetLastTranscription(); transcription != "" {
 				durationMs := c.GetLastWhisperDurationMs()
 				imgui.Text(fmt.Sprintf("Last transcription (%dms):", durationMs))
@@ -1023,7 +1168,7 @@ func uiHandlePTTKey(p platform.Platform, controlClient *client.ControlClient, co
 	}
 
 	// Start on initial press (ignore repeats by checking our own flags)
-	if imgui.IsKeyDown(pttKey) && !ui.pttRecording && !ui.pttGarbling && !ui.pttMicFailed {
+	if imgui.IsKeyDown(pttKey) && !ui.pttRecording && !ui.pttGarbling && !ui.pttMicFailed && !ui.testPTTActive {
 		if p.IsPlayingSpeech() {
 			// Audio is playing - garble it instead of recording
 			p.SetSpeechGarbled(true)
@@ -1099,4 +1244,100 @@ func uiHandlePTTKey(p platform.Platform, controlClient *client.ControlClient, co
 			lg.Infof("Push-to-talk: Stopped recording, processing streaming result...")
 		}
 	}
+}
+
+// uiDrawAudioMeter draws a horizontal audio level meter using the current
+// test PTT level data. During recording, levels come from the live stream
+// callback. During playback, levels are read from pre-computed data
+// advancing in real time.
+func uiDrawAudioMeter() {
+	ui.testPTTLevelMu.Lock()
+	var currentRMS, peakRMS float32
+	if ui.testPTTLevelIdx > 0 {
+		currentRMS = ui.testPTTLevels[(ui.testPTTLevelIdx-1)%len(ui.testPTTLevels)]
+		// Peak: max of last 5 entries (~250ms at 50ms per entry)
+		count := min(ui.testPTTLevelIdx, 5)
+		for i := range count {
+			rms := ui.testPTTLevels[(ui.testPTTLevelIdx-1-i)%len(ui.testPTTLevels)]
+			if rms > peakRMS {
+				peakRMS = rms
+			}
+		}
+	}
+	ui.testPTTLevelMu.Unlock()
+
+	currentNorm := rmsToNormalized(currentRMS)
+	peakNorm := rmsToNormalized(peakRMS)
+
+	meterWidth := float32(200)
+	meterHeight := float32(14)
+	cursor := imgui.CursorScreenPos()
+	// Vertically center the meter within the line
+	yOffset := (imgui.FrameHeight() - meterHeight) / 2
+	cursor.Y += yOffset
+	drawList := imgui.WindowDrawList()
+
+	pMax := imgui.Vec2{X: cursor.X + meterWidth, Y: cursor.Y + meterHeight}
+
+	// Background
+	drawList.AddRectFilled(cursor, pMax,
+		imgui.ColorU32Vec4(imgui.Vec4{0.15, 0.15, 0.15, 1}))
+
+	// Current level bar (green)
+	if currentNorm > 0 {
+		drawList.AddRectFilled(cursor,
+			imgui.Vec2{X: cursor.X + meterWidth*currentNorm, Y: cursor.Y + meterHeight},
+			imgui.ColorU32Vec4(imgui.Vec4{0.2, 0.8, 0.2, 1}))
+	}
+
+	// Peak marker (yellow vertical line)
+	if peakNorm > 0 {
+		peakX := cursor.X + meterWidth*peakNorm
+		drawList.AddLineV(
+			imgui.Vec2{X: peakX, Y: cursor.Y},
+			imgui.Vec2{X: peakX, Y: cursor.Y + meterHeight},
+			imgui.ColorU32Vec4(imgui.Vec4{1, 1, 0, 1}), 2)
+	}
+
+	// Border
+	drawList.AddRect(cursor, pMax,
+		imgui.ColorU32Vec4(imgui.Vec4{0.4, 0.4, 0.4, 1}))
+
+	imgui.Dummy(imgui.Vec2{X: meterWidth, Y: meterHeight})
+}
+
+// rmsToNormalized converts an RMS amplitude (0-1 range) to a normalized
+// 0-1 value using a dB scale, mapping -60dB..0dB to 0..1.
+func rmsToNormalized(rms float32) float32 {
+	if rms < 1e-6 {
+		return 0
+	}
+	db := 20 * gomath.Log10(float64(rms))
+	normalized := float32((db + 60) / 60)
+	if normalized < 0 {
+		return 0
+	}
+	if normalized > 1 {
+		return 1
+	}
+	return normalized
+}
+
+// resample16kTo44k resamples int16 PCM audio from 16kHz to 44.1kHz using
+// linear interpolation.
+func resample16kTo44k(input []int16) []int16 {
+	ratio := float64(platform.AudioSampleRate) / float64(platform.AudioInputSampleRate)
+	outputLen := int(float64(len(input)) * ratio)
+	output := make([]int16, outputLen)
+	for i := range output {
+		srcPos := float64(i) / ratio
+		idx := int(srcPos)
+		frac := srcPos - float64(idx)
+		if idx+1 < len(input) {
+			output[i] = int16(float64(input[idx])*(1-frac) + float64(input[idx+1])*frac)
+		} else if idx < len(input) {
+			output[i] = input[idx]
+		}
+	}
+	return output
 }

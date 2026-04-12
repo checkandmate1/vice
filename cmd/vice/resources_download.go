@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mmp/vice/log"
@@ -28,6 +29,14 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	implogl3 "github.com/AllenDang/cimgui-go/impl/opengl3"
+)
+
+type userSyncChoice int
+
+const (
+	syncBackupAndContinue userSyncChoice = iota
+	syncOverwriteAll
+	syncQuit
 )
 
 const resourcesBaseURL = "https://vice-resources.pharr.org"
@@ -145,8 +154,222 @@ func validateAllResourcesExist(resourcesDir string, manifest map[string]manifest
 	return true
 }
 
-// Removes any resource files that are present on disk but are not listed in the manifest.
-func removeStaleResourcesFiles(resourcesDir string, manifest map[string]manifestEntry) {
+// findUserModifiedFiles returns filenames from the new manifest whose on-disk
+// content was changed by the user (i.e. the hash differs from both the old and
+// new manifests).
+//
+// Note: if a previous sync crashed, partially-downloaded files may have hashes
+// matching neither manifest and will appear as "user modified." This is a
+// harmless false positive — the user would choose "Overwrite All."
+func findUserModifiedFiles(resourcesDir string, oldManifest, newManifest map[string]manifestEntry) []string {
+	var modified []string
+	for filename, newEntry := range newManifest {
+		oldEntry, inOld := oldManifest[filename]
+		if !inOld {
+			continue // new file in this release
+		}
+
+		fullPath := filepath.Join(resourcesDir, filename)
+		diskHash, err := calculateSHA256(fullPath)
+		if err != nil {
+			continue // file doesn't exist on disk; will be downloaded fresh
+		}
+
+		if diskHash == newEntry.Hash {
+			continue // already correct
+		}
+		if diskHash == oldEntry.Hash {
+			continue // user didn't change it; release updated it
+		}
+
+		modified = append(modified, filename)
+	}
+	return modified
+}
+
+// backupModifiedFiles copies each file in the list to
+// {configDir}/Vice/resource-backups/{timestamp}/, preserving the relative
+// directory structure. Returns the backup directory path.
+func backupModifiedFiles(resourcesDir string, files []string) (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user config dir: %v", err)
+	}
+
+	timestamp := time.Now().Format("2006-01-02T150405")
+	backupDir := filepath.Join(configDir, "Vice", "resource-backups", timestamp)
+
+	for _, relPath := range files {
+		src := filepath.Join(resourcesDir, relPath)
+		dst := filepath.Join(backupDir, relPath)
+
+		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+			return "", fmt.Errorf("failed to create backup directory for %s: %v", relPath, err)
+		}
+
+		srcFile, err := os.Open(src)
+		if err != nil {
+			return "", fmt.Errorf("failed to open %s for backup: %v", relPath, err)
+		}
+
+		dstFile, err := os.Create(dst)
+		if err != nil {
+			srcFile.Close()
+			return "", fmt.Errorf("failed to create backup file %s: %v", relPath, err)
+		}
+
+		_, err = io.Copy(dstFile, srcFile)
+		srcFile.Close()
+		dstFile.Close()
+		if err != nil {
+			return "", fmt.Errorf("failed to copy %s to backup: %v", relPath, err)
+		}
+	}
+
+	return backupDir, nil
+}
+
+// ModifiedFilesWarningModalClient implements ModalDialogClient to warn the
+// user about resource files they have modified that will be overwritten.
+type ModifiedFilesWarningModalClient struct {
+	files  []string
+	choice userSyncChoice
+	done   bool
+}
+
+func (m *ModifiedFilesWarningModalClient) Title() string {
+	return "Modified Resource Files Detected"
+}
+
+func (m *ModifiedFilesWarningModalClient) Opening() {}
+
+func (m *ModifiedFilesWarningModalClient) Buttons() []ModalDialogButton {
+	return []ModalDialogButton{
+		{
+			text: "Back Up and Update",
+			action: func() bool {
+				m.choice = syncBackupAndContinue
+				m.done = true
+				return true
+			},
+		},
+		{
+			text: "Overwrite All",
+			action: func() bool {
+				m.choice = syncOverwriteAll
+				m.done = true
+				return true
+			},
+		},
+		{
+			text: "Quit",
+			action: func() bool {
+				m.choice = syncQuit
+				m.done = true
+				return true
+			},
+		},
+	}
+}
+
+func (m *ModifiedFilesWarningModalClient) Draw() int {
+	imgui.Text("The following resource files have been modified locally and will be\noverwritten by the update:\n")
+	for _, f := range m.files {
+		imgui.BulletText(f)
+	}
+	imgui.Text("")
+	return -1
+}
+
+// BackupErrorModalClient is shown when backing up modified files fails.
+type BackupErrorModalClient struct {
+	errMsg string
+	choice userSyncChoice
+	done   bool
+}
+
+func (b *BackupErrorModalClient) Title() string {
+	return "Backup Failed"
+}
+
+func (b *BackupErrorModalClient) Opening() {}
+
+func (b *BackupErrorModalClient) Buttons() []ModalDialogButton {
+	return []ModalDialogButton{
+		{
+			text: "Overwrite All",
+			action: func() bool {
+				b.choice = syncOverwriteAll
+				b.done = true
+				return true
+			},
+		},
+		{
+			text: "Quit",
+			action: func() bool {
+				b.choice = syncQuit
+				b.done = true
+				return true
+			},
+		},
+	}
+}
+
+func (b *BackupErrorModalClient) Draw() int {
+	imgui.Text("Failed to back up modified files:\n")
+	imgui.Text(b.errMsg)
+	imgui.Text("")
+	return -1
+}
+
+// showModifiedFilesWarning shows the modified-files warning dialog and
+// returns the user's choice.
+func showModifiedFilesWarning(plat platform.Platform, files []string) userSyncChoice {
+	client := &ModifiedFilesWarningModalClient{files: files}
+	d := NewModalDialogBox(client, plat)
+	runModalEventLoop(plat, d, func() bool { return client.done })
+	return client.choice
+}
+
+// showBackupErrorWarning shows the backup error dialog and returns the
+// user's choice.
+func showBackupErrorWarning(plat platform.Platform, errMsg string) userSyncChoice {
+	client := &BackupErrorModalClient{errMsg: errMsg}
+	d := NewModalDialogBox(client, plat)
+	runModalEventLoop(plat, d, func() bool { return client.done })
+	return client.choice
+}
+
+// promptModifiedFilesText is the CLI/text-mode equivalent of showModifiedFilesWarning.
+// It prints the list of modified files and prompts the user for a choice.
+func promptModifiedFilesText(files []string) userSyncChoice {
+	fmt.Println("The following resource files have been modified locally and will be")
+	fmt.Println("overwritten by the update:")
+	for _, f := range files {
+		fmt.Println("  - " + f)
+	}
+	fmt.Println()
+	for {
+		fmt.Print("[b]ack up and update / [o]verwrite all / [q]uit? ")
+		var input string
+		fmt.Scanln(&input)
+		switch strings.ToLower(strings.TrimSpace(input)) {
+		case "b":
+			return syncBackupAndContinue
+		case "o":
+			return syncOverwriteAll
+		case "q":
+			return syncQuit
+		}
+	}
+}
+
+// removeStaleResourcesFiles removes resource files that are no longer needed.
+// When oldManifest is non-nil, only files that were in the old manifest but not
+// the new one are deleted — user-added files (not in either manifest) are left
+// alone. When oldManifest is nil (first install), all files not in newManifest
+// are deleted (original behavior).
+func removeStaleResourcesFiles(resourcesDir string, newManifest, oldManifest map[string]manifestEntry) {
 	filepath.Walk(resourcesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
@@ -163,9 +386,21 @@ func removeStaleResourcesFiles(resourcesDir string, manifest map[string]manifest
 
 		// Use forward slashes for lookup since manifest keys use forward slashes,
 		// but filepath.Rel returns OS-native separators (backslashes on Windows).
-		if _, ok := manifest[filepath.ToSlash(relPath)]; !ok {
-			os.Remove(path)
+		slashPath := filepath.ToSlash(relPath)
+
+		if _, inNew := newManifest[slashPath]; inNew {
+			return nil // still needed
 		}
+
+		if oldManifest != nil {
+			// Only delete files that were in the old manifest (i.e. managed by vice).
+			// User-added files (not in either manifest) are preserved.
+			if _, inOld := oldManifest[slashPath]; !inOld {
+				return nil
+			}
+		}
+
+		os.Remove(path)
 
 		return nil
 	})
@@ -325,7 +560,32 @@ func SyncResources(plat platform.Platform, r renderer.Renderer, lg *log.Logger) 
 		return fmt.Errorf("failed to get user config dir: %v", err)
 	}
 
-	resourcesDir := filepath.Join(configDir, "vice", "resources")
+	// Migrate from lowercase "vice" to "Vice" for case-sensitive filesystems.
+	oldDir := filepath.Join(configDir, "vice")
+	newDir := filepath.Join(configDir, "Vice")
+	oldInfo, oldErr := os.Stat(oldDir)
+	newInfo, newErr := os.Stat(newDir)
+	// On case-insensitive filesystems (macOS), both paths resolve to the same
+	// directory. os.SameFile detects this so we skip the migration entirely.
+	sameFile := oldErr == nil && newErr == nil && os.SameFile(oldInfo, newInfo)
+	if oldErr == nil && oldInfo.IsDir() && !sameFile {
+		if os.IsNotExist(newErr) {
+			// Only the old lowercase directory exists; rename it.
+			os.Rename(oldDir, newDir)
+		} else if newErr == nil {
+			// Both exist (unusual). Move resources if needed, then remove the old dir.
+			oldRes := filepath.Join(oldDir, "resources")
+			newRes := filepath.Join(newDir, "resources")
+			if _, err := os.Stat(oldRes); err == nil {
+				if _, err := os.Stat(newRes); os.IsNotExist(err) {
+					os.Rename(oldRes, newRes)
+				}
+			}
+			os.RemoveAll(oldDir)
+		}
+	}
+
+	resourcesDir := filepath.Join(configDir, "Vice", "resources")
 	manifestPath := filepath.Join(resourcesDir, "manifest.json")
 
 	var manifest map[string]manifestEntry
@@ -338,10 +598,53 @@ func SyncResources(plat platform.Platform, r renderer.Renderer, lg *log.Logger) 
 		return nil
 	}
 
-	// Otherwise remove the manifest immediately to reflect that the local resources
-	// directory will be in flux and doesn't match any manifest.
-	if _, err := os.Stat(manifestPath); err == nil {
-		os.Remove(manifestPath)
+	// Read the old local manifest (from the previous sync) for three-way
+	// comparison. We intentionally leave the old manifest on disk so that
+	// if the user quits, the warning reappears on next launch. It is
+	// overwritten by writeManifestFile at the end of a successful sync.
+	var oldManifest map[string]manifestEntry
+	if oldData, err := os.ReadFile(manifestPath); err == nil {
+		json.Unmarshal(oldData, &oldManifest) // ignore errors; treat as nil
+	}
+
+	// Check for user-modified files and warn before overwriting.
+	if oldManifest != nil {
+		modifiedFiles := findUserModifiedFiles(resourcesDir, oldManifest, manifest)
+		if len(modifiedFiles) > 0 {
+			var choice userSyncChoice
+			if plat != nil {
+				choice = showModifiedFilesWarning(plat, modifiedFiles)
+			} else {
+				choice = promptModifiedFilesText(modifiedFiles)
+			}
+
+			switch choice {
+			case syncQuit:
+				os.Exit(0)
+			case syncBackupAndContinue:
+				backupDir, err := backupModifiedFiles(resourcesDir, modifiedFiles)
+				if err != nil {
+					if plat != nil {
+						errChoice := showBackupErrorWarning(plat, err.Error())
+						if errChoice == syncQuit {
+							os.Exit(0)
+						}
+					} else {
+						fmt.Printf("Backup failed: %v\n", err)
+						fmt.Print("[o]verwrite all / [q]uit? ")
+						var input string
+						fmt.Scanln(&input)
+						if strings.ToLower(strings.TrimSpace(input)) == "q" {
+							os.Exit(0)
+						}
+					}
+				} else if plat == nil {
+					fmt.Printf("Modified files backed up to: %s\n", backupDir)
+				}
+			case syncOverwriteAll:
+				// proceed
+			}
+		}
 	}
 
 	ws, totalBytes := launchWorkers(resourcesDir, manifest)
@@ -425,7 +728,7 @@ func SyncResources(plat platform.Platform, r renderer.Renderer, lg *log.Logger) 
 		}
 	}
 
-	removeStaleResourcesFiles(resourcesDir, manifest)
+	removeStaleResourcesFiles(resourcesDir, manifest, oldManifest)
 
 	// Only now do we write the current manifest.json to reflect that we are good to go.
 	return writeManifestFile(manifestPath)

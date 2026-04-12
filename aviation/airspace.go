@@ -170,10 +170,10 @@ type CRDARegion struct {
 	HeadingTolerance float32 `json:"heading_tolerance"`
 
 	// Straight-line reference (mutually exclusive with ReferenceRoute)
-	ReferenceLineHeading   float32       `json:"reference_heading"`
-	ReferenceLineLength    float32       `json:"reference_length"`
-	ReferencePointAltitude float32       `json:"reference_altitude"`
-	ReferencePoint         math.Point2LL `json:"reference_point"`
+	ReferenceLineHeading   math.MagneticHeading `json:"reference_heading"`
+	ReferenceLineLength    float32              `json:"reference_length"`
+	ReferencePointAltitude float32              `json:"reference_altitude"`
+	ReferencePoint         math.Point2LL        `json:"reference_point"`
 
 	// Route-based reference (mutually exclusive with straight-line fields)
 	ReferenceRoute string `json:"reference_route"`
@@ -296,25 +296,26 @@ func parseCRDARoute(s string, loc Locator, nmPerLongitude, magneticVariation flo
 			break
 		}
 
-		// Which way are we turning? Use previous or next-after-arc
-		// waypoint to determine clockwise/counterclockwise.
-		var v0, v1 [2]float32
-		p0 := math.LL2NM(points[i].Location, nmPerLongitude)
-		p1 := math.LL2NM(points[i+1].Location, nmPerLongitude)
-		if i > 0 {
-			v0 = math.Sub2f(p0, math.LL2NM(points[i-1].Location, nmPerLongitude))
-			v1 = math.Sub2f(p1, p0)
-		} else {
-			if i+2 == len(points) {
-				e.ErrorString("must have at least one waypoint before or after arc to determine its orientation")
-				e.Pop()
-				continue
+		if points[i].Arc.Direction == DMEArcDirectionUnset {
+			// Direction wasn't explicitly provided; infer from surrounding waypoints.
+			var v0, v1 [2]float32
+			p0 := math.LL2NM(points[i].Location, nmPerLongitude)
+			p1 := math.LL2NM(points[i+1].Location, nmPerLongitude)
+			if i > 0 {
+				v0 = math.Sub2f(p0, math.LL2NM(points[i-1].Location, nmPerLongitude))
+				v1 = math.Sub2f(p1, p0)
+			} else {
+				if i+2 == len(points) {
+					e.ErrorString("must have at least one waypoint before or after arc to determine its orientation")
+					e.Pop()
+					continue
+				}
+				v0 = math.Sub2f(p1, p0)
+				v1 = math.Sub2f(math.LL2NM(points[i+2].Location, nmPerLongitude), p1)
 			}
-			v0 = math.Sub2f(p1, p0)
-			v1 = math.Sub2f(math.LL2NM(points[i+2].Location, nmPerLongitude), p1)
+			x := v0[0]*v1[1] - v0[1]*v1[0]
+			points[i].Arc.Direction = util.Select(x < 0, DMEArcDirectionClockwise, DMEArcDirectionCounterClockwise)
 		}
-		x := v0[0]*v1[1] - v0[1]*v1[0]
-		points[i].Arc.Clockwise = x < 0
 
 		if !points[i].Arc.Initialize(loc, points[i].Location, points[i+1].Location, nmPerLongitude, magneticVariation, e) {
 			points[i].Arc = nil
@@ -330,17 +331,17 @@ type ATPAVolume struct {
 	Id                  string `json:"id"`
 	ThresholdString     string `json:"runway_threshold"`
 	Threshold           math.Point2LL
-	Heading             float32  `json:"heading"`
-	MaxHeadingDeviation float32  `json:"max_heading_deviation"`
-	Floor               float32  `json:"floor"`
-	Ceiling             float32  `json:"ceiling"`
-	Length              float32  `json:"length"`
-	LeftWidth           float32  `json:"left_width"`
-	RightWidth          float32  `json:"right_width"`
-	FilteredScratchpads []string `json:"filtered_scratchpads"`
-	ExcludedScratchpads []string `json:"excluded_scratchpads"`
-	Enable25nmApproach  bool     `json:"enable_2.5nm"`
-	Dist25nmApproach    float32  `json:"2.5nm_distance"`
+	Heading             math.MagneticHeading `json:"heading"`
+	MaxHeadingDeviation float32              `json:"max_heading_deviation"`
+	Floor               float32              `json:"floor"`
+	Ceiling             float32              `json:"ceiling"`
+	Length              float32              `json:"length"`
+	LeftWidth           float32              `json:"left_width"`
+	RightWidth          float32              `json:"right_width"`
+	FilteredScratchpads []string             `json:"filtered_scratchpads"`
+	ExcludedScratchpads []string             `json:"excluded_scratchpads"`
+	Enable25nmApproach  bool                 `json:"enable_2.5nm"`
+	Dist25nmApproach    float32              `json:"2.5nm_distance"`
 }
 
 // CourseLine returns a polyline for drawing the course line of this CRDA region.
@@ -459,8 +460,7 @@ type RestrictionArea struct {
 	Shaded       bool `json:"shade_region"`
 	Color        int  `json:"color"`
 
-	Tris    [][3]math.Point2LL
-	Deleted bool
+	Tris [][3]math.Point2LL
 }
 
 type Airspace struct {
@@ -512,17 +512,21 @@ func (ra *RestrictionArea) UpdateTriangles() {
 			continue
 		}
 
-		vertices := make([]earcut.Vertex, len(loop))
-		for i, v := range loop {
-			vertices[i].P = [2]float64{float64(v[0]), float64(v[1])}
-		}
-
-		for _, tri := range earcut.Triangulate(earcut.Polygon{Rings: [][]earcut.Vertex{vertices}}) {
-			var v32 [3]math.Point2LL
-			for i, v64 := range tri.Vertices {
-				v32[i] = [2]float32{float32(v64.P[0]), float32(v64.P[1])}
+		// Decompose self-intersecting polygons into simple ones before
+		// triangulating; earcut doesn't handle self-intersections well.
+		for _, simple := range math.SplitSelfIntersectingPolygon(loop) {
+			vertices := make([]earcut.Vertex, len(simple))
+			for i, v := range simple {
+				vertices[i].P = [2]float64{float64(v[0]), float64(v[1])}
 			}
-			ra.Tris = append(ra.Tris, v32)
+
+			for _, tri := range earcut.Triangulate(earcut.Polygon{Rings: [][]earcut.Vertex{vertices}}) {
+				var v32 [3]math.Point2LL
+				for i, v64 := range tri.Vertices {
+					v32[i] = [2]float32{float32(v64.P[0]), float32(v64.P[1])}
+				}
+				ra.Tris = append(ra.Tris, v32)
+			}
 		}
 	}
 }

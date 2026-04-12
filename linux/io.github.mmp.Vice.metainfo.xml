@@ -45,6 +45,57 @@
   </branding>
 
   <releases>
+    <release version="0.14.2" date="2026-03-29">
+      <url type="details">https://pharr.org/vice/#release-0.14.2</url>
+      <description>
+        <ul>
+          <li>New scenario: LBB (Gecko), ZNY E/F (Ryan G), TYS (Jake Magee / manaphy), FAT (Ketan K), ZJX 88 (manaphy)</li>
+          <li>Scenario updates: NCT, SCT, ZLA (Ketan K), N90 (manaphy, Ryan G), MIA (Gecko), ZNY, PHL, BOS (Ryan G), BOS, DCA (radarcontacto), I90 (Ketan K), ZJX (manaphy)</li>
+          <li>Updated to AIRAC 260319 (Ketan K)</li>
+          <li>Adjusted radio noise simulation to reduce muffling of pilot responses</li>
+          <li>Added pin in subwindow top bars to control whether they stay on top of the main radar scope window (all are pinned by default)</li>
+          <li>Flight simulation: Added &quot;left/right direct {fix}&quot; instruction (LDFIX, RDFIX if you're not using stt)</li>
+          <li>Flight simulation: Improved pilot initial contact messages to include SIDs/STARs, altitude/speed restrictions, assigned headings, etc.</li>
+          <li>Flight simulation: Aircraft will continue to descend after reaching the end of a STAR</li>
+          <li>Flight simulation: Fixed some bugs with meeting altitude restrictions on STARs</li>
+          <li>STT: &quot;Negative, ...&quot; actually causes the aircraft that misheard the instruction to ignore it.</li>
+          <li>STT: &quot;Negative, (updated instructions)&quot; is allowed when an aircraft reads back the wrong instructions (i.e., the callsign isn't required).</li>
+          <li>STT: If a VFR calls in with a request, replying &quot;(callsign), XYZ approach&quot; is treated as &quot;go ahead&quot;</li>
+          <li>STT: Added support for &quot;expect direct (fix)&quot; / &quot;expect to rejoin the arrival at (fix)&quot;</li>
+          <li>STT: Fixed some issues with &quot;at (fix), cleared (approach)&quot;</li>
+          <li>Facility engineering: Added support for per-area and per-controller &quot;altimeters&quot; lists</li>
+          <li>Facility engineering: Added &quot;cleared_altitude&quot; for arrivals/overflights: this is like &quot;cleared_altitude&quot; for departures--aircraft try to get to that altitude when able, but obey altitude restrictions in their route while doing so.</li>
+          <li>Facility engineering: When specifying routes, you can now use &quot;/t&quot; to specify departing a fix on a track heading, and &quot;/lt&quot; and &quot;/rt&quot; with a heading to specify a left/right turn to the given track heading.</li>
+          <li>Facility engineering: When specifying routes, you can use &quot;/ld&quot; to specify to turn left when proceeding to the next fix, and similarly for &quot;/rd&quot; for turning right.</li>
+          <li>STARS: improved realism of datablock clock phases, add FE controls to specify cycle and lengths</li>
+          <li>Added pipeline to ingest and use historical TFRs (alongside wx)</li>
+          <li>Facility engineering: Improved restriction area specification in configs: RA numbers are now part of the specification, and auto-RAs-from-TFRs can be disabled</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.14.1" date="2026-03-09">
+      <url type="details">https://pharr.org/vice/#release-0.14.1</url>
+      <description>
+        <ul>
+          <li>New scenario: ZJX Consolidated (Jake Magee)</li>
+          <li>Text to speech now runs locally on your computer rather than in the cloud</li>
+          <li>Lots of small improvements to speech-to-text</li>
+          <li>Flight strips have been reworked; right click to get a menu to push them to the next controller</li>
+        </ul>
+        <p>Long requested: you can actually move sub-windows outside of the main window</p>
+        <ul>
+          <li>The flight strip and messages windows are now sub-windows and now its just the radar scope in the main window</li>
+        </ul>
+        <p>Added ATIS simulation: see the ATIS/METAR tab in the scenario info window for what's current</p>
+        <ul>
+          <li>Aircraft will call in with the current ATIS; if it's changed and they call in with the old one, STT supports "information X is now current," "advise you have information X", etc., or with the keyboard you can issue the command <code>ATIS/X</code> to tell them X is current</li>
+        </ul>
+        <p>ERAM updates:</p>
+        <ul>
+          <li>Added support for giving aircraft speeds in mach (Michael Trokel)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.14.0" date="2026-02-06">
       <url type="details">https://pharr.org/vice/#release-0.14.0</url>
       <description>

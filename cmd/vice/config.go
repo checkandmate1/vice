@@ -12,9 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/client"
 	"github.com/mmp/vice/eram"
 	"github.com/mmp/vice/log"
@@ -60,12 +58,11 @@ type ConfigNoSim struct {
 	ShowMessages     bool
 	ShowFlightStrips bool
 
-	TFRCache av.TFRCache
-
 	AskedDiscordOptIn      bool
 	InhibitDiscordActivity util.AtomicBool
 	NotifiedTargetGenMode  bool
 	DisableTextToSpeech    bool
+	EnableTowerGoArounds   bool
 
 	UserWorkstation    string
 	ControllerInitials string
@@ -78,6 +75,10 @@ type ConfigNoSim struct {
 	ShowLaunchCtrl   bool
 	ShowScenarioInfo bool
 	ShowKeyboardRef  bool
+
+	// Set of child windows that have been unpinned (not always-on-top).
+	// Windows absent from the set are pinned by default.
+	UnpinnedWindows map[string]struct{}
 
 	UserPTTKey         imgui.Key
 	SelectedMicrophone string
@@ -116,14 +117,30 @@ func (c *Config) Encode(w io.Writer) error {
 }
 
 func (c *Config) Save(lg *log.Logger) error {
-	lg.Infof("Saving config to: %s", configFilePath(lg))
-	f, err := os.Create(configFilePath(lg))
+	fn := configFilePath(lg)
+	lg.Infof("Saving config to: %s", fn)
+
+	// Write to a temp file in the same directory, then rename to the
+	// target path. This avoids corrupting the config file if we crash
+	// mid-write.
+	dir := filepath.Dir(fn)
+	tmp, err := os.CreateTemp(dir, "config-*.json.tmp")
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	tmpName := tmp.Name()
 
-	return c.Encode(f)
+	if err := c.Encode(tmp); err != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
+
+	return os.Rename(tmpName, fn)
 }
 
 func (c *Config) SaveIfChanged(renderer renderer.Renderer, platform platform.Platform,
@@ -143,8 +160,6 @@ func (c *Config) SaveIfChanged(renderer renderer.Renderer, platform platform.Pla
 	c.ImGuiSettings = imgui.SaveIniSettingsToMemory()
 	c.InitialWindowSize = platform.WindowSize()
 	c.InitialWindowPosition = platform.WindowPosition()
-	c.TFRCache.Sync(100*time.Millisecond, lg)
-
 	fn := configFilePath(lg)
 	onDisk, err := os.ReadFile(fn)
 	if err != nil {
@@ -182,7 +197,6 @@ func getDefaultConfig() *Config {
 			Config: platform.Config{
 				InitialWindowPosition: [2]int{100, 100},
 			},
-			TFRCache:              av.MakeTFRCache(),
 			Version:               server.ViceSerializeVersion,
 			WhatsNewIndex:         len(whatsNew),
 			NotifiedTargetGenMode: true, // don't warn for new installs
@@ -227,10 +241,6 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 			config.UserWorkstation = ""
 		}
 
-		if config.Version < 29 {
-			config.TFRCache = av.MakeTFRCache()
-		}
-
 		// Ensure all pane instances are initialized
 		if config.STARSPane == nil {
 			config.STARSPane = stars.NewSTARSPane()
@@ -263,12 +273,13 @@ func LoadOrMakeDefaultConfig(lg *log.Logger) (config *Config, configErr error) {
 		}
 	}
 
+	if config.UnpinnedWindows == nil {
+		config.UnpinnedWindows = make(map[string]struct{})
+	}
 	if config.UIFontSize == 0 {
 		config.UIFontSize = 16
 	}
 	config.Version = server.ViceSerializeVersion
-
-	config.TFRCache.UpdateAsync(lg)
 
 	imgui.LoadIniSettingsFromMemory(config.ImGuiSettings)
 

@@ -9,7 +9,6 @@ package nav
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	av "github.com/mmp/vice/aviation"
 )
@@ -54,7 +53,7 @@ func InitNavLog(enabled bool, categories string, callsign string) {
 }
 
 // NavLog logs a message with timestamp, callsign, and category
-func NavLog(callsign string, simTime time.Time, category string, format string, args ...interface{}) {
+func NavLog(callsign string, simTime Time, category string, format string, args ...interface{}) {
 	if !navlogEnabled {
 		return
 	}
@@ -80,7 +79,7 @@ func NavLogEnabled(category string) bool {
 }
 
 // LogRoute logs the current route for an aircraft
-func LogRoute(callsign string, simTime time.Time, waypoints av.WaypointArray) {
+func LogRoute(callsign string, simTime Time, waypoints av.WaypointArray) {
 	if !navlogEnabled || !navlogCategories[NavLogRoute] {
 		return
 	}

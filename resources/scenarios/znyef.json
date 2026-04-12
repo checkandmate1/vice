@@ -1,0 +1,1085 @@
+{
+  "artcc": "ZNY",
+  "area": "Areas E & F (East)",
+  "name": "Areas E & F (East)",
+  "airports": {
+    "KFRG": {
+      "vfr": {
+        "random_routes": {
+          "rate": 10
+        }
+      }
+    },
+    "KUNV": {
+      "vfr": {
+        "random_routes": {
+          "rate": 10
+        }
+      }
+    },
+    "KRDG": {
+      "vfr": {
+        "random_routes": {
+          "rate": 10
+        }
+      }
+    },
+    "KIPT": {
+      "vfr": {
+        "random_routes": {
+          "rate": 10
+        }
+      }
+    },
+    "KLGA": {
+      "approaches": {
+        "I22": {
+          "cifp_id": "I22"
+        }
+      }
+    },
+    "KBOS": {
+      "approaches": {
+        "I2L": {
+          "cifp_id": "I22L"
+        }
+      }
+    },
+    "KMDT": {
+      "approaches": {
+        "I31": {
+          "cifp_id": "I31"
+        }
+      }
+    },
+    "KIAD": {
+      "approaches": {
+        "I1R": {
+          "cifp_id": "I1R"
+        }
+      }
+    },
+    "KBDL": {
+      "approaches": {
+        "I24": {
+          "cifp_id": "I24"
+        }
+      }
+    },
+    "KSYR": {
+      "approaches": {
+        "I28": {
+          "cifp_id": "I28"
+        }
+      }
+    },
+    "KEWR": {
+      "approaches": {
+        "I2L": {
+          "cifp_id": "I22L"
+        }
+      },
+      "departure_routes": {
+        "22R": {
+          "DIXIE": {
+            "cleared_altitude": 11000,
+            "sid": "EWR5",
+            "waypoints": "ELVAE COL/ho86",
+            "departure_controller": "N4N"
+          }
+        }
+      },
+      "departures": [
+        {
+          "airlines": [
+            {
+              "fleet": "long",
+              "icao": "TAP"
+            }
+          ],
+          "altitude": 33000,
+          "destination": "LPPT",
+          "exit": "DIXIE",
+          "route": "DIXIE Y481 POPPN ISLES JENYY DOVEY 4100N/06000W 4100N/05000W 3900N/04000W 3800N/03000W 3800N/02000W KOMUT BUSEN BUSEN5P"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "UAL"
+            }
+          ],
+          "altitude": 37000,
+          "destination": "MDSD",
+          "exit": "DIXIE",
+          "route": "DIXIE Y481 OHRYN Y488 HOBOH Y488 SAUCR L453 BOREX L453 LAMER L453 RODRK POKEG UT17 KOBET KERSO"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "UAL"
+            }
+          ],
+          "altitude": 39000,
+          "destination": "TNCM",
+          "exit": "DIXIE",
+          "route": "DIXIE Y481 POPPN Y481 OHRYN Y482 SQUAD DARUX L456 NOSID L456 HANCY L456 THANK SLUGO"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "UAL"
+            }
+          ],
+          "altitude": 33000,
+          "destination": "MDPC",
+          "exit": "DIXIE",
+          "route": "DIXIE Y481 OHRYN Y482 SQUAD DARUX L456 HANCY L456 THANK M597 BETIR"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "UAL"
+            }
+          ],
+          "altitude": 33000,
+          "destination": "TNCA",
+          "exit": "DIXIE",
+          "route": "DIXIE Y481 OHRYN Y482 SQUAD DARUX L456 HANCY L456 THANK L458 PANMO JOSHE L325 SCAPA"
+        }
+      ]
+    },
+    "KJFK": {
+      "approaches": {
+        "I2L": {
+          "cifp_id": "I22L"
+        },
+        "I4R": {
+          "cifp_id": "I4R"
+        }
+      },
+      "departure_routes": {
+        "4L": {
+          "SHIPP,WAVEY": {
+            "cleared_altitude": 12000,
+            "sid": "JFK5",
+            "waypoints": "N040.31.57.375,W073.35.06.683/ho66"
+          }
+        }
+      },
+      "departures": [
+        {
+          "airlines": [
+            {
+              "icao": "JBU",
+              "types": ["A320"]
+            },
+            {
+              "icao": "AAL",
+              "types": ["B38M"]
+            }
+          ],
+          "destination": "TAPA",
+          "altitude": [31000, 33000, 35000, 37000, 39000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y492 SQUAD DARUX L456 THANK ELOPO"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "JBU",
+              "types": ["A321", "A320"]
+            },
+            {
+              "icao": "AAL",
+              "types": ["B38M"]
+            }
+          ],
+          "destination": "TBPB",
+          "altitude": [31000, 33000, 35000, 37000, 39000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y492 SQUAD DARUX DASER GECAL L461 YIYYO LAMKN UL462 ANU UA632 BGI"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "JBU",
+              "types": ["BCS3"]
+            },
+            {
+              "icao": "DAL",
+              "types": ["A319"]
+            },
+            {
+              "icao": "AAL",
+              "types": ["A319"]
+            }
+          ],
+          "destination": "TXKF",
+          "altitude": [31000, 33000, 35000, 37000, 39000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y487 KINGG KINER L461 BOVIC MOMOM1"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "AAL",
+              "types": ["B772"]
+            }
+          ],
+          "destination": "SAEZ",
+          "altitude": [31000, 33000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y492 SQUAD DARUX L459 AWSOM L459 SHEIL L459 KEEKA L329 ZPATA UL329 KORTO ETATA UL322 MNS UM402 DEMIT UM402 VUDUP UN741 PAPIX PAPIX7A"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "DAL",
+              "types": ["B739", "B739", "B738", "B739", "B739"]
+            },
+            {
+              "icao": "JBU",
+              "types": [
+                "A321",
+                "A21N",
+                "A321",
+                "A321",
+                "A321",
+                "A321",
+                "A321",
+                "A21N",
+                "A321",
+                "A321",
+                "A321",
+                "A321",
+                "A320",
+                "A321",
+                "A321"
+              ]
+            },
+            {
+              "icao": "AAL",
+              "types": ["B77W", "B38M", "B738", "B38M", "B738", "B738", "B38M", "B738", "B738"]
+            },
+            {
+              "icao": "FFT",
+              "types": ["A20N"]
+            }
+          ],
+          "destination": "KMIA",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 KALDA Q101 SKARP Y313 HOAGG BNFSH3"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "JBU",
+              "types": ["A321", "A320", "A320", "A321"]
+            },
+            {
+              "icao": "DAL",
+              "types": ["A21N"]
+            },
+            {
+              "icao": "AAL",
+              "types": ["B738"]
+            }
+          ],
+          "destination": "MKJS",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 ZJAAY ORF KOOKI Q161 CHIEZ AR19 JRDAN AR3 ZQA B503 ENAMO NEFTU UR625 ULDAR R625 TILUP"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "AAL",
+              "types": ["B38M"]
+            },
+            {
+              "icao": "DAL",
+              "types": ["A21N"]
+            },
+            {
+              "icao": "JBU",
+              "types": ["A321", "A321", "A321", "BCS3", "A320"]
+            }
+          ],
+          "destination": "MDPC",
+          "altitude": [31000, 33000, 35000, 37000, 39000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y488 HERCC Y488 SAUCR L453 LAMER L453 RODRK POKEG POKEG1W"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "AAL",
+              "types": ["A319"]
+            },
+            {
+              "icao": "DAL",
+              "types": ["B752"]
+            }
+          ],
+          "destination": "TIST",
+          "altitude": [31000, 33000, 35000, 37000, 39000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y492 SQUAD DARUX L456 HANCY L456 THANK JETSS"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "AAL",
+              "types": ["B789"]
+            },
+            {
+              "icao": "DAL",
+              "types": ["A339"]
+            },
+            {
+              "icao": "TAM",
+              "types": ["B789", "B789"]
+            }
+          ],
+          "destination": "SBGR",
+          "altitude": [31000, 33000, 35000, 37000, 39000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y492 SQUAD DARUX L459 SHEIL L459 KEEKA L329 ZPATA UL329 KORTO ETATA UP535 MOMSO UZ24 MULUV UZ38 VUNOX VUNOX1A"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "RPA",
+              "types": ["E75L", "E75L"]
+            },
+            {
+              "icao": "EDV",
+              "types": ["CRJ9", "CRJ9", "CRJ9", "CRJ9"]
+            }
+          ],
+          "destination": "KORF",
+          "altitude": [26000, 28000, 30000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 ZJAAY CCV"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "RPA",
+              "types": ["E75L", "E75L", "E75L", "E75L"]
+            },
+            {
+              "icao": "EDV",
+              "types": ["CRJ9", "CRJ9", "CRJ9", "CRJ9", "CRJ9"]
+            },
+            {
+              "icao": "DAL",
+              "types": ["B752"]
+            },
+            {
+              "icao": "JBU",
+              "types": ["A320", "A320", "A320"]
+            }
+          ],
+          "destination": "KRDU",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 ZJAAY TAQLE2"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "AVA",
+              "types": ["A20N", "A20N", "A20N"]
+            }
+          ],
+          "destination": "SKBO",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 ZJAAY KALDA Q161 PYSTN Q161 KOOKI SKARP AR22 IDOLS DIZNY AR3 JAZZI OZENA 2840N/07858W PERMT URSUS UP406 AKPEK UQ121 ISVAT ISVA4E"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "AVA",
+              "types": ["A320", "A320"]
+            }
+          ],
+          "destination": "SKRG",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 ZJAAY KALDA Q161 KOOKI SKARP AR22 IDOLS DIZNY AR3 JAZZI OZENA PERMT URSUS UP406 AKPEK AKPE4C"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "JBU",
+              "types": ["A320"]
+            }
+          ],
+          "destination": "MROC",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 ZJAAY KALDA Q131 WAALT AR17 VKZ MNATE Y442 FUNDI UM335 ALVEK UM328 SELEK CRUTA COLOR"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "CMP",
+              "types": ["B738", "B738", "B39M"]
+            }
+          ],
+          "destination": "MPTO",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 PAJET Q167 ZJAAY KALDA Q101 SKARP JRDAN AR3 JAZZI Y319 ZFP Y319 URSUS UL780 DAGUD VUNIB OSUPA2"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "DAL",
+              "types": ["A339"]
+            }
+          ],
+          "destination": "DGAA",
+          "altitude": [31000, 33000, 35000, 37000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y487 ISLES SLATN 3800N/06000W 3500N/05000W 3100N/04000W 2800N/03500W 2500N/03000W BAMUX SEPOM ANITI UR979 ERMIT TUSEK UL433 ACC"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "AAL",
+              "types": ["B77W"]
+            },
+            {
+              "icao": "DAL",
+              "types": ["B764"]
+            },
+            {
+              "icao": "IBE",
+              "types": ["A359"]
+            }
+          ],
+          "destination": "LEBL",
+          "altitude": [31000, 33000, 35000, 37000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y487 ISLES JENYY DOVEY 4200N/06000W 4400N/05000W 4600N/04000W 4700N/03000W 4700N/02000W BEGAS VES LASKU M190 RONSI M190 BLV M601 RONKO M601 GRAUS GRAU2W"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "DAL",
+              "types": ["B763"]
+            }
+          ],
+          "destination": "GOBD",
+          "altitude": [31000, 33000, 35000, 37000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y487 ISLES Y487 KINGG KINER L461 BOVIC 3400N/06000W 3000N/05000W 2400N/04000W TEGTO GAMBA UR976 LUMPO"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "DAL",
+              "types": ["A339"]
+            },
+            {
+              "icao": "TAP",
+              "types": ["A332"]
+            }
+          ],
+          "destination": "LPPT",
+          "altitude": [31000, 33000, 35000, 37000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y487 ISLES SLATN SOORY 4200N/05000W 4200N/04000W 4200N/03000W 4100N/02000W ERPES LAZET LAZE2A"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "DAL",
+              "types": ["A321", "A321"]
+            },
+            {
+              "icao": "JBU",
+              "types": ["A321", "A320", "A321", "A320"]
+            }
+          ],
+          "destination": "KMCO",
+          "altitude": [30000, 32000, 34000, 36000, 38000],
+          "exit": "WAVEY",
+          "route": "WAVEY EMJAY Q167 ZJAAY Q97 SAWED MOXXY Q85 LPERD GTOUT1"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "JBU",
+              "types": ["A320", "A321"]
+            }
+          ],
+          "destination": "TNCM",
+          "altitude": [31000, 33000, 35000, 37000, 39000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y492 SQUAD DARUX L456 THANK SLUGO A638 PJM"
+        },
+        {
+          "airlines": [
+            {
+              "icao": "ETH",
+              "types": ["B789"]
+            }
+          ],
+          "destination": "DIAP",
+          "altitude": [31000, 33000],
+          "exit": "SHIPP",
+          "route": "SHIPP Y487 ISLES SLATN MUNEY 3700N/06000W 3200N/05000W 2900N/04500W 2700N/04000W 2500N/03500W ULTEM UR976 LUMPO BADIA UR979 LUGMI FRH ERMIT UR979 PIVKI PIVKI1L"
+        }
+      ]
+    },
+    "KTEB": {
+      "approaches": {
+        "I19": {
+          "cifp_id": "I19"
+        }
+      }
+    },
+    "KDCA": {
+      "approaches": {
+        "I1": {
+          "cifp_id": "I1"
+        }
+      }
+    },
+    "KBWI": {
+      "approaches": {
+        "I3L": {
+          "cifp_id": "I33L"
+        }
+      }
+    },
+    "KWRI": {
+      "approaches": {
+        "I6": {
+          "full_name": "ILS Approach Runway 6",
+          "runway": "6",
+          "type": "ILS",
+          "waypoints": ["CISON FENKA/a2000/faf NEBDE KWRI"]
+        }
+      }
+    },
+    "KPHL": {
+      "approaches": {
+        "I7R": {
+          "cifp_id": "I27R"
+        }
+      }
+    },
+    "KHPN": {
+      "approaches": {
+        "I34": {
+          "cifp_id": "I34"
+        }
+      }
+    },
+    "KISP": {
+      "approaches": {
+        "I6": {
+          "cifp_id": "I6"
+        }
+      }
+    },
+    "KHVN": {
+      "approaches": {
+        "I2": {
+          "cifp_id": "I2"
+        }
+      }
+    },
+    "KBDR": {
+      "approaches": {
+        "R6": {
+          "cifp_id": "R6"
+        }
+      }
+    },
+    "KOXC": {
+      "approaches": {
+        "R18": {
+          "cifp_id": "R18"
+        }
+      }
+    }
+  },
+  "inbound_flows": {
+    "OWENZ (66)": {
+      "arrivals": [
+        {
+          "waypoints": "N039.41.03.299,W072.30.40.347/ho66 OWENZ CAMRN JFK/delete",
+          "cruise_altitude": 35000,
+          "star": null,
+          "route": "/. OWENZ CAMRN JFK",
+          "initial_controller": "86",
+          "initial_altitude": 14000,
+          "assigned_altitude": 14000,
+          "initial_speed": 300,
+          "airlines": {
+            "KJFK": [
+              {
+                "icao": "AAL",
+                "airport": "MDSD"
+              },
+              {
+                "icao": "AAL",
+                "airport": "TXKF"
+              },
+              {
+                "icao": "JBU",
+                "airport": "TXKF"
+              },
+              {
+                "icao": "JBU",
+                "airport": "TJSJ"
+              },
+              {
+                "icao": "AAL",
+                "airport": "TJSJ"
+              },
+              {
+                "icao": "AAL",
+                "fleet": "long",
+                "airport": "SBGR"
+              },
+              {
+                "icao": "TAM",
+                "fleet": "long",
+                "airport": "SBGR"
+              },
+              {
+                "icao": "BWA",
+                "airport": "SYCJ"
+              },
+              {
+                "icao": "DAL",
+                "airport": "MDPC"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "METRO (66)": {
+      "arrivals": [
+        {
+          "waypoints": "OWENZ/ho66 Y497 SUBBS CYN GXU RBV V249 METRO EWR/delete",
+          "cruise_altitude": 35000,
+          "star": null,
+          "route": "/. OWENZ Y497 SUBBS CYN GXU RBV V249 METRO EWR",
+          "initial_controller": "86",
+          "initial_altitude": 10000,
+          "assigned_altitude": 10000,
+          "initial_speed": 300,
+          "airlines": {
+            "KEWR": [
+              {
+                "icao": "UAL",
+                "airport": "MDSD"
+              },
+              {
+                "icao": "BMA",
+                "airport": "TQPF"
+              },
+              {
+                "icao": "UAL",
+                "airport": "MDPC"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "SARDI1": {
+      "arrivals": [
+        {
+          "waypoints": "JENGA/ho66 RAINN BRIGS HARBO DRIFT MANTA PLUME SHERL DUNEE KOPPY SARDI CCC/delete",
+          "cruise_altitude": 35000,
+          "star": null,
+          "route": "/. JENGA RAINN BRIGS HARBO DRIFT MANTA PLUME SHERL DUNEE KOPPY SARDI CCC",
+          "initial_controller": "W59",
+          "initial_altitude": 21000,
+          "assigned_altitude": 21000,
+          "initial_speed": 300,
+          "airlines": {
+            "KOXC": [
+              {
+                "icao": "DPJ",
+                "airport": "KBWI"
+              }
+            ],
+            "KISP": [
+              {
+                "icao": "JBU",
+                "airport": "KPBI"
+              },
+              {
+                "icao": "SWA",
+                "airport": "KBWI"
+              },
+              {
+                "icao": "SWA",
+                "airport": "KTPA"
+              },
+              {
+                "icao": "MXY",
+                "airport": "KORF"
+              },
+              {
+                "icao": "VXP",
+                "airport": "KJQF"
+              },
+              {
+                "icao": "JBU",
+                "airport": "KFLL"
+              },
+              {
+                "icao": "FFT",
+                "airport": "KTPA"
+              }
+            ],
+            "KHVN": [
+              {
+                "icao": "MXY",
+                "airport": "KORF"
+              },
+              {
+                "icao": "VXP",
+                "airport": "KJQF"
+              },
+              {
+                "icao": "VXP",
+                "airport": "KBWI"
+              },
+              {
+                "icao": "VXP",
+                "airport": "KDAB"
+              },
+              {
+                "icao": "VXP",
+                "airport": "KFLL"
+              },
+              {
+                "icao": "VXP",
+                "airport": "KATL"
+              },
+              {
+                "icao": "MXY",
+                "airport": "KJAX"
+              }
+            ],
+            "KBDR": [
+              {
+                "icao": "N",
+                "fleet": "fastGA",
+                "airport": "KORF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "BOUNO5": {
+      "arrivals": [
+        {
+          "waypoints": "SIE/ho66 BECKR KKONG ANTMN BOUNO DPK SOUND GWENY ZAHNN EILEN WESTO BDR ALIXX RYMES KHPN/delete",
+          "cruise_altitude": 35000,
+          "star": null,
+          "route": "/. SIE BECKR KKONG ANTMN BOUNO DPK SOUND GWENY ZAHNN EILEN WESTO BDR ALIXX RYMES KHPN",
+          "initial_controller": "W59",
+          "initial_altitude": 24000,
+          "assigned_altitude": 24000,
+          "initial_speed": 300,
+          "airlines": {
+            "KHPN": [
+              {
+                "icao": "DAL",
+                "airport": "KATL"
+              },
+              {
+                "icao": "JBU",
+                "airport": "KPBI"
+              },
+              {
+                "icao": "JBU",
+                "airport": "KRSW"
+              },
+              {
+                "icao": "DAL",
+                "airport": "KATL"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "Y578": {
+      "arrivals": [
+        {
+          "waypoints": "KAYYT/ho65 Y578 JENYY FERNZ/delete",
+          "cruise_altitude": 35000,
+          "star": null,
+          "route": "/. KAYYT Y578 JENYY FERNZ",
+          "initial_controller": "80",
+          "initial_altitude": 36000,
+          "assigned_altitude": 36000,
+          "initial_speed": 300,
+          "airlines": {
+            "KBOS": [
+              {
+                "icao": "JBU",
+                "airport": "TJSJ"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "JIIMS4 (BRIGS)": {
+      "arrivals": [
+        {
+          "waypoints": "SARDI/ho66 Q439 BRIGS IROKT JIIMS ZMRMN/delete",
+          "cruise_altitude": 35000,
+          "star": null,
+          "route": "/. SARDI Q439 BRIGS IROKT JIIMS ZMRMN",
+          "initial_controller": "B31",
+          "initial_altitude": 20000,
+          "assigned_altitude": 20000,
+          "initial_speed": 300,
+          "airlines": {
+            "KPHL": [
+              {
+                "icao": "JBU",
+                "airport": "TJSJ"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "Overflights": {
+      "overflights": [
+        {
+          "airlines": [
+            {
+              "departure_airport": "KMHT",
+              "arrival_airport": "KTPA",
+              "icao": "N",
+              "fleet": "fastGA"
+            },
+            {
+              "departure_airport": "EHAM",
+              "arrival_airport": "KATL",
+              "icao": "KLM"
+            },
+            {
+              "departure_airport": "EHAM",
+              "arrival_airport": "KATL",
+              "icao": "DAL"
+            },
+            {
+              "departure_airport": "KBOS",
+              "arrival_airport": "KATL",
+              "icao": "SWA"
+            },
+            {
+              "departure_airport": "EGLL",
+              "arrival_airport": "KATL",
+              "icao": "DAL"
+            }
+          ],
+          "initial_altitude": 34000,
+          "assigned_altitude": 34000,
+          "initial_controller": "80",
+          "initial_speed": 300,
+          "waypoints": "N037.10.23.858,W070.28.23.018/ho86 SAVIK N038.49.50.753,W071.38.40.999 JFK GAYEL/delete"
+        }
+      ]
+    },
+    "ONGOT": {
+      "overflights": [
+        {
+          "airlines": [
+            {
+              "departure_airport": "TNCA",
+              "arrival_airport": "KBOS",
+              "icao": "JBU"
+            },
+            {
+              "departure_airport": "TJSJ",
+              "arrival_airport": "KBOS",
+              "icao": "JBU"
+            }
+          ],
+          "initial_altitude": 36000,
+          "assigned_altitude": 36000,
+          "initial_controller": "80",
+          "initial_speed": 300,
+          "waypoints": "ONGOT/ho86 L453 SAUCR Y485 HOBOH Y485 YAALE Y495 MOUGH Y495 SHAYD Y495 OWENZ SHERL ORCHA ROBUC/delete"
+        }
+      ]
+    }
+  },
+  "default_scenario": "ZNY Areas E & F Combined",
+  "scenarios": {
+    "ZNY MANTA 66": {
+      "configuration": "N66",
+      "default_maps": [],
+      "default_map_group": "ZNYMAP",
+      "departure_runways": [
+        {
+          "airport": "KJFK",
+          "rate": 15,
+          "runway": "4L"
+        }
+      ],
+      "arrival_runways": [
+        {
+          "airport": "KJFK",
+          "runway": "4R"
+        },
+        {
+          "airport": "KEWR",
+          "runway": "22L"
+        },
+        {
+          "airport": "KISP",
+          "runway": "6"
+        },
+        {
+          "airport": "KHVN",
+          "runway": "2"
+        },
+        {
+          "airport": "KBDR",
+          "runway": "6"
+        },
+        {
+          "airport": "KOXC",
+          "runway": "18"
+        },
+        {
+          "airport": "KHPN",
+          "runway": "34"
+        },
+        {
+          "airport": "KPHL",
+          "runway": "27R"
+        }
+      ],
+      "inbound_rates": {
+        "OWENZ (66)": {
+          "KJFK": 20
+        },
+        "METRO (66)": {
+          "KEWR": 10
+        },
+        "BOUNO5": {
+          "KHPN": 9
+        },
+        "JIIMS4 (BRIGS)": {
+          "KPHL": 15
+        },
+        "SARDI1": {
+          "KHVN": 2,
+          "KISP": 3,
+          "KOXC": 1,
+          "KBDR": 2
+        }
+      },
+      "wind": {
+        "direction": "130-180",
+        "speed": "5+",
+        "flight_rules": "VMC"
+      }
+    },
+    "ZNY Areas E & F Combined": {
+      "configuration": "NEF",
+      "default_maps": [],
+      "default_map_group": "ZNYMAP",
+      "departure_runways": [
+        {
+          "airport": "KJFK",
+          "rate": 8,
+          "runway": "4L"
+        },
+        {
+          "airport": "KEWR",
+          "rate": 7,
+          "runway": "22R"
+        }
+      ],
+      "arrival_runways": [
+        {
+          "airport": "KJFK",
+          "runway": "4R"
+        },
+        {
+          "airport": "KBOS",
+          "runway": "22L"
+        },
+        {
+          "airport": "KEWR",
+          "runway": "22L"
+        },
+        {
+          "airport": "KISP",
+          "runway": "6"
+        },
+        {
+          "airport": "KHVN",
+          "runway": "2"
+        },
+        {
+          "airport": "KBDR",
+          "runway": "6"
+        },
+        {
+          "airport": "KOXC",
+          "runway": "18"
+        },
+        {
+          "airport": "KHPN",
+          "runway": "34"
+        },
+        {
+          "airport": "KPHL",
+          "runway": "27R"
+        }
+      ],
+      "inbound_rates": {
+        "BOUNO5": {
+          "KHPN": 9
+        },
+        "SARDI1": {
+          "KHVN": 2,
+          "KISP": 3,
+          "KOXC": 1,
+          "KBDR": 2
+        },
+        "Y578": {
+          "KBOS": 5
+        },
+        "JIIMS4 (BRIGS)": {
+          "KPHL": 5
+        },
+        "ONGOT": {
+          "overflights": 5
+        }
+      },
+      "wind": {
+        "direction": "130-180",
+        "speed": "5+",
+        "flight_rules": "VMC"
+      }
+    }
+  }
+}

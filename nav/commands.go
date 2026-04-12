@@ -7,7 +7,7 @@ package nav
 import (
 	"fmt"
 	"slices"
-	"time"
+	"strings"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
@@ -26,6 +26,11 @@ func (nav *Nav) GoAroundWithProcedure(altitude float32, runwayEndWP av.Waypoint)
 }
 
 func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
+	nav.clearFixAltitudes()
+	return nav.assignAltitude(alt, afterSpeed)
+}
+
+func (nav *Nav) assignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 	if alt > nav.Perf.Ceiling {
 		return av.MakeUnableIntent("unable. That altitude is above our ceiling.")
 	}
@@ -44,19 +49,35 @@ func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool) av.CommandIntent {
 		Direction: direction,
 	}
 
-	if afterSpeed && nav.Speed.Assigned != nil && *nav.Speed.Assigned != nav.FlightState.IAS {
-		nav.Altitude.AfterSpeed = &alt
-		spd := *nav.Speed.Assigned
-		nav.Altitude.AfterSpeedSpeed = &spd
-		intent.AfterSpeed = &spd
-	} else {
-		nav.Altitude = NavAltitude{Assigned: &alt}
+	if sr := nav.Speed.Assigned; afterSpeed && sr != nil {
+		if spd, exact := sr.ExactValue(); exact && spd != nav.FlightState.IAS {
+			nav.Altitude = NavAltitude{
+				AfterSpeed:      &alt,
+				AfterSpeedSpeed: &spd,
+			}
+			intent.AfterSpeed = &spd
+			return intent
+		}
 	}
+
+	// If there's an exact speed change in progress (>=20kt remaining or any Mach change),
+	// defer the speed assignment until after the altitude change completes.
+	if sr := nav.Speed.Assigned; sr != nil {
+		if spd, exact := sr.ExactValue(); exact &&
+			(sr.IsMach || math.Abs(spd-nav.FlightState.IAS) >= 20) {
+			srCopy := *sr
+			nav.Speed = NavSpeed{
+				AfterAltitude:         &srCopy,
+				AfterAltitudeAltitude: &alt,
+			}
+		}
+	}
+	nav.Altitude = NavAltitude{Assigned: &alt}
 
 	return intent
 }
 
-func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp float32) av.CommandIntent {
+func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {
 	if mach == 0 {
 		nav.Speed = NavSpeed{}
 		return av.SpeedIntent{Type: av.SpeedCancel}
@@ -68,12 +89,29 @@ func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp float32) av.Co
 		return av.MakeUnableIntent("unable. we haven't reached mach transition altitude")
 	} else if afterAltitude && nav.Altitude.Assigned != nil &&
 		*nav.Altitude.Assigned != nav.FlightState.Altitude {
-		nav.Speed.AfterAltitude = &mach
 		alt := *nav.Altitude.Assigned
-		nav.Speed.AfterAltitudeAltitude = &alt
+		sr := av.MakeMachRestriction(mach)
+		nav.Speed = NavSpeed{
+			AfterAltitude:         &sr,
+			AfterAltitudeAltitude: &alt,
+		}
 		return av.SpeedIntent{Speed: mach, AfterAltitude: &alt, Type: av.SpeedAssign, Mach: true}
 	} else {
-		nav.Speed = NavSpeed{Assigned: &mach, Mach: true}
+		sr := av.MakeMachRestriction(mach)
+		nav.Speed = NavSpeed{Assigned: &sr}
+		// If there's an active altitude change and this is a significant speed change, defer the
+		// altitude until after the Mach speed change completes.
+		tas := av.MachToTAS(mach, temp)
+		targetIAS := av.TASToIAS(tas, nav.FlightState.Altitude)
+		if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != nav.FlightState.Altitude &&
+			math.Abs(targetIAS-nav.FlightState.IAS) >= 20 {
+			alt := *nav.Altitude.Assigned
+			nav.Altitude = NavAltitude{
+				AfterSpeed:      &alt,
+				AfterSpeedSpeed: &targetIAS,
+				RateAfterSpeed:  nav.Altitude.Rate,
+			}
+		}
 		if mach < nav.Mach(temp) {
 			return av.SpeedIntent{Speed: mach, Type: av.SpeedReduce, Mach: true}
 		} else if mach > nav.Mach(temp) {
@@ -84,29 +122,66 @@ func (nav *Nav) AssignMach(mach float32, afterAltitude bool, temp float32) av.Co
 	}
 }
 
-func (nav *Nav) AssignSpeed(speed float32, afterAltitude bool) av.CommandIntent {
+func (nav *Nav) AssignSpeed(sr *av.SpeedRestriction, afterAltitude bool) av.CommandIntent {
+	nav.clearAfterFixSpeeds()
+
+	if sr == nil {
+		nav.Speed = NavSpeed{}
+		return av.SpeedIntent{Type: av.SpeedCancel}
+	}
+
+	// Determine the representative speed for validation and readback.
+	speed, exact := sr.ExactValue()
+	if !exact {
+		speed = sr.Range[0]
+		if speed == 0 {
+			speed = sr.Range[1]
+		}
+	}
+
 	maxIAS := av.TASToIAS(nav.Perf.Speed.MaxTAS, nav.FlightState.Altitude)
 	maxIAS = 10 * float32(int((maxIAS+5)/10)) // round to 10s
 
-	if speed == 0 {
-		nav.Speed = NavSpeed{}
-		return av.SpeedIntent{Type: av.SpeedCancel}
-	} else if float32(speed) < nav.Perf.Speed.Landing {
+	if speed < nav.Perf.Speed.Landing {
 		return av.MakeUnableIntent("unable. Our minimum speed is {spd}", nav.Perf.Speed.Landing)
-	} else if float32(speed) > maxIAS {
+	} else if speed > maxIAS && speed < av.MaxSpeed {
 		return av.MakeUnableIntent("unable. Our maximum speed is {spd}", maxIAS)
-	} else if nav.Approach.Cleared {
-		// TODO: make sure we're not within 5 miles...
-		nav.Speed = NavSpeed{Assigned: &speed}
+	}
+
+	if !exact {
+		// Range restriction: no afterAltitude deferral
+		nav.Speed = NavSpeed{Assigned: sr}
+		if sr.Range[0] > 0 && sr.Range[1] == av.MaxSpeed {
+			return av.SpeedIntent{Speed: sr.Range[0], Type: av.SpeedAtOrAbove}
+		}
+		return av.SpeedIntent{Speed: sr.Range[1], Type: av.SpeedAtOrBelow}
+	}
+
+	if nav.Approach.Cleared {
+		nav.Speed = NavSpeed{Assigned: sr}
 		return av.SpeedIntent{Speed: speed, Type: av.SpeedUntilFinal}
 	} else if afterAltitude && nav.Altitude.Assigned != nil &&
 		*nav.Altitude.Assigned != nav.FlightState.Altitude {
-		nav.Speed.AfterAltitude = &speed
 		alt := *nav.Altitude.Assigned
-		nav.Speed.AfterAltitudeAltitude = &alt
+		nav.Speed = NavSpeed{
+			AfterAltitude:         sr,
+			AfterAltitudeAltitude: &alt,
+		}
 		return av.SpeedIntent{Speed: speed, AfterAltitude: &alt, Type: av.SpeedAssign}
 	} else {
-		nav.Speed = NavSpeed{Assigned: &speed}
+		// If there's an active altitude change and the speed change is significant (>20kt), defer
+		// the altitude until after the speed change completes.
+		speedDelta := math.Abs(speed - nav.FlightState.IAS)
+		if nav.Altitude.Assigned != nil && *nav.Altitude.Assigned != nav.FlightState.Altitude &&
+			speedDelta > 20 {
+			alt := *nav.Altitude.Assigned
+			nav.Altitude = NavAltitude{
+				AfterSpeed:      &alt,
+				AfterSpeedSpeed: &speed,
+				RateAfterSpeed:  nav.Altitude.Rate,
+			}
+		}
+		nav.Speed = NavSpeed{Assigned: sr}
 		if speed < nav.FlightState.IAS {
 			return av.SpeedIntent{Speed: speed, Type: av.SpeedReduce}
 		} else if speed > nav.FlightState.IAS {
@@ -117,39 +192,53 @@ func (nav *Nav) AssignSpeed(speed float32, afterAltitude bool) av.CommandIntent 
 	}
 }
 
-func (nav *Nav) AssignSpeedUntil(speed float32, until *av.SpeedUntil) av.CommandIntent {
+func (nav *Nav) AssignSpeedUntil(sr *av.SpeedRestriction, until *av.SpeedUntil) av.CommandIntent {
+	nav.clearAfterFixSpeeds()
+
+	speed, exact := sr.ExactValue()
+	if !exact {
+		speed = sr.Range[0]
+		if speed == 0 {
+			speed = sr.Range[1]
+		}
+	}
+
 	maxIAS := av.TASToIAS(nav.Perf.Speed.MaxTAS, nav.FlightState.Altitude)
 	maxIAS = 10 * float32(int((maxIAS+5)/10)) // round to 10s
 
-	if float32(speed) < nav.Perf.Speed.Landing {
+	if speed < nav.Perf.Speed.Landing {
 		return av.MakeUnableIntent("unable. Our minimum speed is {spd}", nav.Perf.Speed.Landing)
-	} else if float32(speed) > maxIAS {
+	} else if speed > maxIAS && speed < av.MaxSpeed {
 		return av.MakeUnableIntent("unable. Our maximum speed is {spd}", maxIAS)
 	}
 
-	nav.Speed = NavSpeed{Assigned: &speed}
+	nav.Speed = NavSpeed{Assigned: sr}
 	return av.SpeedIntent{Speed: speed, Type: av.SpeedUntilFinal, Until: until}
 }
 
 func (nav *Nav) MaintainSlowestPractical() av.CommandIntent {
+	nav.clearAfterFixSpeeds()
 	nav.Speed = NavSpeed{MaintainSlowestPractical: true}
 	return av.SpeedIntent{Type: av.SpeedSlowestPractical}
 }
 
 func (nav *Nav) MaintainMaximumForward() av.CommandIntent {
+	nav.clearAfterFixSpeeds()
 	nav.Speed = NavSpeed{MaintainMaximumForward: true}
 	return av.SpeedIntent{Type: av.SpeedMaximumForward}
 }
 
 func (nav *Nav) MaintainPresentSpeed() av.CommandIntent {
+	nav.clearAfterFixSpeeds()
 	// Capture current indicated airspeed and assign it, rounded to nearest 10
 	currentSpeed := nav.FlightState.IAS
 	speed := float32(int((currentSpeed+5)/10) * 10)
-	nav.Speed = NavSpeed{Assigned: &speed}
+	sr := av.MakeAtSpeedRestriction(speed)
+	nav.Speed = NavSpeed{Assigned: &sr}
 	return av.SpeedIntent{Speed: speed, Type: av.SpeedPresentSpeed}
 }
 
-func (nav *Nav) SaySpeed(temp float32) av.CommandIntent {
+func (nav *Nav) SaySpeed(temp av.Temperature) av.CommandIntent {
 	if nav.machTransition() {
 		return nav.SayMach(temp)
 	}
@@ -159,20 +248,32 @@ func (nav *Nav) SaySpeed(temp float32) av.CommandIntent {
 func (nav *Nav) SayIndicatedSpeed() av.CommandIntent {
 	currentSpeed := nav.FlightState.IAS
 	intent := av.ReportSpeedIntent{Current: currentSpeed}
-	if nav.Speed.Assigned != nil && !nav.Speed.Mach {
-		intent.Assigned = nav.Speed.Assigned
+	if sr := nav.Speed.Assigned; sr != nil && !sr.IsMach {
+		if spd, exact := sr.ExactValue(); exact {
+			intent.Assigned = &spd
+		}
+	} else if _, sr, _, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		spd := nav.restrictedSpeed(sr, naturalIAS)
+		intent.Assigned = &spd
+	} else if nav.Speed.Restriction != nil {
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		spd := nav.restrictedSpeed(nav.Speed.Restriction, naturalIAS)
+		intent.Assigned = &spd
 	}
 	return intent
 }
 
-func (nav *Nav) SayMach(tempKelvin float32) av.CommandIntent {
+func (nav *Nav) SayMach(temp av.Temperature) av.CommandIntent {
 	if !nav.machTransition() {
 		return av.MakeUnableIntent("unable. we haven't reached mach transition altitude")
 	}
-	currentMach := nav.Mach(tempKelvin)
+	currentMach := nav.Mach(temp)
 	intent := av.ReportMachIntent{Current: currentMach}
-	if nav.Speed.Assigned != nil && nav.Speed.Mach {
-		intent.Assigned = nav.Speed.Assigned
+	if sr := nav.Speed.Assigned; sr != nil && sr.IsMach {
+		if mach, exact := sr.ExactValue(); exact {
+			intent.Assigned = &mach
+		}
 	}
 	return intent
 }
@@ -203,64 +304,81 @@ func (nav *Nav) SayAltitude() av.CommandIntent {
 }
 
 func (nav *Nav) ExpediteDescent() av.CommandIntent {
-	alt, _ := nav.TargetAltitude()
-	if alt >= nav.FlightState.Altitude {
-		if nav.Altitude.AfterSpeed != nil {
-			nav.Altitude.ExpediteAfterSpeed = true
-			return av.AltitudeIntent{
-				Direction:  av.AltitudeDescend,
-				Altitude:   *nav.Altitude.AfterSpeed,
-				AfterSpeed: nav.Altitude.AfterSpeedSpeed,
-			}
-		} else {
-			return av.MakeUnableIntent("unable. We're not descending")
-		}
-	} else if nav.Altitude.Expedite {
-		return av.AltitudeIntent{
-			Direction:         av.AltitudeDescend,
-			Altitude:          alt,
-			AlreadyExpediting: true,
-		}
-	} else {
-		nav.Altitude.Expedite = true
-		return av.AltitudeIntent{
-			Direction: av.AltitudeDescend,
-			Altitude:  alt,
-			Expedite:  true,
-		}
-	}
+	return nav.setRate(RateExpedite, nil, av.AltitudeDescend)
 }
 
 func (nav *Nav) ExpediteClimb() av.CommandIntent {
-	alt, _ := nav.TargetAltitude()
-	if alt <= nav.FlightState.Altitude {
+	return nav.setRate(RateExpedite, nil, av.AltitudeClimb)
+}
+
+func (nav *Nav) ExpediteDescentThrough(throughAlt float32) av.CommandIntent {
+	return nav.setRate(RateExpedite, &throughAlt, av.AltitudeDescend)
+}
+
+func (nav *Nav) ExpediteClimbThrough(throughAlt float32) av.CommandIntent {
+	return nav.setRate(RateExpedite, &throughAlt, av.AltitudeClimb)
+}
+
+func (nav *Nav) GoodRateDescent() av.CommandIntent {
+	return nav.setRate(RateGood, nil, av.AltitudeDescend)
+}
+
+func (nav *Nav) GoodRateClimb() av.CommandIntent {
+	return nav.setRate(RateGood, nil, av.AltitudeClimb)
+}
+
+func (nav *Nav) GoodRateThrough(throughAlt float32) av.CommandIntent {
+	// Infer direction from current state
+	dir := av.AltitudeDescend
+	if throughAlt > nav.FlightState.Altitude {
+		dir = av.AltitudeClimb
+	}
+	return nav.setRate(RateGood, &throughAlt, dir)
+}
+
+func (nav *Nav) setRate(rate RateQualifier, throughAlt *float32, direction av.AltitudeDirection) av.CommandIntent {
+	alt, _, _ := nav.TargetAltitude()
+
+	wrongDir := (direction == av.AltitudeDescend && alt >= nav.FlightState.Altitude) ||
+		(direction == av.AltitudeClimb && alt <= nav.FlightState.Altitude)
+
+	if wrongDir {
 		if nav.Altitude.AfterSpeed != nil {
-			nav.Altitude.ExpediteAfterSpeed = true
+			nav.Altitude.RateAfterSpeed = rate
 			return av.AltitudeIntent{
-				Direction:  av.AltitudeClimb,
+				Direction:  direction,
 				Altitude:   *nav.Altitude.AfterSpeed,
 				AfterSpeed: nav.Altitude.AfterSpeedSpeed,
 			}
-		} else {
-			return av.MakeUnableIntent("unable. We're not climbing")
 		}
-	} else if nav.Altitude.Expedite {
+		dir := "descending"
+		if direction == av.AltitudeClimb {
+			dir = "climbing"
+		}
+		return av.MakeUnableIntent("unable. We're not " + dir)
+	}
+
+	if nav.Altitude.Rate >= rate {
 		return av.AltitudeIntent{
-			Direction:         av.AltitudeClimb,
+			Direction:         direction,
 			Altitude:          alt,
 			AlreadyExpediting: true,
+			GoodRate:          nav.Altitude.Rate == RateGood,
 		}
-	} else {
-		nav.Altitude.Expedite = true
-		return av.AltitudeIntent{
-			Direction: av.AltitudeClimb,
-			Altitude:  alt,
-			Expedite:  true,
-		}
+	}
+
+	nav.Altitude.Rate = rate
+	nav.Altitude.RateThrough = throughAlt
+	return av.AltitudeIntent{
+		Direction:   direction,
+		Altitude:    alt,
+		Expedite:    rate == RateExpedite,
+		GoodRate:    rate == RateGood,
+		RateThrough: throughAlt,
 	}
 }
 
-func (nav *Nav) AssignHeading(hdg float32, turn av.TurnDirection, simTime time.Time) av.CommandIntent {
+func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. {hdg} isn't a valid heading", hdg)
 	}
@@ -288,7 +406,9 @@ func (nav *Nav) AssignHeading(hdg float32, turn av.TurnDirection, simTime time.T
 	return intent
 }
 
-func (nav *Nav) assignHeading(hdg float32, turn av.TurnDirection, simTime time.Time) {
+func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time) {
+	approachCleared := nav.Approach.Cleared
+
 	if _, ok := nav.AssignedHeading(); !ok {
 		// Only cancel approach clearance if the aircraft wasn't on a
 		// heading and now we're giving them one.
@@ -301,7 +421,7 @@ func (nav *Nav) assignHeading(hdg float32, turn av.TurnDirection, simTime time.T
 		// constraints, set its cleared altitude to its current altitude
 		// for now.
 		if len(nav.Waypoints) > 0 && (nav.Waypoints[0].OnSTAR() || nav.Waypoints[0].OnApproach()) && nav.Altitude.Assigned == nil {
-			if _, ok := nav.getWaypointAltitudeConstraint(); ok {
+			if _, ok := nav.findAltitudeTarget(); ok {
 				// Don't take a direct pointer to nav.FlightState.Altitude!
 				alt := nav.FlightState.Altitude
 				nav.Altitude.Cleared = &alt
@@ -311,10 +431,10 @@ func (nav *Nav) assignHeading(hdg float32, turn av.TurnDirection, simTime time.T
 
 	// Don't carry this from a waypoint we may have previously passed.
 	nav.Approach.NoPT = false
-	nav.EnqueueHeading(hdg, turn, simTime)
+	nav.EnqueueHeading(hdg, turn, approachCleared, simTime)
 }
 
-func (nav *Nav) FlyPresentHeading(simTime time.Time) av.CommandIntent {
+func (nav *Nav) FlyPresentHeading(simTime Time) av.CommandIntent {
 	nav.assignHeading(nav.FlightState.Heading, av.TurnClosest, simTime)
 	return av.HeadingIntent{
 		Heading: nav.FlightState.Heading,
@@ -452,13 +572,24 @@ func (nav *Nav) directFixWaypoints(fix string) ([]av.Waypoint, waypointSource, e
 	return nil, waypointSourceOther, ErrInvalidFix
 }
 
-func (nav *Nav) DirectFix(fix string, simTime time.Time) av.CommandIntent {
+func (nav *Nav) ExpectDirect(fix string) av.CommandIntent {
+	if _, ok := av.DB.LookupWaypoint(fix); !ok && !nav.fixInRoute(fix) {
+		return av.MakeUnableIntent("unable. {fix} isn't a valid fix", fix)
+	}
+	nav.ExpectedDirectFix = fix
+	return nil
+}
+
+func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime Time) av.CommandIntent {
 	if wps, source, err := nav.directFixWaypoints(fix); err == nil {
 		if hold := nav.Heading.Hold; hold != nil {
 			// We'll finish our lap and then depart the holding fix direct to the fix
 			hold.Cancel = true
 			nfa := NavFixAssignment{}
 			nfa.Depart.Fix = &wps[0]
+			if turn != av.TurnClosest {
+				nfa.Depart.Turn = &turn
+			}
 			nav.FixAssignments[hold.Hold.Fix] = nfa
 			if source == waypointSourceApproach && !nav.Approach.Cleared {
 				nav.Approach.InterceptState = OnApproachCourse
@@ -467,9 +598,10 @@ func (nav *Nav) DirectFix(fix string, simTime time.Time) av.CommandIntent {
 				Type:      av.NavDirectFixFromHold,
 				Fix:       hold.Hold.Fix,
 				SecondFix: fix,
+				Turn:      turn,
 			}
 		} else {
-			nav.EnqueueDirectFix(wps, simTime)
+			nav.EnqueueDirectFix(wps, turn, simTime)
 			nav.Approach.NoPT = false
 			if source == waypointSourceApproach && !nav.Approach.Cleared {
 				// The waypoints came from the approach but the aircraft
@@ -482,6 +614,7 @@ func (nav *Nav) DirectFix(fix string, simTime time.Time) av.CommandIntent {
 			return av.NavigationIntent{
 				Type: av.NavDirectFix,
 				Fix:  fix,
+				Turn: turn,
 			}
 		}
 	} else if err == ErrFixIsTooFarAway {
@@ -547,9 +680,10 @@ func (nav *Nav) HoldAtFix(callsign string, fix string, hold *av.Hold) av.Command
 func (nav *Nav) makeFlyHold(callsign string, hold av.Hold) *FlyHold {
 	// Calculate heading from aircraft's current position to fix
 	pHold, _ := av.DB.LookupWaypoint(hold.Fix)
-	hdg := math.Heading2LL(nav.FlightState.Position, pHold, nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
+	hdg := math.TrueToMagnetic(math.Heading2LL(nav.FlightState.Position, pHold, nav.FlightState.NmPerLongitude),
+		nav.FlightState.MagneticVariation)
 
-	NavLog(callsign, time.Time{}, NavLogHold, "makeFlyHold: headingToFix=%.1f hold_inbound=%.1f turn=%s -> %s",
+	NavLog(callsign, Time{}, NavLogHold, "makeFlyHold: headingToFix=%.1f hold_inbound=%.1f turn=%s -> %s",
 		hdg, hold.InboundCourse, hold.TurnDirection, hold.Entry(hdg).String())
 
 	return &FlyHold{
@@ -580,7 +714,7 @@ func (nav *Nav) DepartFixDirect(fixa string, fixb string) av.CommandIntent {
 	}
 }
 
-func (nav *Nav) DepartFixHeading(fix string, hdg float32) av.CommandIntent {
+func (nav *Nav) DepartFixHeading(fix string, hdg math.MagneticHeading) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. Heading {hdg} is invalid", hdg)
 	}
@@ -589,7 +723,7 @@ func (nav *Nav) DepartFixHeading(fix string, hdg float32) av.CommandIntent {
 	}
 
 	nfa := nav.FixAssignments[fix]
-	h := float32(hdg)
+	h := hdg
 	nfa.Depart.Heading = &h
 	nav.FixAssignments[fix] = nfa
 
@@ -600,7 +734,7 @@ func (nav *Nav) DepartFixHeading(fix string, hdg float32) av.CommandIntent {
 	}
 }
 
-func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, speed int, mach float32) av.CommandIntent {
+func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, sr *av.SpeedRestriction) av.CommandIntent {
 	if !nav.fixInRoute(fix) {
 		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
 	}
@@ -617,21 +751,319 @@ func (nav *Nav) CrossFixAt(fix string, ar *av.AltitudeRestriction, speed int, ma
 		// Delete other altitude restrictions
 		nav.Altitude = NavAltitude{}
 	}
-	if speed != 0 {
-		s := float32(speed)
-		nfa.Arrive.Speed = &s
-		intent.Speed = &s
+	if sr != nil {
+		nfa.Arrive.Speed = sr
+		if sr.IsMach {
+			intent.SpeedRestriction = sr
+		} else {
+			naturalIAS, _ := nav.targetAltitudeIAS()
+			s := nav.restrictedSpeed(sr, naturalIAS)
+			intentSpeed := av.MakeAtSpeedRestriction(s)
+			intent.SpeedRestriction = &intentSpeed
+		}
 		// Delete other speed restrictions
-		nav.Speed = NavSpeed{}
-	} else if mach != 0 {
-		m := float32(mach)
-		nfa.Arrive.Mach = &m
-		intent.Mach = &m
 		nav.Speed = NavSpeed{}
 	}
 	nav.FixAssignments[fix] = nfa
 
 	return intent
+}
+
+func (nav *Nav) CrossDistanceFromFixAt(fix string, dist float32, dir math.CardinalOrdinalDirection,
+	ar *av.AltitudeRestriction, sr *av.SpeedRestriction) av.CommandIntent {
+	useDeferred := false
+	routeWps := []av.Waypoint(nav.Waypoints)
+	if dh := nav.DeferredNavHeading; dh != nil && len(dh.Waypoints) > 0 {
+		useDeferred = true
+		routeWps = dh.Waypoints
+	}
+	commitRouteWps := func() {
+		if useDeferred {
+			nav.DeferredNavHeading.Waypoints = routeWps
+		} else {
+			nav.Waypoints = routeWps
+		}
+	}
+
+	wps := routeWps
+	idx := slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == fix })
+	if idx == -1 {
+		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
+	}
+
+	fixLoc := wps[idx].Location
+
+	// Find the "real" prior waypoint (skip synthetic ones) to determine the segment.
+	realPriorIdx := idx - 1
+	for realPriorIdx >= 0 && wps[realPriorIdx].SyntheticCrossing() {
+		realPriorIdx--
+	}
+
+	var priorLoc math.Point2LL
+	var priorName string
+	if realPriorIdx >= 0 {
+		priorLoc = wps[realPriorIdx].Location
+		priorName = wps[realPriorIdx].Fix
+	} else {
+		priorLoc = nav.FlightState.Position
+	}
+
+	// Direction validation uses the inbound magnetic course to the fix, since
+	// the controller-issued direction is spoken relative to the magnetic compass.
+	approachHeading := math.TrueToMagnetic(
+		math.Heading2LL(fixLoc, priorLoc, nav.FlightState.NmPerLongitude),
+		nav.FlightState.MagneticVariation,
+	)
+	if math.HeadingDifference(float32(approachHeading), dir.Heading()) > 45 {
+		actualDir := math.Compass(approachHeading)
+		return av.MakeUnableIntent("unable. We're approaching {fix} from the "+actualDir, fix)
+	}
+
+	// Distance validation against the real segment.
+	segLen := math.NMDistance2LL(priorLoc, fixLoc)
+	if realPriorIdx >= 0 && dist >= segLen {
+		return av.MakeUnableIntent("unable. That's before {fix}", priorName)
+	}
+	if realPriorIdx < 0 && dist >= math.NMDistance2LL(nav.FlightState.Position, fixLoc) {
+		return av.MakeUnableIntent("unable. We're already closer to {fix}", fix)
+	}
+
+	// Compute synthetic waypoint via linear interpolation.
+	t := 1 - dist/segLen
+	syntheticLoc := math.Point2LL{
+		math.Lerp(t, priorLoc[0], fixLoc[0]),
+		math.Lerp(t, priorLoc[1], fixLoc[1]),
+	}
+
+	clearAltitude := func(wp *av.Waypoint) {
+		wp.ClearAltitudeRestriction()
+	}
+	clearSpeed := func(wp *av.Waypoint) {
+		wp.ClearSpeedRestriction()
+	}
+	hasInlineRestrictions := func(wp *av.Waypoint) bool {
+		return wp.HasAltitudeRestriction() || wp.HasSpeedRestriction()
+	}
+
+	// 1. Remove or clear existing synthetic waypoints for this fix and restriction types.
+	removePrefix := "_" + fix + "/"
+	for i := 0; i < len(routeWps); {
+		wp := &routeWps[i]
+		if strings.HasPrefix(wp.Fix, removePrefix) {
+			if ar != nil {
+				clearAltitude(wp)
+			}
+			if sr != nil {
+				clearSpeed(wp)
+			}
+			if !hasInlineRestrictions(wp) {
+				routeWps = slices.Delete(routeWps, i, i+1)
+				continue
+			}
+		}
+		i++
+	}
+	commitRouteWps()
+
+	// 2. Refresh index as waypoints might have shifted.
+	wps = routeWps
+	idx = slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == fix })
+
+	intent := av.NavigationIntent{
+		Type:      av.NavCrossDistanceFromFixAt,
+		Fix:       fix,
+		Distance:  dist,
+		Direction: dir,
+	}
+
+	// Helper to insert a synthetic waypoint in the correct order (descending distance from fix).
+	insertOrdered := func(name string, loc math.Point2LL, d float32) {
+		// Find the insertion index among synthetic waypoints for this fix.
+		insertIdx := idx
+		for insertIdx > 0 && strings.HasPrefix(wps[insertIdx-1].Fix, removePrefix) {
+			if _, otherDist, _, ok := av.ParseSyntheticCrossingFix(wps[insertIdx-1].Fix); ok {
+				if float32(otherDist) >= d {
+					break // Current one is closer to fix than the one we are checking (or same distance).
+				}
+			}
+			insertIdx--
+		}
+
+		wp := av.Waypoint{Fix: name, Location: loc}
+		wp.SetSyntheticCrossing(true)
+		if idx < len(wps) {
+			wp.SetOnSID(wps[idx].OnSID())
+			wp.SetOnSTAR(wps[idx].OnSTAR())
+			wp.SetOnApproach(wps[idx].OnApproach())
+		}
+		routeWps = slices.Insert(routeWps, insertIdx, wp)
+		commitRouteWps()
+		// Refresh wps and idx for subsequent operations.
+		wps = routeWps
+		idx = slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == fix })
+	}
+
+	name := fmt.Sprintf("_%s/%d%s", fix, int(dist), dir.ShortString())
+	wpIdx := slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == name })
+	if wpIdx == -1 {
+		insertOrdered(name, syntheticLoc, dist)
+		wps = routeWps
+		wpIdx = slices.IndexFunc(wps, func(wp av.Waypoint) bool { return wp.Fix == name })
+	}
+	wp := &routeWps[wpIdx]
+	wp.Location = syntheticLoc
+
+	// 3. Apply new inline restrictions to the synthetic waypoint.
+	if ar != nil {
+		wp.SetAltitudeRestriction(*ar)
+		intent.AltRestriction = ar
+		nav.Altitude = NavAltitude{}
+	}
+
+	if sr != nil {
+		wp.SetSpeedRestriction(*sr)
+		if sr.IsMach {
+			intent.SpeedRestriction = sr
+		} else {
+			naturalIAS, _ := nav.targetAltitudeIAS()
+			s := nav.restrictedSpeed(sr, naturalIAS)
+			intentSpeed := av.MakeAtSpeedRestriction(s)
+			intent.SpeedRestriction = &intentSpeed
+		}
+		nav.Speed = NavSpeed{}
+	}
+	commitRouteWps()
+
+	return intent
+}
+
+func (nav *Nav) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.CommandIntent {
+	if !nav.fixInRoute(fix) {
+		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
+	}
+
+	speed, exact := sr.ExactValue()
+	if !exact {
+		speed = sr.Range[0]
+		if speed == 0 {
+			speed = sr.Range[1]
+		}
+	}
+
+	nfa := nav.FixAssignments[fix]
+	nfa.Depart.Speed = sr
+	nav.FixAssignments[fix] = nfa
+
+	var stype av.SpeedType
+	if !exact {
+		if sr.Range[0] > 0 {
+			stype = av.SpeedAtOrAbove
+		} else {
+			stype = av.SpeedAtOrBelow
+		}
+	} else if speed < nav.FlightState.IAS {
+		stype = av.SpeedReduce
+	} else if speed > nav.FlightState.IAS {
+		stype = av.SpeedIncrease
+	} else {
+		stype = av.SpeedAssign
+	}
+
+	return av.SpeedIntent{Speed: speed, Type: stype, AfterFix: fix}
+}
+
+func (nav *Nav) AssignCompoundSpeed(segments []av.CompoundSpeedSegment) av.CommandIntent {
+	maxIAS := av.TASToIAS(nav.Perf.Speed.MaxTAS, nav.FlightState.Altitude)
+	maxIAS = 10 * float32(int((maxIAS+5)/10))
+
+	// Validate all segments before applying any state changes.
+	for _, seg := range segments {
+		speed, exact := seg.Speed.ExactValue()
+		if !exact {
+			speed = seg.Speed.Range[0]
+			if speed == 0 {
+				speed = seg.Speed.Range[1]
+			}
+		}
+		if speed < nav.Perf.Speed.Landing {
+			return av.MakeUnableIntent("unable. Our minimum speed is {spd}", nav.Perf.Speed.Landing)
+		} else if speed > maxIAS && speed < av.MaxSpeed {
+			return av.MakeUnableIntent("unable. Our maximum speed is {spd}", maxIAS)
+		}
+
+		if seg.UntilFix != "" && !nav.fixInRoute(seg.UntilFix) {
+			return av.MakeUnableIntent("unable. {fix} isn't in our route", seg.UntilFix)
+		}
+	}
+
+	// Apply: first segment sets the current speed, subsequent segments
+	// set after-fix speed assignments.
+	nav.clearAfterFixSpeeds()
+	nav.Speed = NavSpeed{Assigned: segments[0].Speed}
+
+	for i := 1; i < len(segments); i++ {
+		fix := segments[i-1].UntilFix
+		nfa := nav.FixAssignments[fix]
+		nfa.Depart.Speed = segments[i].Speed
+		nav.FixAssignments[fix] = nfa
+	}
+
+	// If the last segment has an UntilFix (no trailing open-ended speed),
+	// cancel speed restrictions when the aircraft passes that fix.
+	if last := segments[len(segments)-1]; last.UntilFix != "" {
+		nfa := nav.FixAssignments[last.UntilFix]
+		nfa.Depart.CancelSpeed = true
+		nav.FixAssignments[last.UntilFix] = nfa
+	}
+
+	return av.CompoundSpeedIntent{Segments: segments}
+}
+
+func (nav *Nav) clearAfterFixSpeeds() {
+	for fix, nfa := range nav.FixAssignments {
+		if nfa.Depart.Speed != nil || nfa.Depart.CancelSpeed {
+			nfa.Depart.Speed = nil
+			nfa.Depart.CancelSpeed = false
+			nav.FixAssignments[fix] = nfa
+		}
+	}
+}
+
+func (nav *Nav) AfterFixAltitude(fix string, alt float32) av.CommandIntent {
+	if !nav.fixInRoute(fix) {
+		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)
+	}
+	if alt > nav.Perf.Ceiling {
+		return av.MakeUnableIntent("unable. That altitude is above our ceiling.")
+	}
+
+	nfa := nav.FixAssignments[fix]
+	nfa.Depart.Altitude = &alt
+	nav.FixAssignments[fix] = nfa
+
+	var direction av.AltitudeDirection
+	if alt > nav.FlightState.Altitude {
+		direction = av.AltitudeClimb
+	} else if alt < nav.FlightState.Altitude {
+		direction = av.AltitudeDescend
+	} else {
+		direction = av.AltitudeMaintain
+	}
+
+	return av.AltitudeIntent{
+		Altitude:  alt,
+		Direction: direction,
+		AfterFix:  fix,
+	}
+}
+
+func (nav *Nav) clearFixAltitudes() {
+	for fix, nfa := range nav.FixAssignments {
+		if nfa.Depart.Altitude != nil {
+			nfa.Depart.Altitude = nil
+			nav.FixAssignments[fix] = nfa
+		}
+	}
 }
 
 func (nav *Nav) CancelApproachClearance() av.CommandIntent {
@@ -646,7 +1078,7 @@ func (nav *Nav) CancelApproachClearance() av.CommandIntent {
 	return av.ApproachIntent{Type: av.ApproachCancel}
 }
 
-func (nav *Nav) ClimbViaSID(simTime time.Time) av.CommandIntent {
+func (nav *Nav) ClimbViaSID(simTime Time) av.CommandIntent {
 	if wps := nav.AssignedWaypoints(); len(wps) == 0 || !wps[0].OnSID() {
 		return av.MakeUnableIntent("unable. We're not flying a departure procedure")
 	}
@@ -657,7 +1089,7 @@ func (nav *Nav) ClimbViaSID(simTime time.Time) av.CommandIntent {
 	return av.ProcedureIntent{Type: av.ProcedureClimbViaSID}
 }
 
-func (nav *Nav) DescendViaSTAR(simTime time.Time) av.CommandIntent {
+func (nav *Nav) DescendViaSTAR(simTime Time) av.CommandIntent {
 	if wps := nav.AssignedWaypoints(); len(wps) == 0 || !wps[0].OnSTAR() {
 		return av.MakeUnableIntent("unable. We're not on a STAR")
 	}
@@ -674,18 +1106,17 @@ func (nav *Nav) DistanceAlongRoute(fix string) (float32, error) {
 	}
 	if len(nav.Waypoints) == 0 {
 		return 0, nil
-	} else {
-		index := slices.IndexFunc(nav.Waypoints, func(wp av.Waypoint) bool { return wp.Fix == fix })
-		if index == -1 {
-			return 0, ErrFixNotInRoute
-		}
-		wp := nav.Waypoints[:index+1]
-		distance := math.NMDistance2LL(nav.FlightState.Position, wp[0].Location)
-		for i := 0; i < len(wp)-1; i++ {
-			distance += math.NMDistance2LL(wp[i].Location, wp[i+1].Location)
-		}
-		return distance, nil
 	}
+	index := slices.IndexFunc(nav.Waypoints, func(wp av.Waypoint) bool { return wp.Fix == fix })
+	if index == -1 {
+		return 0, ErrFixNotInRoute
+	}
+	wp := nav.Waypoints[:index+1]
+	distance := math.NMDistance2LL(nav.FlightState.Position, wp[0].Location)
+	for i := 0; i < len(wp)-1; i++ {
+		distance += math.NMDistance2LL(wp[i].Location, wp[i+1].Location)
+	}
+	return distance, nil
 }
 
 func (nav *Nav) ResumeOwnNavigation() av.CommandIntent {

@@ -77,6 +77,17 @@ func (c *ControlClient) CreateFlightPlan(spec sim.FlightPlanSpecifier, callback 
 		}, &update, nil), &update, callback))
 }
 
+func (c *ControlClient) CreateInterfacilityVFR(acid sim.ACID, isIntermediate bool, requestedAlt int, callback func(error)) {
+	var update server.SimStateUpdate
+	c.addCall(
+		makeStateUpdateRPCCall(c.client.Go(server.CreateInterfacilityVFRRPC, &server.CreateInterfacilityVFRArgs{
+			ControllerToken: c.controllerToken,
+			ACID:            acid,
+			IsIntermediate:  isIntermediate,
+			RequestedAlt:    requestedAlt,
+		}, &update, nil), &update, callback))
+}
+
 func (c *ControlClient) ModifyFlightPlan(acid sim.ACID, spec sim.FlightPlanSpecifier, callback func(error)) {
 	var update server.SimStateUpdate
 	c.addCall(
@@ -84,6 +95,18 @@ func (c *ControlClient) ModifyFlightPlan(acid sim.ACID, spec sim.FlightPlanSpeci
 			ControllerToken:     c.controllerToken,
 			ACID:                acid,
 			FlightPlanSpecifier: spec,
+		}, &update, nil), &update, callback))
+}
+
+func (c *ControlClient) UpdateATISGIText(line int, auxiliary bool, atis *string, text *string, callback func(error)) {
+	var update server.SimStateUpdate
+	c.addCall(
+		makeStateUpdateRPCCall(c.client.Go(server.UpdateATISGITextRPC, &server.UpdateATISGITextArgs{
+			ControllerToken: c.controllerToken,
+			Line:            line,
+			Auxiliary:       auxiliary,
+			ATIS:            atis,
+			GIText:          text,
 		}, &update, nil), &update, callback))
 }
 
@@ -280,9 +303,6 @@ func (c *ControlClient) CreateRestrictionArea(ra av.RestrictionArea, callback fu
 	}, &result, nil), &result.StateUpdate,
 		func(err error) {
 			if callback != nil {
-				if err != nil {
-					callback(result.Index, err)
-				}
 				callback(result.Index, err)
 			}
 		}))
@@ -480,24 +500,30 @@ func (c *ControlClient) RequestContactTransmission() {
 		ControllerToken: c.controllerToken,
 	}, &result, nil),
 		func(err error) {
-			c.transmissions.SetContactRequested(false)
-
 			if err != nil {
+				c.transmissions.SetContactRequested(false)
 				c.lg.Errorf("RequestContactTransmission: %v", err)
 				return
 			}
 
-			if result.ContactText != "" {
-				if *c.disableTTSPtr {
-					// Contact was processed on server (pilot joins frequency, text event posted)
-					// but user doesn't want audio. Set a hold to maintain pacing.
-					c.transmissions.HoldAfterSilentContact(result.ContactCallsign)
-					return
-				}
-
-				go c.synthesizeAndEnqueueContact(result.ContactCallsign, result.ContactType,
-					result.ContactText, result.ContactVoiceName)
+			if result.ContactText == "" {
+				c.transmissions.SetContactRequested(false)
+				return
 			}
+
+			if *c.disableTTSPtr {
+				c.transmissions.SetContactRequested(false)
+				// Contact was processed on server (pilot joins frequency, text event posted)
+				// but user doesn't want audio. Set a hold to maintain pacing.
+				c.transmissions.HoldAfterSilentContact(result.ContactCallsign)
+				return
+			}
+
+			// For the TTS path, contactRequested stays true until synthesis
+			// completes, preventing additional contacts from being requested
+			// during synthesis.
+			go c.synthesizeAndEnqueueContact(result.ContactCallsign, result.ContactType,
+				result.ContactText, result.ContactVoiceName)
 		}))
 }
 

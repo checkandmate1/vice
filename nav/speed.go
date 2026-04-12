@@ -5,14 +5,12 @@
 package nav
 
 import (
-	"time"
-
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/wx"
 )
 
-func (nav *Nav) updateAirspeed(callsign string, alt float32, fp *av.FlightPlan, wxs wx.Sample, simTime time.Time, bravo *av.AirspaceGrid) (float32, bool) {
+func (nav *Nav) updateAirspeed(callsign string, alt float32, geometricDescent bool, fp *av.FlightPlan, wxs wx.Sample, simTime Time, bravo *av.AirspaceGrid) (float32, bool) {
 	// Figure out what speed we're supposed to be going. The following is
 	// prioritized, so once targetSpeed has been set, nothing should
 	// override it.
@@ -32,7 +30,7 @@ func (nav *Nav) updateAirspeed(callsign string, alt float32, fp *av.FlightPlan, 
 			// after which an altitude assignment should be followed.
 			if (cur > at && next <= at) || (cur < at && next >= at) {
 				nav.Altitude.Assigned = nav.Altitude.AfterSpeed
-				nav.Altitude.Expedite = nav.Altitude.ExpediteAfterSpeed
+				nav.Altitude.Rate = nav.Altitude.RateAfterSpeed
 				nav.Altitude.AfterSpeed = nil
 				nav.Altitude.AfterSpeedSpeed = nil
 				nav.Altitude.Restriction = nil
@@ -56,7 +54,7 @@ func (nav *Nav) updateAirspeed(callsign string, alt float32, fp *av.FlightPlan, 
 		}
 	}
 
-	if nav.Altitude.Expedite {
+	if nav.Altitude.Rate == RateExpedite {
 		// Don't accelerate or decelerate if we're expediting
 		return 0, false
 	}
@@ -73,8 +71,10 @@ func (nav *Nav) updateAirspeed(callsign string, alt float32, fp *av.FlightPlan, 
 			} else {
 				accel *= 2
 			}
-		} else if nav.Altitude.Assigned != nil && nav.FlightState.Altitude < *nav.Altitude.Assigned {
-			// Reduce acceleration since also climbing
+		} else if nav.FlightState.Altitude < alt && !geometricDescent {
+			// Reduce acceleration since also climbing, but only for
+			// controller-assigned altitudes. Geometric climbs/descents
+			// need full speed authority to meet restrictions.
 			if nav.FlightState.InitialDepartureClimb {
 				// But less so in the initial climb, assuming full power.
 				accel *= 0.8
@@ -90,8 +90,9 @@ func (nav *Nav) updateAirspeed(callsign string, alt float32, fp *av.FlightPlan, 
 	} else if nav.FlightState.IAS > targetSpeed {
 		decel := nav.Perf.Rate.Decelerate / 2 // Decel is given in "per 2 seconds..."
 		decel = min(decel, targetRate/60)
-		if nav.Altitude.Assigned != nil && nav.FlightState.Altitude > *nav.Altitude.Assigned {
-			// Reduce deceleration since also descending
+		if nav.FlightState.Altitude > alt && !geometricDescent {
+			// Reduce deceleration since also descending, but only for
+			// controller-assigned altitudes.
 			decel *= 0.6
 		}
 		if nav.FlightState.Altitude >= 25000 {
@@ -132,13 +133,13 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 		}
 		return nav.targetAltitudeIAS()
 	}
-	if nav.Speed.Assigned != nil {
-		if nav.Speed.Mach {
-			tas := av.MachToTAS(*nav.Speed.Assigned, wxs.Temperature()+273.15)
+	if sr := nav.Speed.Assigned; sr != nil {
+		if sr.IsMach {
+			tas := av.MachToTAS(sr.Range[0], wxs.Temperature())
 			return av.TASToIAS(tas, nav.FlightState.Altitude), MaximumRate
-		} else {
-			return *nav.Speed.Assigned, MaximumRate
 		}
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		return nav.restrictedSpeed(sr, naturalIAS), MaximumRate
 	}
 
 	if hold := nav.Heading.Hold; hold != nil && nav.ETA(hold.FixLocation) < 180 /* slow 3 minutes out */ {
@@ -177,10 +178,10 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 
 		// And don't accelerate past any upcoming speed restrictions
 		if nav.Speed.Restriction != nil {
-			targetSpeed = min(targetSpeed, *nav.Speed.Restriction)
+			targetSpeed = nav.restrictedSpeed(nav.Speed.Restriction, targetSpeed)
 		}
-		if _, speed, _, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
-			targetSpeed = min(targetSpeed, speed)
+		if _, sr, _, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
+			targetSpeed = nav.restrictedSpeed(sr, targetSpeed)
 		}
 
 		// However, don't let anything prevent us from taking off!
@@ -189,35 +190,41 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 		return targetSpeed, 0.8 * maxAccel
 	}
 
-	if wpOnSID, speed, eta, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
-		if eta < 5 { // includes unknown ETA case
+	pendingDecel := false
+	if onSID, sr, fix, ok := nav.getUpcomingSpeedRestrictionWaypoint(); nav.Heading.Assigned == nil && ok {
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		speed := nav.restrictedSpeed(sr, naturalIAS)
+		if speed > nav.FlightState.IAS {
+			// Accelerate immediately
 			return speed, MaximumRate
-		}
-
-		if speed == nav.FlightState.IAS {
-			// There already
-			return speed, 0
-		} else if speed > nav.FlightState.IAS {
-			// accelerate immediately
-			return speed, MaximumRate
-		} else if wpOnSID {
-			// don't accelerate past speed constraints on SIDs
+		} else if onSID {
+			// SID: comply immediately
 			return speed, MaximumRate
 		} else {
-			// go slow on deceleration
-			rate := (nav.FlightState.IAS - speed) / eta
-			decel := nav.Perf.Rate.Decelerate / 2 // it's specified in per 2 seconds...
-			if rate > decel/2 {
-				// Start to decelerate.
-				return speed, MaximumRate
+			// Geometric deceleration check: compute how fast we'd
+			// need to decelerate to hit the target speed at the fix,
+			// and start when that exceeds half our capability.
+			dist, ok := nav.routeDistanceToFix(fix)
+			eta := dist / nav.FlightState.GS * 3600 // seconds to fix
+			if ok && eta > 0 {
+				neededRate := (nav.FlightState.IAS - speed) / eta * 60 // kts per minute
+				decelRate := nav.Perf.Rate.Decelerate * 30             // kts per minute (Decelerate is per 2s)
+				if neededRate > decelRate/2 {
+					return speed, MaximumRate
+				}
 			}
-			// Otherwise fall through in case anything else applies.
+			// Not time to decelerate yet; fall through to let the
+			// 250kt/10k rule and approach speed still apply, but
+			// prevent the default altitude-based speed from
+			// accelerating past the upcoming restriction.
+			pendingDecel = true
 		}
 	}
 
 	// Something from a previous waypoint; ignore it if we're cleared for the approach.
 	if nav.Speed.Restriction != nil && !nav.Approach.Cleared {
-		return *nav.Speed.Restriction, MaximumRate
+		naturalIAS, _ := nav.targetAltitudeIAS()
+		return nav.restrictedSpeed(nav.Speed.Restriction, naturalIAS), MaximumRate
 	}
 
 	// Regulatory requirement: slow to 250 kts when descending through 10,000 feet
@@ -246,8 +253,8 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 	// and only start transitioning to the landing reference speed in the
 	// last half mile before touchdown.
 	if nav.Speed.Assigned == nil && fd != 0 && fd < 10 {
-		hdg := nav.Approach.Assigned.RunwayHeading(nav.FlightState.NmPerLongitude, nav.FlightState.MagneticVariation)
-		approachSpeed := nav.Perf.ApproachSpeed(wxs.WindDirection(), wxs.WindSpeed(), 0 /* FIXME: GUST */, hdg)
+		hdg := nav.Approach.Assigned.RunwayHeading(nav.FlightState.NmPerLongitude)
+		approachSpeed := nav.Perf.ApproachSpeed(float32(wxs.WindDirection()), wxs.WindSpeed(), 0 /* FIXME: GUST */, float32(hdg))
 
 		if fd < 0.5 {
 			// Short final: slow down to landing speed.
@@ -271,6 +278,9 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 	if fp != nil && fp.Rules == av.FlightRulesVFR &&
 		av.UnderBravoShelf(bravo, nav.FlightState.Position, int(nav.FlightState.Altitude)) {
 		ias = min(ias, 200)
+	}
+	if pendingDecel {
+		ias = min(ias, nav.FlightState.IAS)
 	}
 
 	return ias, rate
@@ -297,6 +307,42 @@ func (nav *Nav) ETA(p math.Point2LL) float32 {
 	return dist / nav.FlightState.GS * 3600 // seconds
 }
 
+// restrictedSpeed returns the speed a pilot would choose given a speed
+// restriction, accounting for aircraft type. Heavy jets fly close to
+// limits for fuel efficiency; lighter aircraft have more margin.
+func (nav *Nav) restrictedSpeed(sr *av.SpeedRestriction, natural float32) float32 {
+	lo, hi := sr.Range[0], sr.Range[1]
+
+	// "At" restriction: exact compliance required.
+	if lo == hi {
+		return lo
+	}
+
+	// Margin from the boundary depends on aircraft weight class.
+	// Heavies need speed for efficiency and fly close to limits.
+	margin := float32(10)
+	if nav.Perf.WeightClass == "H" || nav.Perf.WeightClass == "J" {
+		margin = 5
+	}
+
+	// Shrink the allowed range by the margin on each real bound.
+	innerLo := lo
+	innerHi := hi
+	if lo > 0 { // lo==0 means no floor
+		innerLo = lo + margin
+	}
+	if hi < av.MaxSpeed { // MaxSpeed means no ceiling
+		innerHi = hi - margin
+	}
+
+	// If margins overlap (very narrow range), just use the midpoint.
+	if innerLo > innerHi {
+		return (lo + hi) / 2
+	}
+
+	return math.Clamp(natural, innerLo, innerHi)
+}
+
 // Compute target airspeed for higher altitudes speed by lerping from 250
 // to cruise speed based on altitude.
 func (nav *Nav) targetAltitudeIAS() (float32, float32) {
@@ -315,16 +361,16 @@ func (nav *Nav) targetAltitudeIAS() (float32, float32) {
 	return math.Lerp(x, min(cruiseIAS, 280), cruiseIAS), 0.8 * maxAccel
 }
 
-func (nav *Nav) getUpcomingSpeedRestrictionWaypoint() (onSID bool, speed float32, eta float32, ok bool) {
+func (nav *Nav) getUpcomingSpeedRestrictionWaypoint() (onSID bool, sr *av.SpeedRestriction, fix string, ok bool) {
 	if nav.Prespawn {
-		return false, 0, 0, false
+		return false, nil, "", false
 	}
 
 	// Explicit loop avoids slices.ContainsFunc which copies the large
 	// Waypoint struct by value for each element via the closure.
 	haveWaypointSpeedRestriction := false
 	for i := range nav.Waypoints {
-		if nav.Waypoints[i].Speed > 0 {
+		if nav.Waypoints[i].SpeedRestriction() != nil {
 			haveWaypointSpeedRestriction = true
 			break
 		}
@@ -332,30 +378,19 @@ func (nav *Nav) getUpcomingSpeedRestrictionWaypoint() (onSID bool, speed float32
 
 	// Skip all this work in the (common) case that it's unnecessary.
 	if len(nav.FixAssignments) > 0 || haveWaypointSpeedRestriction {
-		var eta float32
 		for i := range nav.Waypoints {
 			wp := &nav.Waypoints[i]
-			if i == 0 {
-				eta = float32(wp.ETA(nav.FlightState.Position, nav.FlightState.GS,
-					nav.FlightState.NmPerLongitude).Seconds())
-			} else {
-				d := math.NMDistance2LLFast(wp.Location, nav.Waypoints[i-1].Location,
-					nav.FlightState.NmPerLongitude)
-				etaHours := d / nav.FlightState.GS
-				eta += etaHours * 3600
-			}
 
-			spd := float32(wp.Speed)
 			if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Arrive.Speed != nil {
-				spd = *nfa.Arrive.Speed
+				return wp.OnSID(), nfa.Arrive.Speed, wp.Fix, true
 			}
 
-			if spd != 0 {
-				return wp.OnSID(), spd, eta, true
+			if wsr := wp.SpeedRestriction(); wsr != nil {
+				return wp.OnSID(), wsr, wp.Fix, true
 			}
 		}
 	}
-	return false, 0, 0, false
+	return false, nil, "", false
 }
 
 // distanceToEndOfApproach returns the remaining distance to the last
