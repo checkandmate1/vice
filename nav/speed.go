@@ -29,11 +29,7 @@ func (nav *Nav) updateAirspeed(callsign string, alt float32, geometricDescent bo
 			// Check if we've reached or are passing a speed assignment
 			// after which an altitude assignment should be followed.
 			if (cur > at && next <= at) || (cur < at && next >= at) {
-				nav.Altitude.Assigned = nav.Altitude.AfterSpeed
-				nav.Altitude.Rate = nav.Altitude.RateAfterSpeed
-				nav.Altitude.AfterSpeed = nil
-				nav.Altitude.AfterSpeedSpeed = nil
-				nav.Altitude.Restriction = nil
+				nav.enqueueAltitudeAfterSpeed(simTime)
 			}
 		}
 		delta := next - nav.FlightState.IAS

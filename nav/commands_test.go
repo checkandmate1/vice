@@ -28,7 +28,7 @@ func TestCommandValidation(t *testing.T) {
 
 	t.Run("AltitudeAboveCeiling", func(t *testing.T) {
 		f := makeNav(t)
-		intent := f.nav.AssignAltitude(99000, false)
+		intent := f.nav.AssignAltitude(99000, false, f.simTime)
 		AssertUnable(t, intent)
 	})
 

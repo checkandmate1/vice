@@ -221,8 +221,8 @@ func (ac *Aircraft) Ident(now Time) av.CommandIntent {
 	return av.TransponderIntent{Ident: true}
 }
 
-func (ac *Aircraft) AssignAltitude(altitude int, afterSpeed bool) av.CommandIntent {
-	return ac.Nav.AssignAltitude(float32(altitude), afterSpeed)
+func (ac *Aircraft) AssignAltitude(altitude int, afterSpeed bool, simTime Time) av.CommandIntent {
+	return ac.Nav.AssignAltitude(float32(altitude), afterSpeed, simTime.NavTime())
 }
 
 func (ac *Aircraft) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {

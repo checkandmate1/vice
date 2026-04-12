@@ -1352,7 +1352,7 @@ func (s *Sim) AssignAltitude(tcw TCW, callsign av.ADSBCallsign, altitude int, af
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.AssignAltitude(altitude, afterSpeed)
+			return ac.AssignAltitude(altitude, afterSpeed, s.State.SimTime)
 		})
 }
 

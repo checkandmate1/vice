@@ -149,7 +149,7 @@ func (nav *Nav) maneuverGetHeading(wxs wx.Sample, simTime Time) (math.MagneticHe
 		// Recompute heading for the new maneuver
 		m = &nav.Heading.Maneuvers[0]
 		if m.AssignAltitude != nil {
-			nav.Altitude = NavAltitude{Assigned: m.AssignAltitude}
+			nav.setAssignedAltitude(*m.AssignAltitude)
 		}
 		heading = nav.maneuverHeading(m, wxs)
 	}

@@ -14,6 +14,24 @@ import (
 const MaximumRate = 100000
 const rateMaxDeltaPercent = 0.075
 
+func (nav *Nav) activatePendingAltitude(simTime Time) {
+	if nav.Altitude.ActivateAt.IsZero() || simTime.Before(nav.Altitude.ActivateAt) {
+		return
+	}
+	nav.Altitude.ActiveAssigned = nav.Altitude.Assigned
+	nav.Altitude.ActivateAt = Time{}
+}
+
+func (nav *Nav) activeAssignedAltitude() *float32 {
+	if !nav.Altitude.ActivateAt.IsZero() {
+		return nav.Altitude.ActiveAssigned
+	}
+	if nav.Altitude.ActiveAssigned != nil {
+		return nav.Altitude.ActiveAssigned
+	}
+	return nav.Altitude.Assigned
+}
+
 func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float32, geometricDescent bool, deltaKts float32, slowingTo250 bool, wxs wx.Sample, simTime Time) {
 	nav.FlightState.PrevAltitude = nav.FlightState.Altitude
 
@@ -25,8 +43,10 @@ func (nav *Nav) updateAltitude(callsign string, targetAltitude, targetRate float
 			nav.FlightState.InitialDepartureClimb = false
 		}
 		nav.FlightState.AltitudeRate = 0
-		nav.Altitude.Rate = RateNormal
-		nav.Altitude.RateThrough = nil
+		if nav.Altitude.ActivateAt.IsZero() {
+			nav.Altitude.Rate = RateNormal
+			nav.Altitude.RateThrough = nil
+		}
 		return
 	}
 
@@ -284,8 +304,8 @@ func (nav *Nav) TargetAltitude() (float32, float32, bool) {
 	}
 
 	// Controller-assigned altitude overrides everything else
-	if nav.Altitude.Assigned != nil {
-		return *nav.Altitude.Assigned, rate, false
+	if alt := nav.activeAssignedAltitude(); alt != nil {
+		return *alt, rate, false
 	}
 
 	if target, ok := nav.findAltitudeTarget(); ok {

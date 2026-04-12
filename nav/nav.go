@@ -170,7 +170,9 @@ const (
 )
 
 type NavAltitude struct {
-	Assigned        *float32 // controller assigned
+	Assigned        *float32 // controller-assigned altitude (not yet in autopilot)
+	ActiveAssigned  *float32 // assigned altitude currently used for vertical guidance
+	ActivateAt      Time     // non-zero while Assigned is pending activation
 	Cleared         *float32 // from initial clearance
 	AfterSpeed      *float32
 	AfterSpeedSpeed *float32
@@ -277,8 +279,7 @@ func MakeArrivalNav(callsign av.ADSBCallsign, arr *av.Arrival, fp av.FlightPlan,
 		if arr.AssignedAltitude > 0 {
 			// Descend to the assigned altitude but then hold that until
 			// either DVS or further descents are given.
-			alt := arr.AssignedAltitude
-			nav.Altitude.Assigned = &alt
+			nav.setAssignedAltitude(arr.AssignedAltitude)
 		}
 		if arr.ClearedAltitude > 0 {
 			alt := arr.ClearedAltitude
@@ -304,8 +305,7 @@ func MakeDepartureNav(callsign av.ADSBCallsign, fp av.FlightPlan, perf av.Aircra
 	if nav := makeNav(callsign, fp, perf, wp, randomizeAltitudeRange, nmPerLongitude, magneticVariation,
 		lg); nav != nil {
 		if assignedAlt != 0 {
-			alt := float32(min(assignedAlt, fp.Altitude))
-			nav.Altitude.Assigned = &alt
+			nav.setAssignedAltitude(float32(min(assignedAlt, fp.Altitude)))
 		} else {
 			alt := float32(min(clearedAlt, fp.Altitude))
 			nav.Altitude.Cleared = &alt
@@ -327,8 +327,7 @@ func MakeOverflightNav(callsign av.ADSBCallsign, of *av.Overflight, fp av.Flight
 			nav.Speed.Restriction = &sr
 		}
 		if of.AssignedAltitude > 0 {
-			alt := of.AssignedAltitude
-			nav.Altitude.Assigned = &alt
+			nav.setAssignedAltitude(of.AssignedAltitude)
 		}
 		if of.AssignedSpeed > 0 {
 			sr := av.MakeAtSpeedRestriction(of.AssignedSpeed)

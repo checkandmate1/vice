@@ -85,7 +85,7 @@ func (nav *Nav) DepartOnCourse(alt float32, exit string, simTime Time) {
 		// Don't do anything if they are not on a heading; let them fly the
 		// regular route and don't (potentially) skip waypoints and go
 		// straight to the exit; however, the altitude should be changed
-		nav.Altitude = NavAltitude{Assigned: &alt}
+		nav.setAssignedAltitude(alt)
 		nav.Speed = NavSpeed{}
 		return
 	}
@@ -98,7 +98,7 @@ func (nav *Nav) DepartOnCourse(alt float32, exit string, simTime Time) {
 	if idx := slices.IndexFunc(nav.Waypoints, func(wp av.Waypoint) bool { return wp.Fix == exit }); idx != -1 {
 		nav.Waypoints = nav.Waypoints[idx:]
 	}
-	nav.Altitude = NavAltitude{Assigned: &alt}
+	nav.setAssignedAltitude(alt)
 	nav.Speed = NavSpeed{}
 	nav.EnqueueOnCourse(simTime)
 }
@@ -129,6 +129,8 @@ func (nav *Nav) Update(callsign string, model *wx.Model, fp *av.FlightPlan, simT
 
 // UpdateWithWeather is a helper for simulations that use pre-fetched weather
 func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) *av.Waypoint {
+	nav.activatePendingAltitude(simTime)
+
 	// Log current state every tick
 	NavLog(callsign, simTime, NavLogState, "pos=%.4f,%.4f alt=%.0f hdg=%.0f ias=%.0f gs=%.0f bank=%.1f rate=%.0f",
 		nav.FlightState.Position[0], nav.FlightState.Position[1],
@@ -442,10 +444,10 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 
 		if wp.ClimbAltitude() != 0 {
 			alt := float32(wp.ClimbAltitude())
-			nav.assignAltitude(alt, false)
+			nav.assignAltitudeNow(alt, false)
 		} else if wp.DescendAltitude() != 0 {
 			alt := float32(wp.DescendAltitude())
-			nav.assignAltitude(alt, false)
+			nav.assignAltitudeNow(alt, false)
 		}
 
 		if nfa, ok := nav.FixAssignments[wp.Fix]; ok {
@@ -458,7 +460,7 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		}
 
 		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Altitude != nil {
-			nav.assignAltitude(*nfa.Depart.Altitude, false)
+			nav.assignAltitudeNow(*nfa.Depart.Altitude, false)
 		}
 
 		if nfa, ok := nav.FixAssignments[wp.Fix]; ok && nfa.Depart.Heading != nil {
