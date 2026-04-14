@@ -94,6 +94,7 @@ func NewVisualScenario(t *testing.T, airportLoc math.Point2LL, runway string, ac
 		Aircraft:        map[av.ADSBCallsign]*Aircraft{callsign: ac},
 		PendingContacts: make(map[TCP][]PendingContact),
 		PrivilegedTCWs:  map[TCW]bool{tcw: true},
+		eventStream:     NewEventStream(lg),
 	}
 
 	return &VisualScenario{t: t, Sim: sim, AC: ac, callsign: callsign, tcw: tcw}
@@ -871,12 +872,33 @@ func TestScenarioCVAFollowTrafficUsesTrafficRoute(t *testing.T) {
 	setupTestRunway(t, "KJFK", av.Runway{Id: "36", Heading: 360, Threshold: airportLoc, Elevation: 13})
 
 	vs := NewVisualScenario(t, airportLoc, "36", math.Point2LL{3.0 / 52, -8.0 / 60}, 360)
+	vs.AC.Nav.Approach.Assigned = &av.Approach{
+		Type:   av.ILSApproach,
+		Runway: "36",
+		Waypoints: []av.WaypointArray{{
+			{Fix: "ILS36", Location: math.NM2LL([2]float32{0, -10}, 52)},
+			{Fix: "RW36", Location: airportLoc},
+		}},
+	}
 
-	traffic := makeVisualTestAircraft(math.Point2LL{0, -5.0 / 60}, 360)
+	trafficPos := math.NM2LL([2]float32{-4, -4.2}, 52)
+	traffic := makeVisualTestAircraft(trafficPos, 360)
 	traffic.ADSBCallsign = "AAL5207"
 	traffic.Nav.FlightState.ArrivalAirport = av.Waypoint{Fix: "KJFK"}
 	traffic.Nav.Approach.Cleared = true
-	traffic.Nav.Approach.Assigned = &av.Approach{Type: av.ChartedVisualApproach, Runway: "36"}
+	zadud := av.Waypoint{Fix: "ZADUD", Location: math.NM2LL([2]float32{-6, -5}, 52)}
+	wirko := av.Waypoint{Fix: "WIRKO", Location: math.NM2LL([2]float32{-2, -2.5}, 52)}
+	rw36 := av.Waypoint{Fix: "RW36", Location: airportLoc}
+	traffic.Nav.Approach.Assigned = &av.Approach{
+		Type:   av.RNAVApproach,
+		Runway: "36",
+		Waypoints: []av.WaypointArray{{
+			zadud,
+			wirko,
+			rw36,
+		}},
+	}
+	traffic.Nav.Waypoints = av.WaypointArray{wirko, rw36}
 	vs.Sim.Aircraft[traffic.ADSBCallsign] = traffic
 
 	vs.AC.TrafficInSight = true
@@ -892,6 +914,45 @@ func TestScenarioCVAFollowTrafficUsesTrafficRoute(t *testing.T) {
 	}
 	if len(vs.AC.Nav.Waypoints) == 0 || vs.AC.Nav.Waypoints[0].Fix != "_36_FOLLOW_TRAFFIC" {
 		t.Fatalf("expected follow-traffic route, got %v", wpNames(vs.AC.Nav.Waypoints))
+	}
+	if d := math.NMDistance2LLFast(vs.AC.Nav.Waypoints[0].Location, trafficPos, 52); d > 0.01 {
+		t.Fatalf("follow-traffic waypoint %.2fnm from traffic position", d)
+	}
+	if got := wpNames(vs.AC.Nav.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "WIRKO", "RW36"}) {
+		t.Fatalf("route = %v, want traffic position followed by traffic's remaining route", got)
+	}
+}
+
+func TestVisualApproachFollowingTrafficCopiesRemainingTrafficRoute(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	setupTestRunway(t, "KTEST", av.Runway{
+		Id:                      "36",
+		Heading:                 360,
+		Threshold:               airportLoc,
+		Elevation:               100,
+		ThresholdCrossingHeight: 50,
+	})
+
+	nmPerLong := float32(52)
+	trafficPos := math.NM2LL([2]float32{0, -4}, nmPerLong)
+	final3NM := av.Waypoint{Fix: "_36_3NM_FINAL", Location: math.NM2LL([2]float32{0, -3}, nmPerLong)}
+	threshold := av.Waypoint{Fix: "RW36", Location: airportLoc}
+
+	n := nav.Nav{
+		FlightState: nav.FlightState{
+			Position:          math.NM2LL([2]float32{3, -8}, nmPerLong),
+			Heading:           360,
+			NmPerLongitude:    nmPerLong,
+			MagneticVariation: 0,
+			ArrivalAirport:    av.Waypoint{Fix: "KTEST"},
+		},
+	}
+	trafficRoute := av.WaypointArray{final3NM, threshold}
+	if _, ok := n.ClearedDirectVisualFollowingTrafficRoute("36", trafficPos, trafficRoute, "", time.Time{}); !ok {
+		t.Fatal("expected follow-traffic visual route")
+	}
+	if got := wpNames(n.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "_36_3NM_FINAL", "RW36"}) {
+		t.Fatalf("route = %v, want traffic, 3nm final, threshold", got)
 	}
 }
 
@@ -1372,6 +1433,47 @@ func TestScenarioCVAInvalidRunwayDoesNotGoAround(t *testing.T) {
 	}
 	if vs.AC.WentAround {
 		t.Fatal("invalid runway should not trigger go-around")
+	}
+}
+
+func TestScenarioEVAInvalidRunwayIsUnable(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	setupTestRunway(t, "KJFK", av.Runway{Id: "22L", Heading: 220, Threshold: airportLoc, Elevation: 13})
+
+	vs := NewVisualScenario(t, airportLoc, "22L", math.Point2LL{0, 5.0 / 60}, 180)
+	res := vs.Sim.RunAircraftControlCommands(vs.tcw, vs.callsign, "EVA2LL")
+
+	if res.Error != nil {
+		t.Fatalf("expected nil error (unable is an intent, not an error), got %v", res.Error)
+	}
+	if !strings.Contains(strings.ToLower(res.ReadbackSpokenText), "unable") {
+		t.Fatalf("expected unable readback for invalid EVA runway, got %q", res.ReadbackSpokenText)
+	}
+	if strings.Contains(strings.ToLower(res.ReadbackSpokenText), "expect") {
+		t.Fatalf("invalid EVA runway should not produce expect readback, got %q", res.ReadbackSpokenText)
+	}
+}
+
+func TestScenarioEVAInactiveRunwayIsUnable(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	setupTestRunways(t, "KJFK", []av.Runway{
+		{Id: "22L", Heading: 220, Threshold: airportLoc, Elevation: 13},
+		{Id: "31R", Heading: 310, Threshold: airportLoc, Elevation: 13},
+	})
+
+	vs := NewVisualScenario(t, airportLoc, "22L", math.Point2LL{0, 5.0 / 60}, 180)
+	vs.Sim.State.ArrivalRunways = []ArrivalRunway{{Airport: "KJFK", Runway: "22L"}}
+
+	res := vs.Sim.RunAircraftControlCommands(vs.tcw, vs.callsign, "EVA31R")
+
+	if res.Error != nil {
+		t.Fatalf("expected nil error (unable is an intent, not an error), got %v", res.Error)
+	}
+	if !strings.Contains(strings.ToLower(res.ReadbackSpokenText), "unable") {
+		t.Fatalf("expected unable readback for inactive EVA runway, got %q", res.ReadbackSpokenText)
+	}
+	if strings.Contains(strings.ToLower(res.ReadbackSpokenText), "expect") {
+		t.Fatalf("inactive EVA runway should not produce expect readback, got %q", res.ReadbackSpokenText)
 	}
 }
 

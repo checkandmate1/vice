@@ -220,14 +220,19 @@ func TestE2E_STTToSim(t *testing.T) {
 			// Step 3: Set up sim and aircraft
 			s := sim.NewTestSim(lg)
 			runway := guessRunway(commands)
+			lahsoRunway := guessLAHSORunway(commands)
 
 			// CVA/EVA runway validation and visual-path setup use av.DB runway data.
+			runways := []av.Runway{
+				{Id: runway, Heading: 180, Threshold: [2]float32{0, 0}, Elevation: 13},
+			}
+			if lahsoRunway != "" {
+				runways = append(runways, av.Runway{Id: lahsoRunway, Heading: 260, Threshold: [2]float32{0, 0}, Elevation: 13})
+			}
 			av.DB.Airports["KJFK"] = av.FAAAirport{
 				Id:        "KJFK",
 				Elevation: 13,
-				Runways: []av.Runway{
-					{Id: runway, Heading: 180, Threshold: [2]float32{0, 0}, Elevation: 13},
-				},
+				Runways:   runways,
 			}
 
 			ac := sim.MakeTestAircraft(av.ADSBCallsign(callsign), runway)
@@ -295,4 +300,13 @@ func guessRunway(commands string) string {
 		}
 	}
 	return "22L" // fallback for non-approach commands
+}
+
+func guessLAHSORunway(commands string) string {
+	cmd := strings.Fields(commands)[0]
+	_, suffix, ok := strings.Cut(cmd, "/LAHSO")
+	if !ok {
+		return ""
+	}
+	return suffix
 }

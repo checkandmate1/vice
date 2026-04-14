@@ -724,6 +724,7 @@ func (nav *Nav) syntheticDirectVisualApproach(runway string) *av.Approach {
 type visualApproachPoint struct {
 	route               []av.Waypoint
 	segment             int
+	segmentFraction     float32
 	location            math.Point2LL
 	distanceToThreshold float32
 	lateralDistance     float32
@@ -762,6 +763,7 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 				best = visualApproachPoint{
 					route:               route,
 					segment:             i,
+					segmentFraction:     t,
 					location:            math.NM2LL(proj, nmPerLong),
 					distanceToThreshold: distToThreshold,
 					lateralDistance:     lateral,
@@ -791,6 +793,11 @@ func (nav *Nav) intersectApproachRoutes(routes []av.WaypointArray, heading math.
 		for i := 0; i < len(route)-1; i++ {
 			p0 := math.LL2NM(route[i].Location, nmPerLong)
 			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
+			seg := math.Sub2f(p1, p0)
+			segLen2 := math.Dot(seg, seg)
+			if segLen2 == 0 {
+				continue
+			}
 			intersect, ok := math.LineLineIntersect(acNM, math.Add2f(acNM, headingDir), p0, p1)
 			if !ok {
 				continue
@@ -806,6 +813,7 @@ func (nav *Nav) intersectApproachRoutes(routes []av.WaypointArray, heading math.
 				best = visualApproachPoint{
 					route:               route,
 					segment:             i,
+					segmentFraction:     math.Dot(math.Sub2f(intersect, p0), seg) / segLen2,
 					location:            math.NM2LL(intersect, nmPerLong),
 					distanceToThreshold: distToThreshold,
 					interceptDistance:   alongHeading,
@@ -885,7 +893,7 @@ func (nav *Nav) buildDirectVisualWaypointsFromApproach(runway string, followTraf
 		}
 		joinPoint = trafficPoint
 
-		bearingToJoin := math.Heading2LL(nav.FlightState.Position, joinPoint.location, nmPerLong)
+		bearingToJoin := math.Heading2LL(nav.FlightState.Position, *followTraffic, nmPerLong)
 		if math.HeadingDifference(bearingToJoin, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 120 {
 			return nil
 		}
@@ -942,6 +950,7 @@ func (nav *Nav) buildDirectVisualWaypointsFromApproach(runway string, followTraf
 	}
 	if followTraffic != nil {
 		join.Fix = "_" + runway + "_FOLLOW_TRAFFIC"
+		join.Location = *followTraffic
 	} else if joinPoint.lateralDistance == 0 {
 		join.Fix = "_" + runway + "_INTERCEPT"
 	} else {
@@ -955,6 +964,10 @@ func (nav *Nav) buildDirectVisualWaypointsFromApproach(runway string, followTraf
 	wps = append(wps, join)
 
 	start := joinPoint.segment + 1
+	if followTraffic != nil && joinPoint.segmentFraction <= 1e-4 &&
+		math.NMDistance2LLFast(*followTraffic, joinPoint.route[joinPoint.segment].Location, nmPerLong) > 0.05 {
+		start = joinPoint.segment
+	}
 	if hasFinalPoint && joinPoint.distanceToThreshold > 3.25 {
 		if start < finalPoint.segment+1 {
 			wps = append(wps, util.DuplicateSlice(joinPoint.route[start:finalPoint.segment+1])...)
@@ -976,12 +989,43 @@ func (nav *Nav) buildDirectVisualWaypointsFromApproach(runway string, followTraf
 	if len(wps) == 0 {
 		return nil
 	}
+	return finalizeDirectVisualWaypoints(wps, alt)
+}
+
+func (nav *Nav) buildDirectVisualWaypointsFromTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray) []av.Waypoint {
+	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
+	if !ok || len(trafficRoute) == 0 {
+		return nil
+	}
+
+	nmPerLong := nav.FlightState.NmPerLongitude
+	magVar := nav.FlightState.MagneticVariation
+	bearingToTraffic := math.Heading2LL(nav.FlightState.Position, trafficPosition, nmPerLong)
+	if math.HeadingDifference(bearingToTraffic, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 120 {
+		return nil
+	}
+	if math.NMDistance2LLFast(trafficPosition, trafficRoute[len(trafficRoute)-1].Location, nmPerLong) <= 0.5 {
+		return nil
+	}
+
+	join := av.Waypoint{
+		Fix:      "_" + runway + "_FOLLOW_TRAFFIC",
+		Location: trafficPosition,
+	}
+	join.SetOnApproach(true)
+
+	wps := av.WaypointArray{join}
+	wps = append(wps, util.DuplicateSlice(trafficRoute)...)
+	return finalizeDirectVisualWaypoints(wps, rwy.Elevation+rwy.ThresholdCrossingHeight)
+}
+
+func finalizeDirectVisualWaypoints(wps av.WaypointArray, thresholdAltitude int) av.WaypointArray {
 	last := &wps[len(wps)-1]
 	last.SetOnApproach(true)
 	last.SetLand(true)
 	last.SetFlyOver(true)
 	if last.AltitudeRestriction() == nil {
-		last.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(alt)))
+		last.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(thresholdAltitude)))
 	}
 	for i := range wps {
 		wps[i].SetOnApproach(true)
@@ -1038,6 +1082,15 @@ func (nav *Nav) ClearedDirectVisual(runway string, referenceApproach *av.Approac
 
 func (nav *Nav) ClearedDirectVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
 	wi := nav.buildDirectVisualWaypoints(runway, &trafficPosition, referenceApproach)
+	if wi == nil {
+		return nil, false
+	}
+
+	return nav.clearedDirectVisual(runway, lahsoRunway, simTime, wi)
+}
+
+func (nav *Nav) ClearedDirectVisualFollowingTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
+	wi := nav.buildDirectVisualWaypointsFromTrafficRoute(runway, trafficPosition, trafficRoute)
 	if wi == nil {
 		return nil, false
 	}

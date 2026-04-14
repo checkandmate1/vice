@@ -425,6 +425,10 @@ func (ac *Aircraft) ClearedDirectVisualFollowingTraffic(runway string, trafficPo
 	return ac.Nav.ClearedDirectVisualFollowingTraffic(runway, trafficPosition, referenceApproach, lahsoRunway, simTime.Time())
 }
 
+func (ac *Aircraft) ClearedDirectVisualFollowingTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
+	return ac.Nav.ClearedDirectVisualFollowingTrafficRoute(runway, trafficPosition, trafficRoute, lahsoRunway, simTime.Time())
+}
+
 func (ac *Aircraft) ClearedStraightInApproach(id string, simTime Time, lg *log.Logger) (av.CommandIntent, bool) {
 	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, true, simTime.NavTime())
 }

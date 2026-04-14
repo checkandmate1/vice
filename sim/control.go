@@ -1781,6 +1781,47 @@ func (s *Sim) ExpectApproach(tcw TCW, callsign av.ADSBCallsign, approach, lahsoR
 		})
 }
 
+func (s *Sim) ExpectVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway string, lahsoRunway string) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			airport := ac.FlightPlan.ArrivalAirport
+			if _, ok := av.LookupRunway(airport, runway); !ok {
+				return av.MakeUnableIntent("unable, we don't know that runway")
+			}
+			if !s.activeArrivalRunway(airport, runway) {
+				return av.MakeUnableIntent("unable, that runway isn't active")
+			}
+			if lahsoRunway != "" {
+				if _, ok := av.LookupRunway(airport, lahsoRunway); !ok {
+					return av.MakeUnableIntent("unable, we don't know that hold-short runway")
+				}
+			}
+			return av.ApproachIntent{
+				Type:         av.ApproachExpect,
+				ApproachName: "Visual Approach Runway " + runway,
+				LAHSORunway:  lahsoRunway,
+			}
+		})
+}
+
+func (s *Sim) activeArrivalRunway(airport string, runway string) bool {
+	hasArrivalRunways := false
+	runwayBase := av.RunwayID(runway).Base()
+	for _, ar := range s.State.ArrivalRunways {
+		if ar.Airport != airport {
+			continue
+		}
+		hasArrivalRunways = true
+		if ar.Runway.Base() == runwayBase {
+			return true
+		}
+	}
+	return !hasArrivalRunways
+}
+
 func (s *Sim) ClearedApproach(tcw TCW, callsign av.ADSBCallsign, approach string, straightIn bool) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -1840,15 +1881,18 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 				return av.MakeUnableIntent("unable, we don't know runway " + runway)
 			}
 
-			referenceApproach := s.visualReferenceApproach(ac, runway)
-
 			// Clear direct to the runway.
 			// If the aircraft is too close for a stable approach, go around.
 			var intent av.CommandIntent
 			var ok bool
 			if traffic != nil {
-				intent, ok = ac.ClearedDirectVisualFollowingTraffic(runway, traffic.Position(), referenceApproach, lahsoRunway, s.State.SimTime)
+				intent, ok = ac.ClearedDirectVisualFollowingTrafficRoute(runway, traffic.Position(), traffic.Nav.Waypoints, lahsoRunway, s.State.SimTime)
+				if !ok {
+					referenceApproach := s.visualReferenceApproachForFollowTraffic(ac, runway, traffic)
+					intent, ok = ac.ClearedDirectVisualFollowingTraffic(runway, traffic.Position(), referenceApproach, lahsoRunway, s.State.SimTime)
+				}
 			} else {
+				referenceApproach := s.visualReferenceApproach(ac, runway)
 				intent, ok = ac.ClearedDirectVisual(runway, referenceApproach, lahsoRunway, s.State.SimTime)
 			}
 			if !ok {
@@ -1913,6 +1957,18 @@ func (s *Sim) visualReferenceApproach(ac *Aircraft, runway string) *av.Approach 
 		bestRank = rank
 	}
 	return best
+}
+
+func (s *Sim) visualReferenceApproachForFollowTraffic(ac *Aircraft, runway string, traffic *Aircraft) *av.Approach {
+	runwayBase := av.RunwayID(runway).Base()
+	if traffic != nil {
+		if ap := traffic.Nav.Approach.Assigned; ap != nil &&
+			av.RunwayID(ap.Runway).Base() == runwayBase &&
+			len(ap.Waypoints) > 0 {
+			return ap
+		}
+	}
+	return s.visualReferenceApproach(ac, runway)
 }
 
 func (s *Sim) InterceptApproach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
@@ -3698,11 +3754,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			// "Expect visual approach runway XX" — just a heads-up, doesn't
 			// change the approach assignment. The actual clearance comes via CVA.
 			runway, lahsoRunway := parseLAHSOSuffix(command[3:])
-			return av.ApproachIntent{
-				Type:         av.ApproachExpect,
-				ApproachName: "Visual Approach Runway " + runway,
-				LAHSORunway:  lahsoRunway,
-			}, nil
+			return s.ExpectVisualApproach(tcw, callsign, runway, lahsoRunway)
 		} else if strings.HasPrefix(command, "EXPDIR") && len(command) > 6 {
 			return s.ExpectDirect(tcw, callsign, command[6:])
 		} else if len(command) > 1 {
