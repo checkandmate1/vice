@@ -397,6 +397,10 @@ func (ss *CommonState) Locate(s string) (math.Point2LL, bool) {
 	return math.Point2LL{}, false
 }
 
+func (ss *CommonState) LocateDME(s string) (math.Point2LL, int, bool) {
+	return av.DB.LookupDME(s)
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // CommonState methods for controller/consolidation management
 

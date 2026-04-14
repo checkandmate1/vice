@@ -152,12 +152,12 @@
           "BAYYS,BDR,BIGGY,BREZY,COATE,ELIOT,GAYEL,GREKI,HAAYS,LANNA,MERIT,NEION,NEWEL,None,PARKE,SAX,SBJ,SHIPP,WAVEY,ZIMMZ,ARD": {
             "cleared_altitude": 2500,
             "sid": "EWR5",
-            "waypoints": "_EWR4_22Ra/h220"
+            "waypoints": "KEWR-4L/h219@a5/l190@d2.3ILSQ/r220"
           },
           "DIXIE,WHITE": {
             "cleared_altitude": 2500,
             "sid": "EWR5",
-            "waypoints": "_EWR4_22Ra/h220 ELVAE COL"
+            "waypoints": "KEWR-4L/h219@a5/l190@d2.3ILSQ/r220"
           }
         },
         "22R.Background": {
@@ -208,12 +208,12 @@
           "BAYYS,BDR,BIGGY,BREZY,COATE,ELIOT,GAYEL,GREKI,HAAYS,LANNA,MERIT,NEION,NEWEL,None,PARKE,SAX,SBJ,SHIPP,WAVEY,ZIMMZ,ARD": {
             "cleared_altitude": 3000,
             "sid": "EWR5",
-            "waypoints": "_EWR4_4La/h290"
+            "waypoints": "KEWR-22R/h039@a5/r055@d4.0IEZA/l290"
           },
           "DIXIE,WHITE": {
             "cleared_altitude": 3000,
             "sid": "EWR5",
-            "waypoints": "_EWR4_4La/h290 ELVAE COL"
+            "waypoints": "KEWR-22R/h039@a5/r055@d4.0IEZA/l290"
           }
         },
         "4L.Background": {

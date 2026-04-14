@@ -184,19 +184,51 @@ func ParseARINC424(r io.Reader) ARINC424Result {
 				}
 
 				name := strings.TrimSpace(string(line[93:123]))
+				dmeIdent := strings.TrimSpace(string(line[51:55]))
+				hasDME := dmeIdent != "" && !empty(line[55:74])
+				var dmeLocation math.Point2LL
+				if hasDME {
+					dmeLocation = parseLatLong(line[55:64], line[64:74])
+				}
+				hasDMEElevation := hasDME && !empty(line[79:84])
+				dmeElevation := 0
+				if hasDMEElevation {
+					dmeElevation = parseInt(line[79:84])
+				}
+
 				if !empty(line[32:51]) {
 					result.Navaids[id] = Navaid{
-						Id:       id,
-						Type:     util.Select(subsectionCode == ' ', "VOR", "NDB"),
-						Name:     name,
-						Location: parseLatLong(line[32:41], line[41:51]),
+						Id:              id,
+						Type:            util.Select(subsectionCode == ' ', "VOR", "NDB"),
+						Name:            name,
+						Location:        parseLatLong(line[32:41], line[41:51]),
+						HasDME:          hasDME,
+						DMELocation:     dmeLocation,
+						DMEElevation:    dmeElevation,
+						HasDMEElevation: hasDMEElevation,
 					}
-				} else {
+				} else if hasDME {
 					result.Navaids[id] = Navaid{
-						Id:       id,
-						Type:     "DME",
-						Name:     name,
-						Location: parseLatLong(line[55:64], line[64:74]),
+						Id:              id,
+						Type:            "DME",
+						Name:            name,
+						Location:        dmeLocation,
+						HasDME:          true,
+						DMELocation:     dmeLocation,
+						DMEElevation:    dmeElevation,
+						HasDMEElevation: hasDMEElevation,
+					}
+				}
+				if hasDME && dmeIdent != "" && dmeIdent != id {
+					result.Navaids[dmeIdent] = Navaid{
+						Id:              dmeIdent,
+						Type:            "DME",
+						Name:            name,
+						Location:        dmeLocation,
+						HasDME:          true,
+						DMELocation:     dmeLocation,
+						DMEElevation:    dmeElevation,
+						HasDMEElevation: hasDMEElevation,
 					}
 				}
 			}
@@ -316,10 +348,12 @@ func ParseARINC424(r io.Reader) ARINC424Result {
 				}
 				id := strings.TrimSpace(string(line[13:17]))
 				if id != "" && !empty(line[32:51]) {
-					result.Navaids[id] = Navaid{
-						Id:       id,
-						Type:     "LOC",
-						Location: parseLatLong(line[32:41], line[41:51]),
+					if _, ok := result.Navaids[id]; !ok {
+						result.Navaids[id] = Navaid{
+							Id:       id,
+							Type:     "LOC",
+							Location: parseLatLong(line[32:41], line[41:51]),
+						}
 					}
 				}
 

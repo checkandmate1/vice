@@ -227,17 +227,17 @@ func (ac *Aircraft) TAS(temp av.Temperature) float32 {
 ///////////////////////////////////////////////////////////////////////////
 // Navigation and simulation
 
-func (ac *Aircraft) Update(model *wx.Model, simTime Time, bravo *av.AirspaceGrid, lg *log.Logger) *av.Waypoint {
+func (ac *Aircraft) Update(model *wx.Model, simTime Time, bravo *av.AirspaceGrid, lg *log.Logger) nav.UpdateResult {
 	if lg != nil {
 		lg = lg.With(slog.String("adsb_callsign", string(ac.ADSBCallsign)))
 	}
 
-	passedWaypoint := ac.Nav.Update(string(ac.ADSBCallsign), model, &ac.FlightPlan, simTime.NavTime(), bravo)
-	if passedWaypoint != nil {
-		lg.Debug("passed", slog.Any("waypoint", passedWaypoint))
+	navUpdate := ac.Nav.Update(string(ac.ADSBCallsign), model, &ac.FlightPlan, simTime.NavTime(), bravo)
+	if navUpdate.PassedWaypoint != nil && lg != nil {
+		lg.Debug("passed", slog.Any("waypoint", navUpdate.PassedWaypoint))
 	}
 
-	return passedWaypoint
+	return navUpdate
 }
 
 func (ac *Aircraft) PilotMixUp() av.CommandIntent {

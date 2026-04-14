@@ -1,4 +1,4 @@
-- Scenario updates: ZNY (Ryan G), SCT (Ketan K), ZJX, F11 (manaphy), MIA (Gecko)
+- Scenario updates: ZNY (Ryan G), SCT (Ketan K), ZJX, F11 (manaphy), MIA (Gecko), N90 (Matt P)
 - Navigation / flight model:
   - Handle "at or above/at or below" speed restrictions more reasonably (don't treat them all as "at")
   - Added support for intercepting RNAV t-segments
@@ -22,4 +22,5 @@
   - Added "thick_20nm_range_ring" STARS adaptation
   - Added "flight_type" for overflights so aircraft flight types can be specified as "departure" or "arrival" (rather than always being "overflight")
   - Added "flash_on_atis_update" adaptation for STARS SSA lists
+  - Added support for actions at waypoints until reaching an altitude or DME from a fix, e.g. "FIX/h090@a30/h120" departs fix at an 090 heading until reaching 3,000', then flies 120.
 - Added UI option to force (realistic) square windows for STARS/ERAM radar displays

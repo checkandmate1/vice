@@ -120,15 +120,15 @@ func (nav *Nav) Check(lg *log.Logger) {
 	}
 }
 
-// returns passed waypoint if any
-func (nav *Nav) Update(callsign string, model *wx.Model, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) *av.Waypoint {
+func (nav *Nav) Update(callsign string, model *wx.Model, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) UpdateResult {
 	// Perform single weather lookup at the start
 	wxs := model.Lookup(nav.FlightState.Position, nav.FlightState.Altitude, simTime.Time())
 	return nav.UpdateWithWeather(callsign, wxs, fp, simTime, bravo)
 }
 
 // UpdateWithWeather is a helper for simulations that use pre-fetched weather
-func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) *av.Waypoint {
+func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) UpdateResult {
+	nav.PendingWaypointActionEvents = nil
 	nav.activatePendingAltitude(simTime)
 
 	// Log current state every tick
@@ -147,12 +147,15 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 		nav.Airwork = nil // Done.
 	}
 
+	result := UpdateResult{ActionEvents: nav.PendingWaypointActionEvents}
 	if nav.Airwork == nil && nav.Heading.Assigned == nil &&
 		nav.Heading.Hold == nil && len(nav.Heading.Maneuvers) == 0 {
-		return nav.updateWaypoints(callsign, wxs, fp, simTime)
+		result = nav.updateWaypoints(callsign, wxs, fp, simTime)
+		result.ActionEvents = append(nav.PendingWaypointActionEvents, result.ActionEvents...)
+		return result
 	}
 
-	return nil
+	return result
 }
 
 func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime Time) (heading math.MagneticHeading, turn av.TurnDirection, rate float32) {
@@ -317,9 +320,9 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime Time) (hea
 
 	return
 }
-func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time) *av.Waypoint {
+func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time) UpdateResult {
 	if len(nav.Waypoints) == 0 {
-		return nil
+		return UpdateResult{}
 	}
 
 	wp := &nav.Waypoints[0]
@@ -474,6 +477,11 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 				nav.Waypoints = append([]av.Waypoint{*wp}, wps...)
 				nav.Heading.Turn = nfa.Depart.Turn // may be nil (TurnClosest)
 			}
+		} else if len(wp.ActionGroups()) > 0 && !clearedAtFix {
+			nav.Heading = NavHeading{Maneuvers: nav.makeActionGroupManeuvers(wp.Fix, wp.ActionGroups())}
+			if event := nav.activateWaypointActions(wp.Fix, wp.ActionGroups()[0].Actions); event != nil {
+				nav.PendingWaypointActionEvents = append(nav.PendingWaypointActionEvents, *event)
+			}
 		} else if wp.Heading != 0 && !clearedAtFix {
 			hdg := wp.MagneticHeading()
 			turn := wp.Turn()
@@ -517,7 +525,7 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 			nav.Waypoints = nav.Waypoints[1:]
 		}
 
-		if nav.Heading.Assigned == nil {
+		if nav.Heading.Assigned == nil && len(nav.Heading.Maneuvers) == 0 {
 			nav.flyProcedureTurnIfNecessary()
 		}
 
@@ -531,7 +539,64 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		// Log the updated route after passing the waypoint
 		LogRoute(callsign, simTime, nav.Waypoints)
 
-		return wp
+		result := UpdateResult{PassedWaypoint: wp}
+		if event := wp.ActionEvent(); event != nil {
+			result.ActionEvents = append(result.ActionEvents, *event)
+		}
+		return result
+	}
+	return UpdateResult{}
+}
+
+func (nav *Nav) makeActionGroupManeuvers(fix string, groups []av.WaypointActionGroup) []LateralManeuver {
+	maneuvers := make([]LateralManeuver, 0, len(groups))
+	for _, group := range groups {
+		m := LateralManeuver{
+			Fix:     fix,
+			Actions: group.Actions,
+		}
+		heading := group.Actions.Heading
+		if heading == nil {
+			m.Heading = nav.FlightState.Heading
+		} else {
+			m.Turn = heading.Turn
+			if heading.PresentHeading {
+				m.Heading = nav.FlightState.Heading
+			} else if heading.Track {
+				m.Track = math.MagneticHeading(heading.Heading)
+			} else {
+				m.Heading = math.MagneticHeading(heading.Heading)
+			}
+		}
+
+		switch group.Until.Type {
+		case av.WaypointActionNoTermination:
+			m.Until = ManeuverComplete{Type: UntilControllerIntervention}
+		case av.WaypointActionAltitude:
+			m.Until = ManeuverComplete{Type: UntilAltitude, Altitude: group.Until.Altitude}
+		case av.WaypointActionDME:
+			m.Until = ManeuverComplete{
+				Type:            UntilDME,
+				DMEDistance:     group.Until.DMEDistance,
+				DMEFix:          group.Until.DMEFixLocation,
+				DMEFixElevation: group.Until.DMEFixElevation,
+			}
+		default:
+			panic("unhandled WaypointActionTerminationType")
+		}
+		maneuvers = append(maneuvers, m)
+	}
+	return maneuvers
+}
+
+func (nav *Nav) activateWaypointActions(fix string, actions av.WaypointActions) *av.WaypointActionEvent {
+	if actions.ClimbAltitude != 0 {
+		nav.assignAltitudeNow(float32(actions.ClimbAltitude*100), false)
+	} else if actions.DescendAltitude != 0 {
+		nav.assignAltitudeNow(float32(actions.DescendAltitude*100), false)
+	}
+	if actions.HasSimActions() {
+		return &av.WaypointActionEvent{Fix: fix, Actions: actions}
 	}
 	return nil
 }

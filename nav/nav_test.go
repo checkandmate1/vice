@@ -298,7 +298,7 @@ func (f *FlightTest) Run() {
 
 	for f.tick = 0; f.tick < f.maxTicks; f.tick++ {
 		wxs := f.weather(f.nav.FlightState.Altitude)
-		passedWp := f.nav.UpdateWithWeather(f.callsign, wxs, &f.fp, f.simTime, nil)
+		passedWp := f.nav.UpdateWithWeather(f.callsign, wxs, &f.fp, f.simTime, nil).PassedWaypoint
 
 		if passedWp != nil {
 			f.passed = append(f.passed, passedWp.Fix)

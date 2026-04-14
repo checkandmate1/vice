@@ -672,7 +672,7 @@
           },
           "DEEZZ": {
             "cleared_altitude": 5000,
-            "sid": "DEEZZ5",
+            "sid": "DEEZZ6",
             "waypoints": "KJFK-31R/h110"
           }
         },
@@ -699,7 +699,7 @@
           },
           "DEEZZ": {
             "cleared_altitude": 5000,
-            "sid": "DEEZZ5",
+            "sid": "DEEZZ6",
             "waypoints": "KJFK-31L/h109"
           }
         },
@@ -707,41 +707,41 @@
           "ARD,BAYYS,BDR,BETTE,COATE,DIXIE,GAYEL,GREKI,HAAYS,HAPIE,MERIT,NEION,RBV,SHIPP,WAVEY,WHITE": {
             "cleared_altitude": 5000,
             "sid": "JFK5",
-            "waypoints": "KJFK-4L/h222"
+            "waypoints": "KJFK-4L/h224"
           },
           "DEEZZ": {
             "cleared_altitude": 5000,
-            "sid": "DEEZZ5",
-            "waypoints": "KJFK-4L/h222"
+            "sid": "DEEZZ6",
+            "waypoints": "KJFK-4L/h224"
           }
         },
         "31L": {
           "ARD,DIXIE,RBV,WHITE": {
             "cleared_altitude": 5000,
-            "sid": "SKORR5.RNGRR",
-            "waypoints": "KJFK-13R SKORR METSS/a2500+ RNGRR/h223"
+            "sid": "SKORR6.RNGRR",
+            "waypoints": "KJFK-13R/h314@a5 SKORR/a2500+/s210- METSS/a2500+/s250- RNGRR/h225"
           },
           "BAYYS,BDR,BETTE,COATE,GAYEL,GREKI,HAAYS,HAPIE,MERIT,NEION,SHIPP,WAVEY": {
             "cleared_altitude": 5000,
-            "sid": "SKORR5.YNKEE",
-            "waypoints": "KJFK-13R SKORR CESID/a2500+ YNKEE/h172"
+            "sid": "SKORR6.YNKEE",
+            "waypoints": "KJFK-13R/h314@a5 SKORR/a2500+/s210- CESID/a2500+/s250- YNKEE/h187"
           },
           "DEEZZ": {
             "cleared_altitude": 5000,
-            "sid": "DEEZZ5",
-            "waypoints": "KJFK-13R SKORR CESID/a2500+ YNKEE/h172"
+            "sid": "DEEZZ6",
+            "waypoints": "KJFK-13R/h314@a5 SKORR/a2500+/s210- CESID/a2500+/s250- YNKEE/h187"
           }
         },
         "4L": {
           "ARD,BAYYS,BDR,BETTE,COATE,DIXIE,GAYEL,GREKI,HAAYS,HAPIE,MERIT,NEION,RBV,SHIPP,WAVEY,WHITE": {
             "cleared_altitude": 5000,
             "sid": "JFK5",
-            "waypoints": "_JFK_4La/h100"
+            "waypoints": "KJFK-22R/r099"
           },
           "DEEZZ": {
             "cleared_altitude": 5000,
-            "sid": "DEEZZ5",
-            "waypoints": "_JFK_4La/h100"
+            "sid": "DEEZZ6",
+            "waypoints": "KJFK-22R PONAE/r099"
           }
         }
       },

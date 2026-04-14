@@ -65,7 +65,14 @@ type Nav struct {
 	FinalAltitude float32
 	Waypoints     av.WaypointArray
 
+	PendingWaypointActionEvents []av.WaypointActionEvent
+
 	Rand *rand.Rand
+}
+
+type UpdateResult struct {
+	PassedWaypoint *av.Waypoint
+	ActionEvents   []av.WaypointActionEvent
 }
 
 type contactCrossingRestriction struct {

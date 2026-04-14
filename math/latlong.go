@@ -329,6 +329,14 @@ func NMDistance2LLFast(a Point2LL, b Point2LL, nmPerLongitude float32) float32 {
 	return Distance2f(anm, bnm)
 }
 
+// DMEDistance returns the straight-line distance in nautical miles between
+// two lat-long positions at the given altitudes in feet.
+func DMEDistance(a Point2LL, aAltitude float32, b Point2LL, bAltitude float32) float32 {
+	lateral := NMDistance2LL(a, b)
+	vertical := (aAltitude - bAltitude) * FeetToNauticalMiles
+	return Sqrt(Sqr(lateral) + Sqr(vertical))
+}
+
 // NMLength2ll returns the length of a vector expressed in lat-long
 // coordinates.
 func NMLength2LL(a Point2LL, nmPerLongitude float32) float32 {

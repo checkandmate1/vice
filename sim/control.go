@@ -909,7 +909,7 @@ func (s *Sim) AcceptHandoff(tcw TCW, acid ACID) error {
 
 			if ac != nil {
 				haveTransferComms := slices.ContainsFunc(ac.Nav.Waypoints,
-					func(wp av.Waypoint) bool { return wp.TransferComms() })
+					func(wp av.Waypoint) bool { return wp.HasTransferCommsAction() })
 				if !haveTransferComms && s.isVirtualController(previousTrackingController) {
 					// For a handoff from a virtual controller, transfer
 					// comms only if the pilot is on the virtual's

@@ -242,6 +242,9 @@ func (s *scenario) PostDeserialize(sg *scenarioGroup, e *util.ErrorLogger, manif
 	addControllersFromWaypoints := func(route []av.Waypoint) {
 		for _, wp := range route {
 			addController(sim.TCP(wp.HandoffController()))
+			for _, group := range wp.ActionGroups() {
+				addController(sim.TCP(group.Actions.HandoffController))
+			}
 		}
 	}
 	// Make sure all of the controllers used in airspace awareness will be there.
@@ -636,6 +639,10 @@ func (sg *scenarioGroup) Locate(s string) (math.Point2LL, bool) {
 	return math.Point2LL{}, false
 }
 
+func (sg *scenarioGroup) LocateDME(s string) (math.Point2LL, int, bool) {
+	return av.DB.LookupDME(s)
+}
+
 // resolveController normalizes a TCP that may use a short prefix (e.g.
 // "N2K") to the canonical long-prefix form (e.g. "NNN2K") stored in
 // ControlPositions.  If tcp is already present or no expansion matches,
@@ -684,6 +691,16 @@ func (sg *scenarioGroup) resolveControllerRefs() {
 			}
 			if wps[i].PointOut() != "" {
 				wps[i].InitExtra().PointOut = resolve(wps[i].PointOut())
+			}
+			for j := range wps[i].ActionGroups() {
+				if wps[i].Extra.ActionGroups[j].Actions.HandoffController != "" {
+					wps[i].Extra.ActionGroups[j].Actions.HandoffController =
+						resolve(wps[i].Extra.ActionGroups[j].Actions.HandoffController)
+				}
+				if wps[i].Extra.ActionGroups[j].Actions.PointOut != "" {
+					wps[i].Extra.ActionGroups[j].Actions.PointOut =
+						resolve(wps[i].Extra.ActionGroups[j].Actions.PointOut)
+				}
 			}
 		}
 	}
@@ -1157,6 +1174,13 @@ func (sg *scenarioGroup) rewriteControllers(e *util.ErrorLogger) {
 				hc := w.HandoffController()
 				rewriteControlPosition(&hc)
 				w.InitExtra().HandoffController = hc
+			}
+			for j := range w.ActionGroups() {
+				if w.Extra.ActionGroups[j].Actions.HandoffController != "" {
+					hc := w.Extra.ActionGroups[j].Actions.HandoffController
+					rewriteControlPosition(&hc)
+					w.Extra.ActionGroups[j].Actions.HandoffController = hc
+				}
 			}
 		}
 	}

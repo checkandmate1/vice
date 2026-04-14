@@ -27,6 +27,8 @@ const (
 	UntilFix                                                // done when ETA to Until.Fix < 2s
 	UntilIntercept                                          // done when shouldTurnToIntercept fires for course through Fix
 	UntilControllerIntervention                             // never completes; lasts until controller issues a new instruction
+	UntilAltitude                                           // done when reaching Until.Altitude
+	UntilDME                                                // done when crossing Until.DMEDistance from Until.DMEFix
 )
 
 // ManeuverComplete encapsulates the completion condition for a lateral
@@ -34,15 +36,21 @@ const (
 // its parameters. Time and distance conditions capture their start
 // state lazily on first check.
 type ManeuverComplete struct {
-	Type    ManeuverCompleteType
-	Heading math.MagneticHeading // target heading (UntilHeading)
-	Seconds float32              // duration in seconds (UntilTime)
-	Dist    float32              // distance in nm (UntilDist)
-	Fix     math.Point2LL        // target fix (UntilFix, UntilIntercept)
+	Type     ManeuverCompleteType
+	Heading  math.MagneticHeading // target heading (UntilHeading)
+	Seconds  float32              // duration in seconds (UntilTime)
+	Dist     float32              // distance in nm (UntilDist)
+	Fix      math.Point2LL        // target fix (UntilFix, UntilIntercept)
+	Altitude int                  // target altitude (UntilAltitude)
 
 	// UntilIntercept: inbound course to intercept and turn direction for the intercept turn.
 	InterceptCourse math.MagneticHeading
 	InterceptTurn   av.TurnDirection
+
+	// UntilDME: DME distance from a fix.
+	DMEDistance     float32
+	DMEFix          math.Point2LL
+	DMEFixElevation int
 
 	// Lazy-init start state for time/distance conditions.
 	Start    Time          // captured on first Done() call (UntilTime)
@@ -69,6 +77,12 @@ func (mc *ManeuverComplete) Done(nav *Nav, simTime Time, wxs wx.Sample, targetHd
 		return nav.shouldTurnToIntercept(mc.Fix, mc.InterceptCourse, mc.InterceptTurn, wxs) == turnToInterceptTurn
 	case UntilControllerIntervention:
 		return false
+	case UntilAltitude:
+		return nav.FlightState.Altitude >= float32(mc.Altitude)
+	case UntilDME:
+		dist := math.DMEDistance(nav.FlightState.Position, nav.FlightState.Altitude,
+			mc.DMEFix, float32(mc.DMEFixElevation))
+		return dist >= mc.DMEDistance
 	default:
 		panic(fmt.Sprintf("unhandled ManeuverCompleteType: %d", mc.Type))
 	}
@@ -76,14 +90,17 @@ func (mc *ManeuverComplete) Done(nav *Nav, simTime Time, wxs wx.Sample, targetHd
 
 // LateralManeuver describes a single phase of flight: fly a heading until
 // a condition is met. A sequence of LateralManeuvers forms a procedure
-// turn or hold circuit.
+// turn, hold circuit, or ordered heading-leg instruction.
 type LateralManeuver struct {
-	Heading        math.MagneticHeading // heading to fly
-	Track          math.MagneticHeading // if non-zero, wind-corrected heading via headingForTrack
-	FlyToward      math.Point2LL        // if non-zero, heading = bearing to this point each tick
-	Turn           av.TurnDirection
-	Until          ManeuverComplete
-	AssignAltitude *float32 // if non-nil, set nav.Altitude when this maneuver becomes active
+	Heading              math.MagneticHeading // heading to fly
+	Track                math.MagneticHeading // if non-zero, wind-corrected heading via headingForTrack
+	FlyToward            math.Point2LL        // if non-zero, heading = bearing to this point each tick
+	Turn                 av.TurnDirection
+	Until                ManeuverComplete
+	AssignAltitude       *float32 // if non-nil, set nav.Altitude when this maneuver becomes active
+	ClearAltitudeOnFinal bool
+	Fix                  string
+	Actions              av.WaypointActions
 }
 
 func (m *LateralManeuver) String() string {
@@ -110,6 +127,10 @@ func (m *LateralManeuver) String() string {
 		until = fmt.Sprintf("until intercept %03d", int(m.Until.InterceptCourse))
 	case UntilControllerIntervention:
 		until = "until controller intervention"
+	case UntilAltitude:
+		until = fmt.Sprintf("until altitude %d", m.Until.Altitude)
+	case UntilDME:
+		until = fmt.Sprintf("until DME %.1f", m.Until.DMEDistance)
 	}
 
 	if until != "" {
@@ -142,14 +163,18 @@ func (nav *Nav) maneuverGetHeading(wxs wx.Sample, simTime Time) (math.MagneticHe
 	if m.Until.Done(nav, simTime, wxs, heading) {
 		nav.Heading.Maneuvers = nav.Heading.Maneuvers[1:]
 		if len(nav.Heading.Maneuvers) == 0 {
-			// All maneuvers complete; clear altitude and let waypoint following resume.
-			nav.Altitude = NavAltitude{}
+			if m.ClearAltitudeOnFinal {
+				nav.Altitude = NavAltitude{}
+			}
 			return heading, m.Turn, StandardTurnRate
 		}
 		// Recompute heading for the new maneuver
 		m = &nav.Heading.Maneuvers[0]
 		if m.AssignAltitude != nil {
 			nav.setAssignedAltitude(*m.AssignAltitude)
+		}
+		if event := nav.activateWaypointActions(m.Fix, m.Actions); event != nil {
+			nav.PendingWaypointActionEvents = append(nav.PendingWaypointActionEvents, *event)
 		}
 		heading = nav.maneuverHeading(m, wxs)
 	}
@@ -198,6 +223,9 @@ func (nav *Nav) flyProcedureTurnIfNecessary() {
 	}
 
 	nav.Heading = NavHeading{Maneuvers: maneuvers}
+	if len(nav.Heading.Maneuvers) > 0 {
+		nav.Heading.Maneuvers[len(nav.Heading.Maneuvers)-1].ClearAltitudeOnFinal = true
+	}
 }
 
 func makeStandard45Maneuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []LateralManeuver {
