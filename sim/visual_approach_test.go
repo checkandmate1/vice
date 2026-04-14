@@ -289,9 +289,9 @@ func TestCheckVisualEligibility(t *testing.T) {
 			wantField: true,
 		},
 		{
-			name:      "Too far from airport (20nm)",
+			name:      "Too far from airport (30nm)",
 			sim:       makeVisualTestSim(airportLoc, "13L"),
-			ac:        makeVisualTestAircraft(math.Point2LL{0, 20.0 / 60}, 180),
+			ac:        makeVisualTestAircraft(math.Point2LL{0, 30.0 / 60}, 180),
 			wantField: false,
 		},
 		{
@@ -576,38 +576,50 @@ func TestVisualApproachWaypoints(t *testing.T) {
 	nmPerLong := float32(52) // ~40°N
 
 	tests := []struct {
-		name     string
-		pos      math.Point2LL
-		heading  math.MagneticHeading
-		wantNil  bool   // expect go-around (nil)
-		wantBase bool   // expect a _BASE waypoint
-		baseSide string // "left" or "right" of centerline (looking inbound, i.e. north)
+		name         string
+		pos          math.Point2LL
+		heading      math.MagneticHeading
+		assigned     *math.MagneticHeading
+		wantNil      bool // expect go-around (nil)
+		wantFirstFix string
 	}{
 		{
-			name:     "Aligned on centerline, 8nm south",
-			pos:      math.Point2LL{0, -8.0 / 60}, // 8nm south
-			heading:  360,                         // heading north
-			wantBase: false,
+			name:         "Aligned on centerline, 8nm south",
+			pos:          math.Point2LL{0, -8.0 / 60}, // 8nm south
+			heading:      360,                         // heading north
+			wantFirstFix: "_36_3NM_FINAL",
 		},
 		{
-			name:     "Slightly offset (1nm east), 8nm south",
-			pos:      math.Point2LL{1.0 / nmPerLong, -8.0 / 60}, // 1nm east, 8nm south
-			heading:  360,
-			wantBase: false, // within 1.5nm threshold
+			name:         "Slightly offset (1nm east), 8nm south",
+			pos:          math.Point2LL{1.0 / nmPerLong, -8.0 / 60}, // 1nm east, 8nm south
+			heading:      360,
+			wantFirstFix: "_36_3NM_FINAL",
 		},
 		{
-			name:     "Offset 3nm east, 8nm south — base turn right",
-			pos:      math.Point2LL{3.0 / nmPerLong, -8.0 / 60},
-			heading:  360,
-			wantBase: true,
-			baseSide: "right",
+			name:         "Offset 3nm east, pointed at field — FAF first",
+			pos:          math.Point2LL{3.0 / nmPerLong, -8.0 / 60},
+			heading:      360,
+			wantFirstFix: "_36_3NM_FINAL",
 		},
 		{
-			name:     "Offset 3nm west, 8nm south — base turn left",
-			pos:      math.Point2LL{-3.0 / nmPerLong, -8.0 / 60},
-			heading:  360,
-			wantBase: true,
-			baseSide: "left",
+			name:         "Offset 3nm west, pointed away from field — project to final",
+			pos:          math.Point2LL{-3.0 / nmPerLong, -8.0 / 60},
+			heading:      180,
+			wantFirstFix: "_36_PROJECTION",
+		},
+		{
+			name:         "Assigned heading intercepts outside FAF — intercept assigned heading",
+			pos:          math.Point2LL{3.0 / nmPerLong, -8.0 / 60},
+			heading:      360,
+			assigned:     ptr(math.MagneticHeading(315)),
+			wantFirstFix: "_36_INTERCEPT",
+		},
+		{
+			name:         "Assigned heading intercepts inside FAF — FAF first",
+			pos:          math.Point2LL{3.0 / nmPerLong, -5.0 / 60},
+			heading:      360,
+			assigned:     ptr(math.MagneticHeading(315)),
+			wantFirstFix: "_36_3NM_FINAL",
 		},
 		{
 			name:    "Behind threshold — go around",
@@ -632,6 +644,9 @@ func TestVisualApproachWaypoints(t *testing.T) {
 					Assigned:   &av.Approach{Type: av.ChartedVisualApproach, Runway: "36"},
 				},
 			}
+			if tt.assigned != nil {
+				n.Heading.Assigned = tt.assigned
+			}
 
 			intent, ok := n.ClearedDirectVisual("36", time.Time{})
 
@@ -646,36 +661,30 @@ func TestVisualApproachWaypoints(t *testing.T) {
 			}
 
 			wps := n.Waypoints
-			if tt.wantBase {
-				// Expect: _BASE, _3NM_FINAL, _THRESHOLD
-				if len(wps) != 3 {
-					t.Fatalf("expected 3 waypoints, got %d: %v", len(wps), wpNames(wps))
-				}
-				if wps[0].Fix != "_36_BASE" {
-					t.Errorf("first waypoint = %q, want _36_BASE", wps[0].Fix)
-				}
-				if wps[1].Fix != "_36_3NM_FINAL" {
-					t.Errorf("second waypoint = %q, want _36_3NM_FINAL", wps[1].Fix)
-				}
+			if len(wps) < 2 {
+				t.Fatalf("expected at least 2 waypoints, got %d: %v", len(wps), wpNames(wps))
+			}
+			if wps[0].Fix != tt.wantFirstFix {
+				t.Errorf("first waypoint = %q, want %q; all waypoints: %v", wps[0].Fix, tt.wantFirstFix, wpNames(wps))
+			}
+			if tt.wantFirstFix != "_36_3NM_FINAL" && wps[1].Fix != "_36_3NM_FINAL" {
+				t.Errorf("second waypoint = %q, want _36_3NM_FINAL; all waypoints: %v", wps[1].Fix, wpNames(wps))
+			}
 
-				// Verify the base waypoint is on the correct side.
-				baseNM := math.LL2NM(wps[0].Location, nmPerLong)
-				thresholdNM := math.LL2NM(rwy.Threshold, nmPerLong)
-				// For runway 36 (heading north), east is positive x.
-				dx := baseNM[0] - thresholdNM[0]
-				if tt.baseSide == "right" && dx <= 0 {
-					t.Errorf("base waypoint should be to the right (east), dx=%.2f", dx)
+			if tt.wantFirstFix == "_36_PROJECTION" {
+				projectionNM := math.LL2NM(wps[0].Location, nmPerLong)
+				if math.Abs(projectionNM[0]) > 0.05 {
+					t.Errorf("projection waypoint should be on centerline, x=%.2f", projectionNM[0])
 				}
-				if tt.baseSide == "left" && dx >= 0 {
-					t.Errorf("base waypoint should be to the left (west), dx=%.2f", dx)
+			}
+			if tt.wantFirstFix == "_36_INTERCEPT" {
+				interceptNM := math.LL2NM(wps[0].Location, nmPerLong)
+				if math.Abs(interceptNM[0]) > 0.05 {
+					t.Errorf("intercept waypoint should be on centerline, x=%.2f", interceptNM[0])
 				}
-			} else {
-				// Expect: _3NM_FINAL, _THRESHOLD
-				if len(wps) != 2 {
-					t.Fatalf("expected 2 waypoints, got %d: %v", len(wps), wpNames(wps))
-				}
-				if wps[0].Fix != "_36_3NM_FINAL" {
-					t.Errorf("first waypoint = %q, want _36_3NM_FINAL", wps[0].Fix)
+				bearingToIntercept := math.Heading2LL(tt.pos, wps[0].Location, nmPerLong)
+				if math.HeadingDifference(bearingToIntercept, math.MagneticToTrue(*tt.assigned, 0)) > 1 {
+					t.Errorf("intercept should be on assigned heading, bearing %.1f heading %.1f", bearingToIntercept, *tt.assigned)
 				}
 			}
 
@@ -715,6 +724,90 @@ func wpNames(wps []av.Waypoint) []string {
 	return names
 }
 
+func ptr[T any](v T) *T {
+	return &v
+}
+
+func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
+	// Runway 36 at (0,0), heading 360 (north). Centerline extends south.
+	setupTestRunway(t, "KTEST", av.Runway{
+		Id:                      "36",
+		Heading:                 360,
+		Threshold:               math.Point2LL{0, 0},
+		Elevation:               100,
+		ThresholdCrossingHeight: 50,
+	})
+
+	nmPerLong := float32(52)
+	acPos := math.Point2LL{3.0 / nmPerLong, -8.0 / 60} // east of final, south of the threshold
+	trafficPos := math.Point2LL{0, -5.0 / 60}          // traffic already established on final
+
+	n := nav.Nav{
+		FlightState: nav.FlightState{
+			Position:          acPos,
+			Heading:           360,
+			NmPerLongitude:    nmPerLong,
+			MagneticVariation: 0,
+			ArrivalAirport:    av.Waypoint{Fix: "KTEST"},
+		},
+		Approach: nav.NavApproach{
+			AssignedId: "V36",
+			Assigned:   &av.Approach{Type: av.ChartedVisualApproach, Runway: "36"},
+		},
+	}
+
+	if _, ok := n.ClearedDirectVisualFollowingTraffic("36", trafficPos, time.Time{}); !ok {
+		t.Fatal("expected follow-traffic visual route")
+	}
+
+	wps := n.Waypoints
+	if len(wps) != 3 {
+		t.Fatalf("expected follow traffic, 3nm final, threshold; got %d: %v", len(wps), wpNames(wps))
+	}
+	if wps[0].Fix != "_36_FOLLOW_TRAFFIC" {
+		t.Fatalf("first waypoint = %q, want _36_FOLLOW_TRAFFIC", wps[0].Fix)
+	}
+
+	joinNM := math.LL2NM(wps[0].Location, nmPerLong)
+	if math.Abs(joinNM[0]) > 0.05 {
+		t.Errorf("follow-traffic waypoint should be on centerline, x=%.2f", joinNM[0])
+	}
+
+	bearingToJoin := math.Heading2LL(acPos, wps[0].Location, nmPerLong)
+	if math.HeadingDifference(bearingToJoin, math.TrueHeading(315)) > 1 {
+		t.Errorf("follow-traffic route should turn base toward traffic; bearing %.1f", bearingToJoin)
+	}
+}
+
+func TestScenarioCVAFollowTrafficUsesTrafficRoute(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	setupTestRunway(t, "KJFK", av.Runway{Id: "36", Heading: 360, Threshold: airportLoc, Elevation: 13})
+
+	vs := NewVisualScenario(t, airportLoc, "36", math.Point2LL{3.0 / 52, -8.0 / 60}, 360)
+
+	traffic := makeVisualTestAircraft(math.Point2LL{0, -5.0 / 60}, 360)
+	traffic.ADSBCallsign = "AAL5207"
+	traffic.Nav.FlightState.ArrivalAirport = av.Waypoint{Fix: "KJFK"}
+	traffic.Nav.Approach.Cleared = true
+	traffic.Nav.Approach.Assigned = &av.Approach{Type: av.ChartedVisualApproach, Runway: "36"}
+	vs.Sim.Aircraft[traffic.ADSBCallsign] = traffic
+
+	vs.AC.TrafficInSight = true
+	vs.AC.TrafficInSightCallsign = traffic.ADSBCallsign
+	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
+
+	intent, err := vs.ClearedVisual("36")
+	if err != nil {
+		t.Fatalf("ClearedVisual error: %v", err)
+	}
+	if _, ok := intent.(av.ClearedApproachIntent); !ok {
+		t.Fatalf("expected ClearedApproachIntent, got %T", intent)
+	}
+	if len(vs.AC.Nav.Waypoints) == 0 || vs.AC.Nav.Waypoints[0].Fix != "_36_FOLLOW_TRAFFIC" {
+		t.Fatalf("expected follow-traffic route, got %v", wpNames(vs.AC.Nav.Waypoints))
+	}
+}
+
 func TestAirportAdvisoryAccuracyCheck(t *testing.T) {
 	// Airport at (0, 0). Aircraft 5nm north heading south → airport is at 12 o'clock.
 	// Actual bearing from ac to airport ≈ 180°.
@@ -737,13 +830,13 @@ func TestAirportAdvisoryAccuracyCheck(t *testing.T) {
 			name:        "Way off direction (6 o'clock = behind, 180° error)",
 			oclock:      6,
 			miles:       5,
-			wantLooking: true, // >120° error → always looking
+			wantLooking: true, // >30° error → always looking
 		},
 		{
 			name:        "Moderately off direction (3 o'clock = right, ~90° error)",
 			oclock:      3,
 			miles:       5,
-			wantLooking: false, // <120° error → might see
+			wantLooking: true, // >30° error → always looking
 		},
 	}
 
@@ -792,10 +885,10 @@ func TestAirportAdvisoryTooFar(t *testing.T) {
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
 	sim := makeVisualTestSim(airportLoc, "13L")
 
-	// Aircraft 20nm north, beyond visualMaxDistance. Use correct direction (12 o'clock)
+	// Aircraft 30nm north, beyond visualMaxDistance. Use correct direction (12 o'clock)
 	// so we isolate the distance check from the bearing error check.
-	ac := makeVisualTestAircraft(math.Point2LL{0, 20.0 / 60}, 180)
-	intent := sim.handleAirportAdvisory(ac, 12, 20)
+	ac := makeVisualTestAircraft(math.Point2LL{0, 30.0 / 60}, 180)
+	intent := sim.handleAirportAdvisory(ac, 12, 30)
 	fi, ok := intent.(av.FieldInSightIntent)
 	if !ok {
 		t.Fatalf("expected FieldInSightIntent, got %T", intent)
@@ -847,28 +940,23 @@ func TestAirportAdvisoryLowVisibility(t *testing.T) {
 	}
 }
 
-func TestDelayedFieldInSight(t *testing.T) {
+func TestDelayedFieldInSightCanExpireWithoutSeeingField(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
 	sim := makeVisualTestSim(airportLoc, "13L")
 	sim.State.SimTime = NewSimTime(time.Now())
 
 	ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180) // 5nm north heading south
-	ac.FieldLookingUntil = sim.State.SimTime.Add(20 * time.Second)
+	ac.FieldLookingUntil = sim.State.SimTime.Add(-time.Second)
 	sim.Aircraft = map[av.ADSBCallsign]*Aircraft{"AAL123": ac}
 	sim.PendingContacts = make(map[TCP][]PendingContact)
 
-	// Should not fire before the timer expires.
 	sim.checkDelayedFieldInSight(ac)
 	if ac.FieldInSight {
-		t.Fatal("field in sight reported before timer expired")
+		t.Fatal("expired looking window should not guarantee field in sight")
 	}
-
-	// Advance past the timer and check again.
-	sim.State.SimTime = sim.State.SimTime.Add(21 * time.Second)
-	sim.checkDelayedFieldInSight(ac)
-	if !ac.FieldInSight {
-		t.Error("expected field in sight after timer expired")
+	if !ac.FieldLookingUntil.IsZero() {
+		t.Fatal("expired looking window should be cleared")
 	}
 }
 

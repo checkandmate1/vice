@@ -1578,7 +1578,7 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	reportedBearing := math.MagneticHeading(math.NormalizeHeading(float32(ac.Heading()) + oclockHeading))
 	actualBearing := math.TrueToMagnetic(math.Heading2LL(ac.Position(), ap.Location, ac.NmPerLongitude()), ac.MagneticVariation())
 	bearingError := math.HeadingDifference(reportedBearing, actualBearing)
-	if bearingError > 120 {
+	if bearingError > 30 {
 		ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
 		return av.FieldInSightIntent{Looking: true}
 	}
@@ -1594,8 +1594,8 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	}
 	maxRange := effectiveVisualRange(metar, apAltAGL)
 	actualDist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
-	seeProb := float32(0.8) * (1.0 - actualDist/maxRange*0.5)
-	seeProb = max(0.2, min(0.95, seeProb))
+	seeProb := float32(0.95) * (1.0 - actualDist/maxRange*0.15)
+	seeProb = max(0.4, min(0.95, seeProb))
 
 	if s.Rand.Float32() < seeProb {
 		ac.FieldInSight = true
@@ -1855,7 +1855,8 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
 			// Pilot must have the field or approach-cleared preceding
 			// traffic in sight before accepting a visual approach clearance.
-			if !ac.FieldInSight && !ac.RequestedVisual && !s.hasRecentApproachTrafficInSight(ac) {
+			traffic := s.recentApproachTrafficInSightForRunway(ac, runway)
+			if !ac.FieldInSight && !ac.RequestedVisual && traffic == nil {
 				return av.MakeUnableIntent("unable, we don't have the field in sight")
 			}
 
@@ -1867,7 +1868,13 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 
 			// Clear direct to the runway.
 			// If the aircraft is too close for a stable approach, go around.
-			intent, ok := ac.ClearedDirectVisual(runway, s.State.SimTime)
+			var intent av.CommandIntent
+			var ok bool
+			if traffic != nil {
+				intent, ok = ac.ClearedDirectVisualFollowingTraffic(runway, traffic.Position(), s.State.SimTime)
+			} else {
+				intent, ok = ac.ClearedDirectVisual(runway, s.State.SimTime)
+			}
 			if !ok {
 				if !ac.Nav.SetDirectVisualApproach(runway) {
 					return av.MakeUnableIntent("unable, we don't know runway " + runway)
@@ -2065,12 +2072,8 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	// 1. Distance (closer = more likely to see)
 	// 2. Relative altitude (higher than us = easier to see against sky, lower = harder against ground)
 
-	// Base probability: start at 70%
-	seeProb := float32(0.7)
-
-	// Distance factor: closer is better (linear from 1.0 at 0 miles to 0.4 at 10+ miles)
-	distFactor := float32(1.0) - float32(min(miles, 10))*0.06
-	seeProb *= distFactor
+	// Closer traffic is easier to see; keep everything within 3 miles near-certain.
+	seeProb := float32(1.0) - float32(max(miles-3, 0))*0.04
 
 	// Altitude factor: traffic above is easier to see
 	acAlt := ac.Altitude()
@@ -2131,22 +2134,40 @@ func (s *Sim) checkDelayedTrafficInSight(ac *Aircraft) {
 }
 
 func (s *Sim) hasRecentApproachTrafficInSight(ac *Aircraft) bool {
+	return s.recentApproachTrafficInSight(ac) != nil
+}
+
+func (s *Sim) recentApproachTrafficInSightForRunway(ac *Aircraft, runway string) *Aircraft {
+	traffic := s.recentApproachTrafficInSight(ac)
+	if traffic == nil || traffic.Nav.Approach.Assigned == nil || traffic.Nav.Approach.Assigned.Runway != runway {
+		return nil
+	}
+	return traffic
+}
+
+func (s *Sim) recentApproachTrafficInSight(ac *Aircraft) *Aircraft {
 	if !ac.TrafficInSight || s.State.SimTime.Sub(ac.TrafficInSightTime) > 30*time.Second {
-		return false
+		return nil
 	}
 
 	traffic, ok := s.Aircraft[ac.TrafficInSightCallsign]
-	return ok && traffic.Nav.Approach.Cleared
+	if ok && traffic.Nav.Approach.Cleared {
+		return traffic
+	}
+	return nil
 }
 
 // checkDelayedFieldInSight checks if an aircraft that said "looking" (in response to an
 // AP command) should now report "field in sight". Mirrors checkDelayedTrafficInSight.
 func (s *Sim) checkDelayedFieldInSight(ac *Aircraft) {
-	if ac.FieldLookingUntil.IsZero() || s.State.SimTime.Before(ac.FieldLookingUntil) {
+	if ac.FieldLookingUntil.IsZero() {
 		return
 	}
 
-	ac.FieldLookingUntil = Time{}
+	if s.State.SimTime.After(ac.FieldLookingUntil) {
+		ac.FieldLookingUntil = Time{}
+		return
+	}
 
 	// Already acquired — don't send a duplicate report.
 	if ac.FieldInSight {
@@ -2157,14 +2178,18 @@ func (s *Sim) checkDelayedFieldInSight(ac *Aircraft) {
 		return
 	}
 
+	if s.Rand.Float32() >= 0.1 {
+		return
+	}
+
 	// Re-check that the field is actually visible now.
 	elig := s.checkVisualEligibility(ac)
 	if !elig.FieldInSight {
-		s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionFieldNegativeContact)
 		return
 	}
 
 	ac.FieldInSight = true
+	ac.FieldLookingUntil = Time{}
 
 	s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionFieldInSight)
 }
@@ -2281,6 +2306,10 @@ func effectiveVisualRange(metar wx.METAR, altitudeAGL float32) float32 {
 	vis, err := metar.Visibility()
 	if err != nil {
 		return visualMaxDistance
+	}
+	// In automated U.S. METARs, 10SM means "10 or more"; model it as 15SM.
+	if vis >= 10 {
+		vis = 15
 	}
 	visNM := vis * math.StatuteMilesToNauticalMiles
 

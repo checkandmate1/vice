@@ -673,14 +673,10 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 }
 
 // buildDirectVisualWaypoints returns a route for a visual approach to
-// the given runway. When the aircraft is roughly aligned with the
-// extended centerline (within ~1.5nm cross-track), it produces a
-// 2-waypoint path: 3nm final then threshold. When offset further, it
-// inserts a base-turn waypoint at the aircraft's lateral offset so the
-// pilot flies a realistic base-to-final turn. Returns nil if the
-// runway is not found or if the first waypoint is behind the aircraft
-// (meaning it should go around instead).
-func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
+// the given runway. It uses a synthetic 3nm final waypoint as the FAF.
+// Returns nil if the runway is not found or if the first waypoint is
+// behind the aircraft (meaning it should go around instead).
+func (nav *Nav) buildDirectVisualWaypoints(runway string, followTraffic *math.Point2LL) []av.Waypoint {
 	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	if !ok {
 		return nil
@@ -700,49 +696,91 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 	thresholdNM := math.LL2NM(threshold, nmPerLong)
 	outboundNM := math.LL2NM(final3nm, nmPerLong)
 	acNM := math.LL2NM(nav.FlightState.Position, nmPerLong)
-
-	// Signed distance: negative = left of outbound direction, positive = right.
-	crossTrack := math.SignedPointLineDistance(acNM, thresholdNM, outboundNM)
+	centerlineDir := math.Normalize2f(math.Sub2f(outboundNM, thresholdNM))
 
 	// Glideslope intercept altitude at 3nm (~3° slope ≈ 955ft AGL, rounded to 900).
 	final3nmAlt := float32(rwy.Elevation) + 900
 
 	var wps []av.Waypoint
+	skipFinal3nm := false
 
-	if math.Abs(crossTrack) > 1.5 {
-		// Aircraft is offset from the centerline. Insert a base-turn
-		// waypoint so the pilot flies a realistic turn onto final.
-		// Place it along the centerline at 4.5nm from threshold, then
-		// offset perpendicular by the cross-track distance.
-		centerlineDir := math.Normalize2f(math.Sub2f(outboundNM, thresholdNM))
-		baseOnCenterlineNM := math.Add2f(thresholdNM, math.Scale2f(centerlineDir, 4.5))
-
-		// Perpendicular-left direction (90° CCW rotation).
-		perpLeft := [2]float32{-centerlineDir[1], centerlineDir[0]}
-		// Negate crossTrack because SignedPointLineDistance returns
-		// positive for points to the right of the outbound direction
-		// in nm-space, but perpLeft points left.
-		baseNM := math.Add2f(baseOnCenterlineNM, math.Scale2f(perpLeft, -crossTrack))
-		baseLoc := math.NM2LL(baseNM, nmPerLong)
-
-		// Go-around check: if the first waypoint is behind the aircraft,
-		// it can't set up a stable approach.
-		bearingToBase := math.Heading2LL(nav.FlightState.Position, baseLoc, nmPerLong)
-		if math.HeadingDifference(bearingToBase, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
+	if followTraffic != nil {
+		trafficNM := math.LL2NM(*followTraffic, nmPerLong)
+		trafficFinalDistance := math.Dot(math.Sub2f(trafficNM, thresholdNM), centerlineDir)
+		if trafficFinalDistance <= 0.5 {
 			return nil
 		}
 
-		base := av.Waypoint{
-			Fix:      "_" + runway + "_BASE",
-			Location: baseLoc,
+		joinNM := math.Add2f(thresholdNM, math.Scale2f(centerlineDir, trafficFinalDistance))
+		joinLoc := math.NM2LL(joinNM, nmPerLong)
+		bearingToJoin := math.Heading2LL(nav.FlightState.Position, joinLoc, nmPerLong)
+		if math.HeadingDifference(bearingToJoin, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 120 {
+			return nil
 		}
-		base.SetOnApproach(true)
-		wps = append(wps, base)
+
+		join := av.Waypoint{
+			Fix:      "_" + runway + "_FOLLOW_TRAFFIC",
+			Location: joinLoc,
+		}
+		join.SetOnApproach(true)
+		wps = append(wps, join)
+		skipFinal3nm = trafficFinalDistance <= 3.25
 	} else {
-		// Roughly aligned. Go-around check on the 3nm final point.
-		bearingTo3nm := math.Heading2LL(nav.FlightState.Position, final3nm, nmPerLong)
-		if math.HeadingDifference(bearingTo3nm, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
-			return nil
+		heading := nav.FlightState.Heading
+		if assignedHeading, ok := nav.AssignedHeading(); ok {
+			heading = assignedHeading
+		}
+		headingTrue := math.MagneticToTrue(heading, magVar)
+		headingDir := math.HeadingVector(headingTrue)
+
+		useProjection := true
+		if interceptNM, ok := math.LineLineIntersect(acNM, math.Add2f(acNM, headingDir), thresholdNM, outboundNM); ok {
+			alongHeading := math.Dot(math.Sub2f(interceptNM, acNM), headingDir)
+			finalDistance := math.Dot(math.Sub2f(interceptNM, thresholdNM), centerlineDir)
+			if alongHeading > 0.1 {
+				if finalDistance >= 0 && finalDistance <= 3 {
+					// Joining inside the FAF: send the aircraft to the FAF.
+					useProjection = false
+				} else if finalDistance > 3 && finalDistance <= 8 {
+					intercept := av.Waypoint{
+						Fix:      "_" + runway + "_INTERCEPT",
+						Location: math.NM2LL(interceptNM, nmPerLong),
+					}
+					intercept.SetOnApproach(true)
+					wps = append(wps, intercept)
+					useProjection = false
+				}
+			}
+		}
+
+		if useProjection {
+			finalDistance := math.Dot(math.Sub2f(acNM, thresholdNM), centerlineDir)
+			if finalDistance <= 0.5 {
+				return nil
+			}
+			if math.Dot(headingDir, math.Normalize2f(math.Sub2f(thresholdNM, acNM))) >= 0 {
+				// The assigned heading is generally toward the field. Send
+				// the aircraft to the FAF rather than forcing a sharp turn
+				// toward the perpendicular projection.
+				useProjection = false
+			}
+		}
+
+		if useProjection {
+			finalDistance := math.Dot(math.Sub2f(acNM, thresholdNM), centerlineDir)
+			projectionNM := math.Add2f(thresholdNM, math.Scale2f(centerlineDir, finalDistance))
+			projectionLoc := math.NM2LL(projectionNM, nmPerLong)
+			bearingToProjection := math.Heading2LL(nav.FlightState.Position, projectionLoc, nmPerLong)
+			if math.HeadingDifference(bearingToProjection, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
+				return nil
+			}
+
+			projection := av.Waypoint{
+				Fix:      "_" + runway + "_PROJECTION",
+				Location: projectionLoc,
+			}
+			projection.SetOnApproach(true)
+			wps = append(wps, projection)
 		}
 	}
 
@@ -752,6 +790,9 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 	}
 	finalWp.SetOnApproach(true)
 	finalWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(final3nmAlt))
+	if !skipFinal3nm {
+		wps = append(wps, finalWp)
+	}
 
 	thresholdWp := av.Waypoint{
 		Fix:      "_" + runway + "_THRESHOLD",
@@ -762,7 +803,7 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string) []av.Waypoint {
 	thresholdWp.SetFlyOver(true)
 	thresholdWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(alt)))
 
-	wps = append(wps, finalWp, thresholdWp)
+	wps = append(wps, thresholdWp)
 
 	return wps
 }
@@ -798,11 +839,24 @@ func (nav *Nav) SetDirectVisualApproach(runway string) bool {
 // or aircraft too close for a stable approach) — the caller should
 // trigger a go-around.
 func (nav *Nav) ClearedDirectVisual(runway string, simTime time.Time) (av.CommandIntent, bool) {
-	wi := nav.buildDirectVisualWaypoints(runway)
+	wi := nav.buildDirectVisualWaypoints(runway, nil)
 	if wi == nil {
 		return nil, false
 	}
 
+	return nav.clearedDirectVisual(runway, simTime, wi)
+}
+
+func (nav *Nav) ClearedDirectVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, simTime time.Time) (av.CommandIntent, bool) {
+	wi := nav.buildDirectVisualWaypoints(runway, &trafficPosition)
+	if wi == nil {
+		return nil, false
+	}
+
+	return nav.clearedDirectVisual(runway, simTime, wi)
+}
+
+func (nav *Nav) clearedDirectVisual(runway string, simTime time.Time, wi []av.Waypoint) (av.CommandIntent, bool) {
 	// Cancel hold before clearing nav state.
 	cancelHold := nav.Heading.Hold != nil
 	if nav.Heading.Hold != nil {
