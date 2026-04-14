@@ -17,20 +17,20 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         lfs: false
 
     - name: Restore manifest from cache
       id: cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: manifest.json
         key: manifest-v2-${{ hashFiles('resources/**') }}
 
     - name: Setup Go
       if: steps.cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
         cache-dependency-path: go.sum
@@ -51,7 +51,7 @@ jobs:
       run: touch manifest.json
 
     - name: Upload manifest artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: manifest-json
         path: manifest.json
@@ -63,14 +63,14 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 0
         lfs: false
 
     - name: Setup go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
         cache-dependency-path: go.sum
@@ -88,7 +88,7 @@ jobs:
       run: echo "sha=$(git -C sherpa-onnx rev-parse HEAD)" >> $GITHUB_OUTPUT
 
     - name: Cache sherpa-onnx build
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: sherpa-onnx/build_go
         key: sherpa-onnx-linux-${{ steps.sherpa-sha.outputs.sha }}
@@ -98,7 +98,7 @@ jobs:
 
     - name: Cache videomaps
       id: cache-videomaps
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: resources/videomaps
         key: videomaps-${{ hashFiles('resources/videomaps/**') }}
@@ -136,14 +136,14 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 0
         lfs: false
 
     - name: Setup go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
         cache-dependency-path: go.sum
@@ -159,7 +159,7 @@ jobs:
       run: echo "sha=$(git -C sherpa-onnx rev-parse HEAD)" >> $GITHUB_OUTPUT
 
     - name: Cache sherpa-onnx build
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: sherpa-onnx/build_go
         key: sherpa-onnx-mac-${{ steps.sherpa-sha.outputs.sha }}
@@ -193,10 +193,11 @@ jobs:
       run: zip -rv Vice-osx.zip Vice.app
 
     - name: Save zip file as build artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Vice-osx.zip
         path: Vice-osx.zip
+        compression-level: 0
 
     - name: Rename zip for release (maybe)
       if: startsWith(github.ref, 'refs/tags/')
@@ -215,7 +216,7 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         lfs: false
         fetch-depth: 0   # fetch whole history so we can get tags for the installer :-(
@@ -227,13 +228,13 @@ jobs:
         git describe --tags --abbrev=0
 
     - name: Setup go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
         cache-dependency-path: go.sum
 
     - name: Checkout Windows prebuilts
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: mmp/vice-windows-ext
         path: ./ext
@@ -284,7 +285,7 @@ jobs:
 
     - name: Cache sherpa-onnx build
       id: cache-sherpa
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: sherpa-onnx/build_go
         key: sherpa-onnx-win-msvc-${{ steps.sherpa-sha.outputs.sha }}
@@ -296,7 +297,7 @@ jobs:
 
     - name: Cache whisper.cpp build
       id: cache-whisper
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: whisper.cpp/build_go
         key: whisper-cpp-win-vulkan-posix-${{ steps.whisper-sha.outputs.sha }}-sdk1.3.296.0
@@ -358,13 +359,13 @@ jobs:
         .\windows\makeinstaller.bat
 
     - name: Save executable
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vice.exe
         path: vice.exe
 
     - name: Save installer
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Vice-installer.msi
         path: Vice-installer.msi
