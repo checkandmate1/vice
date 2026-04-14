@@ -17,6 +17,8 @@
   - Added support for "Create interfacility VFR flight plan from active local track"
   - Fixed bug where WX3 would never have any contents
   - GI and ATIS text in the SSA list is managed by the server (so updates are shared among controllers)
+- ERAM
+  - Added ALTIM SET and WX REPORT floating windows, including AR/WR keyboard commands and configurable window menus (Michael Knight)
 - Facility engineering:
   - Support "at or above/at or below" speed restrictions
   - Removed "speed_restriction" from departure routes; this was unused/redundant

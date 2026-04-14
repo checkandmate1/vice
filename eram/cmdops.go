@@ -1030,6 +1030,17 @@ func isQSFreeText(s string) bool {
 	return strings.HasPrefix(s, circleClear)
 }
 
+func lookupCommandAirport(airport string) (string, bool) {
+	airport = strings.ToUpper(strings.TrimSpace(airport))
+	if airport == "" || (len(airport) != 3 && len(airport) != 4) {
+		return "", false
+	}
+	if ap, ok := av.DB.LookupAirport(airport); ok {
+		return ap.Id, true
+	}
+	return "", false
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // AR - ALTIM SET Add Airport Handler
 
@@ -1042,14 +1053,9 @@ func handleAltimAdd(ep *ERAMPane, airport string) (CommandStatus, error) {
 		return CommandStatus{}, NewERAMError("REJECT - AR - INVALID AIRPORT CODE")
 	}
 
-	// Convert 3-letter IATA to ICAO by prepending K (US convention).
-	icao := airport
-	if len(airport) == 3 {
-		icao = "K" + airport
-	}
-
 	// Confirm airport exists in the database
-	if _, ok := av.DB.Airports[icao]; !ok {
+	icao, ok := lookupCommandAirport(airport)
+	if !ok {
 		return CommandStatus{}, NewERAMError("REJECT - AR - UNKNOWN AIRPORT")
 	}
 
@@ -1090,14 +1096,9 @@ func handleWXReportAdd(ep *ERAMPane, airport string) (CommandStatus, error) {
 		return CommandStatus{}, NewERAMError("REJECT - WR - INVALID AIRPORT CODE")
 	}
 
-	// Convert 3-letter IATA to ICAO by prepending K (US convention).
-	icao := airport
-	if len(airport) == 3 {
-		icao = "K" + airport
-	}
-
 	// Confirm airport exists in the database
-	if _, ok := av.DB.Airports[icao]; !ok {
+	icao, ok := lookupCommandAirport(airport)
+	if !ok {
 		return CommandStatus{}, NewERAMError("REJECT - WR - UNKNOWN AIRPORT")
 	}
 	for i, existing := range ep.WXReportStations {
@@ -1136,14 +1137,9 @@ func handleWXReportDisplay(ep *ERAMPane, ctx *panes.Context, airport string) (Co
 		return CommandStatus{}, NewERAMError("REJECT - WR R - INVALID AIRPORT CODE")
 	}
 
-	// Convert 3-letter IATA to ICAO by prepending K (US convention).
-	icao := airport
-	if len(airport) == 3 {
-		icao = "K" + airport
-	}
-
 	// Confirm airport exists in the database
-	if _, ok := av.DB.Airports[icao]; !ok {
+	icao, ok := lookupCommandAirport(airport)
+	if !ok {
 		return CommandStatus{}, NewERAMError("REJECT - WR R - UNKNOWN AIRPORT")
 	}
 

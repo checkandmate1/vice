@@ -397,16 +397,17 @@ func (ep *ERAMPane) drawAltimSetView(ctx *panes.Context, transforms radar.ScopeT
 			continue
 		}
 
-		// Determine which column and row within that column
+		// Determine which column and row within the displayed page.
+		displayIdx := dataIdx - startIdx
 		var colIdx, rowIdx int
 		if numCols == 1 {
 			// Single column: use scroll offset
 			colIdx = 0
-			rowIdx = dataIdx - startIdx
+			rowIdx = displayIdx
 		} else {
 			// Multi-column: fill columns sequentially
-			colIdx = dataIdx / visibleRows
-			rowIdx = dataIdx % visibleRows
+			colIdx = displayIdx / visibleRows
+			rowIdx = displayIdx % visibleRows
 		}
 
 		// Skip if beyond current column setting

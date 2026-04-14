@@ -523,8 +523,7 @@ func (ep *ERAMPane) drawWXView(ctx *panes.Context, transforms radar.ScopeTransfo
 					renderer.TextStyle{Font: listFont, Color: textColor, LineSpacing: 0})
 				currentY -= lineH
 			}
-		} else if linesDrawn == 0 {
-			// Only draw status message for first station
+		} else {
 			td.AddText(sr.msg, [2]float32{metarStartX, currentY},
 				renderer.TextStyle{Font: listFont, Color: textColor, LineSpacing: 0})
 		}
