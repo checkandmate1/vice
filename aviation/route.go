@@ -51,6 +51,49 @@ const (
 	WaypointFlagHeadingIsTrack
 )
 
+type WaypointHeadingAction struct {
+	Heading        int16
+	Turn           TurnDirection
+	Track          bool
+	PresentHeading bool
+}
+
+// WaypointActions describes actions that take effect together after passing a
+// waypoint.
+type WaypointActions struct {
+	Heading *WaypointHeadingAction
+
+	HumanHandoff              bool
+	HandoffController         ControlPosition
+	PointOut                  ControlPosition
+	ClearApproach             bool
+	GoAroundContactController ControlPosition
+	PrimaryScratchpad         string
+	ClearPrimaryScratchpad    bool
+	SecondaryScratchpad       string
+	ClearSecondaryScratchpad  bool
+	TransferComms             bool
+
+	ClimbAltitude   int16 // hundreds of feet; 0 = unset
+	DescendAltitude int16 // hundreds of feet; 0 = unset
+}
+
+func (wa WaypointActions) HasSimActions() bool {
+	return wa.HumanHandoff || wa.HandoffController != "" || wa.PointOut != "" ||
+		wa.ClearApproach || wa.GoAroundContactController != "" ||
+		wa.PrimaryScratchpad != "" || wa.ClearPrimaryScratchpad ||
+		wa.SecondaryScratchpad != "" || wa.ClearSecondaryScratchpad || wa.TransferComms
+}
+
+func (wa WaypointActions) HasNavActions() bool {
+	return wa.Heading != nil || wa.ClimbAltitude != 0 || wa.DescendAltitude != 0
+}
+
+type WaypointActionEvent struct {
+	Fix     string
+	Actions WaypointActions
+}
+
 // Waypoint is the core waypoint struct. Most waypoints only use Fix,
 // Location, and a few flags; Extra fields are heap-allocated only when
 // needed. AltRestriction, Heading, and SpdRestriction are inline because
@@ -144,6 +187,7 @@ func (wp Waypoint) HeadingIsTrack() bool { return wp.Flags&WaypointFlagHeadingIs
 func (wp Waypoint) SequenceVFRLanding() bool {
 	return wp.Flags&WaypointFlagSequenceVFRLanding != 0
 }
+func (wp Waypoint) HasTransferCommsAction() bool { return wp.TransferComms() }
 func (wp Waypoint) Turn() TurnDirection {
 	if wp.Flags&WaypointFlagTurnLeft != 0 {
 		return TurnLeft
@@ -323,6 +367,40 @@ func (wp Waypoint) DescendAltitude() int {
 		return int(wp.Extra.DescendAltitude) * 100
 	}
 	return 0
+}
+
+func (wp Waypoint) WaypointActions() WaypointActions {
+	actions := WaypointActions{
+		HumanHandoff:              wp.HumanHandoff(),
+		HandoffController:         wp.HandoffController(),
+		PointOut:                  wp.PointOut(),
+		ClearApproach:             wp.ClearApproach(),
+		GoAroundContactController: wp.GoAroundContactController(),
+		PrimaryScratchpad:         wp.PrimaryScratchpad(),
+		ClearPrimaryScratchpad:    wp.ClearPrimaryScratchpad(),
+		SecondaryScratchpad:       wp.SecondaryScratchpad(),
+		ClearSecondaryScratchpad:  wp.ClearSecondaryScratchpad(),
+		TransferComms:             wp.TransferComms(),
+		ClimbAltitude:             int16(wp.ClimbAltitude() / 100),
+		DescendAltitude:           int16(wp.DescendAltitude() / 100),
+	}
+	if wp.Heading != 0 || wp.PresentHeading() {
+		actions.Heading = &WaypointHeadingAction{
+			Heading:        wp.Heading,
+			Turn:           wp.Turn(),
+			Track:          wp.HeadingIsTrack(),
+			PresentHeading: wp.PresentHeading(),
+		}
+	}
+	return actions
+}
+
+func (wp Waypoint) ActionEvent() *WaypointActionEvent {
+	actions := wp.WaypointActions()
+	if !actions.HasSimActions() {
+		return nil
+	}
+	return &WaypointActionEvent{Fix: wp.Fix, Actions: actions}
 }
 
 func (wp Waypoint) LogValue() slog.Value {

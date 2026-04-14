@@ -68,6 +68,11 @@ type Nav struct {
 	Rand *rand.Rand
 }
 
+type UpdateResult struct {
+	PassedWaypoint *av.Waypoint
+	ActionEvents   []av.WaypointActionEvent
+}
+
 type contactCrossingRestriction struct {
 	Fix            string
 	AltRestriction *av.AltitudeRestriction

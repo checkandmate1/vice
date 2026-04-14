@@ -120,15 +120,14 @@ func (nav *Nav) Check(lg *log.Logger) {
 	}
 }
 
-// returns passed waypoint if any
-func (nav *Nav) Update(callsign string, model *wx.Model, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) *av.Waypoint {
+func (nav *Nav) Update(callsign string, model *wx.Model, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) UpdateResult {
 	// Perform single weather lookup at the start
 	wxs := model.Lookup(nav.FlightState.Position, nav.FlightState.Altitude, simTime.Time())
 	return nav.UpdateWithWeather(callsign, wxs, fp, simTime, bravo)
 }
 
 // UpdateWithWeather is a helper for simulations that use pre-fetched weather
-func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) *av.Waypoint {
+func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time, bravo *av.AirspaceGrid) UpdateResult {
 	nav.activatePendingAltitude(simTime)
 
 	// Log current state every tick
@@ -152,7 +151,7 @@ func (nav *Nav) UpdateWithWeather(callsign string, wxs wx.Sample, fp *av.FlightP
 		return nav.updateWaypoints(callsign, wxs, fp, simTime)
 	}
 
-	return nil
+	return UpdateResult{}
 }
 
 func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime Time) (heading math.MagneticHeading, turn av.TurnDirection, rate float32) {
@@ -317,9 +316,9 @@ func (nav *Nav) TargetHeading(callsign string, wxs wx.Sample, simTime Time) (hea
 
 	return
 }
-func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time) *av.Waypoint {
+func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPlan, simTime Time) UpdateResult {
 	if len(nav.Waypoints) == 0 {
-		return nil
+		return UpdateResult{}
 	}
 
 	wp := &nav.Waypoints[0]
@@ -531,9 +530,13 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		// Log the updated route after passing the waypoint
 		LogRoute(callsign, simTime, nav.Waypoints)
 
-		return wp
+		result := UpdateResult{PassedWaypoint: wp}
+		if event := wp.ActionEvent(); event != nil {
+			result.ActionEvents = append(result.ActionEvents, *event)
+		}
+		return result
 	}
-	return nil
+	return UpdateResult{}
 }
 
 // turnRateAndRadius calculates the steady-state turn rate and radius

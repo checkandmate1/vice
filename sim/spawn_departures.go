@@ -886,7 +886,7 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 		simNav.FlightState.Altitude, simTime.Time())
 	for i := range 3 * 60 * 60 { // limit to 3 hours of sim time, just in case
 		if wp := simNav.UpdateWithWeather("", prespawnWxs, &simFP,
-			simTime.NavTime(), nil); wp != nil {
+			simTime.NavTime(), nil).PassedWaypoint; wp != nil {
 			if wp.Delete() {
 				return ac, rwy.Id, nil
 			}
