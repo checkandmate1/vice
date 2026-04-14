@@ -970,41 +970,26 @@ func registerAllCommands() {
 
 	// Visual runway commands are higher priority than generic approach matches
 	// so "visual approach runway 22L" doesn't resolve to a charted visual.
-	registerVisualRunwayCommand := func(name, template, commandPrefix string) {
-		type runwaySuffix struct {
-			word string
-			id   string
-		}
-		for _, suffix := range []runwaySuffix{
-			{"left", "L"},
-			{"right", "R"},
-			{"center", "C"},
-			{"", ""},
-		} {
-			suffix := suffix
-			priority := 17
-			fullName := name
-			fullTemplate := template
-			if suffix.word != "" {
-				fullName += "_" + suffix.word
-				fullTemplate += " " + suffix.word
-			} else {
-				priority = 16
-			}
-			registerSTTCommand(
-				fullTemplate,
-				func(rwy int) string { return fmt.Sprintf("%s%d%s", commandPrefix, rwy, suffix.id) },
-				WithName(fullName),
-				WithPriority(priority),
-			)
-		}
-	}
-	registerVisualRunwayCommand("expect_visual",
-		"expect [the|vectors] [for] [to] visual [approach] [runway] {num:1-36}", "EVA")
-	registerVisualRunwayCommand("vectors_visual",
-		"vector|vectors [for] [to] [the] visual [approach] [runway] {num:1-36}", "EVA")
-	registerVisualRunwayCommand("cleared_visual",
-		"cleared [the] visual [approach] [runway] {num:1-36}", "CVA")
+	registerSTTCommand(
+		"expect [the|a|vectors] [for] [to] {visual_approach_lahso}",
+		func(appr string) string { return fmt.Sprintf("EVA%s", appr) },
+		WithName("expect_visual"),
+		WithPriority(17),
+		WithSayAgainOnFail(),
+	)
+	registerSTTCommand(
+		"vector|vectors [for] [to] [the] {visual_approach_lahso}",
+		func(appr string) string { return fmt.Sprintf("EVA%s", appr) },
+		WithName("vectors_visual"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"cleared [the] {visual_approach_lahso}",
+		func(appr string) string { return fmt.Sprintf("CVA%s", appr) },
+		WithName("cleared_visual"),
+		WithPriority(17),
+		WithSayAgainOnFail(),
+	)
 
 	registerSTTCommand(
 		"cleared [approach] [for] {approach}",

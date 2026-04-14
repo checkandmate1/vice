@@ -41,6 +41,11 @@
         "r-nav zulu runway one two left": "ZL1",
         "r-nav zulu runway one two right": "ZR1"
       },
+      "CandidateVisualApproaches": {
+        "visual runway one two right": "12R",
+        "visual approach runway one two right": "12R",
+        "visual one two right": "12R"
+      },
       "ApproachFixes": {
         "I12L": {
           "Algin": "ALGIN",

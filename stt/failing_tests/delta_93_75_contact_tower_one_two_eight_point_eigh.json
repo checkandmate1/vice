@@ -68,7 +68,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Delta 48 heavy": {
       "Callsign": "DAL48",
@@ -124,7 +125,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Delta 93 75": {
       "Callsign": "DAL9375",
@@ -175,7 +177,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Spirit Wings 46 17": {
       "Callsign": "NKS4617",
@@ -230,7 +233,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     }
   },
   "logs": [
@@ -287,6 +291,6 @@
     "[local-stt] ParseCommands: result=[TO S170] (avgConf=1.00)",
     "[local-stt] parsed commands: [TO S170] (conf=1.00)",
     "[local-stt] validated commands: [TO S170] (conf=1.00)",
-    "[local-stt] === DecodeTranscript END: \"DAL9375 TO S170\" (conf=1.00, time=760.75\u00b5s) ==="
+    "[local-stt] === DecodeTranscript END: \"DAL9375 TO S170\" (conf=1.00, time=760.75µs) ==="
   ]
 }

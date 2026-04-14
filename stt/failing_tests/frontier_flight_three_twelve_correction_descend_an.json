@@ -67,7 +67,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Chronos six 10": {
       "Callsign": "CNS610",
@@ -120,7 +121,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Delta 79": {
       "Callsign": "DAL79",
@@ -171,7 +173,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Frontier Flight three 12": {
       "Callsign": "FFT312",
@@ -226,7 +229,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     }
   },
   "logs": [
@@ -276,6 +280,6 @@
     "[local-stt] parsed commands: [D40] (conf=1.00)",
     "[local-stt] validated commands: [SAYAGAIN/ALTITUDE] (conf=0.85)",
     "[local-stt] validation errors: [descend target must be below current altitude]",
-    "[local-stt] === DecodeTranscript END: \"FFT312 SAYAGAIN/ALTITUDE\" (conf=0.94, time=396.25\u00b5s) ==="
+    "[local-stt] === DecodeTranscript END: \"FFT312 SAYAGAIN/ALTITUDE\" (conf=0.94, time=396.25µs) ==="
   ]
 }

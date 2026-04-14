@@ -128,7 +128,7 @@ func (vs *VisualScenario) AirportAdvisory(oclock, miles int) av.CommandIntent {
 // ClearedVisual issues a CVA command and returns the intent.
 func (vs *VisualScenario) ClearedVisual(runway string) (av.CommandIntent, error) {
 	vs.t.Helper()
-	return vs.Sim.ClearedVisualApproach(vs.tcw, vs.callsign, runway)
+	return vs.Sim.ClearedVisualApproach(vs.tcw, vs.callsign, runway, "")
 }
 
 // AdvanceTime moves sim time forward by d.
@@ -649,7 +649,7 @@ func TestVisualApproachWaypoints(t *testing.T) {
 				n.Heading.Assigned = tt.assigned
 			}
 
-			intent, ok := n.ClearedDirectVisual("36", nil, time.Time{})
+			intent, ok := n.ClearedDirectVisual("36", nil, "", time.Time{})
 
 			if tt.wantNil {
 				if ok {
@@ -750,7 +750,7 @@ func TestVisualApproachWaypointsUseReferenceApproachDogleg(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedDirectVisual("36", reference, time.Time{}); !ok {
+	if _, ok := n.ClearedDirectVisual("36", reference, "", time.Time{}); !ok {
 		t.Fatal("expected dogleg visual route")
 	}
 
@@ -843,7 +843,7 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedDirectVisualFollowingTraffic("36", trafficPos, nil, time.Time{}); !ok {
+	if _, ok := n.ClearedDirectVisualFollowingTraffic("36", trafficPos, nil, "", time.Time{}); !ok {
 		t.Fatal("expected follow-traffic visual route")
 	}
 
@@ -1149,14 +1149,16 @@ func TestEVACommandReturnsGenericExpect(t *testing.T) {
 	// EVA commands should return a generic "Visual Runway XX" expect intent,
 	// NOT resolve to a charted visual approach name like "Belmont Visual".
 	tests := []struct {
-		name    string
-		command string // e.g. "EVA22L"
-		wantRwy string // expected in ApproachName
+		name      string
+		command   string // e.g. "EVA22L"
+		wantRwy   string // expected in ApproachName
+		wantLAHSO string
 	}{
-		{"EVA22L", "EVA22L", "22L"},
-		{"EVA13R", "EVA13R", "13R"},
-		{"EVA31", "EVA31", "31"},
-		{"EVA4R", "EVA4R", "4R"},
+		{"EVA22L", "EVA22L", "22L", ""},
+		{"EVA13R", "EVA13R", "13R", ""},
+		{"EVA31", "EVA31", "31", ""},
+		{"EVA4R", "EVA4R", "4R", ""},
+		{"EVA22L with LAHSO", "EVA22L/LAHSO26", "22L", "26"},
 	}
 
 	for _, tt := range tests {
@@ -1165,10 +1167,11 @@ func TestEVACommandReturnsGenericExpect(t *testing.T) {
 			if !strings.HasPrefix(tt.command, "EVA") || len(tt.command) <= 3 {
 				t.Fatal("bad test command")
 			}
-			runway := tt.command[3:]
+			runway, lahsoRunway := parseLAHSOSuffix(tt.command[3:])
 			intent := av.ApproachIntent{
 				Type:         av.ApproachExpect,
 				ApproachName: "Visual Runway " + runway,
+				LAHSORunway:  lahsoRunway,
 			}
 
 			if intent.Type != av.ApproachExpect {
@@ -1177,6 +1180,9 @@ func TestEVACommandReturnsGenericExpect(t *testing.T) {
 			wantName := "Visual Runway " + tt.wantRwy
 			if intent.ApproachName != wantName {
 				t.Errorf("ApproachName = %q, want %q", intent.ApproachName, wantName)
+			}
+			if intent.LAHSORunway != tt.wantLAHSO {
+				t.Errorf("LAHSORunway = %q, want %q", intent.LAHSORunway, tt.wantLAHSO)
 			}
 			// Must NOT contain charted visual names.
 			for _, bad := range []string{"Belmont", "River", "Expressway"} {

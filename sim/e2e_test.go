@@ -51,6 +51,11 @@ func TestE2E_STTToSim(t *testing.T) {
 						"I L S runway two two right": "I22R",
 						"Visual runway two two left": "V22L",
 					},
+					CandidateVisualApproaches: map[string]string{
+						"visual runway two two left":          "22L",
+						"visual approach runway two two left": "22L",
+						"visual two two left":                 "22L",
+					},
 					AssignedApproach: "ILS Runway 22L",
 					State:            "arrival",
 					Altitude:         6000,
@@ -70,6 +75,11 @@ func TestE2E_STTToSim(t *testing.T) {
 					CandidateApproaches: map[string]string{
 						"I L S runway three one right":  "I31R",
 						"Visual runway three one right": "V31R",
+					},
+					CandidateVisualApproaches: map[string]string{
+						"visual runway three one right":          "31R",
+						"visual approach runway three one right": "31R",
+						"visual three one right":                 "31R",
 					},
 					AssignedApproach: "ILS Runway 31R",
 					State:            "arrival",
@@ -103,6 +113,11 @@ func TestE2E_STTToSim(t *testing.T) {
 						"I L S runway two six":  "I26",
 						"Visual runway two six": "V26",
 					},
+					CandidateVisualApproaches: map[string]string{
+						"visual runway two six":          "26",
+						"visual approach runway two six": "26",
+						"visual two six":                 "26",
+					},
 					AssignedApproach: "ILS Runway 26",
 					State:            "arrival",
 					Altitude:         4000,
@@ -127,12 +142,37 @@ func TestE2E_STTToSim(t *testing.T) {
 						"I L S runway one two right":  "I12R",
 						"Visual runway one two right": "VR1",
 					},
+					CandidateVisualApproaches: map[string]string{
+						"visual runway one two right":          "12R",
+						"visual approach runway one two right": "12R",
+						"visual one two right":                 "12R",
+					},
 					AssignedApproach: "ILS Runway 12R",
 					State:            "arrival",
 					Altitude:         4000,
 				},
 			},
 			wantCommand: "SCX505 EVA12R",
+		},
+		{
+			name:       "expect visual approach with LAHSO",
+			transcript: "Delta forty three expect visual approach runway two two left land hold short two six",
+			sttAircraft: map[string]stt.Aircraft{
+				"Delta 43": {
+					Callsign:     "DAL43",
+					AircraftType: "A321",
+					CandidateVisualApproaches: map[string]string{
+						"visual runway two two left":          "22L",
+						"visual approach runway two two left": "22L",
+						"visual two two left":                 "22L",
+					},
+					LAHSORunways: []string{"26"},
+					State:        "arrival",
+					Altitude:     6000,
+				},
+			},
+			wantCommand:  "DAL43 EVA22L/LAHSO26",
+			wantReadback: "hold short",
 		},
 		{
 			name:       "EVA readback doesn't say 'approach approach'",
@@ -144,6 +184,11 @@ func TestE2E_STTToSim(t *testing.T) {
 					CandidateApproaches: map[string]string{
 						"I L S runway two two left":  "I22L",
 						"Visual runway two two left": "V22L",
+					},
+					CandidateVisualApproaches: map[string]string{
+						"visual runway two two left":          "22L",
+						"visual approach runway two two left": "22L",
+						"visual two two left":                 "22L",
 					},
 					AssignedApproach: "ILS Runway 22L",
 					State:            "arrival",
@@ -245,7 +290,8 @@ func guessRunway(commands string) string {
 	cmd := strings.Fields(commands)[0]
 	for _, prefix := range []string{"EVA", "CVA"} {
 		if strings.HasPrefix(cmd, prefix) && len(cmd) > len(prefix) {
-			return cmd[len(prefix):]
+			runway, _, _ := strings.Cut(cmd[len(prefix):], "/")
+			return runway
 		}
 	}
 	return "22L" // fallback for non-approach commands

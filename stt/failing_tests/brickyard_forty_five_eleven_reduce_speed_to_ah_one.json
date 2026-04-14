@@ -69,7 +69,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Brickyard 45 11": {
       "Callsign": "RPA4511",
@@ -120,7 +121,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Chronos six 10": {
       "Callsign": "CNS610",
@@ -173,7 +175,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Frontier Flight three 12": {
       "Callsign": "FFT312",
@@ -228,7 +231,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "United 64": {
       "Callsign": "UAL64",
@@ -285,7 +289,8 @@
         "33R",
         "15R",
         "33L"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     }
   },
   "logs": [
@@ -328,6 +333,6 @@
     "[local-stt] ParseCommands: result=[S150] (avgConf=1.00)",
     "[local-stt] parsed commands: [S150] (conf=1.00)",
     "[local-stt] validated commands: [S150] (conf=1.00)",
-    "[local-stt] === DecodeTranscript END: \"RPA4511 S150\" (conf=1.00, time=460.667\u00b5s) ==="
+    "[local-stt] === DecodeTranscript END: \"RPA4511 S150\" (conf=1.00, time=460.667µs) ==="
   ]
 }

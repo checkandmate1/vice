@@ -189,7 +189,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     },
     "American eight 38": {
       "Callsign": "AAL838",
@@ -372,7 +380,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     },
     "Caribbean Airlines niner 43": {
       "Callsign": "BWA943",
@@ -546,7 +562,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     },
     "Delta 58 heavy": {
       "Callsign": "DAL58",
@@ -721,7 +745,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     },
     "Looft-hansa 58 39 heavy": {
       "Callsign": "DLH5839",
@@ -896,7 +928,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     },
     "Virgin eight 35 echo heavy": {
       "Callsign": "VIR835E",
@@ -1070,7 +1110,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     },
     "WestJet 71 57": {
       "Callsign": "WJA7157",
@@ -1243,7 +1291,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     },
     "WestJet 74": {
       "Callsign": "WJA74",
@@ -1415,7 +1471,15 @@
         "31L",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": {
+        "visual runway two two left": "22L",
+        "visual approach runway two two left": "22L",
+        "visual two two left": "22L",
+        "visual runway one three left": "13L",
+        "visual approach runway one three left": "13L",
+        "visual one three left": "13L"
+      }
     }
   },
   "logs": [

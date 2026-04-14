@@ -101,7 +101,8 @@
         "28",
         "10",
         "28"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Southwest 10 zero five": {
       "Callsign": "SWA1005",
@@ -187,7 +188,8 @@
         "28",
         "10",
         "28"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Southwest 34 16": {
       "Callsign": "SWA3416",
@@ -273,7 +275,8 @@
         "28",
         "10",
         "28"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Southwest 99 42": {
       "Callsign": "SWA9942",
@@ -361,7 +364,8 @@
         "28",
         "10",
         "28"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Southwest eight 24": {
       "Callsign": "SWA824",
@@ -448,7 +452,8 @@
         "28",
         "10",
         "28"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     }
   },
   "logs": [
@@ -495,6 +500,6 @@
     "[local-stt] ParseCommands: result=[A100] (avgConf=1.00)",
     "[local-stt] parsed commands: [A100] (conf=1.00)",
     "[local-stt] validated commands: [A100] (conf=1.00)",
-    "[local-stt] === DecodeTranscript END: \"SWA824 A100\" (conf=0.95, time=509.3\u00b5s) ==="
+    "[local-stt] === DecodeTranscript END: \"SWA824 A100\" (conf=0.95, time=509.3µs) ==="
   ]
 }

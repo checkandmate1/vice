@@ -700,9 +700,10 @@ func (a ApproachIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 
 // ClearedApproachIntent represents approach clearance
 type ClearedApproachIntent struct {
-	Approach   string
-	StraightIn bool
-	CancelHold bool
+	Approach    string
+	StraightIn  bool
+	CancelHold  bool
+	LAHSORunway string
 }
 
 func (c ClearedApproachIntent) Render(rt *RadioTransmission, r *rand.Rand) {
@@ -722,6 +723,9 @@ func (c ClearedApproachIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		rt.Add(prefix+"cleared straight in {appr}"+suffix, c.Approach)
 	} else {
 		rt.Add(prefix+"cleared {appr}"+suffix, c.Approach)
+	}
+	if c.LAHSORunway != "" {
+		rt.Add("[and we'll hold short of|hold short of] runway {rwy}", c.LAHSORunway)
 	}
 }
 

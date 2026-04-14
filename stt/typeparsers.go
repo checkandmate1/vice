@@ -532,6 +532,46 @@ func (p *approachParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, 
 	return appr, consumed, ""
 }
 
+type visualApproachParser struct {
+	allowLAHSO bool
+}
+
+func (p *visualApproachParser) identifier() string {
+	return "visual_approach"
+}
+
+func (p *visualApproachParser) goType() reflect.Type {
+	return reflect.TypeOf("")
+}
+
+func (p *visualApproachParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, string) {
+	if pos >= len(tokens) {
+		return nil, 0, ""
+	}
+
+	approachType, _ := extractApproachType(tokens[pos:])
+	if approachType != "visual" {
+		return nil, 0, ""
+	}
+
+	if len(ac.CandidateVisualApproaches) == 0 {
+		return nil, 0, "APPROACH"
+	}
+
+	runway, consumed := matchVisualApproach(tokens[pos:], ac.CandidateVisualApproaches)
+	if consumed == 0 {
+		return nil, 0, "APPROACH"
+	}
+
+	if p.allowLAHSO && pos+consumed < len(tokens) {
+		if lahsoRwy, lahsoConsumed := extractLAHSO(tokens[pos+consumed:], ac.LAHSORunways); lahsoConsumed > 0 {
+			return runway + "/LAHSO" + lahsoRwy, consumed + lahsoConsumed, ""
+		}
+	}
+
+	return runway, consumed, ""
+}
+
 // squawkParser extracts 4-digit squawk codes.
 type squawkParser struct{}
 
@@ -984,6 +1024,8 @@ func getTypeParser(typeID string) typeParser {
 		return &approachParser{}
 	case "approach_lahso":
 		return &approachParser{allowLAHSO: true}
+	case "visual_approach_lahso":
+		return &visualApproachParser{allowLAHSO: true}
 	case "squawk":
 		return &squawkParser{}
 	case "degrees":

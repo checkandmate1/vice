@@ -1027,25 +1027,25 @@ func (nav *Nav) setDirectVisualApproach(runway string, waypoints []av.Waypoint) 
 // Returns (nil, false) if the approach can't be set up (runway unknown
 // or aircraft too close for a stable approach) — the caller should
 // trigger a go-around.
-func (nav *Nav) ClearedDirectVisual(runway string, referenceApproach *av.Approach, simTime time.Time) (av.CommandIntent, bool) {
+func (nav *Nav) ClearedDirectVisual(runway string, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
 	wi := nav.buildDirectVisualWaypoints(runway, nil, referenceApproach)
 	if wi == nil {
 		return nil, false
 	}
 
-	return nav.clearedDirectVisual(runway, simTime, wi)
+	return nav.clearedDirectVisual(runway, lahsoRunway, simTime, wi)
 }
 
-func (nav *Nav) ClearedDirectVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, simTime time.Time) (av.CommandIntent, bool) {
+func (nav *Nav) ClearedDirectVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
 	wi := nav.buildDirectVisualWaypoints(runway, &trafficPosition, referenceApproach)
 	if wi == nil {
 		return nil, false
 	}
 
-	return nav.clearedDirectVisual(runway, simTime, wi)
+	return nav.clearedDirectVisual(runway, lahsoRunway, simTime, wi)
 }
 
-func (nav *Nav) clearedDirectVisual(runway string, simTime time.Time, wi []av.Waypoint) (av.CommandIntent, bool) {
+func (nav *Nav) clearedDirectVisual(runway string, lahsoRunway string, simTime time.Time, wi []av.Waypoint) (av.CommandIntent, bool) {
 	// Cancel hold before clearing nav state.
 	cancelHold := nav.Heading.Hold != nil
 	if nav.Heading.Hold != nil {
@@ -1066,7 +1066,8 @@ func (nav *Nav) clearedDirectVisual(runway string, simTime time.Time, wi []av.Wa
 	nav.Speed = NavSpeed{}
 
 	return av.ClearedApproachIntent{
-		Approach:   "Visual Approach Runway " + runway,
-		CancelHold: cancelHold,
+		Approach:    "Visual Approach Runway " + runway,
+		CancelHold:  cancelHold,
+		LAHSORunway: lahsoRunway,
 	}, true
 }

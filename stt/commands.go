@@ -1566,6 +1566,58 @@ func spokenRunway(rwy string) string {
 	return strings.Join(parts, " ")
 }
 
+func visualApproachTelephonyVariants(rwy string) []string {
+	spoken := spokenRunway(rwy)
+	return []string{
+		"visual runway " + spoken,
+		"visual approach runway " + spoken,
+		"visual " + spoken,
+	}
+}
+
+func matchVisualApproach(tokens []Token, candidates map[string]string) (string, int) {
+	approachType, typeConsumed := extractApproachType(tokens)
+	if approachType != "visual" {
+		return "", 0
+	}
+
+	remainingTokens := tokens[typeConsumed:]
+	runwaySpoken, runwayDir, numPos := extractRunwayNumber(remainingTokens)
+	if runwaySpoken == "" {
+		return "", 0
+	}
+	if runwayDir != "" {
+		runwaySpoken += " " + runwayDir
+	}
+
+	seen := make(map[string]struct{})
+	var matches []string
+	for _, rwy := range candidates {
+		if _, ok := seen[rwy]; ok {
+			continue
+		}
+		seen[rwy] = struct{}{}
+
+		spoken := spokenRunway(rwy)
+		if spoken == runwaySpoken ||
+			(runwayDir == "" && strings.TrimSpace(strings.TrimSuffix(spoken, " left")) == runwaySpoken) ||
+			(runwayDir == "" && strings.TrimSpace(strings.TrimSuffix(spoken, " right")) == runwaySpoken) ||
+			(runwayDir == "" && strings.TrimSpace(strings.TrimSuffix(spoken, " center")) == runwaySpoken) {
+			matches = append(matches, rwy)
+		}
+	}
+	if len(matches) != 1 {
+		return "", 0
+	}
+
+	consumed := typeConsumed + numPos + 1
+	if runwayDir != "" {
+		consumed++
+	}
+	logLocalStt("  matchVisualApproach: runway=%q -> %q (consumed=%d)", runwaySpoken, matches[0], consumed)
+	return matches[0], consumed
+}
+
 // generateApproachPhraseVariants generates variants of an approach phrase
 // to handle common STT issues with separated letters and missing words.
 // For example: "l s runway 7 right" → also try "i l s runway 7 right"

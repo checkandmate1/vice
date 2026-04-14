@@ -70,7 +70,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "American eight 65": {
       "Callsign": "AAL865",
@@ -89,7 +90,8 @@
       "ControllerFrequency": "1Z",
       "TrackingController": "C53",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "American seven 25": {
       "Callsign": "AAL725",
@@ -145,7 +147,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Delta seven 34": {
       "Callsign": "DAL734",
@@ -239,7 +242,8 @@
       "ControllerFrequency": "1S",
       "TrackingController": "1S",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Envoy 68 58": {
       "Callsign": "ENY6858",
@@ -300,7 +304,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Giant three 76 heavy": {
       "Callsign": "GTI376",
@@ -346,7 +351,8 @@
       "ControllerFrequency": "1N",
       "TrackingController": "C53",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Southwest niner 19": {
       "Callsign": "SWA919",
@@ -446,7 +452,8 @@
       "ControllerFrequency": "1D",
       "TrackingController": "1D",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Southwest seven 95": {
       "Callsign": "SWA795",
@@ -542,7 +549,8 @@
       "ControllerFrequency": "1B",
       "TrackingController": "1B",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Sun Country one 34": {
       "Callsign": "SCX134",
@@ -637,7 +645,8 @@
       "ControllerFrequency": "1N",
       "TrackingController": "1N",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Volaris three 79": {
       "Callsign": "VOI379",
@@ -695,7 +704,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "november niner niner one zero zulu": {
       "Callsign": "N9910Z",
@@ -744,7 +754,8 @@
       "ControllerFrequency": "1P",
       "TrackingController": "1P",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "piper seneca one zero zulu": {
       "Callsign": "N9910Z",
@@ -793,7 +804,8 @@
       "ControllerFrequency": "1P",
       "TrackingController": "1P",
       "AddressingForm": 1,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "seneca one zero zulu": {
       "Callsign": "N9910Z",
@@ -842,7 +854,8 @@
       "ControllerFrequency": "1P",
       "TrackingController": "1P",
       "AddressingForm": 1,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     }
   },
   "logs": [

@@ -134,13 +134,16 @@ func (p *Transcriber) decodeInternal(
 		}
 	}
 
-	logLocalStt("aircraft context: State=%q Altitude=%d Fixes=%d Approaches=%d AssignedApproach=%q LAHSORunways=%v",
-		ac.State, ac.Altitude, len(ac.Fixes), len(ac.CandidateApproaches), ac.AssignedApproach, ac.LAHSORunways)
+	logLocalStt("aircraft context: State=%q Altitude=%d Fixes=%d Approaches=%d VisualApproaches=%d AssignedApproach=%q LAHSORunways=%v",
+		ac.State, ac.Altitude, len(ac.Fixes), len(ac.CandidateApproaches), len(ac.CandidateVisualApproaches), ac.AssignedApproach, ac.LAHSORunways)
 	for spokenName, fixID := range ac.Fixes {
 		logLocalStt("  fix: %q -> %q", spokenName, fixID)
 	}
 	for spokenName, apprID := range ac.CandidateApproaches {
 		logLocalStt("  approach: %q -> %q", spokenName, apprID)
+	}
+	for spokenName, runway := range ac.CandidateVisualApproaches {
+		logLocalStt("  visual approach: %q -> %q", spokenName, runway)
 	}
 
 	// Handle "disregard" or "correction" in remaining tokens
@@ -443,6 +446,7 @@ func (p *Transcriber) BuildAircraftContext(
 		_, arrivingLocally := state.ArrivalAirports[trk.ArrivalAirport]
 		if trk.ArrivalAirport != "" && (trk.IsArrival() || arrivingLocally) {
 			sttAc.CandidateApproaches = make(map[string]string)
+			sttAc.CandidateVisualApproaches = make(map[string]string)
 			sttAc.ApproachFixes = make(map[string]map[string]string)
 			if trk.Approach != "" {
 				sttAc.AssignedApproach = trk.Approach
@@ -455,6 +459,11 @@ func (p *Transcriber) BuildAircraftContext(
 					continue
 				}
 				if ap, ok := state.Airports[ar.Airport]; ok {
+					visualRunway := ar.Runway.Base()
+					for _, phrase := range visualApproachTelephonyVariants(visualRunway) {
+						sttAc.CandidateVisualApproaches[phrase] = visualRunway
+					}
+
 					for code, appr := range ap.Approaches {
 						if appr.Runway == ar.Runway.Base() {
 							sttAc.CandidateApproaches[av.GetApproachTelephony(appr.FullName)] = code

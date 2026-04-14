@@ -57,20 +57,21 @@ func MatchCallsign(tokens []Token, aircraft map[string]Aircraft) (CallsignMatch,
 
 // Aircraft holds context for a single aircraft for STT processing.
 type Aircraft struct {
-	Callsign            string
-	AircraftType        string                       // Aircraft type code (e.g., "C172", "BE36")
-	Fixes               map[string]string            // spoken name -> fix ID
-	CandidateApproaches map[string]string            // spoken name -> approach ID
-	ApproachFixes       map[string]map[string]string // approach ID -> (spoken name -> fix ID)
-	AssignedApproach    string
-	SID                 string
-	STAR                string
-	Altitude            int                        // Current altitude in feet
-	State               string                     // "departure", "arrival", "cleared approach", "overflight", "vfr flight following"
-	ControllerFrequency string                     // Current controller position the aircraft is tuned to
-	TrackingController  string                     // Controller tracking this aircraft (from flight plan)
-	AddressingForm      sim.CallsignAddressingForm // How this aircraft was addressed (based on which key matched)
-	LAHSORunways        []string                   // Runways that intersect the approach runway (for LAHSO matching)
+	Callsign                  string
+	AircraftType              string                       // Aircraft type code (e.g., "C172", "BE36")
+	Fixes                     map[string]string            // spoken name -> fix ID
+	CandidateApproaches       map[string]string            // spoken name -> approach ID
+	CandidateVisualApproaches map[string]string            // spoken name -> runway ID for active plain visual approaches
+	ApproachFixes             map[string]map[string]string // approach ID -> (spoken name -> fix ID)
+	AssignedApproach          string
+	SID                       string
+	STAR                      string
+	Altitude                  int                        // Current altitude in feet
+	State                     string                     // "departure", "arrival", "cleared approach", "overflight", "vfr flight following"
+	ControllerFrequency       string                     // Current controller position the aircraft is tuned to
+	TrackingController        string                     // Controller tracking this aircraft (from flight plan)
+	AddressingForm            sim.CallsignAddressingForm // How this aircraft was addressed (based on which key matched)
+	LAHSORunways              []string                   // Runways that intersect the approach runway (for LAHSO matching)
 }
 
 // findWeightClassTokenIndex checks the early tokens (callsign region) for "heavy" or "super".

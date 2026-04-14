@@ -112,7 +112,8 @@
       "ControllerFrequency": "1B",
       "TrackingController": "1B",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "American 89": {
       "Callsign": "AAL89",
@@ -174,7 +175,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Blue Streak 57 38": {
       "Callsign": "JIA5738",
@@ -194,7 +196,8 @@
       "ControllerFrequency": "1Z",
       "TrackingController": "1Z",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Envoy 99 56": {
       "Callsign": "ENY9956",
@@ -253,7 +256,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Flexjet 52": {
       "Callsign": "LXJ52",
@@ -272,7 +276,8 @@
       "ControllerFrequency": "1L",
       "TrackingController": "1L",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Frontier Flight 56 zero three": {
       "Callsign": "FFT5603",
@@ -325,7 +330,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     },
     "Southwest 17 14": {
       "Callsign": "SWA1714",
@@ -347,7 +353,8 @@
       "ControllerFrequency": "1Z",
       "TrackingController": "1Z",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Southwest 35 30": {
       "Callsign": "SWA3530",
@@ -440,7 +447,8 @@
       "ControllerFrequency": "1D",
       "TrackingController": "1D",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Southwest 55 78": {
       "Callsign": "SWA5578",
@@ -541,7 +549,8 @@
       "ControllerFrequency": "1D",
       "TrackingController": "1D",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Southwest 75 12": {
       "Callsign": "SWA7512",
@@ -634,7 +643,8 @@
       "ControllerFrequency": "1S",
       "TrackingController": "1S",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Southwest 94 30": {
       "Callsign": "SWA9430",
@@ -654,7 +664,8 @@
       "ControllerFrequency": "1Z",
       "TrackingController": "1Z",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "Southwest niner 63": {
       "Callsign": "SWA963",
@@ -751,7 +762,8 @@
       "ControllerFrequency": "1N",
       "TrackingController": "1N",
       "AddressingForm": 0,
-      "LAHSORunways": null
+      "LAHSORunways": null,
+      "CandidateVisualApproaches": null
     },
     "United two": {
       "Callsign": "UAL2",
@@ -810,7 +822,8 @@
         "31R",
         "13L",
         "31R"
-      ]
+      ],
+      "CandidateVisualApproaches": null
     }
   },
   "logs": [
@@ -880,6 +893,6 @@
     "[local-stt] ParseCommands: no commands found",
     "[local-stt] parsed commands: [] (conf=0.00)",
     "[local-stt] validated commands: [] (conf=0.00)",
-    "[local-stt] === DecodeTranscript END: \"ASA722 AGAIN\" (conf=0.80, time=572.7\u00b5s) ==="
+    "[local-stt] === DecodeTranscript END: \"ASA722 AGAIN\" (conf=0.80, time=572.7µs) ==="
   ]
 }

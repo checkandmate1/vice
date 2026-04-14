@@ -2230,7 +2230,14 @@ func TestVisualApproachSTTPatterns(t *testing.T) {
 				{Text: "13", Type: TokenNumber, Value: 13},
 				{Text: "left", Type: TokenWord},
 			},
-			ac:       Aircraft{State: "arrival"},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway one three left":          "13L",
+					"visual approach runway one three left": "13L",
+					"visual one three left":                 "13L",
+				},
+			},
 			expected: []string{"CVA13L"},
 		},
 		{
@@ -2240,7 +2247,14 @@ func TestVisualApproachSTTPatterns(t *testing.T) {
 				{Text: "visual", Type: TokenWord},
 				{Text: "26", Type: TokenNumber, Value: 26},
 			},
-			ac:       Aircraft{State: "arrival"},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two six":          "26",
+					"visual approach runway two six": "26",
+					"visual two six":                 "26",
+				},
+			},
 			expected: []string{"CVA26"},
 		},
 		{
@@ -2259,6 +2273,11 @@ func TestVisualApproachSTTPatterns(t *testing.T) {
 					"Visual belmont runway two two left": "VB2L", // charted visual — should NOT match
 					"I L S runway two two left":          "I22L",
 				},
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two two left":          "22L",
+					"visual approach runway two two left": "22L",
+					"visual two two left":                 "22L",
+				},
 			},
 			expected: []string{"EVA22L"},
 		},
@@ -2271,7 +2290,14 @@ func TestVisualApproachSTTPatterns(t *testing.T) {
 				{Text: "runway", Type: TokenWord},
 				{Text: "31", Type: TokenNumber, Value: 31},
 			},
-			ac:       Aircraft{State: "arrival"},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway three one":          "31",
+					"visual approach runway three one": "31",
+					"visual three one":                 "31",
+				},
+			},
 			expected: []string{"EVA31"},
 		},
 		{
@@ -2284,7 +2310,14 @@ func TestVisualApproachSTTPatterns(t *testing.T) {
 				{Text: "31", Type: TokenNumber, Value: 31},
 				{Text: "right", Type: TokenWord},
 			},
-			ac:       Aircraft{State: "arrival"},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway three one right":          "31R",
+					"visual approach runway three one right": "31R",
+					"visual three one right":                 "31R",
+				},
+			},
 			expected: []string{"EVA31R"},
 		},
 		{
@@ -2299,8 +2332,60 @@ func TestVisualApproachSTTPatterns(t *testing.T) {
 				{Text: "4", Type: TokenNumber, Value: 4},
 				{Text: "right", Type: TokenWord},
 			},
-			ac:       Aircraft{State: "arrival"},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway four right":          "4R",
+					"visual approach runway four right": "4R",
+					"visual four right":                 "4R",
+				},
+			},
 			expected: []string{"EVA4R"},
+		},
+		{
+			name: "visual approach rejects inactive runway",
+			tokens: []Token{
+				{Text: "expect", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "31", Type: TokenNumber, Value: 31},
+				{Text: "right", Type: TokenWord},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two two left":          "22L",
+					"visual approach runway two two left": "22L",
+					"visual two two left":                 "22L",
+				},
+			},
+			expected: []string{"SAYAGAIN/APPROACH"},
+		},
+		{
+			name: "visual approach LAHSO",
+			tokens: []Token{
+				{Text: "expect", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "22", Type: TokenNumber, Value: 22},
+				{Text: "left", Type: TokenWord},
+				{Text: "land", Type: TokenWord},
+				{Text: "hold", Type: TokenWord},
+				{Text: "short", Type: TokenWord},
+				{Text: "26", Type: TokenNumber, Value: 26},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two two left":          "22L",
+					"visual approach runway two two left": "22L",
+					"visual two two left":                 "22L",
+				},
+				LAHSORunways: []string{"26"},
+			},
+			expected: []string{"EVA22L/LAHSO26"},
 		},
 	}
 
@@ -3322,20 +3407,21 @@ type STTTestFile struct {
 	Callsign    string `json:"callsign"`
 	Command     string `json:"command"` // Expected command output
 	STTAircraft map[string]struct {
-		Callsign            string                       `json:"Callsign"`
-		AircraftType        string                       `json:"AircraftType"`
-		Fixes               map[string]string            `json:"Fixes"`
-		CandidateApproaches map[string]string            `json:"CandidateApproaches"`
-		ApproachFixes       map[string]map[string]string `json:"ApproachFixes"`
-		AssignedApproach    string                       `json:"AssignedApproach"`
-		SID                 string                       `json:"SID"`
-		STAR                string                       `json:"STAR"`
-		Altitude            int                          `json:"Altitude"`
-		State               string                       `json:"State"`
-		ControllerFrequency string                       `json:"ControllerFrequency"`
-		TrackingController  string                       `json:"TrackingController"`
-		AddressingForm      int                          `json:"AddressingForm"`
-		LAHSORunways        []string                     `json:"LAHSORunways"`
+		Callsign                  string                       `json:"Callsign"`
+		AircraftType              string                       `json:"AircraftType"`
+		Fixes                     map[string]string            `json:"Fixes"`
+		CandidateApproaches       map[string]string            `json:"CandidateApproaches"`
+		CandidateVisualApproaches map[string]string            `json:"CandidateVisualApproaches"`
+		ApproachFixes             map[string]map[string]string `json:"ApproachFixes"`
+		AssignedApproach          string                       `json:"AssignedApproach"`
+		SID                       string                       `json:"SID"`
+		STAR                      string                       `json:"STAR"`
+		Altitude                  int                          `json:"Altitude"`
+		State                     string                       `json:"State"`
+		ControllerFrequency       string                       `json:"ControllerFrequency"`
+		TrackingController        string                       `json:"TrackingController"`
+		AddressingForm            int                          `json:"AddressingForm"`
+		LAHSORunways              []string                     `json:"LAHSORunways"`
 	} `json:"stt_aircraft"`
 }
 
@@ -3408,19 +3494,20 @@ func TestSTTFromJSONFiles(t *testing.T) {
 				}
 
 				aircraft[key] = Aircraft{
-					Callsign:            callsign,
-					AircraftType:        ac.AircraftType,
-					Fixes:               fixes,
-					CandidateApproaches: ac.CandidateApproaches,
-					AssignedApproach:    ac.AssignedApproach,
-					SID:                 ac.SID,
-					STAR:                ac.STAR,
-					Altitude:            ac.Altitude,
-					State:               ac.State,
-					ControllerFrequency: ac.ControllerFrequency,
-					TrackingController:  ac.TrackingController,
-					AddressingForm:      form,
-					LAHSORunways:        ac.LAHSORunways,
+					Callsign:                  callsign,
+					AircraftType:              ac.AircraftType,
+					Fixes:                     fixes,
+					CandidateApproaches:       ac.CandidateApproaches,
+					CandidateVisualApproaches: ac.CandidateVisualApproaches,
+					AssignedApproach:          ac.AssignedApproach,
+					SID:                       ac.SID,
+					STAR:                      ac.STAR,
+					Altitude:                  ac.Altitude,
+					State:                     ac.State,
+					ControllerFrequency:       ac.ControllerFrequency,
+					TrackingController:        ac.TrackingController,
+					AddressingForm:            form,
+					LAHSORunways:              ac.LAHSORunways,
 				}
 			}
 
