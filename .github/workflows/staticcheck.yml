@@ -28,14 +28,14 @@ jobs:
         sudo apt install xorg-dev libsdl2-dev libsystemd-dev
 
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 0
         lfs: false
 
     - name: Setup go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
         cache-dependency-path: go.sum
