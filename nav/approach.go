@@ -683,139 +683,42 @@ func (nav *Nav) buildDirectVisualWaypoints(runway string, followTraffic *math.Po
 			return wps
 		}
 	}
-	return nav.buildDirectVisualWaypointsStraightIn(runway, followTraffic)
+	if synthetic := nav.syntheticDirectVisualApproach(runway); synthetic != nil {
+		return nav.buildDirectVisualWaypointsFromApproach(runway, followTraffic, synthetic)
+	}
+	return nil
 }
 
-func (nav *Nav) buildDirectVisualWaypointsStraightIn(runway string, followTraffic *math.Point2LL) []av.Waypoint {
+func (nav *Nav) syntheticDirectVisualApproach(runway string) *av.Approach {
 	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	if !ok {
 		return nil
 	}
 
 	nmPerLong := nav.FlightState.NmPerLongitude
-	magVar := nav.FlightState.MagneticVariation
-
-	alt := rwy.Elevation + rwy.ThresholdCrossingHeight
-	rwyTrue := math.MagneticToTrue(rwy.Heading, magVar)
+	rwyTrue := math.MagneticToTrue(rwy.Heading, nav.FlightState.MagneticVariation)
 	threshold := math.Offset2LL(rwy.Threshold, rwyTrue, rwy.DisplacedThresholdDistance, nmPerLong)
-
 	reciprocal := math.TrueHeading(math.NormalizeHeading(float32(rwyTrue) + 180))
-	final3nm := math.Offset2LL(threshold, reciprocal, 3, nmPerLong)
-
-	// Work in nm-space to compute cross-track offset from extended centerline.
-	thresholdNM := math.LL2NM(threshold, nmPerLong)
-	outboundNM := math.LL2NM(final3nm, nmPerLong)
-	acNM := math.LL2NM(nav.FlightState.Position, nmPerLong)
-	centerlineDir := math.Normalize2f(math.Sub2f(outboundNM, thresholdNM))
-
-	// Glideslope intercept altitude at 3nm (~3° slope ≈ 955ft AGL, rounded to 900).
-	final3nmAlt := float32(rwy.Elevation) + 900
-
-	var wps []av.Waypoint
-	skipFinal3nm := false
-
-	if followTraffic != nil {
-		trafficNM := math.LL2NM(*followTraffic, nmPerLong)
-		trafficFinalDistance := math.Dot(math.Sub2f(trafficNM, thresholdNM), centerlineDir)
-		if trafficFinalDistance <= 0.5 {
-			return nil
-		}
-
-		joinNM := math.Add2f(thresholdNM, math.Scale2f(centerlineDir, trafficFinalDistance))
-		joinLoc := math.NM2LL(joinNM, nmPerLong)
-		bearingToJoin := math.Heading2LL(nav.FlightState.Position, joinLoc, nmPerLong)
-		if math.HeadingDifference(bearingToJoin, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 120 {
-			return nil
-		}
-
-		join := av.Waypoint{
-			Fix:      "_" + runway + "_FOLLOW_TRAFFIC",
-			Location: joinLoc,
-		}
-		join.SetOnApproach(true)
-		wps = append(wps, join)
-		skipFinal3nm = trafficFinalDistance <= 3.25
-	} else {
-		heading := nav.FlightState.Heading
-		if assignedHeading, ok := nav.AssignedHeading(); ok {
-			heading = assignedHeading
-		}
-		headingTrue := math.MagneticToTrue(heading, magVar)
-		headingDir := math.HeadingVector(headingTrue)
-
-		useProjection := true
-		if interceptNM, ok := math.LineLineIntersect(acNM, math.Add2f(acNM, headingDir), thresholdNM, outboundNM); ok {
-			alongHeading := math.Dot(math.Sub2f(interceptNM, acNM), headingDir)
-			finalDistance := math.Dot(math.Sub2f(interceptNM, thresholdNM), centerlineDir)
-			if alongHeading > 0.1 {
-				if finalDistance >= 0 && finalDistance <= 3 {
-					// Joining inside the FAF: send the aircraft to the FAF.
-					useProjection = false
-				} else if finalDistance > 3 && finalDistance <= 8 {
-					intercept := av.Waypoint{
-						Fix:      "_" + runway + "_INTERCEPT",
-						Location: math.NM2LL(interceptNM, nmPerLong),
-					}
-					intercept.SetOnApproach(true)
-					wps = append(wps, intercept)
-					useProjection = false
-				}
-			}
-		}
-
-		if useProjection {
-			finalDistance := math.Dot(math.Sub2f(acNM, thresholdNM), centerlineDir)
-			if finalDistance <= 0.5 {
-				return nil
-			}
-			if math.Dot(headingDir, math.Normalize2f(math.Sub2f(thresholdNM, acNM))) >= 0 {
-				// The assigned heading is generally toward the field. Send
-				// the aircraft to the FAF rather than forcing a sharp turn
-				// toward the perpendicular projection.
-				useProjection = false
-			}
-		}
-
-		if useProjection {
-			finalDistance := math.Dot(math.Sub2f(acNM, thresholdNM), centerlineDir)
-			projectionNM := math.Add2f(thresholdNM, math.Scale2f(centerlineDir, finalDistance))
-			projectionLoc := math.NM2LL(projectionNM, nmPerLong)
-			bearingToProjection := math.Heading2LL(nav.FlightState.Position, projectionLoc, nmPerLong)
-			if math.HeadingDifference(bearingToProjection, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
-				return nil
-			}
-
-			projection := av.Waypoint{
-				Fix:      "_" + runway + "_PROJECTION",
-				Location: projectionLoc,
-			}
-			projection.SetOnApproach(true)
-			wps = append(wps, projection)
-		}
-	}
-
-	finalWp := av.Waypoint{
-		Fix:      "_" + runway + "_3NM_FINAL",
-		Location: final3nm,
-	}
-	finalWp.SetOnApproach(true)
-	finalWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(final3nmAlt))
-	if !skipFinal3nm {
-		wps = append(wps, finalWp)
-	}
+	extendedFinal := math.Offset2LL(threshold, reciprocal, 25, nmPerLong)
 
 	thresholdWp := av.Waypoint{
 		Fix:      "_" + runway + "_THRESHOLD",
 		Location: threshold,
 	}
-	thresholdWp.SetOnApproach(true)
 	thresholdWp.SetLand(true)
 	thresholdWp.SetFlyOver(true)
-	thresholdWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(alt)))
+	thresholdWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(rwy.Elevation + rwy.ThresholdCrossingHeight)))
 
-	wps = append(wps, thresholdWp)
-
-	return wps
+	return &av.Approach{
+		Id:        "V" + runway,
+		FullName:  "Visual Approach Runway " + runway,
+		Runway:    runway,
+		Threshold: threshold,
+		Waypoints: []av.WaypointArray{{
+			{Fix: "_" + runway + "_EXTENDED_FINAL", Location: extendedFinal},
+			thresholdWp,
+		}},
+	}
 }
 
 type visualApproachPoint struct {

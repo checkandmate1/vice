@@ -968,83 +968,43 @@ func registerAllCommands() {
 		WithPriority(15),
 	)
 
-	// "expect visual approach runway XX" — higher priority than generic "expect {approach_lahso}"
-	// to prevent "expect visual approach runway 22L" from matching a charted visual via {approach_lahso}.
-	registerSTTCommand(
-		"expect [the|vectors] [for] [to] visual [approach] [runway] {num:1-36} left",
-		func(rwy int) string { return fmt.Sprintf("EVA%dL", rwy) },
-		WithName("expect_visual_left"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"expect [the|vectors] [for] [to] visual [approach] [runway] {num:1-36} right",
-		func(rwy int) string { return fmt.Sprintf("EVA%dR", rwy) },
-		WithName("expect_visual_right"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"expect [the|vectors] [for] [to] visual [approach] [runway] {num:1-36} center",
-		func(rwy int) string { return fmt.Sprintf("EVA%dC", rwy) },
-		WithName("expect_visual_center"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"expect [the|vectors] [for] [to] visual [approach] [runway] {num:1-36}",
-		func(rwy int) string { return fmt.Sprintf("EVA%d", rwy) },
-		WithName("expect_visual"),
-		WithPriority(16),
-	)
-
-	// "vectors visual approach runway XX" — same priority as cleared visual
-	registerSTTCommand(
-		"vector|vectors [for] [to] [the] visual [approach] [runway] {num:1-36} left",
-		func(rwy int) string { return fmt.Sprintf("EVA%dL", rwy) },
-		WithName("vectors_visual_left"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"vector|vectors [for] [to] [the] visual [approach] [runway] {num:1-36} right",
-		func(rwy int) string { return fmt.Sprintf("EVA%dR", rwy) },
-		WithName("vectors_visual_right"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"vector|vectors [for] [to] [the] visual [approach] [runway] {num:1-36} center",
-		func(rwy int) string { return fmt.Sprintf("EVA%dC", rwy) },
-		WithName("vectors_visual_center"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"vector|vectors [for] [to] [the] visual [approach] [runway] {num:1-36}",
-		func(rwy int) string { return fmt.Sprintf("EVA%d", rwy) },
-		WithName("vectors_visual"),
-		WithPriority(16),
-	)
-
-	registerSTTCommand(
-		"cleared [the] visual [approach] [runway] {num:1-36} left",
-		func(rwy int) string { return fmt.Sprintf("CVA%dL", rwy) },
-		WithName("cleared_visual_left"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"cleared [the] visual [approach] [runway] {num:1-36} right",
-		func(rwy int) string { return fmt.Sprintf("CVA%dR", rwy) },
-		WithName("cleared_visual_right"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"cleared [the] visual [approach] [runway] {num:1-36} center",
-		func(rwy int) string { return fmt.Sprintf("CVA%dC", rwy) },
-		WithName("cleared_visual_center"),
-		WithPriority(17),
-	)
-	registerSTTCommand(
-		"cleared [the] visual [approach] [runway] {num:1-36}",
-		func(rwy int) string { return fmt.Sprintf("CVA%d", rwy) },
-		WithName("cleared_visual"),
-		WithPriority(16),
-	)
+	// Visual runway commands are higher priority than generic approach matches
+	// so "visual approach runway 22L" doesn't resolve to a charted visual.
+	registerVisualRunwayCommand := func(name, template, commandPrefix string) {
+		type runwaySuffix struct {
+			word string
+			id   string
+		}
+		for _, suffix := range []runwaySuffix{
+			{"left", "L"},
+			{"right", "R"},
+			{"center", "C"},
+			{"", ""},
+		} {
+			suffix := suffix
+			priority := 17
+			fullName := name
+			fullTemplate := template
+			if suffix.word != "" {
+				fullName += "_" + suffix.word
+				fullTemplate += " " + suffix.word
+			} else {
+				priority = 16
+			}
+			registerSTTCommand(
+				fullTemplate,
+				func(rwy int) string { return fmt.Sprintf("%s%d%s", commandPrefix, rwy, suffix.id) },
+				WithName(fullName),
+				WithPriority(priority),
+			)
+		}
+	}
+	registerVisualRunwayCommand("expect_visual",
+		"expect [the|vectors] [for] [to] visual [approach] [runway] {num:1-36}", "EVA")
+	registerVisualRunwayCommand("vectors_visual",
+		"vector|vectors [for] [to] [the] visual [approach] [runway] {num:1-36}", "EVA")
+	registerVisualRunwayCommand("cleared_visual",
+		"cleared [the] visual [approach] [runway] {num:1-36}", "CVA")
 
 	registerSTTCommand(
 		"cleared [approach] [for] {approach}",

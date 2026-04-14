@@ -1547,28 +1547,13 @@ func (s *Sim) AirportAdvisory(tcw TCW, callsign av.ADSBCallsign, command string)
 // checks, then layers on AP-specific logic (o'clock validation, probability,
 // looking delay).
 func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.CommandIntent {
-	arrivalAirport := ac.FlightPlan.ArrivalAirport
-	ap := s.State.Airports[arrivalAirport]
-
 	// Use the shared eligibility check for VMC, ceiling, range, and bearing.
 	elig := s.checkVisualEligibility(ac)
 	if !elig.FieldInSight {
-		if ap == nil {
-			return av.FieldInSightIntent{Looking: true}
-		}
 		// Distinguish IMC (no "looking") from out-of-range/bearing (pilot says "looking").
-		metar, ok := s.State.METAR[arrivalAirport]
-		if !ok || !metar.IsVMC() {
-			return av.FieldInSightIntent{} // IMC
+		if elig.Reason == visualEligibilityIMC {
+			return av.FieldInSightIntent{}
 		}
-		if ceiling, err := metar.Ceiling(); err == nil {
-			if faa, ok := av.DB.Airports[arrivalAirport]; ok {
-				if ac.Altitude() > float32(faa.Elevation+ceiling) {
-					return av.FieldInSightIntent{} // above ceiling = IMC
-				}
-			}
-		}
-		// Passed VMC/ceiling checks but not eligibility → distance or bearing issue.
 		ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
 		return av.FieldInSightIntent{Looking: true}
 	}
@@ -1576,25 +1561,14 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	// Validate the controller's o'clock direction against the actual bearing.
 	oclockHeading := float32((oclock % 12) * 30)
 	reportedBearing := math.MagneticHeading(math.NormalizeHeading(float32(ac.Heading()) + oclockHeading))
-	actualBearing := math.TrueToMagnetic(math.Heading2LL(ac.Position(), ap.Location, ac.NmPerLongitude()), ac.MagneticVariation())
-	bearingError := math.HeadingDifference(reportedBearing, actualBearing)
+	bearingError := math.HeadingDifference(reportedBearing, elig.BearingToAirport)
 	if bearingError > 30 {
 		ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
 		return av.FieldInSightIntent{Looking: true}
 	}
 
 	// Probability increases as distance decreases relative to effective range.
-	metar := s.State.METAR[arrivalAirport]
-	var apAltAGL float32
-	if faa, ok := av.DB.Airports[arrivalAirport]; ok {
-		apAltAGL = ac.Altitude() - float32(faa.Elevation)
-		if apAltAGL < 0 {
-			apAltAGL = 0
-		}
-	}
-	maxRange := effectiveVisualRange(metar, apAltAGL)
-	actualDist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
-	seeProb := float32(0.95) * (1.0 - actualDist/maxRange*0.15)
+	seeProb := float32(0.95) * (1.0 - elig.Distance/elig.MaxRange*0.15)
 	seeProb = max(0.4, min(0.95, seeProb))
 
 	if s.Rand.Float32() < seeProb {
@@ -2256,11 +2230,25 @@ func (ac *Aircraft) canRequestVisualApproach() bool {
 	return appr != nil && appr.Type != av.ChartedVisualApproach
 }
 
+type visualEligibilityReason int
+
+const (
+	visualEligibilityOK visualEligibilityReason = iota
+	visualEligibilityNoAirport
+	visualEligibilityIMC
+	visualEligibilityOutOfRange
+	visualEligibilityBadBearing
+)
+
 // VisualEligibility describes whether an aircraft can see the field
 // and request a visual approach.
 type VisualEligibility struct {
-	FieldInSight bool   // true if VMC, within range, and airport visible
-	Runway       string // runway for the visual approach (when FieldInSight)
+	FieldInSight     bool   // true if VMC, within range, and airport visible
+	Runway           string // runway for the visual approach (when FieldInSight)
+	Reason           visualEligibilityReason
+	Distance         float32
+	MaxRange         float32
+	BearingToAirport math.MagneticHeading
 }
 
 // checkVisualEligibility determines whether the aircraft can see the field.
@@ -2271,20 +2259,20 @@ func (s *Sim) checkVisualEligibility(ac *Aircraft) VisualEligibility {
 	arrivalAirport := ac.FlightPlan.ArrivalAirport
 	ap := s.State.Airports[arrivalAirport]
 	if ap == nil {
-		return VisualEligibility{}
+		return VisualEligibility{Reason: visualEligibilityNoAirport}
 	}
 
 	// Must be VMC at the arrival airport.
 	metar, ok := s.State.METAR[arrivalAirport]
 	if !ok || !metar.IsVMC() {
-		return VisualEligibility{}
+		return VisualEligibility{Reason: visualEligibilityIMC}
 	}
 
 	// Aircraft above the ceiling is in the clouds → can't see the field.
 	if ceiling, err := metar.Ceiling(); err == nil {
 		if faa, ok := av.DB.Airports[arrivalAirport]; ok {
 			if ac.Altitude() > float32(faa.Elevation+ceiling) {
-				return VisualEligibility{}
+				return VisualEligibility{Reason: visualEligibilityIMC}
 			}
 		}
 	}
@@ -2300,13 +2288,22 @@ func (s *Sim) checkVisualEligibility(ac *Aircraft) VisualEligibility {
 	maxRange := effectiveVisualRange(metar, altAGL)
 	dist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
 	if dist > maxRange {
-		return VisualEligibility{}
+		return VisualEligibility{
+			Distance: dist,
+			MaxRange: maxRange,
+			Reason:   visualEligibilityOutOfRange,
+		}
 	}
 
 	// The airport must be within the pilot's forward visibility arc.
 	bearingToAirport := math.TrueToMagnetic(math.Heading2LL(ac.Position(), ap.Location, ac.NmPerLongitude()), ac.MagneticVariation())
 	if math.HeadingDifference(ac.Heading(), bearingToAirport) > visualMaxBearingOff {
-		return VisualEligibility{}
+		return VisualEligibility{
+			Distance:         dist,
+			MaxRange:         maxRange,
+			BearingToAirport: bearingToAirport,
+			Reason:           visualEligibilityBadBearing,
+		}
 	}
 
 	var runway string
@@ -2315,8 +2312,12 @@ func (s *Sim) checkVisualEligibility(ac *Aircraft) VisualEligibility {
 	}
 
 	return VisualEligibility{
-		FieldInSight: true,
-		Runway:       runway,
+		FieldInSight:     true,
+		Runway:           runway,
+		Reason:           visualEligibilityOK,
+		Distance:         dist,
+		MaxRange:         maxRange,
+		BearingToAirport: bearingToAirport,
 	}
 }
 
