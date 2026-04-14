@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -648,7 +649,7 @@ func TestVisualApproachWaypoints(t *testing.T) {
 				n.Heading.Assigned = tt.assigned
 			}
 
-			intent, ok := n.ClearedDirectVisual("36", time.Time{})
+			intent, ok := n.ClearedDirectVisual("36", nil, time.Time{})
 
 			if tt.wantNil {
 				if ok {
@@ -716,6 +717,92 @@ func TestVisualApproachWaypoints(t *testing.T) {
 	}
 }
 
+func TestVisualApproachWaypointsUseReferenceApproachDogleg(t *testing.T) {
+	rwy := av.Runway{
+		Id:                      "36",
+		Heading:                 360,
+		Threshold:               math.Point2LL{0, 0},
+		Elevation:               100,
+		ThresholdCrossingHeight: 50,
+	}
+	setupTestRunway(t, "KTEST", rwy)
+
+	nmPerLong := float32(60)
+	reference := &av.Approach{
+		Type:      av.VORApproach,
+		Runway:    "36",
+		Threshold: rwy.Threshold,
+		Waypoints: []av.WaypointArray{{
+			{Fix: "ASALT", Location: math.NM2LL([2]float32{-6, -8}, nmPerLong)},
+			{Fix: "ZADUD", Location: math.NM2LL([2]float32{-6, -3}, nmPerLong)},
+			{Fix: "WIRKO", Location: math.NM2LL([2]float32{-2, -3}, nmPerLong)},
+			{Fix: "_36_THRESHOLD", Location: rwy.Threshold},
+		}},
+	}
+
+	n := nav.Nav{
+		FlightState: nav.FlightState{
+			Position:          math.NM2LL([2]float32{-8, -5}, nmPerLong),
+			Heading:           180,
+			NmPerLongitude:    nmPerLong,
+			MagneticVariation: 0,
+			ArrivalAirport:    av.Waypoint{Fix: "KTEST"},
+		},
+	}
+
+	if _, ok := n.ClearedDirectVisual("36", reference, time.Time{}); !ok {
+		t.Fatal("expected dogleg visual route")
+	}
+
+	if len(n.Waypoints) < 5 {
+		t.Fatalf("expected projection, intermediate dogleg fixes, 3nm final, and threshold; got %v", wpNames(n.Waypoints))
+	}
+	if n.Waypoints[0].Fix != "_36_PROJECTION" {
+		t.Fatalf("first waypoint = %q, want projection; route %v", n.Waypoints[0].Fix, wpNames(n.Waypoints))
+	}
+	projectionNM := math.LL2NM(n.Waypoints[0].Location, nmPerLong)
+	if math.Abs(projectionNM[0]-(-6)) > 0.05 || math.Abs(projectionNM[1]-(-5)) > 0.05 {
+		t.Fatalf("projection = %.2f, %.2f; want near -6, -5", projectionNM[0], projectionNM[1])
+	}
+	if n.Waypoints[1].Fix != "ZADUD" || n.Waypoints[2].Fix != "WIRKO" {
+		t.Fatalf("expected dogleg fixes after projection, got %v", wpNames(n.Waypoints))
+	}
+	finalIdx := slices.IndexFunc(n.Waypoints, func(wp av.Waypoint) bool { return wp.Fix == "_36_3NM_FINAL" })
+	if finalIdx == -1 {
+		t.Fatalf("missing route-equivalent 3nm final in %v", wpNames(n.Waypoints))
+	}
+	finalNM := math.LL2NM(n.Waypoints[finalIdx].Location, nmPerLong)
+	if math.Abs(finalNM[0]-(-1.66)) > 0.1 || math.Abs(finalNM[1]-(-2.50)) > 0.1 {
+		t.Fatalf("3nm final = %.2f, %.2f; want a point along the WIRKO-threshold segment, not runway centerline",
+			finalNM[0], finalNM[1])
+	}
+}
+
+func TestVisualReferenceApproachSelection(t *testing.T) {
+	ac := &Aircraft{
+		FlightPlan: av.FlightPlan{ArrivalAirport: "KTEST"},
+		Nav: nav.Nav{Approach: nav.NavApproach{
+			Assigned: &av.Approach{Type: av.RNAVApproach, Runway: "36", Waypoints: []av.WaypointArray{{{}, {}}}},
+		}},
+	}
+	s := &Sim{State: &CommonState{Airports: map[string]*av.Airport{"KTEST": {
+		Approaches: map[string]*av.Approach{
+			"R36": {Type: av.RNAVApproach, Runway: "36", Waypoints: []av.WaypointArray{{{}, {}}}},
+			"V36": {Type: av.VORApproach, Runway: "36", Waypoints: []av.WaypointArray{{{}, {}}}},
+			"I35": {Type: av.ILSApproach, Runway: "35", Waypoints: []av.WaypointArray{{{}, {}}}},
+		},
+	}}}}
+
+	if got := s.visualReferenceApproach(ac, "36"); got != ac.Nav.Approach.Assigned {
+		t.Fatalf("assigned matching approach should win, got %+v", got)
+	}
+
+	ac.Nav.Approach.Assigned = nil
+	if got := s.visualReferenceApproach(ac, "36"); got == nil || got.Type != av.VORApproach {
+		t.Fatalf("fallback approach type = %v, want VOR", got)
+	}
+}
+
 func wpNames(wps []av.Waypoint) []string {
 	names := make([]string, len(wps))
 	for i, wp := range wps {
@@ -756,7 +843,7 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedDirectVisualFollowingTraffic("36", trafficPos, time.Time{}); !ok {
+	if _, ok := n.ClearedDirectVisualFollowingTraffic("36", trafficPos, nil, time.Time{}); !ok {
 		t.Fatal("expected follow-traffic visual route")
 	}
 

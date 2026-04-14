@@ -1830,9 +1830,9 @@ func (s *Sim) ClearedApproach(tcw TCW, callsign av.ADSBCallsign, approach string
 
 // ClearedVisualApproach clears the aircraft for a visual approach to the
 // specified runway. Command format is "CVA<runway>" (e.g. "CVA13L"). The
-// aircraft flies a 3nm final aligned with the runway heading to the
-// threshold. For charted visual approaches (e.g., Belmont Visual), use
-// the C command with the approach ID instead.
+// aircraft uses the assigned approach, or the best known approach for the
+// runway, as a visual route template when one is available. For charted visual
+// approaches (e.g., Belmont Visual), use the C command with the approach ID instead.
 func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway string) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -1866,14 +1866,16 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 				return av.MakeUnableIntent("unable, we don't know runway " + runway)
 			}
 
+			referenceApproach := s.visualReferenceApproach(ac, runway)
+
 			// Clear direct to the runway.
 			// If the aircraft is too close for a stable approach, go around.
 			var intent av.CommandIntent
 			var ok bool
 			if traffic != nil {
-				intent, ok = ac.ClearedDirectVisualFollowingTraffic(runway, traffic.Position(), s.State.SimTime)
+				intent, ok = ac.ClearedDirectVisualFollowingTraffic(runway, traffic.Position(), referenceApproach, s.State.SimTime)
 			} else {
-				intent, ok = ac.ClearedDirectVisual(runway, s.State.SimTime)
+				intent, ok = ac.ClearedDirectVisual(runway, referenceApproach, s.State.SimTime)
 			}
 			if !ok {
 				if !ac.Nav.SetDirectVisualApproach(runway) {
@@ -1893,6 +1895,50 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 		s.cancelPendingInitialContact(callsign)
 	}
 	return intent, err
+}
+
+func visualReferenceApproachRank(t av.ApproachType) int {
+	switch t {
+	case av.ILSApproach:
+		return 0
+	case av.LocalizerApproach:
+		return 1
+	case av.VORApproach:
+		return 2
+	case av.RNAVApproach:
+		return 3
+	default:
+		return 100
+	}
+}
+
+func (s *Sim) visualReferenceApproach(ac *Aircraft, runway string) *av.Approach {
+	runwayBase := av.RunwayID(runway).Base()
+	if ap := ac.Nav.Approach.Assigned; ap != nil &&
+		av.RunwayID(ap.Runway).Base() == runwayBase &&
+		visualReferenceApproachRank(ap.Type) < 100 &&
+		len(ap.Waypoints) > 0 {
+		return ap
+	}
+
+	airport := s.State.Airports[ac.FlightPlan.ArrivalAirport]
+	if airport == nil {
+		return nil
+	}
+
+	var best *av.Approach
+	bestRank := 100
+	for _, id := range slices.Sorted(maps.Keys(airport.Approaches)) {
+		ap := airport.Approaches[id]
+		rank := visualReferenceApproachRank(ap.Type)
+		if rank >= bestRank || rank >= 100 || len(ap.Waypoints) == 0 ||
+			av.RunwayID(ap.Runway).Base() != runwayBase {
+			continue
+		}
+		best = ap
+		bestRank = rank
+	}
+	return best
 }
 
 func (s *Sim) InterceptApproach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
