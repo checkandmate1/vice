@@ -340,7 +340,7 @@ func parseFPCoordinationTime(s string, checkSp func(s string, primary bool) bool
 		return false, ErrCommandFormat
 	}
 
-	spec.CoordinationTime.Set(t)
+	spec.CoordinationTime.Set(sim.NewSimTime(t))
 
 	return true, nil
 }

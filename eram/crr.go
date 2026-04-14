@@ -105,7 +105,8 @@ func parseLocation(ctx *panes.Context, token string) (math.Point2LL, bool) {
 		hdg, _ := strconv.Atoi(m[2])
 		distInt, _ := strconv.Atoi(m[3])
 		dist := float32(distInt)
-		return math.Offset2LL(base, float32(hdg), dist, ctx.NmPerLongitude, ctx.MagneticVariation), true
+		return math.Offset2LL(base, math.MagneticToTrue(math.MagneticHeading(hdg), ctx.MagneticVariation),
+			dist, ctx.NmPerLongitude), true
 	}
 	// Lat/long, fix, navaid, airport
 	if p, ok := ctx.Client.State.Locate(s); ok {

@@ -77,12 +77,24 @@ func main() {
 
 	airports := make(map[string]bool)
 	facilities := make(map[string]bool)
+	artccs := make(map[string]bool)
 
 	for facility, scenarios := range scenarioGroups {
 		facilities[facility] = true
 		for _, sg := range scenarios {
 			for icao := range sg.Airports {
 				airports[icao] = true
+			}
+			if sg.ARTCC != "" {
+				artccs[sg.ARTCC] = true
+			} else if sg.TRACON != "" {
+				// TRACON scenarios don't set ARTCC explicitly;
+				// look up the parent ARTCC from the database.
+				if info, ok := av.DB.TRACONs[sg.TRACON]; ok {
+					artccs[info.ARTCC] = true
+				} else if info, ok := av.DB.ATCTs[sg.TRACON]; ok {
+					artccs[info.ARTCC] = true
+				}
 			}
 		}
 	}
@@ -134,6 +146,13 @@ func main() {
 	fmt.Printf("Processing METAR data for %d airports\n", len(airports))
 	if err := processMETAR(ctx, bucket, airports, startDate, endDate, *outputDir); err != nil {
 		fmt.Printf("Failed to process METAR: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Process TFR data
+	fmt.Printf("Processing TFR data for %d ARTCCs\n", len(artccs))
+	if err := processTFRs(ctx, bucket, artccs, startDate, endDate, *outputDir); err != nil {
+		fmt.Printf("Failed to process TFRs: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -240,6 +259,52 @@ func processMETAR(ctx context.Context, bucket *storage.BucketHandle, airports ma
 
 	fmt.Printf("Wrote METAR data for %d airports\n", filteredMETAR.Len())
 
+	return nil
+}
+
+func processTFRs(ctx context.Context, bucket *storage.BucketHandle, artccs map[string]bool, start, end time.Time, outputDir string) error {
+	// Download the full TFR file
+	r, err := gcsNewReader(ctx, bucket, wx.TFRFilename)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	allTFRs, err := wx.LoadCompressedTFRs(r)
+	if err != nil {
+		return err
+	}
+
+	// Filter: keep TFRs whose [Effective, Expire] overlaps the date range
+	// AND whose ARTCC matches a scenario-relevant ARTCC.
+	var filtered []av.TFR
+	for _, tfr := range allTFRs {
+		if !artccs[tfr.ARTCC] {
+			continue
+		}
+		// Check time overlap: TFR is relevant if Effective < end AND Expire > start
+		if tfr.Effective.Before(end) && tfr.Expire.After(start) {
+			filtered = append(filtered, tfr)
+		}
+	}
+
+	// Write filtered TFRs
+	outputPath := filepath.Join(outputDir, wx.TFRFilename)
+	f, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+
+	if err := wx.SaveCompressedTFRs(filtered, f); err != nil {
+		f.Close()
+		return fmt.Errorf("failed to save TFR file: %w", err)
+	}
+
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Wrote TFR data: %d TFRs (from %d total) for %d ARTCCs\n", len(filtered), len(allTFRs), len(artccs))
 	return nil
 }
 

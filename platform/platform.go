@@ -62,6 +62,12 @@ type Platform interface {
 	// IsFullScreen() returns true if the application is in full-screen mode.
 	IsFullScreen() bool
 
+	// SetMainWindowSquare enables or disables a square aspect ratio for the main window.
+	SetMainWindowSquare(square bool)
+
+	// IsAppFocused returns true if the application has OS focus.
+	IsAppFocused() bool
+
 	// GetAllMonitorNames() returns an array of all available monitors' names.
 	GetAllMonitorNames() []string
 
@@ -132,6 +138,11 @@ type Platform interface {
 	// If speech is currently being played, ErrCurrentlyPlayingSpeech is returned.
 	// If non-nil, the provided callback function is called after the speech has finished.
 	TryEnqueueSpeechPCM(pcm []int16, finished func()) error
+
+	// AppendSpeechPCM appends PCM samples to the speech playback queue.
+	// Unlike TryEnqueueSpeechPCM, this does not fail if speech is already
+	// playing; it simply appends to the existing queue.
+	AppendSpeechPCM(pcm []int16)
 
 	// SetSpeechGarbled enables or disables garbling of speech audio.
 	// When enabled, speech is ducked and static noise is added.

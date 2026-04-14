@@ -40,6 +40,8 @@ const (
 	CommandModeHandOff
 	CommandModeVFRPlan
 	CommandModeMultiFunc
+	CommandModeFMA_TSAS
+	CommandModeIFDT
 	CommandModeFlightData
 	CommandModeCollisionAlert
 	CommandModeMin
@@ -49,6 +51,7 @@ const (
 	CommandModeRestrictionArea
 	CommandModeDrawRoute
 	CommandModeDrawWind
+	CommandModeMacro
 
 	// These correspond to buttons on the main DCB menu.
 	CommandModeRange
@@ -98,6 +101,10 @@ func (c CommandMode) PreviewString(sp *STARSPane) string {
 		return "F"
 	case CommandModeFlightData:
 		return "DA"
+	case CommandModeFMA_TSAS:
+		return "FMA/TSAS"
+	case CommandModeIFDT:
+		return "IP"
 	case CommandModeCollisionAlert:
 		return "CA"
 	case CommandModeMin:
@@ -118,6 +125,8 @@ func (c CommandMode) PreviewString(sp *STARSPane) string {
 		} else {
 			return "WIND"
 		}
+	case CommandModeMacro:
+		return "AM"
 	case CommandModeRange:
 		return "RANGE"
 	case CommandModePlaceCenter:
@@ -266,6 +275,9 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 				// Check if transient command handlers should intercept this input
 				status, err = sp.executeTransientCommandHandlers(ctx, sp.previewAreaInput,
 					nil, false, [2]float32{}, nil, radar.ScopeTransformations{})
+			} else if s, e, matched := sp.tryExecuteMacro(ctx, sp.previewAreaInput, false,
+				[2]float32{}, nil, radar.ScopeTransformations{}); matched {
+				status, err = s, e
 			} else {
 				status, err = sp.executeSTARSCommand(ctx, sp.previewAreaInput)
 			}
@@ -328,6 +340,8 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 		case imgui.KeyF4:
 			if ctx.Keyboard.KeyControl() {
 				sp.setCommandMode(ctx, CommandModeWX)
+			} else if ctx.Keyboard.KeyShift() { // F16
+				sp.setCommandMode(ctx, CommandModeMacro)
 			} else {
 				sp.setCommandMode(ctx, CommandModeTerminateControl)
 			}
@@ -357,13 +371,12 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 			if ctx.Keyboard.KeyControl() && ps.DisplayDCB {
 				sp.dcbShowAux = !sp.dcbShowAux
 			} else {
-				// TODO: FMA alerts / TSAS
-				sp.setCommandMode(ctx, CommandModeNone)
+				sp.setCommandMode(ctx, CommandModeFMA_TSAS)
 			}
 
 		case imgui.KeyF9:
 			if ctx.Keyboard.KeyControl() {
-				sp.resetInputState(ctx)
+				sp.resetInputState(ctx.Platform)
 				ps.DisplayDCB = !ps.DisplayDCB
 			} else {
 				sp.setCommandMode(ctx, CommandModeVFRPlan)
@@ -373,8 +386,7 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 			if ctx.Keyboard.KeyControl() && ps.DisplayDCB {
 				sp.setCommandMode(ctx, CommandModeRangeRings)
 			} else {
-				// TODO: Printout/save interfacility data transfer messages (IFDT)
-				sp.setCommandMode(ctx, CommandModeNone)
+				sp.setCommandMode(ctx, CommandModeIFDT)
 			}
 
 		case imgui.KeyF11:
@@ -402,6 +414,12 @@ func (sp *STARSPane) processKeyboardInput(ctx *panes.Context) {
 			if ctx.Keyboard.KeyControl() && ps.DisplayDCB {
 				sp.setCommandMode(ctx, CommandModeSite)
 			}
+
+		case imgui.KeyF15:
+			sp.setCommandMode(ctx, CommandModeTargetGen)
+
+		case imgui.KeyF16:
+			sp.setCommandMode(ctx, CommandModeMacro)
 
 		case imgui.KeyTab:
 			if imgui.IsKeyDown(imgui.KeyLeftShift) { // Check if LeftShift is pressed
@@ -485,7 +503,7 @@ func (sp *STARSPane) autoReleaseDepartures(ctx *panes.Context) {
 	releaseAircraft := ctx.Client.State.GetSTARSReleaseDepartures()
 
 	fa := ctx.FacilityAdaptation
-	for _, list := range fa.CoordinationLists {
+	for _, list := range fa.Lists.Coordination {
 		// Get the aircraft that should be included in this list.
 		deps := util.FilterSlice(releaseAircraft,
 			func(dep sim.ReleaseDeparture) bool {
@@ -652,6 +670,9 @@ func (sp *STARSPane) consumeMouseEvents(ctx *panes.Context, ghosts []*av.GhostTr
 		fmt.Printf("\n[MOUSE] Click, transientCommandHandlers=%d\n", len(sp.transientCommandHandlers))
 		if len(sp.transientCommandHandlers) > 0 {
 			status, err = sp.executeTransientCommandHandlers(ctx, sp.previewAreaInput, nil, true, ctx.Mouse.Pos, ghosts, transforms)
+		} else if s, e, matched := sp.tryExecuteMacro(ctx, sp.previewAreaInput, true,
+			ctx.Mouse.Pos, ghosts, transforms); matched {
+			status, err = s, e
 		} else {
 			status, err = sp.executeSTARSClickedCommand(ctx, sp.previewAreaInput, ctx.Mouse.Pos, ghosts, transforms)
 		}
@@ -669,7 +690,7 @@ func (sp *STARSPane) consumeMouseEvents(ctx *panes.Context, ghosts []*av.GhostTr
 			switch status.Clear {
 			case ClearAll:
 				if sp.commandMode != CommandModeTargetGenLock {
-					sp.resetInputState(ctx)
+					sp.resetInputState(ctx.Platform)
 				} else {
 					sp.previewAreaInput = ""
 				}
@@ -771,7 +792,7 @@ func (sp *STARSPane) consumeMouseEvents(ctx *panes.Context, ghosts []*av.GhostTr
 }
 
 func (sp *STARSPane) setCommandMode(ctx *panes.Context, mode CommandMode) {
-	sp.resetInputState(ctx)
+	sp.resetInputState(ctx.Platform)
 	sp.commandMode = mode
 
 	if mode == CommandModeTargetGen || mode == CommandModeTargetGenLock {
@@ -779,7 +800,7 @@ func (sp *STARSPane) setCommandMode(ctx *panes.Context, mode CommandMode) {
 	}
 }
 
-func (sp *STARSPane) resetInputState(ctx *panes.Context) {
+func (sp *STARSPane) resetInputState(pl platform.Platform) {
 	sp.previewAreaInput = ""
 	sp.previewAreaOutput = ""
 	sp.commandMode = CommandModeNone
@@ -793,8 +814,8 @@ func (sp *STARSPane) resetInputState(ctx *panes.Context) {
 
 	sp.drawRoutePoints = nil
 
-	ctx.Platform.EndCaptureMouse()
-	ctx.Platform.StopMouseDeltaMode()
+	pl.EndCaptureMouse()
+	pl.StopMouseDeltaMode()
 }
 
 // installCommandHandlers sets transient command handlers for the next keyboard Enter or scope click.
@@ -844,7 +865,8 @@ func (sp *STARSPane) maybeAutoHomeCursor(ctx *panes.Context) {
 // returns the controller responsible for the aircraft given its altitude
 // and route.
 func calculateAirspace(ctx *panes.Context, trk *sim.Track) (string, error) {
-	for _, rules := range ctx.FacilityAdaptation.AirspaceAwareness {
+	area := ctx.UserController().Area
+	for _, rules := range ctx.FacilityAdaptation.AirspaceAwarenessForArea(area) {
 		fp := trk.FlightPlan
 		for _, fix := range rules.Fix {
 			// Does the fix in the rules match the route?
@@ -993,4 +1015,162 @@ func (sp *STARSPane) findClickedTrackAndGhost(ctx *panes.Context, mousePosition 
 	}
 
 	return trk, clickedGhost
+}
+
+// macroCommandModes maps the mode strings used in macro [MODE] prefixes
+// to their corresponding CommandMode values.
+var macroCommandModes = map[string]CommandMode{
+	"INIT CNTL":  CommandModeInitiateControl,
+	"F1":         CommandModeInitiateControl,
+	"TRK RPOS":   CommandModeTrackReposition,
+	"F2":         CommandModeTrackReposition,
+	"TRK SUSP":   CommandModeTrackSuspend,
+	"F3":         CommandModeTrackSuspend,
+	"TERM CNTL":  CommandModeTerminateControl,
+	"F4":         CommandModeTerminateControl,
+	"HND OFF":    CommandModeHandOff,
+	"F5":         CommandModeHandOff,
+	"FLT DATA":   CommandModeFlightData,
+	"F6":         CommandModeFlightData,
+	"MULTI FUNC": CommandModeMultiFunc,
+	"F7":         CommandModeMultiFunc,
+	"F8":         CommandModeFMA_TSAS,
+	"VFR FP":     CommandModeVFRPlan,
+	"F9":         CommandModeVFRPlan,
+	"F10":        CommandModeIFDT,
+	"CA":         CommandModeCollisionAlert,
+	"F11":        CommandModeCollisionAlert,
+	"RESTR AREA": CommandModeRestrictionArea,
+	"F12":        CommandModeRestrictionArea,
+	"REL DEP":    CommandModeReleaseDeparture,
+	"F13":        CommandModeReleaseDeparture,
+	"F14":        CommandModeSite,
+	"TGT GEN":    CommandModeTargetGen,
+	"F15":        CommandModeTargetGen,
+	"F16":        CommandModeMacro,
+	"MAP":        CommandModeMaps,
+}
+
+func init() {
+	sim.ValidateMacroCommandMode = func(mode string) bool {
+		_, ok := macroCommandModes[mode]
+		return ok
+	}
+}
+
+func (sp *STARSPane) executeMacro(ctx *panes.Context, macro *sim.STARSMacro, inputIsSlew bool, args []string,
+	mousePosition [2]float32, ghosts []*av.GhostTrack, transforms radar.ScopeTransformations) (CommandStatus, error) {
+
+	for _, cmd := range macro.Commands {
+		// Parse optional [MODE] prefix; if absent, use CommandModeNone.
+		mode := CommandModeNone
+		if strings.HasPrefix(cmd, "[") {
+			endBracket := strings.Index(cmd, "]")
+			if endBracket == -1 {
+				sp.setCommandMode(ctx, CommandModeNone)
+				return CommandStatus{}, ErrSTARSCommandFormat
+			}
+			var ok bool
+			mode, ok = macroCommandModes[cmd[1:endBracket]]
+			if !ok {
+				sp.setCommandMode(ctx, CommandModeNone)
+				return CommandStatus{}, ErrSTARSCommandFormat
+			}
+			cmd = cmd[endBracket+1:]
+		}
+
+		// Substitute $1..$9 with args
+		for i := 1; i <= 9; i++ {
+			placeholder := "$" + strconv.Itoa(i)
+			var replacement string
+			if i-1 < len(args) {
+				replacement = args[i-1]
+			}
+			cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+		}
+
+		// Use setCommandMode to properly reset state between sub-commands.
+		sp.setCommandMode(ctx, mode)
+
+		// For MultiFunc mode, extract the first character as the
+		// multi-func prefix, matching the normal keyboard input behavior.
+		if mode == CommandModeMultiFunc && len(cmd) > 0 {
+			sp.multiFuncPrefix = string(cmd[0])
+			cmd = cmd[1:]
+		}
+
+		var err error
+		if inputIsSlew {
+			_, err = sp.executeSTARSClickedCommand(ctx, cmd, mousePosition, ghosts, transforms)
+		} else {
+			_, err = sp.executeSTARSCommand(ctx, cmd)
+		}
+		if err != nil {
+			sp.setCommandMode(ctx, CommandModeNone)
+			return CommandStatus{}, err
+		}
+	}
+
+	sp.setCommandMode(ctx, CommandModeNone)
+	return CommandStatus{Output: strings.ToUpper(macro.Output)}, nil
+}
+
+// tryExecuteMacro checks all facility macros against the current command
+// mode and user input. Returns matched=true if a macro was found and
+// executed; the caller should fall through to built-in commands otherwise.
+//
+// Two-pass matching: exact-name macros take priority (pass 1), then
+// parameterized catch-all macros (empty name + uses $1) act as a
+// fallback (pass 2).
+func (sp *STARSPane) tryExecuteMacro(ctx *panes.Context, input string, isSlew bool, mousePosition [2]float32,
+	ghosts []*av.GhostTrack, transforms radar.ScopeTransformations) (CommandStatus, error, bool) {
+	fields := strings.Fields(input)
+	var inputName string
+	var args []string
+	if len(fields) > 0 {
+		inputName, args = fields[0], fields[1:]
+	}
+
+	macros := ctx.FacilityAdaptation.STARSMacros
+
+	// Helper: check mode and slew match.
+	modeMatches := func(macro *sim.STARSMacro) bool {
+		if macro.IsSlew() != isSlew {
+			return false
+		}
+		if mode := macro.Mode(); mode == "" {
+			return sp.commandMode == CommandModeNone
+		} else {
+			return macroCommandModes[mode] == sp.commandMode
+		}
+	}
+
+	// Pass 1: exact name match. Skip parameterized catch-alls (empty
+	// name + uses $1) — those belong in pass 2.
+	for i := range macros {
+		macro := &macros[i]
+		if macro.Name() == "" && macro.HasParameters() {
+			continue
+		}
+		if macro.Name() != inputName || !modeMatches(macro) {
+			continue
+		}
+		status, err := sp.executeMacro(ctx, macro, isSlew, args, mousePosition, ghosts, transforms)
+		return status, err, true
+	}
+
+	// Pass 2: catch-all macros with empty name that use $1.
+	// All entered words become parameters ($1, $2, ...).
+	if len(fields) > 0 {
+		for i := range macros {
+			macro := &macros[i]
+			if macro.Name() != "" || !macro.HasParameters() || !modeMatches(macro) {
+				continue
+			}
+			status, err := sp.executeMacro(ctx, macro, isSlew, fields, mousePosition, ghosts, transforms)
+			return status, err, true
+		}
+	}
+
+	return CommandStatus{}, nil, false
 }

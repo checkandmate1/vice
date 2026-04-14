@@ -25,6 +25,7 @@ func NMPerLongitudeAt(p Point2LL) float32 {
 
 const NauticalMilesToFeet = 6076.12
 const FeetToNauticalMiles = 1 / NauticalMilesToFeet
+const StatuteMilesToNauticalMiles = 1 / 1.15078
 
 // Point2LL represents a 2D point on the Earth in latitude-longitude.
 // Important: 0 (x) is longitude, 1 (y) is latitude
@@ -328,6 +329,14 @@ func NMDistance2LLFast(a Point2LL, b Point2LL, nmPerLongitude float32) float32 {
 	return Distance2f(anm, bnm)
 }
 
+// DMEDistance returns the straight-line distance in nautical miles between
+// two lat-long positions at the given altitudes in feet.
+func DMEDistance(a Point2LL, aAltitude float32, b Point2LL, bAltitude float32) float32 {
+	lateral := NMDistance2LL(a, b)
+	vertical := (aAltitude - bAltitude) * FeetToNauticalMiles
+	return Sqrt(Sqr(lateral) + Sqr(vertical))
+}
+
 // NMLength2ll returns the length of a vector expressed in lat-long
 // coordinates.
 func NMLength2LL(a Point2LL, nmPerLongitude float32) float32 {
@@ -349,11 +358,11 @@ func LL2NM(p Point2LL, nmPerLongitude float32) [2]float32 {
 	return [2]float32{p[0] * nmPerLongitude, p[1] * NMPerLatitude}
 }
 
-// Offset2LL returns the point at distance dist along the vector with heading hdg from
-// the given point. It assumes a (locally) flat earth.
-func Offset2LL(pll Point2LL, hdg float32, dist float32, nmPerLongitude, magneticVariation float32) Point2LL {
+// Offset2LL returns the point at distance dist along the vector with true
+// heading hdg from the given point. It assumes a (locally) flat earth.
+func Offset2LL(pll Point2LL, hdg TrueHeading, dist float32, nmPerLongitude float32) Point2LL {
 	p := LL2NM(pll, nmPerLongitude)
-	h := Radians(float32(hdg - magneticVariation))
+	h := Radians(hdg)
 	v := [2]float32{Sin(h), Cos(h)}
 	v = Scale2f(v, float32(dist))
 	p = Add2f(p, v)
@@ -385,7 +394,7 @@ func (p *Point2LL) UnmarshalJSON(b []byte) error {
 		}
 
 		if locr == nil {
-			panic("Must provide location resolver via SetLocationResolver")
+			return fmt.Errorf("%s: unable to parse latlong and no location resolver available", string(b))
 		}
 
 		*p, err = locr.Resolve(string(b))

@@ -145,7 +145,8 @@ func matchPattern(pattern CallsignPattern, tokens []Token, aircraft map[string]A
 	}
 
 	// Try with different skip values (0, 1, 2, ..., maxSkip)
-	// Return results from the first skip value that produces matches
+	// Collect results from all skip values so the best can be selected.
+	var allResults []callsignMatchResult
 	for skip := 0; skip <= maxSkip && skip < len(tokens); skip++ {
 		ctx := &callsignMatchContext{
 			Tokens:     tokens,
@@ -155,13 +156,10 @@ func matchPattern(pattern CallsignPattern, tokens []Token, aircraft map[string]A
 			Skip:       skip,
 		}
 
-		results := runMatchers(pattern.Matchers, ctx)
-		if len(results) > 0 {
-			return results
-		}
+		allResults = append(allResults, runMatchers(pattern.Matchers, ctx)...)
 	}
 
-	return nil
+	return allResults
 }
 
 // runMatchers executes the pattern's matchers in sequence.
@@ -439,6 +437,13 @@ func buildCallsignMatch(result *callsignMatchResult, pattern CallsignPattern, to
 	// Reduce confidence for skipped tokens
 	if result.Skip > 0 {
 		conf *= (1.0 - 0.1*float64(result.Skip))
+	}
+
+	// A perfect flight number match is strong evidence of the correct
+	// callsign; ensure it isn't dragged below 0.90 by a weak airline
+	// score or skip penalty.
+	if result.FlightScore >= 1.0 {
+		conf = max(conf, 0.90)
 	}
 
 	return CallsignMatch{

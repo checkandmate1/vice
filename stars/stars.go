@@ -75,7 +75,7 @@ type STARSPane struct {
 	// 'display weather history' command was entered.
 	wxHistoryDraw int
 	// Time at which to step to the next history snapshot (5s intervals).
-	wxNextHistoryStepTime time.Time
+	wxNextHistoryStepTime sim.Time
 
 	systemFontA, systemFontB               [6]*renderer.Font
 	systemOutlineFontA, systemOutlineFontB [6]*renderer.Font
@@ -130,12 +130,12 @@ type STARSPane struct {
 	FontSelection int32
 
 	DisplayBeaconCode        av.Squawk
-	DisplayBeaconCodeEndTime time.Time
+	DisplayBeaconCodeEndTime sim.Time
 
 	DisplayRequestedAltitude bool
 
 	// When VFR flight plans were first seen (used for sorting in VFR list)
-	VFRFPFirstSeen map[sim.ACID]time.Time
+	VFRFPFirstSeen map[sim.ACID]sim.Time
 
 	transientCommandHandlers []userCommand // handlers for next keyboard Enter or scope click
 	activeSpinner            dcbSpinner
@@ -160,9 +160,20 @@ type STARSPane struct {
 	previewAreaInput  string
 	dcbShowAux        bool
 
-	lastTrackUpdate        time.Time
-	lastHistoryTrackUpdate time.Time
+	lastTrackUpdate        sim.Time
+	lastHistoryTrackUpdate sim.Time
 	discardTracks          bool
+
+	LastATIS   [10]string
+	LastGIText [10]string
+	FlashATIS  [10]bool
+	// Suppresses flashing when this pane later receives the state update for
+	// an ATIS/GIText change that originated locally.
+	pendingATISGITextUpdate [10]struct {
+		ExpectedATIS   string
+		ExpectedGIText string
+		Valid          bool
+	}
 
 	// The start of a RBL--one click received, waiting for the second.
 	wipRBL *STARSRangeBearingLine
@@ -171,7 +182,7 @@ type STARSPane struct {
 	testAudioEndTime time.Time
 
 	highlightedLocation        math.Point2LL
-	highlightedLocationEndTime time.Time
+	highlightedLocationEndTime sim.Time
 
 	// Built-in screenshots / video captures
 	capture struct {
@@ -232,6 +243,29 @@ type STARSPane struct {
 	sdbArena util.ObjectArena[suspendedDatablock]
 }
 
+func (sp *STARSPane) notePendingATISGITextUpdate(ctx *panes.Context, line int, atis, text *string) {
+	update := &sp.pendingATISGITextUpdate[line]
+	update.ExpectedATIS = ctx.Client.State.ATIS[line]
+	update.ExpectedGIText = ctx.Client.State.GIText[line]
+	// nil means "leave unchanged", so start from the current state and only
+	// override the fields this command is modifying.
+	if atis != nil {
+		update.ExpectedATIS = *atis
+	}
+	if text != nil {
+		update.ExpectedGIText = *text
+	}
+	update.Valid = true
+}
+
+func (sp *STARSPane) clearPendingATISGITextUpdate(line int) {
+	sp.pendingATISGITextUpdate[line] = struct {
+		ExpectedATIS   string
+		ExpectedGIText string
+		Valid          bool
+	}{}
+}
+
 type PointOutControllers struct {
 	From, To sim.TCP
 }
@@ -274,8 +308,8 @@ func (ae AudioType) String() string {
 type CAAircraft struct {
 	ADSBCallsigns [2]av.ADSBCallsign // sorted alphabetically
 	Acknowledged  bool
-	SoundEnd      time.Time
-	Start         time.Time
+	SoundEnd      sim.Time
+	Start         sim.Time
 }
 
 type CRDAMode int
@@ -396,8 +430,9 @@ type MonitorColors struct {
 	RestrictionAreaGeom [8]renderer.RGB
 
 	// WX
-	WX        [2]renderer.RGB
-	WXStipple renderer.RGB
+	WX             [radar.NumWxLevels]renderer.RGB
+	WXStipple      renderer.RGB
+	WXLevelStipple [radar.NumWxLevels]int // 0=none, 1=light, 2=dense
 
 	// DCB
 	DCBButton            renderer.RGB
@@ -480,11 +515,16 @@ var monitorColorSets = map[string]MonitorColors{
 			renderer.RGBFromUInt8(50, 205, 50),
 		},
 
-		WX: [2]renderer.RGB{
+		WX: [radar.NumWxLevels]renderer.RGB{
+			renderer.RGBFromUInt8(38, 77, 77),
+			renderer.RGBFromUInt8(38, 77, 77),
 			renderer.RGBFromUInt8(38, 77, 77),
 			renderer.RGBFromUInt8(100, 100, 51),
+			renderer.RGBFromUInt8(100, 100, 51),
+			renderer.RGBFromUInt8(100, 100, 51),
 		},
-		WXStipple: renderer.RGBFromUInt8(255, 255, 255),
+		WXLevelStipple: [radar.NumWxLevels]int{0, 1, 2, 0, 1, 2},
+		WXStipple:      renderer.RGBFromUInt8(255, 255, 255),
 
 		DCBButton:            renderer.RGBFromUInt8(0, 44, 0),
 		DCBActiveButton:      renderer.RGBFromUInt8(0, 78, 0),
@@ -564,11 +604,16 @@ var monitorColorSets = map[string]MonitorColors{
 			renderer.RGBFromUInt8(102, 208, 85),
 		},
 
-		WX: [2]renderer.RGB{
-			renderer.RGBFromUInt8(37, 77, 77),
-			renderer.RGBFromUInt8(100, 100, 51),
+		WX: [radar.NumWxLevels]renderer.RGB{
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 67, 84),
+			renderer.RGBFromUInt8(107, 67, 84),
 		},
-		WXStipple: renderer.RGBFromUInt8(185, 172, 147),
+		WXLevelStipple: [radar.NumWxLevels]int{0, 2, 0, 2, 0, 2},
+		WXStipple:      renderer.RGBFromUInt8(185, 172, 147),
 
 		DCBButton:            renderer.RGBFromUInt8(0, 10, 0),
 		DCBActiveButton:      renderer.RGBFromUInt8(57, 94, 40),
@@ -648,11 +693,16 @@ var monitorColorSets = map[string]MonitorColors{
 			renderer.RGBFromUInt8(39, 187, 44),
 		},
 
-		WX: [2]renderer.RGB{
-			renderer.RGBFromUInt8(0, 78, 90),
-			renderer.RGBFromUInt8(85, 100, 45),
+		WX: [radar.NumWxLevels]renderer.RGB{
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(57, 73, 51),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 86, 19),
+			renderer.RGBFromUInt8(107, 67, 84),
+			renderer.RGBFromUInt8(107, 67, 84),
 		},
-		WXStipple: renderer.RGBFromUInt8(153, 144, 89),
+		WXLevelStipple: [radar.NumWxLevels]int{0, 2, 0, 2, 0, 2},
+		WXStipple:      renderer.RGBFromUInt8(153, 144, 89),
 
 		DCBButton:            renderer.RGBFromUInt8(2, 20, 4),
 		DCBActiveButton:      renderer.RGBFromUInt8(7, 37, 12),
@@ -699,13 +749,13 @@ func (sp *STARSPane) Activate(r renderer.Renderer, p platform.Platform, eventStr
 		sp.TrackState = make(map[av.ADSBCallsign]*TrackState)
 	}
 	if sp.VFRFPFirstSeen == nil {
-		sp.VFRFPFirstSeen = make(map[sim.ACID]time.Time)
+		sp.VFRFPFirstSeen = make(map[sim.ACID]sim.Time)
 	}
 
 	sp.events = eventStream.Subscribe()
 
-	sp.lastTrackUpdate = time.Time{} // force immediate update at start
-	sp.lastHistoryTrackUpdate = time.Time{}
+	sp.lastTrackUpdate = sim.Time{} // force immediate update at start
+	sp.lastHistoryTrackUpdate = sim.Time{}
 
 	if sp.TgtGenKey == 0 {
 		sp.TgtGenKey = ';'
@@ -742,7 +792,7 @@ func (sp *STARSPane) Activate(r renderer.Renderer, p platform.Platform, eventStr
 }
 
 func (sp *STARSPane) LoadedSim(client *client.ControlClient, pl platform.Platform, lg *log.Logger) {
-	sp.DisplayRequestedAltitude = client.State.FacilityAdaptation.FDB.DisplayRequestedAltitude
+	sp.DisplayRequestedAltitude = client.State.FacilityAdaptation.Datablocks.FDB.DisplayRequestedAltitude
 
 	sp.initPrefsForLoadedSim(client.State, pl)
 
@@ -774,6 +824,8 @@ func (sp *STARSPane) ResetSim(client *client.ControlClient, pl platform.Platform
 	}
 	clear(sp.VFRFPFirstSeen)
 
+	sp.resetInputState(pl)
+
 	// Update maps before resetting the prefs since we may rewrite some map
 	// ids and we want to use the right ones when we're enabling the
 	// default maps.
@@ -789,8 +841,24 @@ func (sp *STARSPane) ResetSim(client *client.ControlClient, pl platform.Platform
 		sp.Colors = monitorColorSets[sp.Monitor]
 	}
 
-	sp.lastTrackUpdate = time.Time{} // force update
-	sp.lastHistoryTrackUpdate = time.Time{}
+	sp.showVFRAirports = false
+	sp.showTRACONBoundary = false
+	sp.drawRoutePoints = nil
+	sp.showListFrames = false
+	sp.activeSpinner = nil
+	clear(sp.DuplicateBeacons)
+	clear(sp.ReleaseRequests)
+	clear(sp.PointOuts)
+	clear(sp.RejectedPointOuts)
+	clear(sp.ForceQLACIDs)
+	sp.RangeBearingLines = nil
+	sp.MinSepAircraft = [2]av.ADSBCallsign{}
+	sp.LastATIS = client.State.ATIS
+	sp.LastGIText = client.State.GIText
+	sp.FlashATIS = [10]bool{}
+
+	sp.lastTrackUpdate = sim.Time{} // force update
+	sp.lastHistoryTrackUpdate = sim.Time{}
 
 	sp.atmosGrid = nil
 	sp.mvaGrid = av.MakeMVAGrid(av.DB.MVAs[client.State.Facility])
@@ -1102,8 +1170,8 @@ func (sp *STARSPane) makeMaps(client *client.ControlClient, lg *log.Logger) {
 }
 
 func (sp *STARSPane) getVideoMapLibrary(ss client.SimState, client *client.ControlClient) (*sim.VideoMapLibrary, error) {
-	filename := ss.FacilityAdaptation.VideoMapFile
-	if ml, err := sim.HashCheckLoadVideoMap(filename, ss.VideoMapLibraryHash); err == nil {
+	filename := ss.ControllerVideoMapFile
+	if ml, err := sim.HashCheckLoadVideoMap(filename, ss.ControllerVideoMapLibraryHash); err == nil {
 		return ml, nil
 	} else {
 		return client.GetVideoMapLibrary(filename)
@@ -1215,8 +1283,8 @@ func (sp *STARSPane) Draw(ctx *panes.Context, cb *renderer.CommandBuffer) {
 		for _, state := range sp.TrackState {
 			state.historyTracksIndex = 0
 		}
-		sp.lastTrackUpdate = time.Time{} // force update
-		sp.lastHistoryTrackUpdate = time.Time{}
+		sp.lastTrackUpdate = sim.Time{} // force update
+		sp.lastHistoryTrackUpdate = sim.Time{}
 		sp.discardTracks = false
 	}
 
@@ -1269,12 +1337,12 @@ func (sp *STARSPane) drawPauseOverlay(ctx *panes.Context, cb *renderer.CommandBu
 func (sp *STARSPane) drawWX(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
 	ps := sp.currentPrefs()
 
-	if !sp.wxNextHistoryStepTime.IsZero() && ctx.Now.After(sp.wxNextHistoryStepTime) {
+	if !sp.wxNextHistoryStepTime.IsZero() && ctx.SimTime.After(sp.wxNextHistoryStepTime) {
 		sp.wxHistoryDraw--
 		if sp.wxHistoryDraw > 0 {
-			sp.wxNextHistoryStepTime = ctx.Now.Add(5 * time.Second)
+			sp.wxNextHistoryStepTime = ctx.SimTime.Add(5 * time.Second)
 		} else {
-			sp.wxNextHistoryStepTime = time.Time{}
+			sp.wxNextHistoryStepTime = sim.Time{}
 			if sp.previewAreaOutput == "IN PROGRESS" {
 				sp.previewAreaOutput = ""
 			}
@@ -1284,7 +1352,7 @@ func (sp *STARSPane) drawWX(ctx *panes.Context, transforms radar.ScopeTransforma
 	weatherBrightness := float32(ps.Brightness.Weather) / float32(100)
 	wxStipple := ps.Brightness.WxContrast.ScaleRGB(sp.Colors.WXStipple)
 	sp.weatherRadar.Draw(ctx, sp.wxHistoryDraw, weatherBrightness, sp.Colors.WX, wxStipple,
-		ps.DisplayWeatherLevel, transforms, cb)
+		sp.Colors.WXLevelStipple, ps.DisplayWeatherLevel, transforms, cb)
 }
 
 func (sp *STARSPane) drawTRACONBoundary(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
@@ -1292,7 +1360,7 @@ func (sp *STARSPane) drawTRACONBoundary(ctx *panes.Context, transforms radar.Sco
 		return
 	}
 
-	tracon, ok := av.DB.TRACONs[ctx.Client.State.Facility]
+	facility, ok := av.DB.LookupFacility(ctx.Client.State.Facility)
 	if !ok {
 		return
 	}
@@ -1301,7 +1369,7 @@ func (sp *STARSPane) drawTRACONBoundary(ctx *panes.Context, transforms radar.Sco
 	ld := renderer.GetLinesDrawBuilder()
 	defer renderer.ReturnLinesDrawBuilder(ld)
 
-	ld.AddLatLongCircle(tracon.Center(), ctx.NmPerLongitude, tracon.Radius, 360)
+	ld.AddLatLongCircle(facility.Center(), ctx.NmPerLongitude, facility.Radius, 360)
 
 	transforms.LoadLatLongViewingMatrices(cb)
 	cb.LineWidth(1, ctx.DPIScale)
@@ -1454,38 +1522,25 @@ func (sp *STARSPane) drawWIPRestrictionArea(ctx *panes.Context, transforms radar
 	}
 }
 
-func (sp *STARSPane) getRestrictionArea(ctx *panes.Context, idx int, userOnly bool) *av.RestrictionArea {
-	uras := ctx.Client.State.UserRestrictionAreas
-	if idx >= 1 && idx-1 < len(uras) && !uras[idx-1].Deleted {
-		return &uras[idx-1]
+func (sp *STARSPane) getRestrictionArea(ctx *panes.Context, idx int, userOnly bool) (av.RestrictionArea, bool) {
+	if userOnly && idx > av.MaxRestrictionAreas {
+		return av.RestrictionArea{}, false
 	}
-
-	if !userOnly {
-		ras := ctx.FacilityAdaptation.RestrictionAreas
-		if !userOnly && idx >= 101 && idx-101 < len(ras) && !ras[idx-101].Deleted {
-			return &ras[idx-101]
-		}
-	}
-
-	return nil
+	ra, ok := ctx.Client.State.RestrictionAreas[idx]
+	return ra, ok
 }
 
 func (sp *STARSPane) drawRestrictionAreas(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) {
 	sp.drawWIPRestrictionArea(ctx, transforms, cb)
 
 	ps := sp.currentPrefs()
-	draw := make(map[int]*av.RestrictionArea)
+	draw := make(map[int]av.RestrictionArea)
 	for idx, s := range ps.RestrictionAreaSettings {
 		if !s.Visible {
 			continue
 		}
-
-		uras := ctx.Client.State.UserRestrictionAreas
-		ras := ctx.FacilityAdaptation.RestrictionAreas
-		if idx >= 1 && idx-1 < len(uras) && !uras[idx-1].Deleted {
-			draw[idx] = &uras[idx-1]
-		} else if idx >= 101 && idx-101 < len(ras) && !ras[idx-101].Deleted {
-			draw[idx] = &ras[idx-101]
+		if ra, ok := ctx.Client.State.RestrictionAreas[idx]; ok {
+			draw[idx] = ra
 		}
 	}
 
@@ -1550,7 +1605,7 @@ func (sp *STARSPane) drawRestrictionAreas(ctx *panes.Context, transforms radar.S
 	td := renderer.GetTextDrawBuilder()
 	defer renderer.ReturnTextDrawBuilder(td)
 	font := sp.systemFont(ctx, ps.CharSize.Lists)
-	halfSeconds := ctx.Now.UnixMilli() / 500
+	halfSeconds := time.Now().UnixMilli() / 500
 	blinkDim := halfSeconds&1 == 0
 	color := ps.Brightness.VideoGroupB.ScaleRGB(sp.Colors.RestrictionAreaText)
 
@@ -1758,7 +1813,6 @@ func (sp *STARSPane) updateVisibleTracks(ctx *panes.Context) {
 
 	ps := sp.currentPrefs()
 	single := sp.radarMode(ctx.FacilityAdaptation.RadarSites) == RadarModeSingle
-	now := ctx.Client.CurrentTime()
 
 	for _, trk := range ctx.Client.State.Tracks {
 		visible := false
@@ -1788,7 +1842,7 @@ func (sp *STARSPane) updateVisibleTracks(ctx *panes.Context) {
 
 			// Is this the first we've seen it?
 			if state.FirstRadarTrackTime.IsZero() {
-				state.FirstRadarTrackTime = now
+				state.FirstRadarTrackTime = ctx.SimTime
 			}
 		}
 	}
@@ -1897,7 +1951,7 @@ const AlertAudioDuration = 5 * time.Second
 func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 	ps := sp.currentPrefs()
 
-	if !sp.testAudioEndTime.IsZero() && ctx.Now.After(sp.testAudioEndTime) {
+	if !sp.testAudioEndTime.IsZero() && time.Now().After(sp.testAudioEndTime) {
 		ctx.Platform.StopPlayAudio(sp.audioEffects[AudioTest])
 		sp.testAudioEndTime = time.Time{}
 	}
@@ -1925,7 +1979,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 				}
 				return trk0.IsAssociated() && !trk0.FlightPlan.DisableCA &&
 					trk1.IsAssociated() && !trk1.FlightPlan.DisableCA &&
-					ctx.Now.Before(ca.SoundEnd)
+					ctx.SimTime.Before(ca.SoundEnd)
 			})
 		playCASound = playCASound || slices.ContainsFunc(sp.MCIAircraft,
 			func(ca CAAircraft) bool {
@@ -1934,7 +1988,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 				}
 				trk0, ok := ctx.GetTrackByCallsign(ca.ADSBCallsigns[0])
 				return ok && trk0.IsAssociated() && !trk0.FlightPlan.DisableCA &&
-					ctx.Now.Before(ca.SoundEnd)
+					ctx.SimTime.Before(ca.SoundEnd)
 			})
 	}
 	updateContinuous(playCASound, AudioConflictAlert)
@@ -1946,7 +2000,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 			}
 			state := sp.TrackState[trk.ADSBCallsign]
 			if state.MSAW && !state.MSAWAcknowledged && !state.InhibitMSAW &&
-				ctx.Now.Before(state.MSAWSoundEnd) {
+				ctx.SimTime.Before(state.MSAWSoundEnd) {
 				return true
 			}
 		}
@@ -1962,7 +2016,7 @@ func (sp *STARSPane) updateAudio(ctx *panes.Context) {
 		for _, trk := range sp.visibleTracks {
 			state := sp.TrackState[trk.ADSBCallsign]
 			ok, _ := trk.Squawk.IsSPC()
-			if ok && !state.SPCAcknowledged && ctx.Now.Before(state.SPCSoundEnd) {
+			if ok && !state.SPCAcknowledged && ctx.SimTime.Before(state.SPCSoundEnd) {
 				return true
 			}
 		}

@@ -174,6 +174,11 @@ func (m *ModalDialogBox) Draw() {
 	topMargin := vpSize.Y * 0.05
 	imgui.SetNextWindowPosV(imgui.Vec2{vpPos.X + vpSize.X/2, vpPos.Y + topMargin}, imgui.CondAlways, imgui.Vec2{0.5, 0})
 
+	// Force the modal into the main viewport so it doesn't become a
+	// separate OS window (which can end up behind the main window when
+	// ConfigViewportsNoAutoMerge is enabled).
+	imgui.SetNextWindowViewport(mainVP.ID())
+
 	if imgui.BeginPopupModalV(title, nil, flags) {
 		if !m.isOpen {
 			imgui.SetKeyboardFocusHere()
@@ -233,7 +238,7 @@ func (c *ScenarioSelectionModalClient) Title() string { return "New Simulation" 
 
 func (c *ScenarioSelectionModalClient) Opening() {
 	if c.simConfig == nil {
-		c.simConfig = MakeNewSimConfiguration(c.mgr, &c.config.LastTRACON, &c.config.TFRCache, c.lg)
+		c.simConfig = MakeNewSimConfiguration(c.mgr, &c.config.LastTRACON, c.lg)
 	}
 }
 
@@ -685,14 +690,12 @@ func ShowErrorDialog(p platform.Platform, lg *log.Logger, s string, args ...any)
 	lg.Errorf(s, args...)
 }
 
-func ShowFatalErrorDialog(r renderer.Renderer, p platform.Platform, lg *log.Logger, s string, args ...any) {
-	if lg != nil {
-		lg.Errorf(s, args...)
-	}
-
-	d := NewModalDialogBox(&ErrorModalClient{message: fmt.Sprintf(s, args...)}, p)
-
-	for !d.closed {
+// runModalEventLoop runs a blocking event loop that renders the given dialog
+// each frame until done() returns true. All pre-main-loop modal dialogs
+// (fatal errors, resource warnings, whisper benchmark, etc.) use this to
+// avoid duplicating the imgui frame/render boilerplate.
+func runModalEventLoop(p platform.Platform, d *ModalDialogBox, done func() bool) {
+	for !done() {
 		p.ProcessEvents()
 		p.NewFrame()
 		imgui.NewFrame()
@@ -711,6 +714,15 @@ func ShowFatalErrorDialog(r renderer.Renderer, p platform.Platform, lg *log.Logg
 
 		p.PostRender()
 	}
+}
+
+func ShowFatalErrorDialog(r renderer.Renderer, p platform.Platform, lg *log.Logger, s string, args ...any) {
+	if lg != nil {
+		lg.Errorf(s, args...)
+	}
+
+	d := NewModalDialogBox(&ErrorModalClient{message: fmt.Sprintf(s, args...)}, p)
+	runModalEventLoop(p, d, func() bool { return d.closed })
 	os.Exit(1)
 }
 
@@ -789,29 +801,7 @@ func WaitForWhisperBenchmark(r renderer.Renderer, p platform.Platform, lg *log.L
 	// Create a simple modal client that just shows benchmark progress
 	benchClient := &benchmarkWaitModalClient{}
 	d := NewModalDialogBox(benchClient, p)
-
-	for client.IsWhisperBenchmarking() {
-		p.ProcessEvents()
-		p.NewFrame()
-		imgui.NewFrame()
-		ui.font.ImguiPush()
-		d.Draw()
-		imgui.PopFont()
-
-		imgui.Render()
-		implogl3.RenderDrawData(imgui.CurrentDrawData())
-
-		if imgui.CurrentIO().ConfigFlags()&imgui.ConfigFlagsViewportsEnable != 0 {
-			imgui.UpdatePlatformWindows()
-			imgui.RenderPlatformWindowsDefault()
-			p.MakeContextCurrent()
-		}
-
-		p.PostRender()
-
-		// Small sleep to avoid busy-waiting
-		time.Sleep(16 * time.Millisecond)
-	}
+	runModalEventLoop(p, d, func() bool { return !client.IsWhisperBenchmarking() })
 }
 
 // benchmarkWaitModalClient is a simple modal client for the blocking benchmark wait dialog

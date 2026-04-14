@@ -28,14 +28,16 @@ type DynamicState struct {
 
 	CurrentConsolidation map[TCW]*TCPConsolidation
 
-	SimTime time.Time // this is our fake time--accounting for pauses & simRate..
+	SimTime Time // this is our fake time--accounting for pauses & simRate..
 
 	METAR      map[string]wx.METAR
 	ATISLetter map[string]string // airport ICAO -> single letter "A"-"Z"
+	ATIS       [10]string
+	GIText     [10]string
 
 	LaunchConfig LaunchConfig
 
-	UserRestrictionAreas []av.RestrictionArea
+	RestrictionAreas map[int]av.RestrictionArea
 
 	Paused  bool
 	SimRate float32
@@ -60,7 +62,7 @@ type CommonState struct {
 	Fixes             map[string]math.Point2LL
 	VFRRunways        map[string]av.Runway // assume just one runway per airport
 
-	ConfigurationId string // Short identifier for the configuration (from ControllerConfiguration.ConfigId)
+	ConfigurationId string // Short identifier for the configuration (from scenario's "configuration" field)
 
 	Airspace map[ControlPosition]map[string][]av.ControllerAirspaceVolume // position -> vol name -> definition
 
@@ -83,9 +85,9 @@ type CommonState struct {
 
 	SimDescription string
 
-	HandoffIDs []HandoffID
+	TFRs []av.TFR
 
-	VideoMapLibraryHash []byte
+	HandoffIDs []HandoffID
 }
 
 // DerivedState collects state used on the client-side that is derived from Sim state that is not
@@ -186,6 +188,7 @@ func makeDerivedState(s *Sim) DerivedState {
 			MissingFlightPlan:         ac.MissingFlightPlan,
 			ATPAVolume:                ac.ATPAVolume(),
 			IsTentative:               s.State.SimTime.Sub(ac.FirstSeen) < 5*time.Second,
+			RequestedFlightFollowing:  ac.RequestedFlightFollowing,
 		}
 
 		if perf, ok := av.DB.AircraftPerformance[ac.FlightPlan.AircraftType]; ok {
@@ -217,7 +220,7 @@ func makeDerivedState(s *Sim) DerivedState {
 	return ds
 }
 
-func newCommonState(config NewSimConfiguration, startTime time.Time, manifest *VideoMapManifest, model *wx.Model,
+func newCommonState(config NewSimConfiguration, startTime time.Time, model *wx.Model,
 	metar map[string][]wx.METAR, r *rand.Rand, lg *log.Logger) *CommonState {
 	// Roll back the start time to account for prespawn
 	startTime = startTime.Add(-initialSimSeconds * time.Second)
@@ -232,7 +235,7 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, manifest *V
 			LaunchConfig: config.LaunchConfig,
 
 			SimRate: 1,
-			SimTime: startTime,
+			SimTime: NewSimTime(startTime),
 
 			ATPAEnabled:     true,
 			ATPAVolumeState: initATPAVolumeState(config.Airports),
@@ -243,7 +246,7 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, manifest *V
 		Fixes:       config.Fixes,
 		VFRRunways:  make(map[string]av.Runway),
 
-		ConfigurationId: config.ControllerConfiguration.ConfigId,
+		ConfigurationId: config.ConfigurationId,
 
 		DepartureRunways: config.DepartureRunways,
 		ArrivalRunways:   config.ArrivalRunways,
@@ -263,6 +266,8 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, manifest *V
 		PrimaryAirport:    config.PrimaryAirport,
 		SimDescription:    config.Description,
 
+		TFRs: config.TFRs,
+
 		HandoffIDs: config.HandoffIDs,
 	}
 
@@ -272,10 +277,6 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, manifest *V
 			ss.METAR[ap] = m[0]
 		}
 		ss.ATISLetter[ap] = string(rune('A' + r.Intn(26)))
-	}
-
-	if manifest != nil {
-		ss.VideoMapLibraryHash, _ = manifest.Hash()
 	}
 
 	if len(config.ControllerAirspace) > 0 {
@@ -292,10 +293,27 @@ func newCommonState(config NewSimConfiguration, startTime time.Time, manifest *V
 		}
 	}
 
-	// Add the TFR restriction areas
-	for _, tfr := range config.TFRs {
-		ra := av.RestrictionAreaFromTFR(tfr)
-		ss.FacilityAdaptation.RestrictionAreas = append(ss.FacilityAdaptation.RestrictionAreas, ra)
+	// Build unified restriction areas map from facility adaptation
+	ss.RestrictionAreas = make(map[int]av.RestrictionArea, len(config.FacilityAdaptation.RestrictionAreas))
+	maps.Copy(ss.RestrictionAreas, config.FacilityAdaptation.RestrictionAreas)
+
+	// Add TFR restriction areas in the 101-200 range unless disabled
+	if !config.DisableTFRRestrictionAreas {
+		for _, tfr := range config.TFRs {
+			ra := av.RestrictionAreaFromTFR(tfr)
+			// Find the smallest unused key in 101-200
+			placed := false
+			for key := av.MaxRestrictionAreas + 1; key <= 2*av.MaxRestrictionAreas; key++ {
+				if _, exists := ss.RestrictionAreas[key]; !exists {
+					ss.RestrictionAreas[key] = ra
+					placed = true
+					break
+				}
+			}
+			if !placed {
+				lg.Warnf("no available system restriction area slot for TFR %q", tfr.LocalName)
+			}
+		}
 	}
 
 	// Consolidate all positions to the root TCW
@@ -377,6 +395,10 @@ func (ss *CommonState) Locate(s string) (math.Point2LL, bool) {
 		}
 	}
 	return math.Point2LL{}, false
+}
+
+func (ss *CommonState) LocateDME(s string) (math.Point2LL, int, bool) {
+	return av.DB.LookupDME(s)
 }
 
 ///////////////////////////////////////////////////////////////////////////

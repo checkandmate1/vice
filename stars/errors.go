@@ -66,9 +66,12 @@ var (
 	ErrSTARSIllegalTCW                 = NewSTARSError("ILL TCW")
 	ErrSTARSIllegalText                = NewSTARSError("ILL TEXT")
 	ErrSTARSIllegalTrack               = NewSTARSError("ILL TRK")
+	ErrSTARSIllegalTrackLocalFP        = NewSTARSError("ILL TRK - LCL FP")
 	ErrSTARSIllegalValue               = NewSTARSError("ILL VALUE")
 	ErrSTARSMultipleFlights            = NewSTARSError("MULTIPLE FLIGHT")
+	ErrSTARSNoACType                   = NewSTARSError("NO ACTYP")
 	ErrSTARSNoFlight                   = NewSTARSError("NO FLIGHT")
+	ErrSTARSNoScratchpad               = NewSTARSError("NO SCR")
 	ErrSTARSNoTrack                    = NewSTARSError("NO TRK")
 	ErrSTARSRangeLimit                 = NewSTARSError("RANGE LIMIT")
 )
@@ -108,16 +111,20 @@ var starsErrorRemap = map[error]*STARSError{
 	sim.ErrDuplicateBeacon:                 ErrSTARSDuplicateBeacon,
 	sim.ErrIllegalACID:                     ErrSTARSIllegalACID,
 	sim.ErrIllegalACType:                   ErrSTARSIllegalACType,
+	sim.ErrIllegalATIS:                     ErrSTARSIllegalATIS,
 	sim.ErrIllegalBeaconCode:               ErrSTARSIllegalCode,
 	sim.ErrIllegalFunction:                 ErrSTARSIllegalFunction,
+	sim.ErrIllegalLine:                     ErrSTARSIllegalLine,
 	sim.ErrIllegalPosition:                 ErrSTARSIllegalPosition,
 	sim.ErrIllegalScratchpad:               ErrSTARSIllegalScratchpad,
 	sim.ErrInvalidAbbreviatedFP:            ErrSTARSCommandFormat,
 	sim.ErrInvalidDepartureController:      ErrSTARSIllegalFunction,
 	sim.ErrInvalidRestrictionAreaIndex:     ErrSTARSIllegalGeoId,
 	sim.ErrInvalidVolumeId:                 ErrSTARSIllegalFunction,
+	sim.ErrNoACType:                        ErrSTARSNoACType,
 	sim.ErrNoMatchingFlight:                ErrSTARSNoFlight,
 	sim.ErrNoMatchingFlightPlan:            ErrSTARSNoFlight,
+	sim.ErrNoScratchpad:                    ErrSTARSNoScratchpad,
 	sim.ErrNoVFRAircraftForFlightFollowing: ErrSTARSNoFlight,
 	sim.ErrNotLaunchController:             ErrSTARSIllegalTrack,
 	sim.ErrTCPAlreadyConsolidated:          ErrSTARSIllegalTCPDeconsolFirst,
@@ -127,6 +134,7 @@ var starsErrorRemap = map[error]*STARSError{
 	sim.ErrTCWNotVacant:                    ErrSTARSIllegalPosition,
 	sim.ErrTooManyRestrictionAreas:         ErrSTARSCapacity,
 	sim.ErrTrackIsActive:                   ErrSTARSIllegalTrack,
+	sim.ErrIllegalTrackLocalFP:             ErrSTARSIllegalTrackLocalFP,
 	sim.ErrTrackIsBeingHandedOff:           ErrSTARSIllegalTrack,
 	sim.ErrTrackIsNotActive:                ErrSTARSIllegalTrack,
 	sim.ErrUnknownAircraftType:             ErrSTARSIllegalParam,

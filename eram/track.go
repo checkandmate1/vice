@@ -39,7 +39,7 @@ type TrackState struct {
 
 	DisplayVCI bool
 
-	OSectorEndTime time.Time
+	OSectorEndTime sim.Time
 
 	ReachedAltitude bool
 
@@ -52,7 +52,7 @@ type TrackState struct {
 
 type aircraftFixCoordinates struct {
 	coords     []math.Point2LL
-	deleteTime time.Time
+	deleteTime sim.Time
 }
 
 func (ts *TrackState) TrackDeltaAltitude() int {
@@ -93,11 +93,11 @@ func (ts *TrackState) HeadingVector(nmPerLongitude, magneticVariation float32) m
 	return math.NM2LL(v, nmPerLongitude)
 }
 
-func (ts *TrackState) TrackHeading(nmPerLongitude float32) float32 {
+func (ts *TrackState) TrackHeading(nmPerLongitude float32) math.TrueHeading {
 	if !ts.HaveHeading() {
 		return -1
 	}
-	return math.Heading2LL(ts.PreviousTrack.Location, ts.Track.Location, nmPerLongitude, 0)
+	return math.Heading2LL(ts.PreviousTrack.Location, ts.Track.Location, nmPerLongitude)
 }
 
 func (ep *ERAMPane) trackStateForACID(ctx *panes.Context, acid sim.ACID) (*TrackState, bool) {
@@ -129,13 +129,13 @@ func (ep *ERAMPane) processEvents(ctx *panes.Context) {
 			}
 			state := ep.TrackState[av.ADSBCallsign(event.ACID)]
 			state.EFDB = true
-			state.OSectorEndTime = ctx.Client.CurrentTime().Add(30 * time.Second) // check this pls
+			state.OSectorEndTime = ctx.SimTime.Add(30 * time.Second)
 		case sim.FixCoordinatesEvent:
 			ac := event.ACID
 			coords := event.WaypointInfo
 			ep.aircraftFixCoordinates[string(ac)] = aircraftFixCoordinates{
 				coords:     coords,
-				deleteTime: ctx.Client.CurrentTime().Add(15 * time.Second), // check this time also
+				deleteTime: ctx.SimTime.Add(15 * time.Second),
 			}
 		case sim.FlightPlanDirectEvent:
 			ac := event.ACID
@@ -147,7 +147,7 @@ func (ep *ERAMPane) processEvents(ctx *panes.Context) {
 			}
 			ep.aircraftFixCoordinates[string(ac)] = aircraftFixCoordinates{
 				coords:     coords,
-				deleteTime: ctx.Client.CurrentTime().Add(15 * time.Second), // check this time also
+				deleteTime: ctx.SimTime.Add(15 * time.Second),
 			}
 		}
 	}
@@ -155,7 +155,7 @@ func (ep *ERAMPane) processEvents(ctx *panes.Context) {
 
 func (ep *ERAMPane) updateRadarTracks(ctx *panes.Context, tracks []sim.Track) {
 	// Update the track states based on the current radar tracks.
-	now := ctx.Client.CurrentTime()
+	now := ctx.SimTime.Time()
 	if now.Sub(ep.dbLastAlternateTime) > 6*time.Second {
 		ep.dbAlternate = !ep.dbAlternate
 		ep.dbLastAlternateTime = now
@@ -208,7 +208,7 @@ func (ep *ERAMPane) updateRadarTracks(ctx *panes.Context, tracks []sim.Track) {
 	}
 	// check QU lines; see if they need to be cleared. TODO: add QU to delete all lines
 	for ac, coords := range ep.aircraftFixCoordinates {
-		if coords.deleteTime.Before(ctx.Client.CurrentTime()) {
+		if coords.deleteTime.Before(ctx.SimTime) {
 			delete(ep.aircraftFixCoordinates, ac)
 		}
 	}
@@ -514,7 +514,7 @@ func (ep *ERAMPane) drawPTLs(ctx *panes.Context, tracks []sim.Track, transforms 
 		if heading == -1 {
 			continue // dont draw PTLs for tracks that don't have a calculated heading
 		}
-		ptlEnd := math.Offset2LL(pos, heading, dist, ctx.NmPerLongitude, 0)
+		ptlEnd := math.Offset2LL(pos, heading, dist, ctx.NmPerLongitude)
 		p0 := transforms.WindowFromLatLongP(pos)
 		p1 := transforms.WindowFromLatLongP(ptlEnd)
 		color := ep.trackDatablockColor(ctx, trk)

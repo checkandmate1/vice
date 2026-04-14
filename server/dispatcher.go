@@ -221,6 +221,29 @@ func (sd *dispatcher) CreateFlightPlan(cfp *CreateFlightPlanArgs, update *SimSta
 	return err
 }
 
+type CreateInterfacilityVFRArgs struct {
+	ControllerToken string
+	ACID            sim.ACID
+	IsIntermediate  bool
+	RequestedAlt    int
+}
+
+const CreateInterfacilityVFRRPC = "Sim.CreateInterfacilityVFR"
+
+func (sd *dispatcher) CreateInterfacilityVFR(args *CreateInterfacilityVFRArgs, update *SimStateUpdate) error {
+	defer sd.sm.lg.CatchAndReportCrash()
+
+	c := sd.sm.LookupController(args.ControllerToken)
+	if c == nil {
+		return ErrNoSimForControllerToken
+	}
+	err := c.sim.CreateInterfacilityVFR(c.tcw, args.ACID, args.IsIntermediate, args.RequestedAlt)
+	if err == nil {
+		*update = c.GetStateUpdate()
+	}
+	return err
+}
+
 type ModifyFlightPlanArgs struct {
 	ControllerToken     string
 	FlightPlanSpecifier sim.FlightPlanSpecifier
@@ -237,6 +260,30 @@ func (sd *dispatcher) ModifyFlightPlan(mfp *ModifyFlightPlanArgs, update *SimSta
 		return ErrNoSimForControllerToken
 	}
 	err := c.sim.ModifyFlightPlan(c.tcw, mfp.ACID, mfp.FlightPlanSpecifier)
+	if err == nil {
+		*update = c.GetStateUpdate()
+	}
+	return err
+}
+
+type UpdateATISGITextArgs struct {
+	ControllerToken string
+	Line            int
+	Auxiliary       bool
+	ATIS            *string
+	GIText          *string
+}
+
+const UpdateATISGITextRPC = "Sim.UpdateATISGIText"
+
+func (sd *dispatcher) UpdateATISGIText(args *UpdateATISGITextArgs, update *SimStateUpdate) error {
+	defer sd.sm.lg.CatchAndReportCrash()
+
+	c := sd.sm.LookupController(args.ControllerToken)
+	if c == nil {
+		return ErrNoSimForControllerToken
+	}
+	err := c.sim.UpdateATISGIText(c.tcw, args.Line, args.Auxiliary, args.ATIS, args.GIText)
 	if err == nil {
 		*update = c.GetStateUpdate()
 	}
@@ -665,7 +712,13 @@ func (sd *dispatcher) RunAircraftCommands(cmds *AircraftCommandsArgs, result *Ai
 	if execResult.Error != nil {
 		result.ErrorMessage = execResult.Error.Error()
 	}
-	setReadback(execResult.ReadbackSpokenText)
+	// Use execResult's callsign for voice lookup (not the local callsign, which may be "ROLLBACK")
+	if cmds.EnableTTS && execResult.ReadbackSpokenText != "" {
+		cs := execResult.ReadbackCallsign
+		result.ReadbackText = execResult.ReadbackSpokenText
+		result.ReadbackVoiceName = c.sim.VoiceAssigner.GetVoice(cs, c.sim.Rand)
+		result.ReadbackCallsign = cs
+	}
 
 	// Log whisper STT commands (WhisperDuration is non-zero for voice commands)
 	if cmds.WhisperDuration > 0 {

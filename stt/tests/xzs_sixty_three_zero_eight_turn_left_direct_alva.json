@@ -15,7 +15,7 @@
   "processor": "GPU: NVIDIA GeForce RTX 4090 (24142MB)",
   "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
   "callsign": "EJA6308",
-  "command": "DELVAE",
+  "command": "LDELVAE",
   "stt_aircraft": {
     "Brickyard 44 93": {
       "Callsign": "RPA4493",

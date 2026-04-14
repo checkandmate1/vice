@@ -63,6 +63,10 @@ func (m *literalMatcher) match(tokens []Token, pos int, ac Aircraft, skipWords [
 	}
 
 	for _, kw := range m.keywords {
+		// Skip fuzzy matching when lengths are too different
+		if len(text) > 2*len(kw) || len(kw) > 2*len(text) {
+			continue
+		}
 		if FuzzyMatch(text, kw, threshold) {
 			return matchResult{consumed: pos + 1}
 		}
@@ -147,10 +151,16 @@ func (m *typedMatcher) match(tokens []Token, pos int, ac Aircraft, skipWords []s
 		return matchResult{sayAgain: sayAgain}
 	}
 
-	// Skip only filler words (not skipWords - those are for optional sections)
+	// Skip filler words, but preserve "to"/"too"/"tu" before a number since
+	// parsers may interpret those as the digit "two" (e.g., "heading to niner
+	// zero" -> heading 290).
 	for pos < len(tokens) {
 		text := strings.ToLower(tokens[pos].Text)
 		if IsFillerWord(text) {
+			if (text == "to" || text == "too" || text == "tu") &&
+				pos+1 < len(tokens) && tokens[pos+1].Type == TokenNumber {
+				break
+			}
 			pos++
 			continue
 		}
@@ -171,8 +181,14 @@ func (m *typedMatcher) match(tokens []Token, pos int, ac Aircraft, skipWords []s
 	}
 
 	// Slack: skip up to 2 unrecognized tokens to find a match.
+	// If the current position is a command boundary keyword, limit slack
+	// to 1 to avoid reaching too far past a likely new command.
 	if allowSlack {
-		for slack := 1; slack <= 2 && pos+slack < len(tokens); slack++ {
+		maxSlack := 2
+		if IsCommandKeyword(strings.ToLower(tokens[pos].Text)) && !slices.Contains(skipWords, strings.ToLower(tokens[pos].Text)) {
+			maxSlack = 1
+		}
+		for slack := 1; slack <= maxSlack && pos+slack < len(tokens); slack++ {
 			checkText := strings.ToLower(tokens[pos+slack].Text)
 			if IsFillerWord(checkText) {
 				continue

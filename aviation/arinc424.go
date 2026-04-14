@@ -172,27 +172,63 @@ func ParseARINC424(r io.Reader) ARINC424Result {
 		sectionCode := line[4]
 		switch sectionCode {
 		case 'D':
-			subsectionCode := line[6]
+			subsectionCode := line[5]
 			if subsectionCode == ' ' /* VOR */ || subsectionCode == 'B' /* NDB */ {
+				continuation := line[21]
+				if continuation != '0' && continuation != '1' {
+					break
+				}
 				id := strings.TrimSpace(string(line[13:17]))
 				if len(id) < 3 {
 					break
 				}
 
 				name := strings.TrimSpace(string(line[93:123]))
+				dmeIdent := strings.TrimSpace(string(line[51:55]))
+				hasDME := dmeIdent != "" && !empty(line[55:74])
+				var dmeLocation math.Point2LL
+				if hasDME {
+					dmeLocation = parseLatLong(line[55:64], line[64:74])
+				}
+				hasDMEElevation := hasDME && !empty(line[79:84])
+				dmeElevation := 0
+				if hasDMEElevation {
+					dmeElevation = parseInt(line[79:84])
+				}
+
 				if !empty(line[32:51]) {
 					result.Navaids[id] = Navaid{
-						Id:       id,
-						Type:     util.Select(subsectionCode == ' ', "VOR", "NDB"),
-						Name:     name,
-						Location: parseLatLong(line[32:41], line[41:51]),
+						Id:              id,
+						Type:            util.Select(subsectionCode == ' ', "VOR", "NDB"),
+						Name:            name,
+						Location:        parseLatLong(line[32:41], line[41:51]),
+						HasDME:          hasDME,
+						DMELocation:     dmeLocation,
+						DMEElevation:    dmeElevation,
+						HasDMEElevation: hasDMEElevation,
 					}
-				} else {
+				} else if hasDME {
 					result.Navaids[id] = Navaid{
-						Id:       id,
-						Type:     "DME",
-						Name:     name,
-						Location: parseLatLong(line[55:64], line[64:74]),
+						Id:              id,
+						Type:            "DME",
+						Name:            name,
+						Location:        dmeLocation,
+						HasDME:          true,
+						DMELocation:     dmeLocation,
+						DMEElevation:    dmeElevation,
+						HasDMEElevation: hasDMEElevation,
+					}
+				}
+				if hasDME && dmeIdent != "" && dmeIdent != id {
+					result.Navaids[dmeIdent] = Navaid{
+						Id:              dmeIdent,
+						Type:            "DME",
+						Name:            name,
+						Location:        dmeLocation,
+						HasDME:          true,
+						DMELocation:     dmeLocation,
+						DMEElevation:    dmeElevation,
+						HasDMEElevation: hasDMEElevation,
 					}
 				}
 			}
@@ -305,6 +341,22 @@ func ParseARINC424(r io.Reader) ARINC424Result {
 				*/
 				result.Fixes[id] = Fix{Id: id, Location: location}
 
+			case 'I': // localizer/glide slope record 4.1.11
+				continuation := line[21]
+				if continuation != '0' && continuation != '1' {
+					continue
+				}
+				id := strings.TrimSpace(string(line[13:17]))
+				if id != "" && !empty(line[32:51]) {
+					if _, ok := result.Navaids[id]; !ok {
+						result.Navaids[id] = Navaid{
+							Id:       id,
+							Type:     "LOC",
+							Location: parseLatLong(line[32:41], line[41:51]),
+						}
+					}
+				}
+
 			case 'D': // SID 4.1.9
 				recs = matchingSSARecs(line, recs)
 				id := recs[0].id
@@ -360,7 +412,7 @@ func ParseARINC424(r io.Reader) ARINC424Result {
 					}
 				}
 
-				if appr := parseApproach(recs); appr != nil {
+				if appr := parseApproach(recs, result.Fixes, result.Navaids); appr != nil {
 					// Note: database.Airports isn't initialized yet but
 					// the CIFP file is sorted so we get the airports
 					// before the approaches..
@@ -397,7 +449,7 @@ func ParseARINC424(r io.Reader) ARINC424Result {
 				ap := result.Airports[icao]
 				ap.Runways = append(ap.Runways, Runway{
 					Id:                         rwy,
-					Heading:                    float32(parseInt(line[27:31])) / 10,
+					Heading:                    math.MagneticHeading(float32(parseInt(line[27:31])) / 10),
 					Threshold:                  parseLatLong(line[32:41], line[41:51]),
 					ThresholdCrossingHeight:    parseInt(line[75:77]),
 					Elevation:                  parseInt(line[66:71]),
@@ -507,6 +559,17 @@ func parseSSA(line []byte) ssaRecord {
 	}
 }
 
+func turnDirectionToArcDirection(td byte) DMEArcDirection {
+	switch td {
+	case 'R':
+		return DMEArcDirectionClockwise
+	case 'L':
+		return DMEArcDirectionCounterClockwise
+	default:
+		return DMEArcDirectionUnset
+	}
+}
+
 func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 	switch string(r.pathAndTermination) {
 	case "FM", "VM":
@@ -527,6 +590,14 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 
 	case "DF": // direct to fix from unspecified point
 		break
+
+	case "FC": // track from fix for distance; fix already added by preceding TF/IF, data used via parseTransitions
+		ok = false
+		return
+
+	case "CI": // course to intercept; no fix, handled in parseTransitions
+		ok = false
+		return
 
 	case "VI": // heading to intercept or next leg. ignore for now?
 		ok = false
@@ -553,7 +624,16 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 	ok = true
 	wp = Waypoint{Fix: r.fix}
 	if speed != 0 {
-		wp.Speed = int16(speed)
+		var sr SpeedRestriction
+		switch r.speedLimitType {
+		case '+':
+			sr = MakeAtOrAboveSpeedRestriction(float32(speed))
+		case '-':
+			sr = MakeAtOrBelowSpeedRestriction(float32(speed))
+		default:
+			sr = MakeAtSpeedRestriction(float32(speed))
+		}
+		wp.SetSpeedRestriction(sr)
 	}
 	if r.waypointDescription[1] == 'Y' {
 		wp.SetFlyOver(true)
@@ -570,25 +650,25 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 	if alt0 != 0 || alt1 != 0 {
 		switch r.altDescrip { // 5.29
 		case ' ':
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0), float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt0)))
 		case '+':
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrAboveAltitudeRestriction(float32(alt0)))
 		case '-':
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{0, float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrBelowAltitudeRestriction(float32(alt0)))
 		case 'B': // "At or above to at or below"; The higher value will always appear first.
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt1) /* low */, float32(alt0) /* high */}})
+			wp.SetAltitudeRestriction(MakeRangeAltitudeRestriction(float32(alt1) /* low */, float32(alt0) /* high */))
 		case 'G', 'I':
 			// glideslope alt in second, 'at' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0), float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt0)))
 		case 'H', 'J':
 			// glideslope alt in second, 'at or above' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrAboveAltitudeRestriction(float32(alt0)))
 		case 'V':
 			// coded vertical angle alt in second, 'at or above' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtOrAboveAltitudeRestriction(float32(alt0)))
 		case 'X':
 			// coded vertical angle alt in second, 'at' in first
-			wp.SetAltitudeRestriction(AltitudeRestriction{Range: [2]float32{float32(alt0), float32(alt0)}})
+			wp.SetAltitudeRestriction(MakeAtAltitudeRestriction(float32(alt0)))
 		default:
 			panic("TODO alt descrip: " + string(r.altDescrip))
 		}
@@ -597,13 +677,15 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 	switch r.pathAndTermination {
 	case "AF": // arc to fix. w.r.t. a NAVAID
 		arc = &DMEArc{
-			Fix:    strings.TrimSpace(string(r.recommendedNavaid)),
-			Radius: float32(parseInt(r.rho)) / 10,
+			Fix:       strings.TrimSpace(string(r.recommendedNavaid)),
+			Radius:    float32(parseInt(r.rho)) / 10,
+			Direction: turnDirectionToArcDirection(r.turnDirection),
 		}
 
 	case "RF": // constant radius arc
 		arc = &DMEArc{
-			Length: float32(parseInt(r.routeDistance)) / 10,
+			Length:    float32(parseInt(r.routeDistance)) / 10,
+			Direction: turnDirectionToArcDirection(r.turnDirection),
 		}
 
 	case "HF", "PI": // procedure turns
@@ -611,19 +693,24 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 			fmt.Printf("%s/%s/%s: HF no alt0?\n", r.icao, r.id, r.fix)
 		}
 		pt := &ProcedureTurn{
-			Type:       PTType(util.Select(r.pathAndTermination == "HF", PTRacetrack, PTStandard45)),
-			RightTurns: r.turnDirection != 'L',
-			// TODO: when do we set Entry180NoPt /nopt180?
+			Type:         PTType(util.Select(r.pathAndTermination == "HF", PTRacetrack, PTStandard45)),
+			RightTurns:   r.turnDirection != 'L',
 			ExitAltitude: alt0,
 		}
 
-		if r.routeDistance[0] == 'T' { // it's a time
-			pt.MinuteLimit = float32(parseInt(r.routeDistance[1:])) / 10
-		} else {
-			pt.NmLimit = float32(parseInt(r.routeDistance)) / 10
+		// For HF (racetrack), the route distance is the outbound leg
+		// length. For PI (standard 45 PT), it's the "remain within"
+		// distance from the fix, not the leg length; use defaults instead.
+		if r.pathAndTermination == "HF" {
+			if r.routeDistance[0] == 'T' { // it's a time
+				pt.MinuteLimit = float32(parseInt(r.routeDistance[1:])) / 10
+			} else {
+				pt.NmLimit = float32(parseInt(r.routeDistance)) / 10
+			}
 		}
 
 		wp.InitExtra().ProcedureTurn = pt
+		wp.SetFlyOver(true)
 	}
 	return
 }
@@ -631,6 +718,7 @@ func (r *ssaRecord) GetWaypoint() (wp Waypoint, arc *DMEArc, ok bool) {
 func parseTransitions(recs []ssaRecord, log func(r ssaRecord) bool, skip func(r ssaRecord) bool,
 	terminate func(r ssaRecord, transitions map[string]WaypointArray) bool) map[string]WaypointArray {
 	transitions := make(map[string]WaypointArray)
+	lastFCDistance := make(map[string][]byte) // routeDistance from the last FC record, keyed by transition
 
 	for _, rec := range recs {
 		if log(rec) {
@@ -643,12 +731,32 @@ func parseTransitions(recs []ssaRecord, log func(r ssaRecord) bool, skip func(r 
 			break
 		}
 
+		if rec.pathAndTermination == "FC" {
+			lastFCDistance[rec.transition] = rec.routeDistance
+		}
+
 		if string(rec.pathAndTermination) == "FM" || string(rec.pathAndTermination) == "VM" {
 			hdg := parseInt(rec.outboundMagneticCourse)
 			if n := len(transitions[rec.transition]); n == 0 {
 				panic("FM as first waypoint in transition?")
 			} else {
 				transitions[rec.transition][n-1].Heading = int16((hdg + 5) / 10)
+			}
+		} else if rec.pathAndTermination == "CI" {
+			// CI (course to intercept) paired with a preceding FC defines a procedure turn.
+			// Attach the procedure turn to the previous waypoint in this transition.
+			if n := len(transitions[rec.transition]); n > 0 {
+				pt := &ProcedureTurn{
+					Type:       PTStandard45,
+					RightTurns: rec.turnDirection != 'L',
+				}
+				// FC distance is the "remain within" distance, not the
+				// outbound leg length; use defaults for standard 45 PTs.
+				if !empty(rec.alt0) {
+					pt.ExitAltitude = parseAltitude(rec.alt0)
+				}
+				transitions[rec.transition][n-1].InitExtra().ProcedureTurn = pt
+				transitions[rec.transition][n-1].SetFlyOver(true)
 			}
 		} else {
 			wp, arc, ok := rec.GetWaypoint()
@@ -661,9 +769,31 @@ func parseTransitions(recs []ssaRecord, log func(r ssaRecord) bool, skip func(r 
 				}
 			}
 			if ok {
-				if n := len(transitions[rec.transition]); n > 0 && wp.Fix == transitions[rec.transition][n-1].Fix &&
-					wp.ProcedureTurn() != nil {
-					transitions[rec.transition][n-1] = wp
+				if n := len(transitions[rec.transition]); n > 0 && wp.Fix == transitions[rec.transition][n-1].Fix {
+					prev := &transitions[rec.transition][n-1]
+					if wp.ProcedureTurn() != nil {
+						// New waypoint has PT and same fix as previous: replace.
+						transitions[rec.transition][n-1] = wp
+					} else if prev.ProcedureTurn() != nil {
+						// Previous has PT; new record for the same fix is the
+						// inbound crossing (e.g., the FAF after a procedure
+						// turn). Merge its flags into the previous waypoint
+						// rather than creating a duplicate.
+						if wp.FAF() {
+							prev.SetFAF(true)
+						}
+						if wp.IAF() {
+							prev.SetIAF(true)
+						}
+						if wp.IF() {
+							prev.SetIF(true)
+						}
+						if ar := wp.AltitudeRestriction(); ar != nil && ar.Range[0] != 0 {
+							prev.ProcedureTurn().ExitAltitude = int(ar.Range[0])
+						}
+					} else {
+						transitions[rec.transition] = append(transitions[rec.transition], wp)
+					}
 				} else {
 					transitions[rec.transition] = append(transitions[rec.transition], wp)
 				}
@@ -740,7 +870,102 @@ func spliceTransition(tr WaypointArray, base WaypointArray) WaypointArray {
 	return append(WaypointArray(tr), base[idx+1:]...)
 }
 
-func parseApproach(recs []ssaRecord) *Approach {
+// fixLocation looks up a fix's location in the fixes map, falling back to navaids.
+func fixLocation(name string, fixes map[string]Fix, navaids map[string]Navaid) (math.Point2LL, bool) {
+	if f, ok := fixes[name]; ok {
+		return f.Location, true
+	}
+	if n, ok := navaids[name]; ok {
+		return n.Location, true
+	}
+	return math.Point2LL{}, false
+}
+
+// markTBarNoPT detects T-bar approach patterns and sets Entry180NoPT on
+// the procedure turn of the central fix in the base transition. A T-bar
+// approach has a central IF/IAF fix with an HF racetrack, flanked by two
+// IAF transitions at roughly ±90° from the final approach course.
+func markTBarNoPT(transitions map[string]WaypointArray, recs []ssaRecord, fixes map[string]Fix, navaids map[string]Navaid) {
+	base := transitions[""]
+	if len(base) == 0 {
+		return
+	}
+
+	// Find an HF record to get the inbound course and the central fix name.
+	var hfFix string
+	var inboundCourse float32
+	for _, rec := range recs {
+		if rec.pathAndTermination == "HF" && !empty(rec.outboundMagneticCourse) {
+			hfFix = rec.fix
+			inboundCourse = float32(parseInt(rec.outboundMagneticCourse)) / 10
+			break
+		}
+	}
+	if hfFix == "" {
+		return
+	}
+
+	// In CIFP data, T-bar approaches have:
+	//   - A self-named transition (name == fix) with the HF procedure turn
+	//   - The base ("") starting at the central fix (common tail)
+	//   - Two flanking IAF transitions ending at the central fix
+	// Find the self-named transition containing the PT.
+	selfTransition := transitions[hfFix]
+	if len(selfTransition) == 0 {
+		return
+	}
+	ptIdx := -1
+	for i := range selfTransition {
+		if selfTransition[i].Fix == hfFix && selfTransition[i].ProcedureTurn() != nil {
+			ptIdx = i
+			break
+		}
+	}
+	if ptIdx == -1 {
+		return
+	}
+
+	// Count flanking transitions: named transitions (other than the self-named
+	// one) whose last fix matches the central fix.
+	var flankingTransitions []string
+	for t, w := range util.SortedMap(transitions) {
+		if t == "" || t == hfFix || len(w) == 0 {
+			continue
+		}
+		if w[len(w)-1].Fix == hfFix {
+			flankingTransitions = append(flankingTransitions, t)
+		}
+	}
+	if len(flankingTransitions) != 2 {
+		return
+	}
+
+	// Look up the central fix location.
+	centralLoc, ok := fixLocation(hfFix, fixes, navaids)
+	if !ok {
+		return
+	}
+	nmPerLongitude := math.NMPerLatitude * math.Cos(math.Radians(centralLoc[1]))
+
+	// Check that each flanking IAF is roughly ±90° from the inbound course.
+	for _, t := range flankingTransitions {
+		w := transitions[t]
+		flankLoc, ok := fixLocation(w[0].Fix, fixes, navaids)
+		if !ok {
+			return
+		}
+		bearing := math.Heading2LL(centralLoc, flankLoc, nmPerLongitude)
+		diff := math.HeadingDifference(float32(bearing), inboundCourse)
+		if diff < 80 || diff > 100 {
+			return
+		}
+	}
+
+	// Both flanking IAFs pass; set Entry180NoPT on the self-named transition's PT.
+	selfTransition[ptIdx].InitExtra().ProcedureTurn.Entry180NoPT = true
+}
+
+func parseApproach(recs []ssaRecord, fixes map[string]Fix, navaids map[string]Navaid) *Approach {
 	transitions := parseTransitions(recs,
 		func(r ssaRecord) bool { return false },                                          // log
 		func(r ssaRecord) bool { return r.continuation != '0' && r.continuation != '1' }, // skip continuation records
@@ -795,6 +1020,8 @@ func parseApproach(recs []ssaRecord) *Approach {
 			}
 		}
 	*/
+
+	markTBarNoPT(transitions, recs, fixes, navaids)
 
 	if len(transitions) == 1 {
 		appr.Waypoints = []WaypointArray{transitions[""]}
@@ -862,10 +1089,10 @@ func parseHoldingPattern(line []byte) (Hold, bool) {
 		// True bearing - store as-is per design decision
 		// Conversion to magnetic will be done at point of use
 		if !empty(line[39:42]) {
-			h.InboundCourse = float32(parseInt(line[39:42]))
+			h.InboundCourse = math.MagneticHeading(parseInt(line[39:42]))
 		}
 	} else if !empty(line[39:43]) {
-		h.InboundCourse = float32(parseInt(line[39:43])) / 10.0
+		h.InboundCourse = math.MagneticHeading(float32(parseInt(line[39:43])) / 10.0)
 	}
 
 	// Turn direction (column 44)
@@ -930,7 +1157,7 @@ func extractHoldsFromSSA(rec ssaRecord, procName, procType string) (Hold, bool) 
 
 	// Inbound magnetic course (from outboundMagneticCourse field per ARINC-424)
 	if !empty(rec.outboundMagneticCourse) {
-		h.InboundCourse = float32(parseInt(rec.outboundMagneticCourse)) / 10.0
+		h.InboundCourse = math.MagneticHeading(float32(parseInt(rec.outboundMagneticCourse)) / 10.0)
 	}
 
 	// Leg length or leg time (from routeDistance field)

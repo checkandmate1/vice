@@ -166,6 +166,14 @@ func (t *localTTS) synthesize(mu *sync.Mutex, ttsEngine *OfflineTts,
 
 	pcm := t.convertAndResample(audio.Samples, audio.SampleRate)
 
+	// Prepend silence to simulate the pilot pressing the transmit key
+	// before speaking. addRadioEffect fills this with radio static and
+	// engine noise as the squelch gate opens, matching real radio
+	// transmissions and keeping the audio stream active for Bluetooth
+	// devices that suspend during silence.
+	prerollSamples := t.targetSampleRate * 200 / 1000 // 200ms
+	pcm = append(make([]int16, prerollSamples), pcm...)
+
 	// Append silence to simulate the pilot holding the transmit key
 	// briefly after finishing speaking. addRadioEffect fills this with
 	// noise and engine rumble before the squelch tail fades it out.

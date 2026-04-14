@@ -51,7 +51,7 @@ type ControlClient struct {
 	mu sync.Mutex
 
 	lastUpdateRequest time.Time
-	lastReturnedTime  time.Time
+	lastReturnedTime  sim.Time
 	updateCall        *pendingCall
 	lastUpdateLatency time.Duration
 
@@ -208,7 +208,7 @@ func NewControlClient(ss server.SimState, controllerToken string, disableTTSPtr 
 		sttTranscriber:    stt.NewTranscriber(lg),
 	}
 
-	cc.SessionStats.SignOnTime = ss.SimTime
+	cc.SessionStats.SignOnTime = ss.SimTime.Time()
 	cc.SessionStats.Initials = initials
 	cc.SessionStats.seenCallsigns = make(map[av.ADSBCallsign]any)
 
@@ -396,11 +396,11 @@ func (c *ControlClient) GetSimRate() float32 {
 	return c.State.SimRate
 }
 
-// CurrentTime returns an extrapolated value that models the current Sim's time.
-// (Because the Sim may be running remotely, we have to make some approximations,
-// though they shouldn't cause much trouble since we get an update from the Sim
-// at least once a second...)
-func (c *ControlClient) CurrentTime() time.Time {
+// InterpolatedSimTime returns an extrapolated value that models the current
+// Sim's time. (Because the Sim may be running remotely, we have to make some
+// approximations, though they shouldn't cause much trouble since we get an
+// update from the Sim at least once a second...)
+func (c *ControlClient) InterpolatedSimTime() sim.Time {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -463,7 +463,7 @@ func (c *ControlClient) StringIsSPC(s string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return av.StringIsSPC(s) || slices.Contains(c.State.FacilityAdaptation.CustomSPCs, s)
+	return av.StringIsSPC(s) || slices.Contains(c.State.FacilityAdaptation.Datablocks.CustomSPCs, s)
 }
 
 func (c *ControlClient) RadioIsActive() bool {
@@ -478,28 +478,28 @@ func (c *ControlClient) LastTTSCallsign() av.ADSBCallsign {
 	return c.transmissions.LastTransmissionCallsign()
 }
 
-func (c *ControlClient) GetPrecipURL(t time.Time, callback func(url string, nextTime time.Time, err error)) {
-	args := server.PrecipURLArgs{
+func (c *ControlClient) GetPrecipURL(t sim.Time, callback func(url string, nextTime sim.Time, err error)) {
+	args := wx.PrecipURLArgs{
 		Facility: c.State.Facility,
-		Time:     t,
+		Time:     t.Time(),
 	}
-	var result server.PrecipURL
-	c.addCall(makeRPCCall(c.client.Go(server.GetPrecipURLRPC, args, &result, nil),
+	var result wx.PrecipURL
+	c.addCall(makeRPCCall(c.client.Go(wx.GetPrecipURLRPC, args, &result, nil),
 		func(err error) {
 			if callback != nil {
-				callback(result.URL, result.NextTime, err)
+				callback(result.URL, sim.NewSimTime(result.NextTime), err)
 			}
 		}))
 }
 
 func (c *ControlClient) GetAtmosGrid(t time.Time, callback func(*wx.AtmosGrid, error)) {
-	spec := server.GetAtmosArgs{
+	spec := wx.GetAtmosArgs{
 		Facility:       c.State.Facility,
 		Time:           t,
 		PrimaryAirport: c.State.PrimaryAirport,
 	}
-	var result server.GetAtmosResult
-	c.addCall(makeRPCCall(c.client.Go(server.GetAtmosGridRPC, spec, &result, nil),
+	var result wx.GetAtmosResult
+	c.addCall(makeRPCCall(c.client.Go(wx.GetAtmosGridRPC, spec, &result, nil),
 		func(err error) {
 			if callback != nil {
 				if result.AtmosByPointSOA != nil {
@@ -655,9 +655,9 @@ func (c *ControlClient) synthesizeAndEnqueueContact(callsign av.ADSBCallsign, ty
 	radioSeed := uint32(util.HashString64(string(callsign)))
 	if pcm, err := tts.SynthesizeContactTTS(text, voice, radioSeed); err != nil {
 		c.lg.Errorf("TTS synthesis error for %s: %v", callsign, err)
-		return
 	} else if pcm != nil {
 		c.lg.Infof("Synthesized contact for %s: %q (%d samples)", callsign, text, len(pcm))
 		c.transmissions.EnqueueTransmissionPCM(callsign, ty, pcm)
 	}
+	c.transmissions.SetContactRequested(false)
 }

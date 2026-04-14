@@ -28,7 +28,7 @@ func registerToolsCommands() {
 	// 6.2 Display weather history
 	registerCommand(CommandModeMultiFunc, "W"+STARSTriangleCharacter, func(sp *STARSPane, ctx *panes.Context) CommandStatus {
 		sp.wxHistoryDraw = 2
-		sp.wxNextHistoryStepTime = ctx.Now.Add(5 * time.Second)
+		sp.wxNextHistoryStepTime = ctx.SimTime.Add(5 * time.Second)
 		return CommandStatus{Output: "IN PROGRESS"}
 	})
 
@@ -274,7 +274,7 @@ func registerToolsCommands() {
 	// 6.6.3 Create and display restriction area closed polygon and text
 	startRAPolygon := func(sp *STARSPane, ctx *panes.Context, pos math.Point2LL, closed bool) CommandStatus {
 		sp.wipRestrictionArea = &av.RestrictionArea{
-			Closed:   false,
+			Closed:   closed,
 			Vertices: [][]math.Point2LL{{pos}},
 		}
 		if ctx.Mouse != nil {
@@ -348,17 +348,17 @@ func registerToolsCommands() {
 	registerCommand(CommandModeRestrictionArea, "[USER_RA_INDEX]*"+STARSTriangleCharacter+"[RA_LOCATION]|"+
 		"[USER_RA_INDEX]*"+STARSTriangleCharacter+"[POS]",
 		func(sp *STARSPane, ctx *panes.Context, idx int, pos math.Point2LL) {
-			ra := sp.getRestrictionArea(ctx, idx, true)
+			ra, _ := sp.getRestrictionArea(ctx, idx, true)
 			ra.MoveTo(pos)
 			ra.BlinkingText = true
-			updateRestrictionArea(sp, ctx, idx, *ra)
+			updateRestrictionArea(sp, ctx, idx, ra)
 		})
 	registerCommand(CommandModeRestrictionArea, "[USER_RA_INDEX]*[RA_LOCATION]|[USER_RA_INDEX]*[POS]",
 		func(sp *STARSPane, ctx *panes.Context, idx int, pos math.Point2LL) {
-			ra := sp.getRestrictionArea(ctx, idx, true)
+			ra, _ := sp.getRestrictionArea(ctx, idx, true)
 			ra.MoveTo(pos)
 			ra.BlinkingText = true
-			updateRestrictionArea(sp, ctx, idx, *ra)
+			updateRestrictionArea(sp, ctx, idx, ra)
 		})
 
 	// 6.6.6 Delete restriction area
@@ -371,10 +371,10 @@ func registerToolsCommands() {
 	// 6.6.7 Change restriction area text
 	registerCommand(CommandModeRestrictionArea, "[USER_RA_INDEX]T[RA_TEXT]",
 		func(sp *STARSPane, ctx *panes.Context, idx int, parsed RAText) {
-			ra := sp.getRestrictionArea(ctx, idx, true)
+			ra, _ := sp.getRestrictionArea(ctx, idx, true)
 			ra.Text = parsed.text
 			ra.BlinkingText = parsed.blink
-			updateRestrictionArea(sp, ctx, idx, *ra)
+			updateRestrictionArea(sp, ctx, idx, ra)
 		})
 
 	// 6.6.8 Hide / show restriction area text
@@ -412,7 +412,7 @@ func registerToolsCommands() {
 			}
 
 			// If text is blinking, stop it; otherwise toggle visibility
-			ra := sp.getRestrictionArea(ctx, idx, false)
+			ra, _ := sp.getRestrictionArea(ctx, idx, false)
 			blinking := settings.ForceBlinkingText || (ra.BlinkingText && !settings.StopBlinkingText)
 			if blinking {
 				settings.ForceBlinkingText = false
@@ -652,7 +652,7 @@ func registerToolsCommands() {
 		if trk.IsUnassociated() {
 			return ErrSTARSIllegalTrack
 		}
-		if !ctx.FacilityAdaptation.ForceQLToSelf || !ctx.UserOwnsFlightPlan(trk.FlightPlan) {
+		if !ctx.FacilityAdaptation.Datablocks.ForceQLToSelf || !ctx.UserOwnsFlightPlan(trk.FlightPlan) {
 			return ErrSTARSIllegalPosition
 		}
 		state := sp.TrackState[trk.ADSBCallsign]
@@ -895,12 +895,12 @@ func registerToolsCommands() {
 			}
 
 			fp := trk.FlightPlan
-			extendTime := ctx.Now.Add(5 * time.Second)
+			extendTime := ctx.SimTime.Add(5 * time.Second)
 
 			if ctx.UserOwnsFlightPlan(fp) {
 				// Owned track - modify the flight plan globally
 				spec := sim.FlightPlanSpecifier{}
-				if !fp.InhibitACTypeDisplay && ctx.Now.Before(fp.ForceACTypeDisplayEndTime) {
+				if !fp.InhibitACTypeDisplay && ctx.SimTime.Before(fp.ForceACTypeDisplayEndTime) {
 					spec.ForceACTypeDisplayEndTime.Set(extendTime)
 				} else {
 					spec.InhibitACTypeDisplay.Set(!fp.InhibitACTypeDisplay)
@@ -913,7 +913,7 @@ func registerToolsCommands() {
 				// Non-owned track - local state only
 				state := sp.TrackState[trk.ADSBCallsign]
 				inhibit := state.InhibitACTypeDisplay != nil && *state.InhibitACTypeDisplay
-				if !inhibit && ctx.Now.Before(state.ForceACTypeDisplayEndTime) {
+				if !inhibit && ctx.SimTime.Before(state.ForceACTypeDisplayEndTime) {
 					state.ForceACTypeDisplayEndTime = extendTime
 				} else {
 					newInhibit := !inhibit
@@ -1046,7 +1046,7 @@ func registerToolsCommands() {
 			}
 
 			sp.DisplayBeaconCode = beacon
-			sp.DisplayBeaconCodeEndTime = ctx.Now.Add(15 * time.Second)
+			sp.DisplayBeaconCodeEndTime = ctx.SimTime.Add(15 * time.Second)
 			return nil
 		})
 
@@ -1072,11 +1072,11 @@ func registerToolsCommands() {
 					if sig, ok := sp.significantPoints[sigpt]; !ok {
 						return CommandStatus{}, ErrSTARSCommandFormat
 					} else {
-						return sp.displaySignificantPointInfo(pos, sig.Location, ctx.NmPerLongitude, ctx.MagneticVariation), nil
+						return sp.displaySignificantPointInfo(pos, sig.Location, ctx.NmPerLongitude, ctx.MagneticVariation, ctx.SimTime), nil
 					}
 				},
 				"*F [POS]", func(sp *STARSPane, pos2 math.Point2LL) CommandStatus {
-					return sp.displaySignificantPointInfo(pos, pos2, ctx.NmPerLongitude, ctx.MagneticVariation)
+					return sp.displaySignificantPointInfo(pos, pos2, ctx.NmPerLongitude, ctx.MagneticVariation, ctx.SimTime)
 				},
 			),
 		}

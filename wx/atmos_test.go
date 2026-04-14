@@ -3,6 +3,9 @@ package wx
 import (
 	"math"
 	"testing"
+
+	av "github.com/mmp/vice/aviation"
+	vmath "github.com/mmp/vice/math"
 )
 
 func TestLevelIndexInverse(t *testing.T) {
@@ -130,17 +133,17 @@ func TestSampleQuantization(t *testing.T) {
 			}
 
 			// Check temperature
-			tempErr := math.Abs(float64(gotTemp - tc.temperature))
+			tempErr := math.Abs(float64(gotTemp.Celsius() - tc.temperature))
 			if tempErr > float64(tc.maxTempErr) {
 				t.Errorf("Temperature: got %f, want %f (error %f > %f)",
-					gotTemp, tc.temperature, tempErr, tc.maxTempErr)
+					gotTemp.Celsius(), tc.temperature, tempErr, tc.maxTempErr)
 			}
 
 			// Check dewpoint
-			dewErr := math.Abs(float64(gotDewpoint - tc.dewpoint))
+			dewErr := math.Abs(float64(gotDewpoint.Celsius() - tc.dewpoint))
 			if dewErr > float64(tc.maxTempErr) {
 				t.Errorf("Dewpoint: got %f, want %f (error %f > %f)",
-					gotDewpoint, tc.dewpoint, dewErr, tc.maxTempErr)
+					gotDewpoint.Celsius(), tc.dewpoint, dewErr, tc.maxTempErr)
 			}
 
 			// Check pressure
@@ -186,12 +189,12 @@ func TestLerpSample(t *testing.T) {
 		t.Errorf("Interpolated WindVec[1]: got %f, want ~0.03", wv[1])
 	}
 
-	temp := sMid.Temperature()
+	temp := sMid.Temperature().Celsius()
 	if math.Abs(float64(temp-15.0)) > 1.0 {
 		t.Errorf("Interpolated Temperature: got %f, want ~15.0", temp)
 	}
 
-	dewpoint := sMid.Dewpoint()
+	dewpoint := sMid.Dewpoint().Celsius()
 	if math.Abs(float64(dewpoint-5.0)) > 1.0 {
 		t.Errorf("Interpolated Dewpoint: got %f, want ~5.0", dewpoint)
 	}
@@ -199,6 +202,33 @@ func TestLerpSample(t *testing.T) {
 	pressure := sMid.Pressure()
 	if math.Abs(float64(pressure-950.0)) > 5.0 {
 		t.Errorf("Interpolated Pressure: got %f, want ~950.0", pressure)
+	}
+}
+
+func TestMakeAtmosGridSinglePointFillsGrid(t *testing.T) {
+	u, v := dirSpeedToUV(270, 20)
+	stack := &AtmosSampleStack{}
+	for i := range NumSampleLevels {
+		stack.Levels[i] = AtmosSample{
+			UComponent:  u,
+			VComponent:  v,
+			Temperature: av.MakeTemperatureFromCelsius(10),
+			Dewpoint:    av.MakeTemperatureFromCelsius(5),
+			Height:      pressureToHeight(PressureFromLevelIndex(i)),
+		}
+	}
+
+	grid := MakeAtmosGrid(map[vmath.Point2LL]*AtmosSampleStack{
+		{-73, 40}: stack,
+	})
+
+	for i, sample := range grid.Points {
+		if sample.temperature == 0 && sample.pressure == 0 {
+			t.Fatalf("grid point %d was not filled", i)
+		}
+		if speed := sample.WindSpeed(); math.Abs(float64(speed-20)) > 0.5 {
+			t.Fatalf("grid point %d speed = %f, want about 20", i, speed)
+		}
 	}
 }
 
@@ -223,9 +253,9 @@ func TestMakeStandardSampleForAltitude(t *testing.T) {
 				t.Errorf("Standard atmosphere should have calm winds, got %v", wv)
 			}
 
-			temp := s.Temperature()
+			temp := s.Temperature().Celsius()
 			pressure := s.Pressure()
-			dewpoint := s.Dewpoint()
+			dewpoint := s.Dewpoint().Celsius()
 
 			// Temperature should decrease with altitude (increase below sea level)
 			if tc.altitude > 0 && temp >= 15.0 {
@@ -264,7 +294,7 @@ func TestBelowSeaLevelPressure(t *testing.T) {
 	}
 
 	// Verify temperature is also higher below sea level
-	temp := deadSea.Temperature()
+	temp := deadSea.Temperature().Celsius()
 	if temp <= 15.0 {
 		t.Errorf("Dead Sea temperature should be > 15°C, got %f°C", temp)
 	}
@@ -366,12 +396,12 @@ func TestMakeSampleClamping(t *testing.T) {
 				t.Errorf("WindVec[1]: got %f, expected %f", wv[1], tc.expectWindVec[1])
 			}
 
-			temp := s.Temperature()
+			temp := s.Temperature().Celsius()
 			if math.Abs(float64(temp-tc.expectTemp)) > float64(tc.tolerance) {
 				t.Errorf("Temperature: got %f, expected %f", temp, tc.expectTemp)
 			}
 
-			dewpoint := s.Dewpoint()
+			dewpoint := s.Dewpoint().Celsius()
 			if math.Abs(float64(dewpoint-tc.expectDewpoint)) > float64(tc.tolerance) {
 				t.Errorf("Dewpoint: got %f, expected %f", dewpoint, tc.expectDewpoint)
 			}

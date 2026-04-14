@@ -16,6 +16,7 @@ import (
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/panes"
 	"github.com/mmp/vice/platform"
+	"github.com/mmp/vice/renderer"
 	"github.com/mmp/vice/sim"
 	"github.com/mmp/vice/util"
 
@@ -406,7 +407,7 @@ func (sp *STARSPane) DrawInfo(c *client.ControlClient, p platform.Platform, lg *
 				imgui.Text(ap)
 			}
 
-			cl := util.DuplicateSlice(c.State.FacilityAdaptation.CoordinationLists)
+			cl := util.DuplicateSlice(c.State.FacilityAdaptation.Lists.Coordination)
 			slices.SortFunc(cl, func(a, b sim.CoordinationList) int { return strings.Compare(a.Id, b.Id) })
 
 			for _, list := range cl {
@@ -422,7 +423,12 @@ func (sp *STARSPane) DrawInfo(c *client.ControlClient, p platform.Platform, lg *
 		}
 	}
 
-	if aa := c.State.FacilityAdaptation.AirspaceAwareness; len(aa) > 0 {
+	userPos := c.State.PrimaryPositionForTCW(c.State.UserTCW)
+	userArea := ""
+	if ctrl, ok := c.State.Controllers[userPos]; ok {
+		userArea = ctrl.Area
+	}
+	if aa := c.State.FacilityAdaptation.AirspaceAwarenessForArea(userArea); len(aa) > 0 {
 		if imgui.CollapsingHeaderBoolPtr("Airspace Awareness", nil) {
 			if imgui.BeginTableV("awareness", 4, tableFlags, imgui.Vec2{}, 0) {
 				imgui.TableSetupColumn("Fix")
@@ -456,6 +462,60 @@ func (sp *STARSPane) DrawInfo(c *client.ControlClient, p platform.Platform, lg *
 					}
 				}
 
+				imgui.EndTable()
+			}
+		}
+	}
+
+	if macros := c.State.FacilityAdaptation.STARSMacros; len(macros) > 0 {
+		if imgui.CollapsingHeaderBoolPtr("STARS Macros", nil) {
+			// Sort by mode for grouped display.
+			sorted := make(sim.STARSMacroSet, len(macros))
+			copy(sorted, macros)
+			slices.SortStableFunc(sorted, func(a, b sim.STARSMacro) int {
+				return strings.Compare(a.Input, b.Input)
+			})
+
+			fixedFont := renderer.GetFont(renderer.FontIdentifier{Name: renderer.RobotoMono, Size: renderer.FixedFontSize(int(imgui.FontSize()))})
+			if imgui.BeginTableV("macros", 5, tableFlags, imgui.Vec2{}, 0) {
+				imgui.TableSetupColumn("Mode")
+				imgui.TableSetupColumn("Input")
+				imgui.TableSetupColumn("Activation")
+				imgui.TableSetupColumn("Commands")
+				imgui.TableSetupColumn("Description")
+				imgui.TableHeadersRow()
+
+				for _, m := range sorted {
+					imgui.TableNextRow()
+					imgui.TableNextColumn()
+					fixedFont.ImguiPush()
+					if mode := m.Mode(); mode == "" {
+						imgui.Text("--")
+					} else {
+						imgui.Text(mode)
+					}
+					imgui.PopFont()
+					imgui.TableNextColumn()
+					fixedFont.ImguiPush()
+					if input := m.Name(); input == "" {
+						imgui.Text("--")
+					} else {
+						imgui.Text(input)
+					}
+					imgui.PopFont()
+					imgui.TableNextColumn()
+					if m.IsSlew() {
+						imgui.Text("Slew")
+					} else {
+						imgui.Text("Enter")
+					}
+					imgui.TableNextColumn()
+					fixedFont.ImguiPush()
+					imgui.Text(strings.Join(m.Commands, "\n"))
+					imgui.PopFont()
+					imgui.TableNextColumn()
+					imgui.Text(m.Description)
+				}
 				imgui.EndTable()
 			}
 		}

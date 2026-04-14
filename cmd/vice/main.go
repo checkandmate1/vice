@@ -59,7 +59,7 @@ var (
 	broadcastPassword = flag.String("password", "", "`password` to authenticate with server for broadcast message")
 	resetSim          = flag.Bool("resetsim", false, "discard the saved simulation and do not try to resume it")
 	showRoutes        = flag.String("routes", "", "display the STARS, SIDs, and approaches known for the given `airport`")
-	listMaps          = flag.String("listmaps", "", "`path` to a video map file to list maps of (e.g., resources/videomaps/ZNY-videomaps.gob.zst)")
+	listMaps          = flag.String("listmaps", "", "`path` to a video map file to list maps of (e.g., videomaps/ZNY-videomaps.gob.zst)")
 	listScenarios     = flag.Bool("listscenarios", false, "list all available scenarios in ARTCC/TRACON/scenario format")
 	runSim            = flag.String("runsim", "", "run specified `scenario` for 3600 update steps (format: ARTCC/TRACON/scenario)")
 	navLog            = flag.Bool("navlog", false, "enable navigation logging")
@@ -161,14 +161,16 @@ func runLint(lg *log.Logger) error {
 	var e util.ErrorLogger
 	scenarioGroups, _, _, _ := server.LoadScenarioGroups(*scenarioFilename, *videoMapFilename, false /* skipVideoMaps */, &e, lg)
 
+	server.CheckArrivalSpawnAltitudes(scenarioGroups, &e)
+
 	// Check emergencies.json
 	loadEmergencies(&e)
 
 	videoMaps := make(map[string]any)
 	for _, sgs := range scenarioGroups {
 		for _, sg := range sgs {
-			if sg.FacilityAdaptation.VideoMapFile != "" {
-				videoMaps[sg.FacilityAdaptation.VideoMapFile] = nil
+			if sg.FacilityConfig.FacilityAdaptation.VideoMapFile != "" {
+				videoMaps[sg.FacilityConfig.FacilityAdaptation.VideoMapFile] = nil
 			}
 		}
 	}
@@ -264,7 +266,7 @@ func runSimulation(lg *log.Logger) error {
 	}
 
 	newSimConfig.Emergencies = emergencies
-	s := sim.NewSim(*newSimConfig, nil /*manifest*/, lg)
+	s := sim.NewSim(*newSimConfig, lg)
 
 	// Sign on as instructor if waypoint commands are specified
 	instructor := *waypointCommands != ""
@@ -452,7 +454,7 @@ func loadSavedSim(mgr *client.ConnectionManager, config *Config,
 	}
 
 	// Notify the active radar pane about the loaded sim
-	_, isSTARSSim := av.DB.TRACONs[c.State.Facility]
+	isSTARSSim := av.DB.IsTRACON(c.State.Facility) || av.DB.IsATCT(c.State.Facility)
 	activeRadarPane := config.ActiveRadarPane(isSTARSSim)
 	activeRadarPane.LoadedSim(c, plat, lg)
 	uiResetControlClient(c, plat, lg)
@@ -557,7 +559,7 @@ func runGUI(config *Config, configErr error, lg *log.Logger) error {
 		func(c *client.ControlClient) { // updated client
 			if c != nil {
 				// Determine if this is a STARS or ERAM scenario
-				_, isSTARSSim := av.DB.TRACONs[c.State.Facility]
+				isSTARSSim := av.DB.IsTRACON(c.State.Facility) || av.DB.IsATCT(c.State.Facility)
 				activeRadarPane = config.ActiveRadarPane(isSTARSSim)
 
 				// Reset each pane for the new sim
@@ -773,6 +775,7 @@ func main() {
 	}
 	if err != nil {
 		lg.Errorf("%v", err)
+		profiler.Cleanup() // defers don't run with exit
 		os.Exit(1)
 	}
 }

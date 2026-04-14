@@ -6,6 +6,7 @@ package aviation
 
 import (
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -100,4 +101,114 @@ func holdsEqual(a, b Hold) bool {
 		a.MaximumAltitude == b.MaximumAltitude &&
 		a.HoldingSpeed == b.HoldingSpeed &&
 		a.Procedure == b.Procedure
+}
+
+func TestParseARINC424LocalizerNavaid(t *testing.T) {
+	line := []byte(strings.Repeat(" ", 132))
+	copy(line[0:], "SUSA")
+	line[4] = 'P'
+	copy(line[6:], "KEWR")
+	copy(line[10:], "K6")
+	line[12] = 'I'
+	copy(line[13:], "IEZA")
+	line[21] = '1' // continuation record number: primary record
+	copy(line[32:], "N40414355")
+	copy(line[41:], "W074094163")
+	result := ParseARINC424(strings.NewReader(string(line) + "\r\n"))
+
+	nav, ok := result.Navaids["IEZA"]
+	if !ok {
+		t.Fatal("expected IEZA localizer navaid")
+	}
+	if nav.Type != "LOC" {
+		t.Fatalf("expected LOC navaid type, got %q", nav.Type)
+	}
+	if nav.Location.IsZero() {
+		t.Fatal("expected IEZA localizer location")
+	}
+}
+
+func TestParseARINC424DMENavaidElevation(t *testing.T) {
+	line := []byte(strings.Repeat(" ", 132))
+	copy(line[0:], "SUSA")
+	line[4] = 'D'
+	line[5] = ' '
+	copy(line[13:], "IEZA")
+	line[21] = '1'
+	copy(line[51:], "IEZA")
+	copy(line[55:], "N40414355")
+	copy(line[64:], "W074094163")
+	copy(line[79:], "00033")
+	copy(line[93:], "NEWARK LIBERTY INTL")
+
+	result := ParseARINC424(strings.NewReader(string(line) + "\r\n"))
+
+	nav, ok := result.Navaids["IEZA"]
+	if !ok {
+		t.Fatal("expected IEZA DME navaid")
+	}
+	if nav.Type != "DME" {
+		t.Fatalf("expected DME navaid type, got %q", nav.Type)
+	}
+	if !nav.HasDME {
+		t.Fatal("expected IEZA DME data")
+	}
+	if !nav.HasDMEElevation {
+		t.Fatal("expected IEZA DME elevation")
+	}
+	if nav.DMEElevation != 33 {
+		t.Fatalf("expected IEZA DME elevation 33, got %d", nav.DMEElevation)
+	}
+	if nav.DMELocation.IsZero() {
+		t.Fatal("expected IEZA DME location")
+	}
+
+	db := StaticDatabase{Navaids: result.Navaids}
+	location, elevation, ok := db.LookupDME("ieza")
+	if !ok {
+		t.Fatal("expected IEZA DME lookup")
+	}
+	if location.IsZero() {
+		t.Fatal("expected IEZA DME lookup location")
+	}
+	if elevation != 33 {
+		t.Fatalf("expected IEZA DME lookup elevation 33, got %d", elevation)
+	}
+}
+
+func TestParseARINC424LocalizerDoesNotOverwriteDME(t *testing.T) {
+	dme := []byte(strings.Repeat(" ", 132))
+	copy(dme[0:], "SUSA")
+	dme[4] = 'D'
+	dme[5] = ' '
+	copy(dme[13:], "IEZA")
+	dme[21] = '1'
+	copy(dme[51:], "IEZA")
+	copy(dme[55:], "N40414355")
+	copy(dme[64:], "W074094163")
+	copy(dme[79:], "00033")
+
+	loc := []byte(strings.Repeat(" ", 132))
+	copy(loc[0:], "SUSA")
+	loc[4] = 'P'
+	copy(loc[6:], "KEWR")
+	copy(loc[10:], "K6")
+	loc[12] = 'I'
+	copy(loc[13:], "IEZA")
+	loc[21] = '1'
+	copy(loc[32:], "N40400000")
+	copy(loc[41:], "W074000000")
+
+	result := ParseARINC424(strings.NewReader(string(dme) + "\r\n" + string(loc) + "\r\n"))
+
+	nav, ok := result.Navaids["IEZA"]
+	if !ok {
+		t.Fatal("expected IEZA navaid")
+	}
+	if nav.Type != "DME" {
+		t.Fatalf("expected localizer record to preserve DME navaid type, got %q", nav.Type)
+	}
+	if !nav.HasDMEElevation || nav.DMEElevation != 33 {
+		t.Fatalf("expected preserved DME elevation 33, got %d", nav.DMEElevation)
+	}
 }

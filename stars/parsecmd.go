@@ -769,12 +769,12 @@ func typeNameToGenerator(typeName string) matchGenerator {
 		return &fpSpecMatchGenerator{Style: "FP_PLUS2_ALT_R"}
 	case "FP_TCP":
 		return &fpSpecMatchGenerator{Style: "FP_TCP"}
-	case "FP_NUM_ACTYPE":
-		return &fpSpecMatchGenerator{Style: "FP_NUM_ACTYPE"}
-	case "FP_NUM_ACTYPE4":
-		return &fpSpecMatchGenerator{Style: "FP_NUM_ACTYPE4"}
-	case "FP_ACTYPE":
-		return &fpSpecMatchGenerator{Style: "FP_ACTYPE"}
+	case "FP_NUM_ACTYPE_EQ":
+		return &fpSpecMatchGenerator{Style: "FP_NUM_ACTYPE_EQ"}
+	case "FP_NUM_ACTYPE4_EQ":
+		return &fpSpecMatchGenerator{Style: "FP_NUM_ACTYPE4_EQ"}
+	case "FP_ACTYPE_EQ":
+		return &fpSpecMatchGenerator{Style: "FP_ACTYPE_EQ"}
 	case "FP_COORD_TIME":
 		return &fpSpecMatchGenerator{Style: "FP_COORD_TIME"}
 	case "FP_FIX_PAIR":

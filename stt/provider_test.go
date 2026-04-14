@@ -295,6 +295,71 @@ func TestBasicSpeedCommands(t *testing.T) {
 	}
 }
 
+func TestCompoundSpeedCommands(t *testing.T) {
+	tests := []struct {
+		name       string
+		transcript string
+		aircraft   map[string]Aircraft
+		expected   string
+	}{
+		{
+			name:       "2-segment speed until fix then speed",
+			transcript: "Delta 200 speed two five zero until ROSLY then two one zero",
+			aircraft: map[string]Aircraft{
+				"Delta 200": {Callsign: "DAL200", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY", "CAMRN": "CAMRN"}},
+			},
+			expected: "DAL200 S250/UROSLY/210",
+		},
+		{
+			name:       "2-segment reduce speed until fix then speed",
+			transcript: "Alaska 500 reduce speed to two five zero until CAMRN then one eight zero",
+			aircraft: map[string]Aircraft{
+				"Alaska 500": {Callsign: "ASA500", State: "arrival", Fixes: map[string]string{"CAMRN": "CAMRN", "ROSLY": "ROSLY"}},
+			},
+			expected: "ASA500 S250/UCAMRN/180",
+		},
+		{
+			name:       "2-segment maintain speed until fix then speed",
+			transcript: "United 452 maintain two five zero until ROSLY then two one zero",
+			aircraft: map[string]Aircraft{
+				"United 452": {Callsign: "UAL452", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY"}},
+			},
+			expected: "UAL452 S250/UROSLY/210",
+		},
+		{
+			name:       "2-segment speed until fix speed until fix",
+			transcript: "Delta 200 speed two five zero until ROSLY then two one zero until CAMRN",
+			aircraft: map[string]Aircraft{
+				"Delta 200": {Callsign: "DAL200", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY", "CAMRN": "CAMRN"}},
+			},
+			expected: "DAL200 S250/UROSLY/210/UCAMRN",
+		},
+		{
+			name:       "3-segment speed",
+			transcript: "Alaska 500 speed two five zero until ROSLY two one zero until CAMRN then one eight zero",
+			aircraft: map[string]Aircraft{
+				"Alaska 500": {Callsign: "ASA500", State: "arrival", Fixes: map[string]string{"ROSLY": "ROSLY", "CAMRN": "CAMRN"}},
+			},
+			expected: "ASA500 S250/UROSLY/210/UCAMRN/180",
+		},
+	}
+
+	provider := NewTranscriber(nil)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := provider.DecodeTranscript(tt.aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestMachSpeedCommands(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -699,6 +764,30 @@ func TestVFRCommands(t *testing.T) {
 			expected: "N345 GA",
 		},
 		{
+			name:       "callsign plus facility name implies go ahead",
+			transcript: "November 345 boston approach",
+			aircraft: map[string]Aircraft{
+				"November 345": {Callsign: "N345", State: "vfr flight following"},
+			},
+			expected: "N345 GA",
+		},
+		{
+			name:       "callsign plus departure facility implies go ahead for VFR",
+			transcript: "Cessna 345 new york departure",
+			aircraft: map[string]Aircraft{
+				"Cessna 345": {Callsign: "N345", State: "vfr flight following"},
+			},
+			expected: "N345 GA",
+		},
+		{
+			name:       "callsign plus facility name for IFR returns empty",
+			transcript: "American 421 boston approach",
+			aircraft: map[string]Aircraft{
+				"American 421": {Callsign: "AAL421", State: "arrival"},
+			},
+			expected: "",
+		},
+		{
 			name:       "radar services terminated",
 			transcript: "November 123AB radar services terminated squawk VFR frequency change approved",
 			aircraft: map[string]Aircraft{
@@ -772,6 +861,32 @@ func TestNavigationCommands(t *testing.T) {
 			expected: "UAL300 DJENNY",
 		},
 		{
+			name:       "left direct fix",
+			transcript: "United 300 left direct JENNY",
+			aircraft: map[string]Aircraft{
+				"United 300": {
+					Callsign: "UAL300",
+					Altitude: 15000,
+					State:    "arrival",
+					Fixes:    map[string]string{"jenny": "JENNY"},
+				},
+			},
+			expected: "UAL300 LDJENNY",
+		},
+		{
+			name:       "right direct fix",
+			transcript: "Delta 450 proceed right direct MERIT",
+			aircraft: map[string]Aircraft{
+				"Delta 450": {
+					Callsign: "DAL450",
+					Altitude: 10000,
+					State:    "arrival",
+					Fixes:    map[string]string{"merit": "MERIT"},
+				},
+			},
+			expected: "DAL450 RDMERIT",
+		},
+		{
 			name:       "procedure at misrecognized as proceed direct",
 			transcript: "Delta 450 procedure at MERIT",
 			aircraft: map[string]Aircraft{
@@ -798,6 +913,19 @@ func TestNavigationCommands(t *testing.T) {
 			expected: "AAL870 DPUCKY/H180",
 		},
 		{
+			name:       "local departure expect approach",
+			transcript: "Cactus 491 expect I L S runway nine",
+			aircraft: map[string]Aircraft{
+				"Cactus 491": {
+					Callsign:            "AWE491",
+					Altitude:            5000,
+					State:               "departure",
+					CandidateApproaches: map[string]string{"i l s runway nine": "I9"},
+				},
+			},
+			expected: "AWE491 EI9",
+		},
+		{
 			name:       "at fix cleared approach",
 			transcript: "Delta 8499 at Fergi clear for the River Visual runway one niner approach",
 			aircraft: map[string]Aircraft{
@@ -811,6 +939,21 @@ func TestNavigationCommands(t *testing.T) {
 				},
 			},
 			expected: "DAL8499 AFERGI/CRIV",
+		},
+		{
+			name:       "at fix cleared straight in approach",
+			transcript: "Delta 8499 at Fergi cleared straight in River Visual runway one niner approach",
+			aircraft: map[string]Aircraft{
+				"Delta 8499": {
+					Callsign:            "DAL8499",
+					Altitude:            4000,
+					State:               "arrival",
+					AssignedApproach:    "RIV",
+					Fixes:               map[string]string{"Fergi": "FERGI"},
+					CandidateApproaches: map[string]string{"River Visual runway one niner": "RIV"},
+				},
+			},
+			expected: "DAL8499 AFERGI/CSIRIV",
 		},
 		{
 			name:       "at fix intercept localizer",
@@ -933,6 +1076,124 @@ func TestNavigationCommands(t *testing.T) {
 			},
 			expected: "ASA700 HJIMEE/R90/3M/R",
 		},
+		// Expect direct commands
+		{
+			name:       "expect direct fix",
+			transcript: "United 300 expect direct JENNY",
+			aircraft: map[string]Aircraft{
+				"United 300": {
+					Callsign: "UAL300",
+					Altitude: 15000,
+					State:    "arrival",
+					Fixes:    map[string]string{"jenny": "JENNY"},
+				},
+			},
+			expected: "UAL300 EXPDIRJENNY",
+		},
+		{
+			name:       "expect to rejoin arrival",
+			transcript: "Delta 450 expect to rejoin the arrival at MERIT",
+			aircraft: map[string]Aircraft{
+				"Delta 450": {
+					Callsign: "DAL450",
+					Altitude: 10000,
+					State:    "arrival",
+					Fixes:    map[string]string{"merit": "MERIT"},
+				},
+			},
+			expected: "DAL450 EXPDIRMERIT",
+		},
+		{
+			name:       "expect to resume arrival",
+			transcript: "American 870 expect to resume the arrival at WAVEY",
+			aircraft: map[string]Aircraft{
+				"American 870": {
+					Callsign: "AAL870",
+					Altitude: 12000,
+					State:    "arrival",
+					Fixes:    map[string]string{"wavey": "WAVEY"},
+				},
+			},
+			expected: "AAL870 EXPDIRWAVEY",
+		},
+		{
+			name:       "after fix maintain speed",
+			transcript: "American 870 after ROSLY maintain 230 knots",
+			aircraft: map[string]Aircraft{
+				"American 870": {
+					Callsign: "AAL870",
+					Altitude: 12000,
+					State:    "arrival",
+					Fixes:    map[string]string{"rosly": "ROSLY"},
+				},
+			},
+			expected: "AAL870 AROSLY/S230",
+		},
+		{
+			name:       "after fix speed or greater",
+			transcript: "Delta 450 after CAMRN maintain 210 knots or greater",
+			aircraft: map[string]Aircraft{
+				"Delta 450": {
+					Callsign: "DAL450",
+					Altitude: 10000,
+					State:    "arrival",
+					Fixes:    map[string]string{"camrn": "CAMRN"},
+				},
+			},
+			expected: "DAL450 ACAMRN/S210+",
+		},
+		{
+			name:       "at fix reduce speed",
+			transcript: "JetBlue 83 at CAMRN reduce speed to 180",
+			aircraft: map[string]Aircraft{
+				"JetBlue 83": {
+					Callsign: "JBU83",
+					Altitude: 11000,
+					State:    "arrival",
+					Fixes:    map[string]string{"Cameron": "CAMRN"},
+				},
+			},
+			expected: "JBU83 ACAMRN/S180",
+		},
+		{
+			name:       "after fix speed or less",
+			transcript: "United 300 after JENNY 250 knots or less",
+			aircraft: map[string]Aircraft{
+				"United 300": {
+					Callsign: "UAL300",
+					Altitude: 15000,
+					State:    "arrival",
+					Fixes:    map[string]string{"jenny": "JENNY"},
+				},
+			},
+			expected: "UAL300 AJENNY/S250-",
+		},
+		{
+			name:       "after fix climb and maintain",
+			transcript: "American 870 after ROSLY climb and maintain 5000",
+			aircraft: map[string]Aircraft{
+				"American 870": {
+					Callsign: "AAL870",
+					Altitude: 3000,
+					State:    "departure",
+					Fixes:    map[string]string{"rosly": "ROSLY"},
+				},
+			},
+			expected: "AAL870 AROSLY/C50",
+		},
+		{
+			name:       "after fix descend and maintain",
+			transcript: "Delta 450 after CAMRN descend and maintain 3000",
+			aircraft: map[string]Aircraft{
+				"Delta 450": {
+					Callsign: "DAL450",
+					Altitude: 10000,
+					State:    "arrival",
+					Fixes:    map[string]string{"camrn": "CAMRN"},
+				},
+			},
+			expected: "DAL450 ACAMRN/D30",
+		},
 	}
 
 	provider := NewTranscriber(nil)
@@ -975,6 +1236,19 @@ func TestCallsignMatchingPriority(t *testing.T) {
 				"Endeavor 2991": {Callsign: "EDV2991", State: "arrival"},
 			},
 			expected: "DAL2991 L270",
+		},
+		{
+			name:       "garbage word between airline and flight number",
+			transcript: "JetBlue leaf thirteen cleared ILS runway four right approach",
+			aircraft: map[string]Aircraft{
+				"JetBlue eight 13": {Callsign: "JBU813", State: "arrival",
+					CandidateApproaches: map[string]string{"I L S runway four right": "I4R"},
+					AssignedApproach:    "ILS Runway 4R"},
+				"JetBlue 44 86": {Callsign: "JBU4486", State: "arrival",
+					CandidateApproaches: map[string]string{"I L S runway four right": "I4R"},
+					AssignedApproach:    "ILS Runway 4R"},
+			},
+			expected: "JBU813 CI4R",
 		},
 	}
 
@@ -1475,6 +1749,8 @@ func TestNormalizeTranscript(t *testing.T) {
 		{"descend and maintain, 9 or 1000", []string{"descend", "and", "maintain", "9", "thousand"}},
 		// "fly heading" sometimes transcribed as "flighting"
 		{"flighting 030", []string{"fly", "heading", "030"}},
+		// "@" should be treated as "at"
+		{"@ cameron descend", []string{"at", "cameron", "descend"}},
 	}
 
 	for _, tt := range tests {
@@ -1631,6 +1907,143 @@ func TestParseCommandsBasic(t *testing.T) {
 			},
 			ac:       Aircraft{State: "arrival"},
 			expected: []string{"ED"},
+		},
+		{
+			name: "expedite descent through altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "expedite climb through altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "climb", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "100", Type: TokenAltitude, Value: 100},
+			},
+			ac:       Aircraft{State: "departure"},
+			expected: []string{"EC100"},
+		},
+		{
+			name: "expedite descend through altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "descend", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "expedite descent to altitude",
+			tokens: []Token{
+				{Text: "expedite", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+				// "to" is a filler word and gets stripped; the bare pattern matches
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "best rate descent",
+			tokens: []Token{
+				{Text: "best", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED"},
+		},
+		{
+			name: "best rate climb",
+			tokens: []Token{
+				{Text: "best", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "climb", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "departure"},
+			expected: []string{"EC"},
+		},
+		{
+			name: "best rate descent through altitude",
+			tokens: []Token{
+				{Text: "best", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"ED50"},
+		},
+		{
+			name: "good rate descent",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "descent", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"GRD"},
+		},
+		{
+			name: "good rate of climb",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "of", Type: TokenWord},
+				{Text: "climb", Type: TokenWord},
+			},
+			ac:       Aircraft{State: "departure"},
+			expected: []string{"GRC"},
+		},
+		{
+			name: "good rate through altitude",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				{Text: "through", Type: TokenWord},
+				{Text: "50", Type: TokenAltitude, Value: 50},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"GR50"},
+		},
+		{
+			name: "good rate to altitude",
+			tokens: []Token{
+				{Text: "good", Type: TokenWord},
+				{Text: "rate", Type: TokenWord},
+				// "to" is a filler word and gets stripped; the bare pattern matches
+				{Text: "100", Type: TokenAltitude, Value: 100},
+			},
+			ac:       Aircraft{State: "arrival"},
+			expected: []string{"GR100"},
+		},
+		{
+			name: "cross distance direction altitude",
+			tokens: []Token{
+				{Text: "cross", Type: TokenWord},
+				{Text: "5", Type: TokenNumber, Value: 5},
+				{Text: "miles", Type: TokenWord},
+				{Text: "west", Type: TokenWord},
+				{Text: "of", Type: TokenWord},
+				{Text: "detgy", Type: TokenWord},
+				{Text: "maintain", Type: TokenWord},
+				{Text: "30", Type: TokenAltitude, Value: 30},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				Fixes: map[string]string{"detgy": "DETGY"},
+			},
+			expected: []string{"CDETGY/5W/A30"},
 		},
 		{
 			name:     "empty tokens",
@@ -1800,150 +2213,255 @@ func TestParseCommandsPriorityResolution(t *testing.T) {
 	}
 }
 
-func TestExtractAltitude(t *testing.T) {
+func TestVisualApproachSTTPatterns(t *testing.T) {
 	tests := []struct {
-		name         string
-		tokens       []Token
-		expectedAlt  int
-		expectedCons int
+		name     string
+		tokens   []Token
+		ac       Aircraft
+		expected []string
 	}{
 		{
-			name: "altitude token",
+			name: "cleared visual approach produces CVA",
 			tokens: []Token{
-				{Text: "80", Type: TokenAltitude, Value: 80},
+				{Text: "cleared", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "13", Type: TokenNumber, Value: 13},
+				{Text: "left", Type: TokenWord},
 			},
-			expectedAlt:  80,
-			expectedCons: 1,
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway one three left":          "13L",
+					"visual approach runway one three left": "13L",
+					"visual one three left":                 "13L",
+				},
+			},
+			expected: []string{"CVA13L"},
 		},
 		{
-			name: "number in valid altitude range",
+			name: "cleared visual without runway keyword",
 			tokens: []Token{
-				{Text: "50", Type: TokenNumber, Value: 50},
+				{Text: "cleared", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "26", Type: TokenNumber, Value: 26},
 			},
-			expectedAlt:  50,
-			expectedCons: 1,
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two six":          "26",
+					"visual approach runway two six": "26",
+					"visual two six":                 "26",
+				},
+			},
+			expected: []string{"CVA26"},
 		},
 		{
-			name: "large number (raw feet)",
+			name: "expect visual approach produces EVA not charted visual",
 			tokens: []Token{
-				{Text: "8000", Type: TokenNumber, Value: 8000},
+				{Text: "expect", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "22", Type: TokenNumber, Value: 22},
+				{Text: "left", Type: TokenWord},
 			},
-			expectedAlt:  80,
-			expectedCons: 1,
+			ac: Aircraft{
+				State: "arrival",
+				CandidateApproaches: map[string]string{
+					"Visual belmont runway two two left": "VB2L", // charted visual — should NOT match
+					"I L S runway two two left":          "I22L",
+				},
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two two left":          "22L",
+					"visual approach runway two two left": "22L",
+					"visual two two left":                 "22L",
+				},
+			},
+			expected: []string{"EVA22L"},
 		},
 		{
-			name: "single digit converted to thousands",
+			name: "expect visual approach without left/right",
 			tokens: []Token{
-				{Text: "9", Type: TokenNumber, Value: 9},
+				{Text: "expect", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "31", Type: TokenNumber, Value: 31},
 			},
-			expectedAlt:  90,
-			expectedCons: 1,
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway three one":          "31",
+					"visual approach runway three one": "31",
+					"visual three one":                 "31",
+				},
+			},
+			expected: []string{"EVA31"},
 		},
 		{
-			name: "skip miles - not altitude",
+			name: "vectors visual approach produces EVA",
 			tokens: []Token{
-				{Text: "5", Type: TokenNumber, Value: 5},
-				{Text: "miles", Type: TokenWord},
+				{Text: "vectors", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "31", Type: TokenNumber, Value: 31},
+				{Text: "right", Type: TokenWord},
 			},
-			expectedAlt:  0,
-			expectedCons: 0,
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway three one right":          "31R",
+					"visual approach runway three one right": "31R",
+					"visual three one right":                 "31R",
+				},
+			},
+			expected: []string{"EVA31R"},
 		},
 		{
-			name:         "empty tokens",
-			tokens:       []Token{},
-			expectedAlt:  0,
-			expectedCons: 0,
+			name: "vectors for the visual approach",
+			tokens: []Token{
+				{Text: "vectors", Type: TokenWord},
+				{Text: "for", Type: TokenWord},
+				{Text: "the", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "4", Type: TokenNumber, Value: 4},
+				{Text: "right", Type: TokenWord},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway four right":          "4R",
+					"visual approach runway four right": "4R",
+					"visual four right":                 "4R",
+				},
+			},
+			expected: []string{"EVA4R"},
+		},
+		{
+			name: "visual approach rejects inactive runway",
+			tokens: []Token{
+				{Text: "expect", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "31", Type: TokenNumber, Value: 31},
+				{Text: "right", Type: TokenWord},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two two left":          "22L",
+					"visual approach runway two two left": "22L",
+					"visual two two left":                 "22L",
+				},
+			},
+			expected: []string{"SAYAGAIN/APPROACH"},
+		},
+		{
+			name: "visual approach LAHSO",
+			tokens: []Token{
+				{Text: "expect", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "approach", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "22", Type: TokenNumber, Value: 22},
+				{Text: "left", Type: TokenWord},
+				{Text: "land", Type: TokenWord},
+				{Text: "hold", Type: TokenWord},
+				{Text: "short", Type: TokenWord},
+				{Text: "26", Type: TokenNumber, Value: 26},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateVisualApproaches: map[string]string{
+					"visual runway two two left":          "22L",
+					"visual approach runway two two left": "22L",
+					"visual two two left":                 "22L",
+				},
+				LAHSORunways: []string{"26"},
+			},
+			expected: []string{"EVA22L/LAHSO26"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			alt, consumed := extractAltitude(tt.tokens)
-			if alt != tt.expectedAlt {
-				t.Errorf("extractAltitude() alt = %d, want %d", alt, tt.expectedAlt)
+			commands, _ := ParseCommands(tt.tokens, tt.ac)
+			if len(commands) != len(tt.expected) {
+				t.Errorf("ParseCommands() got %v, want %v", commands, tt.expected)
+				return
 			}
-			if consumed != tt.expectedCons {
-				t.Errorf("extractAltitude() consumed = %d, want %d", consumed, tt.expectedCons)
+			for i := range commands {
+				if commands[i] != tt.expected[i] {
+					t.Errorf("ParseCommands()[%d] = %q, want %q", i, commands[i], tt.expected[i])
+				}
 			}
 		})
 	}
 }
 
-func TestExtractHeading(t *testing.T) {
+func TestAirportAdvisorySTTPatterns(t *testing.T) {
+	provider := NewTranscriber(nil)
+
 	tests := []struct {
-		name         string
-		tokens       []Token
-		expectedHdg  int
-		expectedCons int
+		name       string
+		transcript string
+		aircraft   map[string]Aircraft
+		expected   string
 	}{
 		{
-			name: "number in valid heading range",
-			tokens: []Token{
-				{Text: "180", Type: TokenNumber, Value: 180},
+			name:       "basic airport advisory",
+			transcript: "American 123 airport twelve o'clock eight miles",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
 			},
-			expectedHdg:  180,
-			expectedCons: 1,
+			expected: "AAL123 AP/12/8",
 		},
 		{
-			name: "heading 360",
-			tokens: []Token{
-				{Text: "360", Type: TokenNumber, Value: 360},
+			name:       "field advisory",
+			transcript: "American 123 field eleven o'clock six miles",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
 			},
-			expectedHdg:  360,
-			expectedCons: 1,
+			expected: "AAL123 AP/11/6",
 		},
 		{
-			name:         "empty tokens",
-			tokens:       []Token{},
-			expectedHdg:  0,
-			expectedCons: 0,
+			name:       "natural airport advisory",
+			transcript: "American 123 the airport is at your eleven o'clock eight miles",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP/11/8",
+		},
+		{
+			name:       "airport name before o'clock position",
+			transcript: "American 123 kennedy at your eleven o'clock eight miles",
+			aircraft: map[string]Aircraft{
+				"American 123": {
+					Callsign: "AAL123",
+					State:    "arrival",
+					Altitude: 5000,
+					Fixes:    map[string]string{"kennedy": "KJFK"},
+				},
+			},
+			expected: "AAL123 AP/11/8",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hdg, consumed := extractHeading(tt.tokens)
-			if hdg != tt.expectedHdg {
-				t.Errorf("extractHeading() hdg = %d, want %d", hdg, tt.expectedHdg)
+			result, err := provider.DecodeTranscript(tt.aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
 			}
-			if consumed != tt.expectedCons {
-				t.Errorf("extractHeading() consumed = %d, want %d", consumed, tt.expectedCons)
-			}
-		})
-	}
-}
-
-func TestExtractSpeed(t *testing.T) {
-	tests := []struct {
-		name         string
-		tokens       []Token
-		expectedSpd  int
-		expectedCons int
-	}{
-		{
-			name: "number in valid speed range",
-			tokens: []Token{
-				{Text: "210", Type: TokenNumber, Value: 210},
-			},
-			expectedSpd:  210,
-			expectedCons: 1,
-		},
-		{
-			name:         "empty tokens",
-			tokens:       []Token{},
-			expectedSpd:  0,
-			expectedCons: 0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			spd, consumed := extractSpeed(tt.tokens)
-			if spd != tt.expectedSpd {
-				t.Errorf("extractSpeed() spd = %d, want %d", spd, tt.expectedSpd)
-			}
-			if consumed != tt.expectedCons {
-				t.Errorf("extractSpeed() consumed = %d, want %d", consumed, tt.expectedCons)
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
 			}
 		})
 	}
@@ -2340,12 +2858,20 @@ func TestValidateCommands(t *testing.T) {
 			expectErrors: false,
 		},
 		{
-			name:         "expect approach invalid for departure",
-			commands:     []string{"EILS22L"},
-			ac:           Aircraft{State: "departure"},
-			expectedLen:  0,
-			minConf:      0.0,
-			expectErrors: true,
+			name:         "expect approach valid for local departure with approaches",
+			commands:     []string{"EI22L"},
+			ac:           Aircraft{State: "departure", CandidateApproaches: map[string]string{"i l s runway two two left": "I22L"}},
+			expectedLen:  1,
+			minConf:      0.9,
+			expectErrors: false,
+		},
+		{
+			name:         "expedite descent valid for local departure with approaches",
+			commands:     []string{"ED"},
+			ac:           Aircraft{Altitude: 10000, State: "departure", CandidateApproaches: map[string]string{"i l s runway two two left": "I22L"}},
+			expectedLen:  1,
+			minConf:      0.9,
+			expectErrors: false,
 		},
 		{
 			name:         "altitude discretion only valid for VFR",
@@ -2881,19 +3407,21 @@ type STTTestFile struct {
 	Callsign    string `json:"callsign"`
 	Command     string `json:"command"` // Expected command output
 	STTAircraft map[string]struct {
-		Callsign            string            `json:"Callsign"`
-		AircraftType        string            `json:"AircraftType"`
-		Fixes               map[string]string `json:"Fixes"`
-		CandidateApproaches map[string]string `json:"CandidateApproaches"`
-		AssignedApproach    string            `json:"AssignedApproach"`
-		SID                 string            `json:"SID"`
-		STAR                string            `json:"STAR"`
-		Altitude            int               `json:"Altitude"`
-		State               string            `json:"State"`
-		ControllerFrequency string            `json:"ControllerFrequency"`
-		TrackingController  string            `json:"TrackingController"`
-		AddressingForm      int               `json:"AddressingForm"`
-		LAHSORunways        []string          `json:"LAHSORunways"`
+		Callsign                  string                       `json:"Callsign"`
+		AircraftType              string                       `json:"AircraftType"`
+		Fixes                     map[string]string            `json:"Fixes"`
+		CandidateApproaches       map[string]string            `json:"CandidateApproaches"`
+		CandidateVisualApproaches map[string]string            `json:"CandidateVisualApproaches"`
+		ApproachFixes             map[string]map[string]string `json:"ApproachFixes"`
+		AssignedApproach          string                       `json:"AssignedApproach"`
+		SID                       string                       `json:"SID"`
+		STAR                      string                       `json:"STAR"`
+		Altitude                  int                          `json:"Altitude"`
+		State                     string                       `json:"State"`
+		ControllerFrequency       string                       `json:"ControllerFrequency"`
+		TrackingController        string                       `json:"TrackingController"`
+		AddressingForm            int                          `json:"AddressingForm"`
+		LAHSORunways              []string                     `json:"LAHSORunways"`
 	} `json:"stt_aircraft"`
 }
 
@@ -2946,20 +3474,40 @@ func TestSTTFromJSONFiles(t *testing.T) {
 				if form == sim.AddressingFormTypeTrailing3 && !strings.HasSuffix(callsign, "/T") {
 					callsign += "/T"
 				}
+				// Merge assigned approach fixes into the Fixes map, mirroring
+				// the production behavior in provider.go.
+				fixes := ac.Fixes
+				if ac.AssignedApproach != "" && len(ac.ApproachFixes) > 0 {
+					telephony := av.GetApproachTelephony(ac.AssignedApproach)
+					if code, ok := ac.CandidateApproaches[telephony]; ok {
+						if approachFixes, ok := ac.ApproachFixes[code]; ok {
+							if fixes == nil {
+								fixes = make(map[string]string)
+							}
+							for spoken, fix := range approachFixes {
+								if _, exists := fixes[spoken]; !exists {
+									fixes[spoken] = fix
+								}
+							}
+						}
+					}
+				}
+
 				aircraft[key] = Aircraft{
-					Callsign:            callsign,
-					AircraftType:        ac.AircraftType,
-					Fixes:               ac.Fixes,
-					CandidateApproaches: ac.CandidateApproaches,
-					AssignedApproach:    ac.AssignedApproach,
-					SID:                 ac.SID,
-					STAR:                ac.STAR,
-					Altitude:            ac.Altitude,
-					State:               ac.State,
-					ControllerFrequency: ac.ControllerFrequency,
-					TrackingController:  ac.TrackingController,
-					AddressingForm:      form,
-					LAHSORunways:        ac.LAHSORunways,
+					Callsign:                  callsign,
+					AircraftType:              ac.AircraftType,
+					Fixes:                     fixes,
+					CandidateApproaches:       ac.CandidateApproaches,
+					CandidateVisualApproaches: ac.CandidateVisualApproaches,
+					AssignedApproach:          ac.AssignedApproach,
+					SID:                       ac.SID,
+					STAR:                      ac.STAR,
+					Altitude:                  ac.Altitude,
+					State:                     ac.State,
+					ControllerFrequency:       ac.ControllerFrequency,
+					TrackingController:        ac.TrackingController,
+					AddressingForm:            form,
+					LAHSORunways:              ac.LAHSORunways,
 				}
 			}
 
@@ -3368,6 +3916,71 @@ func TestNegativeThatWasForFullParse(t *testing.T) {
 				"Frontier 900": {Callsign: "FFT900", Altitude: 10000, State: "arrival"},
 			},
 			expected: "ROLLBACK FFT900 R180 D60",
+		},
+	}
+
+	provider := NewTranscriber(nil)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := provider.DecodeTranscript(tt.aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestNegativeWithoutCallsign(t *testing.T) {
+	tests := []struct {
+		name       string
+		transcript string
+		aircraft   map[string]Aircraft
+		expected   string
+	}{
+		{
+			name:       "negative heading",
+			transcript: "negative heading 320",
+			aircraft: map[string]Aircraft{
+				"United 123": {Callsign: "UAL123", State: "arrival"},
+			},
+			expected: "ROLLBACK H320",
+		},
+		{
+			name:       "negative descend and maintain",
+			transcript: "negative descend and maintain 4000",
+			aircraft: map[string]Aircraft{
+				"Delta 456": {Callsign: "DAL456", Altitude: 10000, State: "arrival"},
+			},
+			expected: "ROLLBACK D40",
+		},
+		{
+			name:       "negative multiple commands",
+			transcript: "negative fly heading 320 descend and maintain 4000",
+			aircraft: map[string]Aircraft{
+				"United 123": {Callsign: "UAL123", Altitude: 10000, State: "arrival"},
+			},
+			expected: "ROLLBACK H320 D40",
+		},
+		{
+			name:       "bare negative not actionable",
+			transcript: "negative",
+			aircraft: map[string]Aircraft{
+				"United 123": {Callsign: "UAL123", State: "arrival"},
+			},
+			expected: "",
+		},
+		{
+			name:       "negative roger not actionable",
+			transcript: "negative roger",
+			aircraft: map[string]Aircraft{
+				"United 123": {Callsign: "UAL123", State: "arrival"},
+			},
+			expected: "",
 		},
 	}
 

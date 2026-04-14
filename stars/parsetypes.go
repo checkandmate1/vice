@@ -94,9 +94,9 @@ var typeParsers = []typeParser{
 	&fpPlusAltAParser{},
 	&fpPlus2AltRParser{},
 	&fpTCPParser{},
-	&fpNumActypeParser{},
+	&fpNumActypeEqParser{},
 	&fpNumAcType4Parser{},
-	&fpActypeParser{},
+	&fpActypeEqParser{},
 	&fpCoordTimeParser{},
 	&fpFixPairParser{},
 	&fpExitFixParser{},
@@ -835,7 +835,7 @@ func (h *raIndexParser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandI
 		return nil, text, false, nil
 	}
 
-	if sp.getRestrictionArea(ctx, idx, h.userOnly) != nil {
+	if _, ok := sp.getRestrictionArea(ctx, idx, h.userOnly); ok {
 		return idx, remainder, true, nil
 	}
 
@@ -1053,7 +1053,8 @@ func parseRALocation(sp *STARSPane, ctx *panes.Context, text string) (math.Point
 			return math.Point2LL{}, text, true, ErrSTARSCommandFormat
 		}
 
-		p = math.Offset2LL(p, float32(bearing), float32(dist), ctx.NmPerLongitude, ctx.MagneticVariation)
+		p = math.Offset2LL(p, math.MagneticToTrue(math.MagneticHeading(bearing), ctx.MagneticVariation),
+			float32(dist), ctx.NmPerLongitude)
 	}
 
 	// TODO: ILL GEO LOC if lat/long or fix-offset location is "not on the system plane"(?)
@@ -1516,48 +1517,55 @@ func (h *fpTCPParser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandInp
 func (h *fpTCPParser) GoType() reflect.Type { return fpSpecType }
 func (h *fpTCPParser) ConsumesClick() bool  { return false }
 
-func parseAcTypeWithEqSuffix(s string) (acType, eqSuffix string, ok bool) {
-	acType, suffix, _ := strings.Cut(s, "/")
+func parseAcNumTypeAndSuffix(s string) (count int, acType, eqSuffix string, ok bool) {
+	cur, remainder, _ := strings.Cut(s, "/")
+	var err error
 
-	if len(acType) < 2 || acType[0] < 'A' || acType[0] > 'Z' {
-		return "", "", false
+	if len(cur) == 0 {
+		ok = false
+		return
 	}
 
-	acType = strings.TrimRight(acType, "*")
-
-	if len(suffix) > 0 {
-		if len(suffix) != 1 || suffix[0] < 'A' || suffix[0] > 'Z' {
-			return "", "", false
+	// Parse aircraft count, if present
+	if cur[0] >= '0' && cur[0] <= '9' {
+		count, err = strconv.Atoi(cur)
+		if err != nil {
+			ok = false
+			return
 		}
-		eqSuffix = suffix
+		cur, remainder, _ = strings.Cut(remainder, "/")
 	}
-	return acType, eqSuffix, true
+
+	// Parse ac type: must be 2-4 characters and start with a letter
+	if len(cur) >= 2 && len(cur) <= 4 && cur[0] >= 'A' && cur[0] <= 'Z' {
+		acType = cur
+		cur, remainder, _ = strings.Cut(remainder, "/")
+	} else {
+		ok = false
+		return
+	}
+
+	if len(cur) == 1 && cur[0] >= 'A' && cur[0] <= 'Z' {
+		eqSuffix = cur
+		ok = len(remainder) == 0
+	} else {
+		ok = len(cur) == 0
+	}
+
+	return
 }
 
-type fpNumActypeParser struct{}
+type fpNumActypeEqParser struct{}
 
-func (h *fpNumActypeParser) Identifier() string { return "FP_NUM_ACTYPE" }
+func (h *fpNumActypeEqParser) Identifier() string { return "FP_NUM_ACTYPE_EQ" }
 
-func (h *fpNumActypeParser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandInput, text string) (any, string, bool, error) {
+func (h *fpNumActypeEqParser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandInput, text string) (any, string, bool, error) {
 	field, remaining := util.CutAtSpace(text)
 	if field == "" {
 		return nil, text, false, nil
 	}
 
-	var count int
-	s := field
-
-	// Check for formation count
-	if tf := strings.Split(s, "/"); len(tf) == 3 {
-		c, err := strconv.Atoi(tf[0])
-		if err != nil || len(tf[0]) > 2 {
-			return nil, text, true, ErrSTARSCommandFormat
-		}
-		count = c
-		s = strings.Join(tf[1:], "/")
-	}
-
-	acType, eqSuffix, ok := parseAcTypeWithEqSuffix(s)
+	count, acType, eqSuffix, ok := parseAcNumTypeAndSuffix(field)
 	if !ok {
 		return nil, text, false, nil
 	}
@@ -1573,12 +1581,12 @@ func (h *fpNumActypeParser) Parse(sp *STARSPane, ctx *panes.Context, input *Comm
 	return spec, remaining, true, nil
 }
 
-func (h *fpNumActypeParser) GoType() reflect.Type { return fpSpecType }
-func (h *fpNumActypeParser) ConsumesClick() bool  { return false }
+func (h *fpNumActypeEqParser) GoType() reflect.Type { return fpSpecType }
+func (h *fpNumActypeEqParser) ConsumesClick() bool  { return false }
 
 type fpNumAcType4Parser struct{}
 
-func (h *fpNumAcType4Parser) Identifier() string { return "FP_NUM_ACTYPE4" }
+func (h *fpNumAcType4Parser) Identifier() string { return "FP_NUM_ACTYPE4_EQ" }
 
 func (h *fpNumAcType4Parser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandInput, text string) (any, string, bool, error) {
 	field, remaining := util.CutAtSpace(text)
@@ -1586,28 +1594,16 @@ func (h *fpNumAcType4Parser) Parse(sp *STARSPane, ctx *panes.Context, input *Com
 		return nil, text, false, nil
 	}
 
-	var count int
-	tf := strings.Split(field, "/")
-
-	// Check for formation count
-	if len(tf) == 3 {
-		c, err := strconv.Atoi(tf[0])
-		if err != nil || len(tf[0]) > 2 {
-			return nil, text, true, ErrSTARSCommandFormat
-		}
-		count = c
-		tf = tf[1:]
-	}
-
-	// Require exactly 4 chars for aircraft type
-	if len(tf[0]) != 4 {
-		return nil, text, false, nil
-	}
-
-	acType, eqSuffix, ok := parseAcTypeWithEqSuffix(strings.Join(tf, "/"))
+	count, acType, eqSuffix, ok := parseAcNumTypeAndSuffix(field)
 	if !ok {
 		return nil, text, false, nil
 	}
+
+	// Require exactly 4 chars for aircraft type
+	if len(acType) != 4 {
+		return nil, text, false, nil
+	}
+	acType = strings.TrimRight(acType, "*")
 
 	var spec sim.FlightPlanSpecifier
 	if count > 0 {
@@ -1623,18 +1619,15 @@ func (h *fpNumAcType4Parser) Parse(sp *STARSPane, ctx *panes.Context, input *Com
 func (h *fpNumAcType4Parser) GoType() reflect.Type { return fpSpecType }
 func (h *fpNumAcType4Parser) ConsumesClick() bool  { return false }
 
-type fpActypeParser struct{}
+type fpActypeEqParser struct{}
 
-func (h *fpActypeParser) Identifier() string { return "FP_ACTYPE" }
+func (h *fpActypeEqParser) Identifier() string { return "FP_ACTYPE_EQ" }
 
-func (h *fpActypeParser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandInput, text string) (any, string, bool, error) {
+func (h *fpActypeEqParser) Parse(sp *STARSPane, ctx *panes.Context, input *CommandInput, text string) (any, string, bool, error) {
 	field, remaining := util.CutAtSpace(text)
-	if field == "" {
-		return nil, text, false, nil
-	}
 
-	acType, eqSuffix, ok := parseAcTypeWithEqSuffix(field)
-	if !ok {
+	count, acType, eqSuffix, ok := parseAcNumTypeAndSuffix(field)
+	if !ok || count != 0 { // count not allowed here
 		return nil, text, false, nil
 	}
 
@@ -1646,8 +1639,8 @@ func (h *fpActypeParser) Parse(sp *STARSPane, ctx *panes.Context, input *Command
 	return spec, remaining, true, nil
 }
 
-func (h *fpActypeParser) GoType() reflect.Type { return fpSpecType }
-func (h *fpActypeParser) ConsumesClick() bool  { return false }
+func (h *fpActypeEqParser) GoType() reflect.Type { return fpSpecType }
+func (h *fpActypeEqParser) ConsumesClick() bool  { return false }
 
 type fpCoordTimeParser struct{}
 
@@ -1669,7 +1662,7 @@ func (h *fpCoordTimeParser) Parse(sp *STARSPane, ctx *panes.Context, input *Comm
 	}
 
 	var spec sim.FlightPlanSpecifier
-	spec.CoordinationTime.Set(t)
+	spec.CoordinationTime.Set(sim.NewSimTime(t))
 	return spec, remaining, true, nil
 }
 

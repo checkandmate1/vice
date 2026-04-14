@@ -243,7 +243,7 @@ func (ep *ERAMPane) updateCursorOverride(ctx *panes.Context) {
 
 	desiredCursor := ""
 	if ep.cursorOverrideSelection != "" {
-		if !ep.cursorOverrideUntil.IsZero() && ctx.Now.After(ep.cursorOverrideUntil) {
+		if !ep.cursorOverrideUntil.IsZero() && time.Now().After(ep.cursorOverrideUntil) {
 			// Temporary cursor is over. Check the rollback cursor (if it exists).
 			if ep.cursorRollbackSelection != "" { // If there is a rollback selected
 				ep.cursorOverrideSelection = ep.cursorRollbackSelection
@@ -824,8 +824,8 @@ func (ep *ERAMPane) makeMaps(client *client.ControlClient, lg *log.Logger) {
 }
 
 func (ep *ERAMPane) getVideoMapLibrary(ss client.SimState, client *client.ControlClient) (*sim.VideoMapLibrary, error) {
-	filename := ss.FacilityAdaptation.VideoMapFile
-	if ml, err := sim.HashCheckLoadVideoMap(filename, ss.VideoMapLibraryHash); err == nil {
+	filename := ss.ControllerVideoMapFile
+	if ml, err := sim.HashCheckLoadVideoMap(filename, ss.ControllerVideoMapLibraryHash); err == nil {
 		return ml, nil
 	}
 	return client.GetVideoMapLibrary(filename)

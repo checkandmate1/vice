@@ -1,4 +1,4 @@
-// pkg/aviation/db.go
+// aviation/db.go
 // Copyright(c) 2022-2024 vice contributors, licensed under the GNU Public License, Version 3.
 // SPDX: GPL-3.0-only
 
@@ -9,13 +9,10 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/csv"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"io/fs"
-	"maps"
-	"net/http"
 	"os"
 	"path"
 	"slices"
@@ -50,6 +47,7 @@ type StaticDatabase struct {
 	MagneticGrid        MagneticGrid
 	ARTCCs              map[string]ARTCC
 	TRACONs             map[string]TRACON
+	ATCTs               map[string]ATCT
 	MVAs                map[string][]MVA // TRACON -> MVAs
 	ERAMAdaptations     map[string]ERAMAdaptation
 	BravoAirspace       map[string][]AirspaceVolume
@@ -91,11 +89,18 @@ type TRACON struct {
 	ARTCC string
 }
 
+type ATCT TRACON
+
 type Navaid struct {
 	Id       string
 	Type     string
 	Name     string
 	Location math.Point2LL
+
+	HasDME          bool
+	DMELocation     math.Point2LL
+	DMEElevation    int
+	HasDMEElevation bool
 }
 
 type Fix struct {
@@ -125,8 +130,8 @@ type AdaptationFixes []AdaptationFix
 
 ///////////////////////////////////////////////////////////////////////////
 
-func (ap FAAAirport) SelectBestRunway(windDir float32, magneticVariation float32) (*Runway, *Runway) {
-	whdg := math.NormalizeHeading(windDir + magneticVariation)
+func (ap FAAAirport) SelectBestRunway(windDir math.TrueHeading, magneticVariation float32) (*Runway, *Runway) {
+	whdg := math.TrueToMagnetic(windDir, magneticVariation)
 
 	// Find best aligned runway
 	minDelta := float32(1000)
@@ -162,6 +167,13 @@ func (d StaticDatabase) LookupWaypoint(f string) (math.Point2LL, bool) {
 	}
 }
 
+func (d StaticDatabase) LookupDME(f string) (math.Point2LL, int, bool) {
+	if n, ok := d.Navaids[strings.ToUpper(f)]; ok && n.HasDME && n.HasDMEElevation {
+		return n.DMELocation, n.DMEElevation, true
+	}
+	return math.Point2LL{}, 0, false
+}
+
 func (d StaticDatabase) LookupAirport(name string) (FAAAirport, bool) {
 	if ap, ok := d.Airports[name]; ok {
 		return ap, true
@@ -170,16 +182,21 @@ func (d StaticDatabase) LookupAirport(name string) (FAAAirport, bool) {
 			return ap, true
 		} else if ap, ok := d.Airports["P"+name]; ok {
 			return ap, true
+		} else if ap, ok := d.Airports["T"+name]; ok {
+			return ap, true
 		}
 	}
 	return FAAAirport{}, false
 }
 
-// LookupFacility returns a Facility for the given id, checking both
-// TRACONs and ARTCCs.
+// LookupFacility returns a Facility for the given id, checking
+// TRACONs, ATCTs, and ARTCCs.
 func (d StaticDatabase) LookupFacility(id string) (Facility, bool) {
 	if tracon, ok := d.TRACONs[id]; ok {
 		return tracon.Facility, true
+	}
+	if atct, ok := d.ATCTs[id]; ok {
+		return atct.Facility, true
 	}
 	if artcc, ok := d.ARTCCs[id]; ok {
 		return artcc, true
@@ -187,13 +204,23 @@ func (d StaticDatabase) LookupFacility(id string) (Facility, bool) {
 	return Facility{}, false
 }
 
-// IsFacility returns true if id is a known TRACON or ARTCC.
+// IsFacility returns true if id is a known ARTCC, TRACON, or ATCT.
 func (d StaticDatabase) IsFacility(id string) bool {
+	return d.IsARTCC(id) || d.IsTRACON(id) || d.IsATCT(id)
+}
+
+func (d StaticDatabase) IsARTCC(id string) bool {
+	_, ok := d.ARTCCs[id]
+	return ok
+}
+
+func (d StaticDatabase) IsTRACON(id string) bool {
 	_, ok := d.TRACONs[id]
-	if ok {
-		return true
-	}
-	_, ok = d.ARTCCs[id]
+	return ok
+}
+
+func (d StaticDatabase) IsATCT(id string) bool {
+	_, ok := d.ATCTs[id]
 	return ok
 }
 
@@ -312,7 +339,7 @@ func InitDB() {
 	var hpfEnroute map[string][]Hold
 	wg.Go(func() { hpfEnroute = parseHPF() })
 	wg.Go(func() { db.MagneticGrid = parseMagneticGrid() })
-	wg.Go(func() { db.ARTCCs, db.TRACONs = parseARTCCsAndTRACONs() })
+	wg.Go(func() { db.ARTCCs, db.TRACONs, db.ATCTs = parseFacilities() })
 	wg.Go(func() { db.MVAs = parseMVAs() })
 	wg.Go(func() { db.ERAMAdaptations = parseAdaptations() })
 	wg.Go(func() {
@@ -518,7 +545,7 @@ func parseAircraft() (map[string]string, map[string]AircraftPerformance) {
 		if ac.Speed.Landing < 40 || ac.Speed.Landing > 200 {
 			fmt.Fprintf(os.Stderr, "%s: aircraft landing speed %f seems off\n", ac.ICAO, ac.Speed.Landing)
 		}
-		if ac.Speed.MaxTAS < 40 || ac.Speed.MaxTAS > 550 && ac.ICAO != "CONC" {
+		if ac.Speed.MaxTAS < 40 || (ac.Speed.MaxTAS > 550 && ac.ICAO != "CONC") {
 			fmt.Fprintf(os.Stderr, "%s: aircraft max TAS %f seems off\n", ac.ICAO, ac.Speed.MaxTAS)
 		}
 		if ac.Speed.V2 != 0 && ac.Speed.V2 > 1.5*ac.Speed.Min {
@@ -653,7 +680,7 @@ func parseHPF() map[string][]Hold {
 		}
 
 		if course, err := strconv.Atoi(h.courseInbound); err == nil {
-			hold.InboundCourse = float32(course)
+			hold.InboundCourse = math.MagneticHeading(course)
 		}
 		if h.turnDirection == "R" {
 			hold.TurnDirection = TurnRight
@@ -954,7 +981,7 @@ func parseMVAs() map[string][]MVA {
 	return mvas
 }
 
-func parseARTCCsAndTRACONs() (map[string]ARTCC, map[string]TRACON) {
+func parseFacilities() (map[string]ARTCC, map[string]TRACON, map[string]ATCT) {
 	ar := util.LoadResource("artccs.json")
 	defer ar.Close()
 	var artccs map[string]ARTCC
@@ -983,7 +1010,23 @@ func parseARTCCsAndTRACONs() (map[string]ARTCC, map[string]TRACON) {
 		}
 	}
 
-	return artccs, tracons
+	at := util.LoadResource("atcts.json")
+	defer at.Close()
+	var atcts map[string]ATCT
+	if err := util.UnmarshalJSON(at, &atcts); err != nil {
+		fmt.Fprintf(os.Stderr, "atcts.json: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Validate that all of the ATCT ARTCCs are known.
+	for name, atct := range atcts {
+		if _, ok := artccs[atct.ARTCC]; !ok {
+			fmt.Fprintln(os.Stderr, atct.ARTCC+": ARTCC unknown for ATCT "+name)
+			os.Exit(1)
+		}
+	}
+
+	return artccs, tracons, atcts
 }
 
 func parseAdaptations() map[string]ERAMAdaptation {
@@ -1012,15 +1055,24 @@ func parseAdaptations() map[string]ERAMAdaptation {
 		}
 
 		configPath := path.Join("configurations", artcc, artcc+".json")
-		r := util.LoadResource(configPath)
+		contents := util.LoadResourceBytes(configPath)
+
+		if dups := util.FindDuplicateJSONKeys(contents); len(dups) > 0 {
+			for _, d := range dups {
+				if d.Path != "" {
+					fmt.Fprintf(os.Stderr, "%s: duplicate JSON key %q in %s\n", configPath, d.Key, d.Path)
+				} else {
+					fmt.Fprintf(os.Stderr, "%s: duplicate JSON key %q at root level\n", configPath, d.Key)
+				}
+			}
+			os.Exit(1)
+		}
 
 		var config artccConfig
-		if err := util.UnmarshalJSON(r, &config); err != nil {
-			r.Close()
+		if err := util.UnmarshalJSONBytes(contents, &config); err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", configPath, err)
 			os.Exit(1)
 		}
-		r.Close()
 
 		adapt := ERAMAdaptation{
 			ARTCC:             artcc,
@@ -1122,201 +1174,67 @@ func PrintCIFPRoutes(airport string) error {
 
 // TFR represents an FAA-issued temporary flight restriction.
 type TFR struct {
-	ARTCC     string
-	Type      string // VIP, SECURITY, EVENT, etc.
-	LocalName string // Short string summarizing it.
-	Effective time.Time
-	Expire    time.Time
-	Points    [][]math.Point2LL // One or more line loops defining its extent.
+	ARTCC      string
+	Type       string // VIP, SECURITY, EVENT, etc.
+	LocalName  string // Short string summarizing it.
+	Effective  time.Time
+	Expire     time.Time
+	Points     [][]math.Point2LL // One or more line loops defining its extent.
+	Regulation string            // Raw FAR code, e.g. "91.137(a)(2)"
+	City       string
+	State      string
+	AltDescr   string // Pre-formatted altitude description, e.g. "SFC - 2500 ft AGL"
+	Purpose    string // May be empty; not all TFR types include it.
 }
 
-// TFRCache stores active TFRs that have been retrieved previously; we save
-// it out on the config so that we don't download all of them each time vice is launched.
-type TFRCache struct {
-	TFRs map[string]TFR // URL -> TFR
-	ch   chan map[string]TFR
+// ActiveAt reports whether the TFR is active at time t.
+func (tfr TFR) ActiveAt(t time.Time) bool {
+	return t.After(tfr.Effective) && t.Before(tfr.Expire)
 }
 
-func MakeTFRCache() TFRCache {
-	return TFRCache{
-		TFRs: make(map[string]TFR),
-	}
-}
-
-// UpdateAsync kicks off an update of the TFRCache; it runs asynchronously
-// with synchronization happening when Sync or TFRsForTRACON is called.
-func (t *TFRCache) UpdateAsync(lg *log.Logger) {
-	if t.ch != nil {
-		return
-	}
-	t.ch = make(chan map[string]TFR)
-	go fetchTFRs(maps.Clone(t.TFRs), t.ch, lg)
-}
-
-// Sync synchronizes the cache, adding any newly-downloaded TFRs.  It
-// returns after the given timeout passes if we haven't gotten results back
-// yet.
-func (t *TFRCache) Sync(timeout time.Duration, lg *log.Logger) {
-	if t.ch != nil {
-		select {
-		case t.TFRs = <-t.ch:
-			t.ch = nil
-		case <-time.After(timeout):
-			lg.Warn("TFR fetch timed out")
+// NearPoint reports whether any vertex of the TFR is within rangeNm of center.
+func (tfr TFR) NearPoint(center math.Point2LL, rangeNm float32) bool {
+	for _, loop := range tfr.Points {
+		if slices.ContainsFunc(loop,
+			func(p math.Point2LL) bool { return math.NMDistance2LL(p, center) <= rangeNm }) {
+			return true
 		}
 	}
+	return false
 }
 
-// TFRsForTRACON returns all TFRs that apply to the given TRACON.  (It
-// currently return all of the ones for the TRACON's ARTCC, which is
-// overkill; we should probably cull them based on distance to the center
-// of the TRACON.)
-func (t *TFRCache) TFRsForTRACON(tracon string, lg *log.Logger) []TFR {
-	t.Sync(3*time.Second, lg)
-
-	if tr, ok := DB.TRACONs[tracon]; !ok {
-		return nil
-	} else {
-		var tfrs []TFR
-		for _, tfr := range util.SortedMap(t.TFRs) {
-			if tfr.ARTCC == tr.ARTCC {
-				tfrs = append(tfrs, tfr)
-			}
-		}
-		return tfrs
-	}
-}
-
-type TFRListJSON struct {
-	Notam_id string `json:"notam_id"`
-}
-
-// Returns the URLs to all of the XML-formatted TFRs from the tfr.faa.gov website.
-func allTFRUrls(lg *log.Logger) []string {
-	lg.Infof("Fetching TFR URLs")
-
-	// Create HTTP request
-	req, err := http.NewRequest("GET", "https://tfr.faa.gov/tfrapi/exportTfrList", nil)
-	if err != nil {
-		lg.Errorf("Error creating request: %s", err)
-		return nil
-	}
-
-	// Make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		lg.Errorf("Error fetching TFRs: %s", err)
-		return nil
-	}
-	defer resp.Body.Close()
-
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		lg.Errorf("Error reading response: %s", err)
-		return nil
-	}
-
-	lg.Infof("TFR json: %s", string(body))
-
-	// Parse JSON
-	var tfr_url_list []TFRListJSON
-	if err := json.Unmarshal(body, &tfr_url_list); err != nil {
-		lg.Errorf("Error parsing JSON: %s", err)
-		return nil
-	}
-
-	// This is still somewhat brittle. In a mind bending design choice the FAAs JSON link
-	// (https://tfr.faa.gov/tfr3/export/json) is assembled via javascript and not an actual
-	// exported json. The URL below is called by the javascript and gets the the list of current NOTAM IDs
-	// We then assume the same URL scheme for NOTAM details (https://tfr.faa.gov/download/detail_${NOTAM_ID}.xml)
-	// and fetch the data from there...which is actually XML...for now....
-
-	var urls []string
-	for _, tfr_url := range tfr_url_list {
-		id := strings.Replace(tfr_url.Notam_id, "/", "_", -1)
-		url := "https://tfr.faa.gov/download/detail_" + id + ".xml"
-		urls = append(urls, url)
-	}
-
-	return slices.Compact(urls)
-}
-
-// fetchTFRs runs in a goroutine and asynchronously downloads the TFRs from
-// the FAA website, converts them to the TFR struct, and then sends the
-// result on the provided chan when done.
-func fetchTFRs(tfrs map[string]TFR, ch chan<- map[string]TFR, lg *log.Logger) {
-	// Semaphore to limit to 4 concurrent requests.
-	sem := make(chan any, 4)
-	defer func() { close(sem) }()
-
-	type TFROrError struct {
-		URL string
-		TFR TFR
-		err error
-	}
-	fetched := make(chan TFROrError, len(tfrs))
-	defer func() { close(fetched) }()
-
-	// fetch fetches a single TFR and converts it.
-	fetch := func(url string) {
-		// Acquire the semaphore.
-		sem <- nil
-		defer func() { <-sem }()
-
-		result := TFROrError{URL: url}
-		resp, err := http.Get(url)
-		if err != nil {
-			result.err = err
-		} else {
-			defer resp.Body.Close()
-			result.TFR, result.err = decodeTFRXML(url, resp.Body, lg)
-		}
-		fetched <- result
-	}
-
-	// Launch a goroutine to fetch each one that we don't already have
-	// downloaded.
-	urls := allTFRUrls(lg)
-	launched := 0
-	for _, url := range urls {
-		if _, ok := tfrs[url]; !ok {
-			go fetch(url)
-			launched++
-		}
-	}
-
-	// Harvest the fetched results.
-	for launched > 0 {
-		result := <-fetched
-		if result.err != nil {
-			lg.Warnf("%s: %v", result.URL, result.err)
-		} else {
-			tfrs[result.URL] = result.TFR
-		}
-		launched--
-	}
-
-	// Cull stale TFRs.
-	for url := range tfrs {
-		// It's no longer on the FAA site.
-		if !slices.Contains(urls, url) {
-			delete(tfrs, url)
-		}
-	}
-
-	ch <- tfrs
-	close(ch)
+// faaTimezones maps short timezone names used in FAA TFR XML to IANA
+// timezone paths. Add entries here as new short names are encountered.
+var faaTimezones = map[string]string{
+	"Guam":           "Pacific/Guam",
+	"Samoa":          "Pacific/Pago_Pago",
+	"Hawaii":         "Pacific/Honolulu",
+	"Virgin Islands": "America/Virgin",
 }
 
 var tfrTypes = map[string]string{
 	"91.137": "HAZARDS",
 	"91.138": "HI HAZARDS",
+	"91.139": "EMERGENCY",
 	"91.141": "VIP",
 	"91.143": "SPACE OPS",
 	"91.145": "EVENT",
 	"99.7":   "SECURITY",
+}
+
+// lookupTFRType maps a codeType to a human-readable TFR type using prefix
+// matching. This handles sub-clause codes like "91.137(a)(1)" by matching
+// the "91.137" prefix.
+func lookupTFRType(codeType string) string {
+	if t, ok := tfrTypes[codeType]; ok {
+		return t
+	}
+	for prefix, t := range tfrTypes {
+		if strings.HasPrefix(codeType, prefix) {
+			return t
+		}
+	}
+	return ""
 }
 
 // XNOTAMUpdate was generated 2024-09-23 07:39:34 by
@@ -1328,13 +1246,19 @@ type XNOTAMUpdate struct {
 			Not struct {
 				NotUid struct {
 					TxtLocalName string `xml:"txtLocalName"`
+					DateIssued   string `xml:"dateIssued"`
 				} `xml:"NotUid"`
 				DateEffective          string `xml:"dateEffective"`
 				DateExpire             string `xml:"dateExpire"`
 				CodeTimeZone           string `xml:"codeTimeZone"`
 				CodeExpirationTimeZone string `xml:"codeExpirationTimeZone"`
 				CodeFacility           string `xml:"codeFacility"`
-				TfrNot                 struct {
+				TxtDescrPurpose        string `xml:"txtDescrPurpose"`
+				AffLocGroup            struct {
+					TxtNameCity    string `xml:"txtNameCity"`
+					TxtNameUSState string `xml:"txtNameUSState"`
+				} `xml:"AffLocGroup"`
+				TfrNot struct {
 					CodeType     string `xml:"codeType"`
 					TFRAreaGroup []struct {
 						AbdMergedArea struct {
@@ -1346,6 +1270,14 @@ type XNOTAMUpdate struct {
 								GeoLong   string `xml:"geoLong"`
 							} `xml:"Avx"`
 						} `xml:"abdMergedArea"`
+						AseTFRArea struct {
+							CodeDistVerUpper string `xml:"codeDistVerUpper"`
+							ValDistVerUpper  string `xml:"valDistVerUpper"`
+							UomDistVerUpper  string `xml:"uomDistVerUpper"`
+							CodeDistVerLower string `xml:"codeDistVerLower"`
+							ValDistVerLower  string `xml:"valDistVerLower"`
+							UomDistVerLower  string `xml:"uomDistVerLower"`
+						} `xml:"aseTFRArea"`
 					} `xml:"TFRAreaGroup"`
 				} `xml:"TfrNot"`
 			} `xml:"Not"`
@@ -1353,8 +1285,8 @@ type XNOTAMUpdate struct {
 	} `xml:"Group"`
 }
 
-// decodeTFRXML takes an XML-formatted TFR and converts it to our struct.
-func decodeTFRXML(url string, r io.Reader, lg *log.Logger) (TFR, error) {
+// DecodeTFRXML takes an XML-formatted TFR and converts it to our struct.
+func DecodeTFRXML(url string, r io.Reader, lg *log.Logger) (TFR, error) {
 	var tfr TFR
 	var xmlTFR XNOTAMUpdate
 	dec := xml.NewDecoder(r)
@@ -1364,33 +1296,77 @@ func decodeTFRXML(url string, r io.Reader, lg *log.Logger) (TFR, error) {
 
 	notam := xmlTFR.Group.Add.Not
 	tfr.ARTCC = notam.CodeFacility
-	tfr.Type = tfrTypes[notam.TfrNot.CodeType]
+	tfr.Type = lookupTFRType(notam.TfrNot.CodeType)
 	tfr.LocalName = notam.NotUid.TxtLocalName
+	tfr.Regulation = notam.TfrNot.CodeType
+	tfr.City = notam.AffLocGroup.TxtNameCity
+	tfr.State = notam.AffLocGroup.TxtNameUSState
+	tfr.Purpose = notam.TxtDescrPurpose
 
-	// Attempt to parse a time; these come to us as a pair of strings,
-	// sometimes misformatted.
-	parseTime := func(date, zone string) (time.Time, error) {
+	// FAA TFR timezone names: usually standard abbreviations (EST, UTC)
+	// but occasionally short names that need mapping to IANA paths.
+	loadTZ := func(zone string) (*time.Location, error) {
 		if zone == "" {
-			zone = "UTC"
+			return time.UTC, nil
 		}
-		return time.Parse("2006-01-02T15:04:05 MST", date+" "+zone)
+		// Try as IANA location (handles "America/New_York", etc.)
+		if loc, err := time.LoadLocation(zone); err == nil {
+			return loc, nil
+		}
+		// FAA sometimes uses short names not in the IANA database.
+		if full, ok := faaTimezones[zone]; ok {
+			if loc, err := time.LoadLocation(full); err == nil {
+				return loc, nil
+			}
+		}
+		// Try as fixed abbreviation by parsing a reference time.
+		if t, err := time.Parse("MST", zone); err == nil {
+			_, offset := t.Zone()
+			return time.FixedZone(zone, offset), nil
+		}
+		return nil, fmt.Errorf("unknown timezone %q", zone)
 	}
 
-	// Since the provided times are often bogus, patch them up so that they
-	// are currently active if we couldn't get the times.
+	parseTime := func(date, zone string) (time.Time, error) {
+		if date == "" {
+			return time.Time{}, fmt.Errorf("empty date")
+		}
+		loc, err := loadTZ(zone)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return time.ParseInLocation("2006-01-02T15:04:05", date, loc)
+	}
+
+	// Some TFRs lack dateEffective; fall back to dateIssued.
+	effectiveDate := notam.DateEffective
+	if effectiveDate == "" {
+		effectiveDate = notam.NotUid.DateIssued
+	}
 	var err error
-	tfr.Effective, err = parseTime(notam.DateEffective, notam.CodeTimeZone)
+	tfr.Effective, err = parseTime(effectiveDate, notam.CodeTimeZone)
 	if err != nil {
-		tfr.Effective = time.Now()
-		lg.Warnf("%s: %v", url, err)
-	}
-	tfr.Expire, err = parseTime(notam.DateExpire, notam.CodeExpirationTimeZone)
-	if err != nil {
-		tfr.Expire = time.Now().Add(10 * 365 * 24 * time.Hour)
-		lg.Warnf("%s: %v", url, err)
+		return tfr, fmt.Errorf("%s: effective time: %w", url, err)
 	}
 
-	// The extent is given as one or more line loops.
+	// Some TFRs lack dateExpire; use expiration timezone falling back
+	// to the effective timezone.
+	expireZone := notam.CodeExpirationTimeZone
+	if expireZone == "" {
+		expireZone = notam.CodeTimeZone
+	}
+	tfr.Expire, err = parseTime(notam.DateExpire, expireZone)
+	if err != nil {
+		return tfr, fmt.Errorf("%s: expire time: %w", url, err)
+	}
+
+	// The extent is given as one or more line loops. Also gather
+	// altitude limits across all area groups for the description.
+	type altLimit struct {
+		code string // "AGL" or "MSL"
+		val  float64
+	}
+	var minLower, maxUpper *altLimit
 	for _, group := range notam.TfrNot.TFRAreaGroup {
 		var pts []math.Point2LL
 		for _, pt := range group.AbdMergedArea.Avx {
@@ -1430,6 +1406,53 @@ func decodeTFRXML(url string, r io.Reader, lg *log.Logger) (TFR, error) {
 		if len(pts) > 0 {
 			tfr.Points = append(tfr.Points, pts)
 		}
+
+		a := group.AseTFRArea
+		parseAlt := func(val, uom string) *altLimit {
+			if val == "" {
+				return nil
+			}
+			v, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				return nil
+			}
+			return &altLimit{code: uom, val: v}
+		}
+		if lo := parseAlt(a.ValDistVerLower, a.CodeDistVerLower); lo != nil {
+			if minLower == nil || lo.val < minLower.val {
+				minLower = lo
+			}
+		}
+		if hi := parseAlt(a.ValDistVerUpper, a.CodeDistVerUpper); hi != nil {
+			if maxUpper == nil || hi.val > maxUpper.val {
+				maxUpper = hi
+			}
+		}
+	}
+
+	fmtAlt := func(a *altLimit) string {
+		if a == nil {
+			return ""
+		}
+		// Map FAA altitude codes to standard abbreviations.
+		code := a.code
+		switch code {
+		case "HEI":
+			code = "AGL"
+		case "ALT":
+			code = "MSL"
+		}
+		if a.val == 0 && code == "AGL" {
+			return "SFC"
+		}
+		return fmt.Sprintf("%.0f ft %s", a.val, code)
+	}
+	if lo, hi := fmtAlt(minLower), fmtAlt(maxUpper); lo != "" && hi != "" {
+		tfr.AltDescr = lo + " - " + hi
+	} else if lo != "" {
+		tfr.AltDescr = lo
+	} else if hi != "" {
+		tfr.AltDescr = hi
 	}
 
 	return tfr, nil

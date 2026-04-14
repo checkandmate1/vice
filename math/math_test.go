@@ -68,6 +68,19 @@ func TestParseLatLong(t *testing.T) {
 	}
 }
 
+func TestDMEDistance(t *testing.T) {
+	a := Point2LL{-73, 40}
+	b := Point2LL{-73, 40}
+	if got := DMEDistance(a, NauticalMilesToFeet, b, 0); Abs(got-1) > 1e-5 {
+		t.Fatalf("expected 1nm vertical DME, got %.6f", got)
+	}
+
+	b = Point2LL{a[0] + 3/NMPerLongitudeAt(a), a[1]}
+	if got := DMEDistance(a, 4*NauticalMilesToFeet, b, 0); Abs(got-5) > 1e-2 {
+		t.Fatalf("expected 3-4-5 DME distance, got %.6f", got)
+	}
+}
+
 func TestPointInPolygon(t *testing.T) {
 	type testCase struct {
 		name     string
@@ -249,6 +262,80 @@ func TestSegmentSegmentIntersect(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSplitSelfIntersectingPolygon(t *testing.T) {
+	approxEqual := func(a, b [2]float32) bool {
+		const eps = 1e-4
+		return Abs(a[0]-b[0]) < eps && Abs(a[1]-b[1]) < eps
+	}
+
+	polyContains := func(poly []Point2LL, pt [2]float32) bool {
+		for _, v := range poly {
+			if approxEqual(v, pt) {
+				return true
+			}
+		}
+		return false
+	}
+
+	t.Run("simple triangle", func(t *testing.T) {
+		tri := []Point2LL{{0, 0}, {1, 0}, {0, 1}}
+		result := SplitSelfIntersectingPolygon(tri)
+		if len(result) != 1 {
+			t.Fatalf("expected 1 polygon, got %d", len(result))
+		}
+		if len(result[0]) != 3 {
+			t.Fatalf("expected 3 vertices, got %d", len(result[0]))
+		}
+	})
+
+	t.Run("simple square", func(t *testing.T) {
+		sq := []Point2LL{{0, 0}, {2, 0}, {2, 2}, {0, 2}}
+		result := SplitSelfIntersectingPolygon(sq)
+		if len(result) != 1 {
+			t.Fatalf("expected 1 polygon, got %d", len(result))
+		}
+		if len(result[0]) != 4 {
+			t.Fatalf("expected 4 vertices, got %d", len(result[0]))
+		}
+	})
+
+	t.Run("bowtie", func(t *testing.T) {
+		// Edges (0,0)-(2,2) and (2,0)-(0,2) cross at (1,1).
+		bowtie := []Point2LL{{0, 0}, {2, 2}, {2, 0}, {0, 2}}
+		result := SplitSelfIntersectingPolygon(bowtie)
+		if len(result) != 2 {
+			t.Fatalf("expected 2 polygons, got %d", len(result))
+		}
+		// Both sub-polygons should be triangles containing (1,1).
+		for i, poly := range result {
+			if len(poly) != 3 {
+				t.Errorf("polygon %d: expected 3 vertices, got %d", i, len(poly))
+			}
+			if !polyContains(poly, [2]float32{1, 1}) {
+				t.Errorf("polygon %d: expected intersection point (1,1)", i)
+			}
+		}
+	})
+
+	t.Run("figure-eight 5 vertices", func(t *testing.T) {
+		// Pentagon-like shape with one crossing: edges (1,0)-(0,2) and (2,2)-(0,1) cross.
+		poly := []Point2LL{{0, 0}, {1, 0}, {0, 2}, {2, 2}, {0, 1}}
+		result := SplitSelfIntersectingPolygon(poly)
+		if len(result) < 2 {
+			t.Fatalf("expected at least 2 polygons, got %d", len(result))
+		}
+		// Total vertex count across all sub-polygons should exceed the
+		// original because the intersection point is added to both halves.
+		totalVerts := 0
+		for _, p := range result {
+			totalVerts += len(p)
+		}
+		if totalVerts < len(poly)+1 {
+			t.Errorf("expected more total vertices than original (%d), got %d", len(poly), totalVerts)
+		}
+	})
 }
 
 func TestSignBit(t *testing.T) {

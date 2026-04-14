@@ -14,7 +14,7 @@ import (
 )
 
 type Model struct {
-	provider       Provider
+	provider       *Provider
 	facility       string
 	primaryAirport string
 
@@ -34,7 +34,7 @@ type AtmosResult struct {
 	Err             error
 }
 
-func MakeModel(provider Provider, facility string, primaryAirport string, startTime time.Time, lg *log.Logger) *Model {
+func MakeModel(provider *Provider, facility string, primaryAirport string, startTime time.Time, lg *log.Logger) *Model {
 	m := &Model{
 		provider:       provider,
 		facility:       facility,

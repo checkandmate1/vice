@@ -15,7 +15,7 @@
   "processor": "GPU: NVIDIA GeForce RTX 5080 (15889MB)",
   "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
   "callsign": "DAL43",
-  "command": "EVR1",
+  "command": "EVA12R",
   "stt_aircraft": {
     "Delta 43": {
       "Callsign": "DAL43",
@@ -40,6 +40,11 @@
         "r-nav yankee runway one two right": "YR1",
         "r-nav zulu runway one two left": "ZL1",
         "r-nav zulu runway one two right": "ZR1"
+      },
+      "CandidateVisualApproaches": {
+        "visual runway one two right": "12R",
+        "visual approach runway one two right": "12R",
+        "visual one two right": "12R"
       },
       "ApproachFixes": {
         "I12L": {

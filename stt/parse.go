@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	av "github.com/mmp/vice/aviation"
 )
 
 // ParseCommands parses tokens into a sequence of commands using the registered command templates.
@@ -17,27 +19,20 @@ func ParseCommands(tokens []Token, ac Aircraft) ([]string, float64) {
 	var totalConf float64
 	pos := 0
 	isThen := false
+	matchedAny := false                        // Track if any command pattern matched (including empty-command patterns)
 	excludeCategories := make(map[string]bool) // Track categories already matched
 
 	for pos < len(tokens) {
-		// Check for "then" keyword
-		if tokens[pos].Text == "then" {
-			logLocalStt("  found 'then' keyword at position %d", pos)
+		// Check for "then" keyword.
+		// Also treat "the" as "then" when followed by a command keyword and we
+		// already have at least one command — STT often garbles "then" as "the".
+		// Must check BEFORE filler word skip since "the" is a filler word.
+		if tokens[pos].Text == "then" || (len(commands) > 0 && tokens[pos].Text == "the" && pos+1 < len(tokens) &&
+			(tokens[pos+1].Text == "descend" || tokens[pos+1].Text == "climb" || tokens[pos+1].Text == "maintain")) {
+			logLocalStt("  found 'then' (or 'the' as then) at position %d", pos)
 			isThen = true
 			pos++
 			continue
-		}
-
-		// Check for "the" followed by descent/climb keywords - STT often garbles "then" as "the"
-		// Must check BEFORE filler word skip since "the" is a filler word.
-		if len(commands) > 0 && tokens[pos].Text == "the" && pos+1 < len(tokens) {
-			nextText := strings.ToLower(tokens[pos+1].Text)
-			if nextText == "descend" || nextText == "climb" || nextText == "maintain" {
-				logLocalStt("  found 'the' + descent/climb keyword at position %d, treating as 'then'", pos)
-				isThen = true
-				pos++
-				continue
-			}
 		}
 
 		// Skip filler words
@@ -47,68 +42,12 @@ func ParseCommands(tokens []Token, ac Aircraft) ([]string, float64) {
 			continue
 		}
 
-		// Skip "radar contact" phrase (informational, not a command)
-		if strings.ToLower(tokens[pos].Text) == "radar" && pos+1 < len(tokens) &&
-			strings.ToLower(tokens[pos+1].Text) == "contact" {
-			logLocalStt("  skipping 'radar contact' phrase at position %d", pos)
+		// Check for "at {altitude}" pattern - implicit "then" trigger
+		if tokens[pos].Text == "at" && pos+1 < len(tokens) && looksLikeAltitude(tokens[pos+1]) {
+			logLocalStt("  found 'at {altitude}' pattern at position %d, triggering then", pos)
+			isThen = true
 			pos += 2
 			continue
-		}
-
-		// Check for "at {altitude}" pattern - implicit "then" trigger
-		if tokens[pos].Text == "at" && pos+1 < len(tokens) {
-			nextToken := tokens[pos+1]
-			if nextToken.Type == TokenAltitude ||
-				(nextToken.Type == TokenNumber && nextToken.Value >= 100 && nextToken.Value <= 600) ||
-				(nextToken.Type == TokenNumber && nextToken.Value >= 1000 && nextToken.Value <= 60000 && nextToken.Value%100 == 0) {
-				logLocalStt("  found 'at {altitude}' pattern at position %d, triggering then", pos)
-				isThen = true
-				pos += 2
-				continue
-			}
-		}
-
-		// Check for "{altitude} until established" pattern
-		if isAltitudeToken(tokens[pos]) && pos+2 < len(tokens) {
-			if strings.ToLower(tokens[pos+1].Text) == "until" &&
-				FuzzyMatch(tokens[pos+2].Text, "established", 0.8) {
-				alt := extractAltitudeValue(tokens[pos])
-				if alt > 0 {
-					cmd := fmt.Sprintf("A%d", alt)
-					logLocalStt("  found '{altitude} until established' pattern: %s", cmd)
-					commands = append(commands, cmd)
-					totalConf += 1.0
-					pos += 3
-					// Skip "on the localizer"
-					for pos < len(tokens) {
-						text := strings.ToLower(tokens[pos].Text)
-						if text == "on" || text == "the" || text == "localizer" ||
-							text == "glide" || text == "slope" || text == "glideslope" {
-							pos++
-						} else {
-							break
-						}
-					}
-					continue
-				}
-			}
-		}
-
-		// Skip "expect further clearance" phrase
-		if tokens[pos].Text == "expect" && pos+2 < len(tokens) {
-			if strings.ToLower(tokens[pos+1].Text) == "further" &&
-				strings.ToLower(tokens[pos+2].Text) == "clearance" {
-				logLocalStt("  skipping 'expect further clearance' at position %d", pos)
-				pos += 3
-				for pos < len(tokens) {
-					if tokens[pos].Type == TokenNumber || IsDigit(tokens[pos].Text) {
-						pos++
-					} else {
-						break
-					}
-				}
-				continue
-			}
 		}
 
 		// Try to match a command
@@ -116,6 +55,7 @@ func ParseCommands(tokens []Token, ac Aircraft) ([]string, float64) {
 		if newPos > pos {
 			logLocalStt("  matched command: %q (conf=%.2f, consumed=%d, isThen=%v)",
 				match.Command, match.Confidence, newPos-pos, isThen)
+			matchedAny = true
 			if match.Command != "" {
 				commands = append(commands, match.Command)
 				totalConf += match.Confidence
@@ -164,12 +104,20 @@ func ParseCommands(tokens []Token, ac Aircraft) ([]string, float64) {
 	}
 
 	if len(commands) == 0 {
+		if matchedAny {
+			// A command pattern matched but produced no output (e.g., "standby
+			// for the approach") — return empty commands with positive
+			// confidence so the caller doesn't treat this as a failed parse.
+			logLocalStt("ParseCommands: matched but no commands to issue")
+			return nil, 1
+		}
 		logLocalStt("ParseCommands: no commands found")
 		return nil, 0
 	}
 
 	// Post-processing: if "knots" appears in the transcript, convert altitude commands to speed
 	commands = convertAltitudeToSpeedIfKnots(tokens, commands)
+	commands = coalesceAfterFixAltitudes(commands)
 
 	avgConf := totalConf / float64(len(commands))
 	logLocalStt("ParseCommands: result=%v (avgConf=%.2f)", commands, avgConf)
@@ -275,7 +223,13 @@ func tryMatchCommand(tokens []Token, startPos int, cmd sttCommand, ac Aircraft, 
 				// When the parser has tokens but can't match them, i > 0 suffices.
 				// When at end of tokens, require >1 consumed token to avoid false
 				// triggers from single stray keywords (e.g., "cleared" alone).
-				enoughContext := (pos < len(tokens) && i > 0) || pos-startPos > 1
+				// Commands with sayAgainMinTokens require more tokens consumed
+				// (e.g., "at {fix} cleared {approach}" needs the fix to match).
+				minTokens := cmd.sayAgainMinTokens
+				if minTokens <= 0 {
+					minTokens = 1
+				}
+				enoughContext := pos-startPos >= minTokens && ((pos < len(tokens) && i > 0) || pos-startPos > 1)
 				if res.sayAgain != "" && enoughContext && cmd.sayAgainOnFail {
 					return CommandMatch{
 						Command:    "SAYAGAIN/" + res.sayAgain,
@@ -405,4 +359,115 @@ func tryImplicitApproachMatch(tokens []Token, ac Aircraft) (string, int) {
 	}
 
 	return prefix + appr, consumed
+}
+
+// coalesceAfterFixAltitudes transforms bare altitude commands that follow a
+// cross-fix command into after-fix commands. When a controller says "cross FIX
+// at ALT1, descend and maintain ALT2" as a single utterance, the parser
+// independently matches "CFIX/AALT1" and "DALT2". The bare "DALT2" should
+// become "AFIX/DALT2" (after fix, descend and maintain) rather than a direct
+// altitude assignment.
+func coalesceAfterFixAltitudes(commands []string) []string {
+	for i := 0; i+1 < len(commands); i++ {
+		fix := extractPlainCrossFixTarget(commands[i])
+		if fix == "" {
+			continue
+		}
+		crossAlt := extractCrossAltitude(commands[i])
+		if transformed := transformToAfterFix(fix, commands[i+1], crossAlt); transformed != "" {
+			logLocalStt("  coalesced after-fix altitude: %s + %s -> %s", commands[i], commands[i+1], transformed)
+			commands[i+1] = transformed
+			i++ // skip the transformed command
+		}
+	}
+	return commands
+}
+
+func extractPlainCrossFixTarget(cmd string) string {
+	if !strings.HasPrefix(cmd, "C") {
+		return ""
+	}
+	parts := strings.Split(cmd, "/")
+	if len(parts) < 2 {
+		return ""
+	}
+	if _, _, err := av.ParseDistanceDirection(parts[1]); err == nil {
+		return ""
+	}
+	return extractFixFromCrossCommand(cmd)
+}
+
+// extractFixFromCrossCommand extracts the fix name from a cross-fix command
+// like "CROSLY/A60". Returns "" if the command is not a cross-fix command.
+func extractFixFromCrossCommand(cmd string) string {
+	if len(cmd) < 2 || cmd[0] != 'C' {
+		return ""
+	}
+	fix, _, found := strings.Cut(cmd[1:], "/")
+	if !found || fix == "" {
+		return ""
+	}
+	// Exclude pure-number "fixes" — those are climb commands like "C90"
+	if IsNumber(fix) {
+		return ""
+	}
+	return fix
+}
+
+// extractCrossAltitude returns the altitude from a cross-fix command like
+// "CROSLY/A60" → 60, "CROSLY/A57+" → 57. Returns 0 if no altitude found.
+func extractCrossAltitude(cmd string) int {
+	parts := strings.Split(cmd, "/")
+	for _, part := range parts[1:] {
+		if len(part) < 2 || part[0] != 'A' {
+			continue
+		}
+		// Strip trailing +/- modifier
+		numStr := part[1:]
+		numStr = strings.TrimRight(numStr, "+-")
+		if IsNumber(numStr) {
+			return ParseNumber(numStr)
+		}
+	}
+	return 0
+}
+
+// transformToAfterFix converts a bare altitude command to an after-fix form.
+// crossAlt is the altitude from the preceding cross-fix command, used to
+// disambiguate bare "maintain" (A) commands into climb vs descend.
+// Returns "" if the command is not a bare altitude command.
+func transformToAfterFix(fix, cmd string, crossAlt int) string {
+	if len(cmd) < 2 {
+		return ""
+	}
+
+	// Strip "then" prefix if present
+	inner := cmd
+	if inner[0] == 'T' && len(inner) > 1 {
+		inner = inner[1:]
+	}
+
+	if len(inner) < 2 {
+		return ""
+	}
+
+	switch inner[0] {
+	case 'D':
+		if IsNumber(inner[1:]) {
+			return fmt.Sprintf("A%s/D%s", fix, inner[1:])
+		}
+	case 'C':
+		if IsNumber(inner[1:]) {
+			return fmt.Sprintf("A%s/C%s", fix, inner[1:])
+		}
+	case 'A':
+		if IsNumber(inner[1:]) {
+			alt := ParseNumber(inner[1:])
+			if crossAlt > 0 && alt > crossAlt {
+				return fmt.Sprintf("A%s/C%s", fix, inner[1:])
+			}
+			return fmt.Sprintf("A%s/D%s", fix, inner[1:])
+		}
+	}
+	return ""
 }

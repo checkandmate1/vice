@@ -61,10 +61,10 @@ func TestParseAltitudeRestriction(t *testing.T) {
 		ar AltitudeRestriction
 	}
 	for _, test := range []testcase{
-		{s: "1000", ar: AltitudeRestriction{Range: [2]float32{1000, 1000}}},
-		{s: "3000-5000", ar: AltitudeRestriction{Range: [2]float32{3000, 5000}}},
-		{s: "7000+", ar: AltitudeRestriction{Range: [2]float32{7000, 0}}},
-		{s: "9000-", ar: AltitudeRestriction{Range: [2]float32{0, 9000}}},
+		{s: "1000", ar: MakeAtAltitudeRestriction(1000)},
+		{s: "3000-5000", ar: MakeRangeAltitudeRestriction(3000, 5000)},
+		{s: "7000+", ar: MakeAtOrAboveAltitudeRestriction(7000)},
+		{s: "9000-", ar: MakeAtOrBelowAltitudeRestriction(9000)},
 	} {
 		ar, err := ParseAltitudeRestriction(test.s)
 		if err != nil {
@@ -149,7 +149,7 @@ func TestSquawkCodePoolRandoms(t *testing.T) {
 	}
 }
 
-func TestApproachCWTSeparation(t *testing.T) {
+func TestCwtApproachSeparationTable(t *testing.T) {
 	type testcase struct {
 		front, back string
 		expect      float32
@@ -164,8 +164,8 @@ func TestApproachCWTSeparation(t *testing.T) {
 		{front: "E", back: "H", expect: 0},
 		{front: "E", back: "I", expect: 4},
 	} {
-		if s := CWTApproachSeparation(tc.front, tc.back); s != tc.expect {
-			t.Errorf("CWTApproachSeparation(%q, %q) = %f. Expected %f", tc.front, tc.back, s, tc.expect)
+		if s := cwtApproachSeparation(tc.front, tc.back); s != tc.expect {
+			t.Errorf("cwtApproachSeparation(%q, %q) = %f. Expected %f", tc.front, tc.back, s, tc.expect)
 		}
 	}
 }
@@ -193,33 +193,7 @@ func TestDirectlyBehindCWTSeparation(t *testing.T) {
 	}
 }
 
-func TestCWT25nmReductionAllowed(t *testing.T) {
-	type testcase struct {
-		front, back string
-		expect      bool
-	}
-	for _, tc := range []testcase{
-		// Valid: front lighter or same as back
-		{front: "E", back: "A", expect: true},
-		{front: "E", back: "E", expect: true},
-		{front: "G", back: "C", expect: true},
-		{front: "I", back: "I", expect: true},
-		// Invalid: front is heavy/super (A-D)
-		{front: "A", back: "A", expect: false},
-		{front: "D", back: "E", expect: false},
-		// Invalid: front lighter than back (higher letter)
-		{front: "E", back: "F", expect: false},
-		// Invalid: bad categories
-		{front: "NOWGT", back: "E", expect: false},
-		{front: "E", back: "NOWGT", expect: false},
-	} {
-		if got := CWT25nmReductionAllowed(tc.front, tc.back); got != tc.expect {
-			t.Errorf("CWT25nmReductionAllowed(%q, %q) = %v, expected %v", tc.front, tc.back, got, tc.expect)
-		}
-	}
-}
-
-func TestCWTRequiredApproachSeparation(t *testing.T) {
+func TestCWTApproachSeparation(t *testing.T) {
 	type testcase struct {
 		front, back  string
 		eligible25nm bool
@@ -230,17 +204,25 @@ func TestCWTRequiredApproachSeparation(t *testing.T) {
 		{front: "B", back: "G", eligible25nm: false, expect: 5},
 		// Zero from table → defaults to 3
 		{front: "G", back: "G", eligible25nm: false, expect: 3},
-		// 2.5nm eligible and allowed
-		{front: "E", back: "A", eligible25nm: true, expect: 2.5},
+		// Zero from table, eligible → 2.5
 		{front: "G", back: "G", eligible25nm: true, expect: 2.5},
-		// 2.5nm eligible but not allowed (front is heavy/super)
+		{front: "E", back: "A", eligible25nm: true, expect: 2.5},
+		// Bug fix cases: these have 0 in the CWT matrix, so eligible → 2.5
+		{front: "F", back: "G", eligible25nm: true, expect: 2.5},
+		{front: "F", back: "H", eligible25nm: true, expect: 2.5},
+		{front: "C", back: "B", eligible25nm: true, expect: 2.5},
+		// Same pairs without eligibility → 3
+		{front: "F", back: "G", eligible25nm: false, expect: 3},
+		{front: "F", back: "H", eligible25nm: false, expect: 3},
+		{front: "C", back: "B", eligible25nm: false, expect: 3},
+		// Non-zero table values are unaffected by eligibility
 		{front: "A", back: "I", eligible25nm: true, expect: 8},
 		{front: "D", back: "I", eligible25nm: true, expect: 6},
-		// Not eligible even though categories would allow
+		// Not eligible
 		{front: "E", back: "A", eligible25nm: false, expect: 3},
 	} {
-		if got := CWTRequiredApproachSeparation(tc.front, tc.back, tc.eligible25nm); got != tc.expect {
-			t.Errorf("CWTRequiredApproachSeparation(%q, %q, %v) = %v, expected %v",
+		if got := CWTApproachSeparation(tc.front, tc.back, tc.eligible25nm); got != tc.expect {
+			t.Errorf("CWTApproachSeparation(%q, %q, %v) = %v, expected %v",
 				tc.front, tc.back, tc.eligible25nm, got, tc.expect)
 		}
 	}

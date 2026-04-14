@@ -67,7 +67,14 @@ import (
 // 57: rework contact radio transmission management
 // 58: STT fin rev?
 // 59: server-side flightstrip management
-const ViceSerializeVersion = 59
+// 60: restructure scenario JSON
+// 61: restructure config JSON
+// 62: new route/waypoint options
+// 63: stars [A]TPA brightness controls
+// 64: stars datablock intervals
+// 65: TFR ingest pipeline
+// 66: Waypoint SpeedRestriction
+const ViceSerializeVersion = 66
 
 const ViceServerAddress = "vice.pharr.org"
 const ViceServerPort = 8000 - 50 + ViceRPCVersion
@@ -129,6 +136,11 @@ func makeServer(config ServerLaunchConfig, lg *log.Logger) (int, func(), util.Er
 
 	scenarioGroups, scenarioCatalogs, mapManifests, extraScenarioErrors :=
 		LoadScenarioGroups(config.ExtraScenario, config.ExtraVideoMap, false /* skipVideoMaps */, &errorLogger, lg)
+	if errorLogger.HaveErrors() {
+		return 0, nil, errorLogger, ""
+	}
+
+	CheckArrivalSpawnAltitudes(scenarioGroups, &errorLogger)
 	if errorLogger.HaveErrors() {
 		return 0, nil, errorLogger, ""
 	}

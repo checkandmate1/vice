@@ -409,7 +409,37 @@ func PhoneticMatch(w1, w2 string) bool {
 		}
 	}
 
+	// Subsequence matching: handles STT errors that interleave extra sounds
+	// throughout a word (e.g., "lampstand" LMPSTNT contains "lobstah" LPST
+	// as a subsequence). All core phonetic elements are preserved in order.
+	// Guards: shorter code >= 4 chars, at least 2 extra chars in longer code
+	// (to avoid near-identical pairs like "claimed" KLMT / "climbed" KLMPT),
+	// same first char, and JW >= 0.70.
+	if minPLen >= 4 && maxPLen-minPLen >= 2 {
+		shorter, longer := p1, p2
+		if len(p1) > len(p2) {
+			shorter, longer = p2, p1
+		}
+		if shorter[0] == longer[0] && isSubsequence(shorter, longer) {
+			if JaroWinkler(w1, w2) >= 0.70 {
+				return true
+			}
+		}
+	}
+
 	return false
+}
+
+// isSubsequence returns true if every character of short appears in long
+// in order (not necessarily contiguously).
+func isSubsequence(short, long string) bool {
+	si := 0
+	for li := 0; li < len(long) && si < len(short); li++ {
+		if short[si] == long[li] {
+			si++
+		}
+	}
+	return si == len(short)
 }
 
 // fuzzyMatchBlocklist contains pairs of words that should NOT fuzzy-match.
@@ -439,6 +469,9 @@ var fuzzyMatchBlocklist = map[string][]string{
 	"redo":         {"right"},             // "redo speed" should not match "turn right"
 	"san":          {"say"},               // "san juan" should not match "say"
 	"intermittent": {"ident"},             // noise word should not match "ident" command
+	"claimed":      {"climbed", "climb"},  // STT noise vs altitude command
+	"maintained":   {"maintain"},          // STT echo after "maintain" should not re-match
+	"hitting":      {"heading"},           // garbled word should not match heading command
 }
 
 // FuzzyMatch returns true if word matches target with Jaro-Winkler >= threshold
@@ -515,7 +548,35 @@ func normalizeVowels(s string) string {
 	s = strings.ReplaceAll(s, "eye", "i")
 	s = strings.ReplaceAll(s, "oye", "oi")
 	s = strings.ReplaceAll(s, "uye", "ui")
+	s = strings.ReplaceAll(s, "er", "i")
 	return s
+}
+
+// normalizeConsonantClusters normalizes consonant clusters that sound alike.
+// Handles cases where STT uses a different spelling for the same sound
+// (e.g., "sachs" vs "socks" — "ch" and "ck" both produce a /k/ sound).
+func normalizeConsonantClusters(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, "ck", "k")
+	s = strings.ReplaceAll(s, "ch", "k")
+	return s
+}
+
+// normalizeCK normalizes C/K equivalence for phonetically identical sounds.
+// STT may use K for a hard C sound or vice versa (e.g., "kelse" for "Celtic").
+func normalizeCK(s string) string {
+	return strings.ReplaceAll(strings.ToLower(s), "c", "k")
+}
+
+// hasInitialCKSwap returns true if one string starts with 'c' and the other
+// starts with 'k' (case-insensitive), indicating an initial C/K substitution.
+func hasInitialCKSwap(a, b string) bool {
+	if len(a) == 0 || len(b) == 0 {
+		return false
+	}
+	aFirst := strings.ToLower(a[:1])
+	bFirst := strings.ToLower(b[:1])
+	return (aFirst == "c" && bFirst == "k") || (aFirst == "k" && bFirst == "c")
 }
 
 // CleanWord removes non-alphanumeric characters from a word.

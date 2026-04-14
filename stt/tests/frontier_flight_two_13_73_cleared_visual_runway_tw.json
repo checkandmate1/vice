@@ -15,7 +15,7 @@
   "processor": "GPU: Apple M1, 8 CPU / 8 GPU cores, 8GB",
   "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
   "callsign": "FFT1373",
-  "command": "CV26",
+  "command": "CVA26",
   "stt_aircraft": {
     "Frontier Flight 13 73": {
       "Callsign": "FFT1373",
@@ -35,6 +35,11 @@
         "I L S runway two six": "I26",
         "Visual runway two five left": "V5L",
         "Visual runway two six": "V26"
+      },
+      "CandidateVisualApproaches": {
+        "visual runway two six": "26",
+        "visual approach runway two six": "26",
+        "visual two six": "26"
       },
       "ApproachFixes": {
         "I26": {

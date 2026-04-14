@@ -84,10 +84,6 @@ type Preferences struct {
 	// Whether we center them at RangeRingsCenter or Center
 	UseUserRangeRingsCenter bool `json:"RangeRingsUserCenter"`
 
-	// User-supplied text for the SSA list
-	ATIS   [10]string `json:"ATISes"` /* rename after making array */
-	GIText [10]string
-
 	// If empty, then then MULTI or FUSED mode, depending on
 	// FusedRadarMode.  The custom JSON name is so we don't get errors
 	// parsing old configs, which stored this as an array...
@@ -201,6 +197,8 @@ type CommonPreferences struct {
 		History            radar.Brightness
 		Weather            radar.Brightness
 		WxContrast         radar.Brightness
+		TPA                radar.Brightness
+		ATPA               radar.Brightness
 	}
 
 	CharSize struct {
@@ -291,11 +289,6 @@ func (p *Preferences) Reset(ss client.SimState, sp *STARSPane) {
 	p.QuickLookTCPs = nil
 	p.DisabledQLRegions = nil
 
-	for i := range p.ATIS {
-		p.ATIS[i] = ""
-		p.GIText[i] = ""
-	}
-
 	p.RadarSiteSelected = ""
 
 	p.SelectedBeacons = util.DuplicateSlice(ss.ControllerMonitoredBeaconCodeBlocks)
@@ -378,6 +371,8 @@ func makeDefaultPreferences() *Preferences {
 	prefs.Brightness.History = 60
 	prefs.Brightness.Weather = 30
 	prefs.Brightness.WxContrast = 30
+	prefs.Brightness.TPA = 40
+	prefs.Brightness.ATPA = 40
 
 	for i := range prefs.DisplayWeatherLevel {
 		prefs.DisplayWeatherLevel[i] = true
@@ -581,6 +576,10 @@ func (p *Preferences) Upgrade(from, to int) {
 	}
 	if from < 32 {
 		p.MCISuppressionList.Position = [2]float32{.8, .1}
+	}
+	if from < 63 {
+		p.Brightness.TPA = 40
+		p.Brightness.ATPA = 40
 	}
 }
 

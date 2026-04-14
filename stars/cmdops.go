@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
-	"time"
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
@@ -270,123 +269,90 @@ func registerOpsCommands() {
 	// 5.3.2 Modify regional or airport altimeter setting
 	// {(CommandModeMultiFunc,  "A[FIELD] [NUM]|A[FIELD] A|A[FIELD] [NUM]E")
 
+	updateATISGIText := func(sp *STARSPane, ctx *panes.Context, line int, auxiliary bool, atis *string, text *string) {
+		// Remember the expected shared-state result so the originating pane can
+		// suppress flashing for its own update once it comes back from the server.
+		sp.notePendingATISGITextUpdate(ctx, line, atis, text)
+		ctx.Client.UpdateATISGIText(line, auxiliary, atis, text, func(err error) {
+			if err != nil {
+				sp.clearPendingATISGITextUpdate(line)
+			}
+			sp.displayError(err, ctx, "")
+		})
+	}
+
 	// 5.3.3 Create or modify ATIS code and main Gen. info text (p. 5-58)
-	registerCommand(CommandModeMultiFunc, "S[FIELD:1]", func(ps *Preferences, alpha string) error {
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[0] = alpha
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[FIELD:1]", func(sp *STARSPane, ctx *panes.Context, alpha string) {
+		updateATISGIText(sp, ctx, 0, false, &alpha, nil)
 	})
-	registerCommand(CommandModeMultiFunc, "S[FIELD:1][ALL_TEXT]", func(ps *Preferences, alpha string, text string) error {
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[0] = alpha
-		ps.GIText[0] = text
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[FIELD:1][ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, alpha string, text string) {
+		updateATISGIText(sp, ctx, 0, false, &alpha, &text)
 	})
 
 	// 5.3.4 Delete system ATIS code and enter new main gen. info text
-	registerCommand(CommandModeMultiFunc, "S*", func(ps *Preferences) {
-		ps.ATIS[0] = ""
+	registerCommand(CommandModeMultiFunc, "S*", func(sp *STARSPane, ctx *panes.Context) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &empty, nil)
 	})
-	registerCommand(CommandModeMultiFunc, "S* [ALL_TEXT]", func(ps *Preferences, text string) {
-		ps.ATIS[0] = ""
-		ps.GIText[0] = text
+	registerCommand(CommandModeMultiFunc, "S* [ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, text string) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &empty, &text)
 	})
 
 	// 5.3.5 Delete main gen. info text and enter new ATIS code
-	registerCommand(CommandModeMultiFunc, "S[FIELD:1]*", func(ps *Preferences, alpha string) error {
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[0] = alpha
-		ps.GIText[0] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[FIELD:1]*", func(sp *STARSPane, ctx *panes.Context, alpha string) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &alpha, &empty)
 	})
 
 	// 5.3.6 Delete main Gen. info text and ATIS code (p. 5-62)
-	registerCommand(CommandModeMultiFunc, "S", func(ps *Preferences) {
-		ps.ATIS[0] = ""
-		ps.GIText[0] = ""
+	registerCommand(CommandModeMultiFunc, "S", func(sp *STARSPane, ctx *panes.Context) {
+		empty := ""
+		updateATISGIText(sp, ctx, 0, false, &empty, &empty)
 	})
 
 	// 5.3.7 Create or modify auxiliary gen. info text and ATIS code
 	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1] [ALL_TEXT]",
-		func(ps *Preferences, line int, alpha, text string) error {
-			if line == 0 {
-				return ErrSTARSIllegalLine
-			}
-			if !isAlpha(alpha[0]) {
-				return ErrSTARSIllegalATIS
-			}
-			ps.ATIS[line] = alpha
-			ps.GIText[line] = text
-			return nil
+		func(sp *STARSPane, ctx *panes.Context, line int, alpha, text string) {
+			updateATISGIText(sp, ctx, line, true, &alpha, &text)
 		})
-	registerCommand(CommandModeMultiFunc, "S[#] [ALL_TEXT]", func(ps *Preferences, line int, text string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.GIText[line] = text
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] [ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, line int, text string) {
+		updateATISGIText(sp, ctx, line, true, nil, &text)
 	})
 
 	// 5.3.8 Create or modify auxiliary ATIS code
-	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]", func(ps *Preferences, line int, alpha string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[line] = alpha
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]", func(sp *STARSPane, ctx *panes.Context, line int, alpha string) {
+		updateATISGIText(sp, ctx, line, true, &alpha, nil)
 	})
 
 	// 5.3.9 Delete auxiliary ATIS code and enter new auxiliary gen. info text
-	registerCommand(CommandModeMultiFunc, "S[#] *", func(ps *Preferences, line int) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.ATIS[line] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] *", func(sp *STARSPane, ctx *panes.Context, line int) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &empty, nil)
 	})
-	registerCommand(CommandModeMultiFunc, "S[#] * [ALL_TEXT]", func(ps *Preferences, line int, text string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.ATIS[line] = ""
-		ps.GIText[line] = text
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] * [ALL_TEXT]", func(sp *STARSPane, ctx *panes.Context, line int, text string) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &empty, &text)
 	})
 
 	// 5.3.10 Delete auxiliary gen. info text and enter new auxiliary ATIS code
-	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]*", func(ps *Preferences, line int, alpha string) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		if !isAlpha(alpha[0]) {
-			return ErrSTARSIllegalATIS
-		}
-		ps.ATIS[line] = alpha
-		ps.GIText[line] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#] [FIELD:1]*", func(sp *STARSPane, ctx *panes.Context, line int, alpha string) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &alpha, &empty)
 	})
 
 	// 5.3.11 Delete auxiliary Gen. info text and ATIS code
-	registerCommand(CommandModeMultiFunc, "S[#]", func(ps *Preferences, line int) error {
-		if line == 0 {
-			return ErrSTARSIllegalLine
-		}
-		ps.ATIS[line] = ""
-		ps.GIText[line] = ""
-		return nil
+	registerCommand(CommandModeMultiFunc, "S[#]", func(sp *STARSPane, ctx *panes.Context, line int) {
+		empty := ""
+		updateATISGIText(sp, ctx, line, true, &empty, &empty)
 	})
 
 	// 5.3.13 Stop blinking ATIS and gen. info text
-	// registerCommand(CommandModeNone, STARSTriangleCharacter, ...)
+	registerCommand(CommandModeNone, STARSTriangleCharacter, func(sp *STARSPane) {
+		for i := range sp.FlashATIS {
+			sp.FlashATIS[i] = false
+		}
+	})
 
 	// 5.4.1 Activate FP and associate or create Unsupported data block (Implied command)
 	registerCommand(CommandModeNone, "[UNASSOC_FP][SLEW]",
@@ -619,10 +585,10 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeNone, "[FP_ACID]", createAbbrevFP)
-	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FLT_TYPE|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE|FP_ALT_R|FP_RULES]", createAbbrevFP)
+	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FLT_TYPE|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ|FP_ALT_R|FP_RULES]", createAbbrevFP)
 
 	// 5.5.2 Create / modify interfacility VFR FP and send FP message to ARTCC (Implied command)
-	registerCommand(CommandModeNone, "[FP_ACID] [FP_VFR_FIXES][FP_ACTYPE][?FP_ALT_R][?FP_TCP]",
+	registerCommand(CommandModeNone, "[FP_ACID] [FP_VFR_FIXES][FP_ACTYPE_EQ][?FP_ALT_R][?FP_TCP]",
 		func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier) {
 			spec.Rules.Set(av.FlightRulesVFR)
 			spec.TypeOfFlight.Set(av.FlightTypeArrival)
@@ -643,7 +609,7 @@ func registerOpsCommands() {
 		return nil
 	}
 	registerCommand(CommandModeNone, "[FP_ACID][SLEW]", createFPAndAssociate)
-	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][SLEW]", createFPAndAssociate)
+	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][SLEW]", createFPAndAssociate)
 
 	createUnsupportedDB := func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier, p math.Point2LL) {
 		spec.TypeOfFlight.Set(av.FlightTypeArrival)
@@ -651,10 +617,10 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeNone, "[FP_ACID][POS]", createUnsupportedDB)
-	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][POS]", createUnsupportedDB)
+	registerCommand(CommandModeNone, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][POS]", createUnsupportedDB)
 
 	// 5.5.4 Create FP and associate to LDB with blinking ACID or frozen SPC (implied)
-	// {C: "[*FP_ACID|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][SLEW]" }
+	// {C: "[*FP_ACID|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][SLEW]" }
 
 	// 5.5.5 Create flight plan (p. 5-109)
 	registerCommand(CommandModeFlightData, "[FP_ACID]",
@@ -663,7 +629,7 @@ func registerOpsCommands() {
 			spec.PlanType.Set(sim.LocalNonEnroute)
 			createFlightPlan(sp, ctx, spec)
 		})
-	registerCommand(CommandModeFlightData, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FIX_PAIR|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE|FP_ALT_R|FP_RULES]",
+	registerCommand(CommandModeFlightData, "[FP_ACID] [*FP_BEACON|FP_TCP|FP_FIX_PAIR|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ|FP_ALT_R|FP_RULES]",
 		func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier) {
 			spec.TypeOfFlight.Set(av.FlightTypeArrival)
 			spec.PlanType.Set(sim.LocalNonEnroute)
@@ -672,7 +638,7 @@ func registerOpsCommands() {
 
 	// 5.5.6 Create Departure FP with DM indicator
 	// registerCommand(CommandModeFlightData, "* [FP_ACID]", ...)
-	// registerCommand(CommandModeFlightData, "* [FP_ACID] [*FP_BEACON|FP_EXIT_FIX|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE|FP_ALT_R]"", ...)
+	// registerCommand(CommandModeFlightData, "* [FP_ACID] [*FP_BEACON|FP_EXIT_FIX|FP_COORD_TIME|FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ|FP_ALT_R]"", ...)
 
 	// 5.5.7 Create pending FP with discrete beacon code (p. 5-120)
 	createPendingFPWithBeacon := func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier) {
@@ -681,7 +647,7 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeInitiateControl, "[FP_ACID] [FP_BEACON]", createPendingFPWithBeacon)
-	registerCommand(CommandModeInitiateControl, "[FP_ACID] [FP_BEACON] [*FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE]", createPendingFPWithBeacon)
+	registerCommand(CommandModeInitiateControl, "[FP_ACID] [FP_BEACON] [*FP_TRI_SP1|FP_PLUS_SP2|FP_NUM_ACTYPE_EQ]", createPendingFPWithBeacon)
 
 	// 5.5.8 Create active FP with discrete beacon code (p. 5-124)
 	createActiveFPWithBeacon := func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier, trk *sim.Track) error {
@@ -696,7 +662,7 @@ func registerOpsCommands() {
 		return nil
 	}
 	registerCommand(CommandModeInitiateControl, "[FP_ACID][SLEW]", createActiveFPWithBeacon)
-	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][SLEW]",
+	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][SLEW]",
 		createActiveFPWithBeacon)
 
 	// 5.5.9 Create active FP and Unsupported data block (p. 5-129)
@@ -707,7 +673,7 @@ func registerOpsCommands() {
 		createFlightPlan(sp, ctx, spec)
 	}
 	registerCommand(CommandModeInitiateControl, "[FP_ACID][POS]", createActiveFPAndUnsupportedDB)
-	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE][POS]",
+	registerCommand(CommandModeInitiateControl, "[FP_ACID] [*FP_BEACON|FP_TRI_SP1|FP_PLUS_SP2|FP_ALT_A|FP_NUM_ACTYPE_EQ][POS]",
 		createActiveFPAndUnsupportedDB)
 
 	// 5.5.10 Create / modify VFR FP and send FP message to ARTCC (p. 5-133)
@@ -717,8 +683,8 @@ func registerOpsCommands() {
 		spec.PlanType.Set(sim.LocalEnroute)
 		createFlightPlan(sp, ctx, spec)
 	}
-	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE]", createModifyVFRFP)
-	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE] [*FP_ALT_R|FP_TCP]", createModifyVFRFP)
+	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE_EQ]", createModifyVFRFP)
+	registerCommand(CommandModeVFRPlan, "[FP_ACID] [FP_VFR_FIXES] [FP_ACTYPE_EQ] [*FP_ALT_R|FP_TCP]", createModifyVFRFP)
 
 	// 5.5.11 Create flight plans on formation breakup
 	// registerCommand(CommandModeInitiateControl, "STARSTriangleCharacter+" [TRK_ACID] ..." also TRK_INDEX, TRK_BCN)
@@ -737,7 +703,7 @@ func registerOpsCommands() {
 		spec.ACID.Set(acid)
 		spec.SquawkAssignment.Set(sq.String())
 		spec.TypeOfFlight.Set(av.FlightTypeOverflight)
-		spec.CoordinationTime.Set(ctx.Now)
+		spec.CoordinationTime.Set(ctx.SimTime)
 		spec.Rules.Set(rules)
 		spec.PlanType.Set(sim.LocalNonEnroute)
 		createFlightPlan(sp, ctx, spec)
@@ -750,11 +716,36 @@ func registerOpsCommands() {
 		return quickFPFromSquawk(sp, ctx, sq, av.FlightRulesVFR)
 	})
 
-	// 5.5.13 Create interfacility VFR flight plan from active local track
-	// registerCommand(CommandModeVFRPlan, "[SLEW]", ...)
-	// registerCommand(CommandModeVFRPlan, "*[SLEW]", ...)
-	// registerCommand(CommandModeVFRPlan, "*[FP_ALT_R][SLEW]", ...)
-	// registerCommand(CommandModeVFRPlan, "[FP_ALT_R][SLEW]", ...)
+	// 5.5.13 Create interfacility VFR flight plan from active local track (p. 5-143)
+	createInterfacilityVFR := func(sp *STARSPane, ctx *panes.Context, trk *sim.Track, isIntermediate bool, requestedAlt int) error {
+		if !trk.IsAssociated() {
+			return ErrSTARSIllegalTrack
+		}
+		acid := trk.FlightPlan.ACID
+		ctx.Client.CreateInterfacilityVFR(acid, isIntermediate, requestedAlt,
+			func(err error) {
+				if err == nil {
+					if fp := ctx.Client.State.GetFlightPlanForACID(acid); fp != nil {
+						sp.previewAreaOutput = formatFlightPlan(sp, ctx, fp, nil)
+					}
+				} else {
+					sp.displayError(err, ctx, "")
+				}
+			})
+		return nil
+	}
+	registerCommand(CommandModeVFRPlan, "[SLEW]", func(sp *STARSPane, ctx *panes.Context, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, false, 0)
+	})
+	registerCommand(CommandModeVFRPlan, "*[SLEW]", func(sp *STARSPane, ctx *panes.Context, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, true, 0)
+	})
+	registerCommand(CommandModeVFRPlan, "[FP_ALT_R][SLEW]", func(sp *STARSPane, ctx *panes.Context, altSpec sim.FlightPlanSpecifier, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, false, altSpec.RequestedAltitude.GetOr(0))
+	})
+	registerCommand(CommandModeVFRPlan, "*[FP_ALT_R][SLEW]", func(sp *STARSPane, ctx *panes.Context, altSpec sim.FlightPlanSpecifier, trk *sim.Track) error {
+		return createInterfacilityVFR(sp, ctx, trk, true, altSpec.RequestedAltitude.GetOr(0))
+	})
 
 	// 5.5.14 Create quick ACID flight plan (Implied command) (p. 5-145)
 	registerCommand(CommandModeNone, "Y[SLEW]", func(sp *STARSPane, ctx *panes.Context, trk *sim.Track) error {
@@ -774,7 +765,7 @@ func registerOpsCommands() {
 	})
 
 	// 5.6.2 Add or modify aircraft type (Implied command) (p. 5-148)
-	registerCommand(CommandModeNone, "[FP_NUM_ACTYPE4][SLEW]",
+	registerCommand(CommandModeNone, "[FP_NUM_ACTYPE4_EQ][SLEW]",
 		func(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpecifier, trk *sim.Track) error {
 			if !trk.IsAssociated() {
 				return ErrSTARSCommandFormat
@@ -800,7 +791,7 @@ func registerOpsCommands() {
 		return nil
 	}
 	registerCommand(CommandModeNone, "[FP_SP1|FP_ALT_P|FP_PLUS_SP2|FP_PLUS_ALT_A|FP_PLUS2_ALT_R][SLEW]", modifyFPSlew)
-	registerCommand(CommandModeNone, "[FP_SP1|FP_ALT_P|FP_PLUS_SP2|FP_PLUS_ALT_A|FP_PLUS2_ALT_R] [FP_ACTYPE][SLEW]", modifyFPSlew)
+	registerCommand(CommandModeNone, "[FP_SP1|FP_ALT_P|FP_PLUS_SP2|FP_PLUS_ALT_A|FP_PLUS2_ALT_R] [FP_ACTYPE_EQ][SLEW]", modifyFPSlew)
 
 	// 5.6.6 Inhibit blinking data block at former local owner's TCW/TDW (implied)
 
@@ -918,10 +909,10 @@ func registerOpsCommands() {
 	registerCommand(CommandModeMultiFunc, "M"+modFPEntries+"[SLEW]", modifyFP)
 
 	// 5.6.18 Modify RNAV symbol, a/c type, equipment suffix, or flight rules (p. 5-178)
-	registerCommand(CommandModeMultiFunc, "H[TRK_ACID] [FP_RNAV|FP_NUM_ACTYPE|FP_RULES]", modifyFP)
-	registerCommand(CommandModeMultiFunc, "H[TRK_BCN] [FP_RNAV|FP_NUM_ACTYPE|FP_RULES]", modifyFP)
-	registerCommand(CommandModeMultiFunc, "H[TRK_INDEX] [FP_RNAV|FP_NUM_ACTYPE|FP_RULES]", modifyFP)
-	registerCommand(CommandModeMultiFunc, "H[FP_RNAV|FP_NUM_ACTYPE|FP_RULES][SLEW]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[TRK_ACID] [FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[TRK_BCN] [FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[TRK_INDEX] [FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES]", modifyFP)
+	registerCommand(CommandModeMultiFunc, "H[FP_RNAV|FP_NUM_ACTYPE_EQ|FP_RULES][SLEW]", modifyFP)
 
 	// 5.6.19 Retransmit VFR FP message with amended fix data
 	// note it's the VFR tab line number: is this different than TRK_INDEX? (actually, TRK_INDEX is n/a since fp is not associated...)
@@ -1032,7 +1023,7 @@ func associateFlightPlan(sp *STARSPane, ctx *panes.Context, callsign av.ADSBCall
 		spec.TrackingController.Set(ctx.UserPrimaryPosition())
 	}
 	if !spec.CoordinationTime.IsSet {
-		spec.CoordinationTime.Set(ctx.Now)
+		spec.CoordinationTime.Set(ctx.SimTime)
 	}
 
 	ctx.Client.AssociateFlightPlan(callsign, spec,
@@ -1052,7 +1043,7 @@ func createFlightPlan(sp *STARSPane, ctx *panes.Context, spec sim.FlightPlanSpec
 		spec.TrackingController.Set(ctx.UserPrimaryPosition())
 	}
 	if !spec.CoordinationTime.IsSet {
-		spec.CoordinationTime.Set(ctx.Now)
+		spec.CoordinationTime.Set(ctx.SimTime)
 	}
 
 	ctx.Client.CreateFlightPlan(spec,
@@ -1103,7 +1094,7 @@ func formatFlightPlan(sp *STARSPane, ctx *panes.Context, fp *sim.NASFlightPlan, 
 		return "NO PLAN"
 	}
 
-	fmtTime := func(t time.Time) string {
+	fmtTime := func(t sim.Time) string {
 		return t.UTC().Format("1504")
 	}
 

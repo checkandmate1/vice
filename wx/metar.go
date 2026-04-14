@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/rand"
 	"github.com/mmp/vice/util"
@@ -29,13 +30,13 @@ import (
 type METAR struct {
 	ICAO        string `json:"icaoId"`
 	Time        time.Time
-	Temperature float32 `json:"temp"`
-	Dewpoint    float32 `json:"dewp"`
-	Altimeter   float32 `json:"altim"`
-	WindDir     *int    `json:"-"` // nil for variable winds, otherwise heading 0-360
-	WindSpeed   int     `json:"wspd"`
-	WindGust    *int    `json:"wgst"`
-	Raw         string  `json:"rawOb"`
+	Temperature av.Temperature `json:"temp"`
+	Dewpoint    av.Temperature `json:"dewp"`
+	Altimeter   float32        `json:"altim"`
+	WindDir     *int           `json:"-"` // nil for variable winds, otherwise heading 0-360
+	WindSpeed   int            `json:"wspd"`
+	WindGust    *int           `json:"wgst"`
+	Raw         string         `json:"rawOb"`
 
 	// WindDirRaw and ReportTime are used for JSON unmarshaling only
 	WindDirRaw any    `json:"wdir"` // nil or string "VRB" for variable, else number for heading
@@ -160,13 +161,33 @@ func (m METAR) Ceiling() (int, error) {
 	return 12000, nil
 }
 
+// HasObscuration returns true if the METAR reports visibility-reducing weather
+// phenomena such as haze, mist, fog, smoke, dust, sand, ash, or spray.
+func (m METAR) HasObscuration() bool {
+	for f := range strings.FieldsSeq(m.Raw) {
+		switch f {
+		case "HZ", "BR", "FG", "MIFG", "BCFG", "PRFG", "FZFG", "FU", "VA", "DU", "SA", "PY":
+			return true
+		}
+	}
+	return false
+}
+
 func METARForTime(metar []METAR, t time.Time) METAR {
-	if idx, _ := slices.BinarySearchFunc(metar, t, func(m METAR, t time.Time) int {
+	if len(metar) == 0 {
+		return METAR{}
+	}
+
+	idx, ok := slices.BinarySearchFunc(metar, t, func(m METAR, t time.Time) int {
 		return m.Time.Compare(t)
-	}); idx < len(metar) {
+	})
+	if ok {
 		return metar[idx]
 	}
-	return METAR{}
+	if idx > 0 {
+		return metar[idx-1]
+	}
+	return metar[0]
 }
 
 // Given an average headings (e.g. runway directions) and a slice of valid time intervals,
@@ -239,13 +260,13 @@ func MakeMETARSOA(recs []METAR) (METARSOA, error) {
 			return int16(vf), nil
 		}
 
-		temp, err := toFixedS14_1(m.Temperature)
+		temp, err := toFixedS14_1(m.Temperature.Celsius())
 		if err != nil {
 			return METARSOA{}, err
 		}
 		soa.Temperature = append(soa.Temperature, temp)
 
-		dewp, err := toFixedS14_1(m.Dewpoint)
+		dewp, err := toFixedS14_1(m.Dewpoint.Celsius())
 		if err != nil {
 			return METARSOA{}, err
 		}
@@ -311,8 +332,8 @@ func (soa METARSOA) Decode() []METAR {
 	for i := range soa.ReportTime {
 		cm := METAR{
 			ReportTime:  string(reportTime[i]),
-			Temperature: float32(temp[i]) / 10,
-			Dewpoint:    float32(dewp[i]) / 10,
+			Temperature: av.MakeTemperatureFromCelsius(float32(temp[i]) / 10),
+			Dewpoint:    av.MakeTemperatureFromCelsius(float32(dewp[i]) / 10),
 			Altimeter:   float32(alt[i]) / 10,
 			WindSpeed:   int(speed[i]),
 			Raw:         soa.Raw[i],
@@ -354,11 +375,11 @@ func (soa METARSOA) Check(orig []METAR) error {
 		if mo.ReportTime != mc.ReportTime {
 			return fmt.Errorf("ReportTime mismatch: %s - %s", mo.ReportTime, mc.ReportTime)
 		}
-		if math.Abs(mo.Temperature-mc.Temperature) > 0.001 {
-			return fmt.Errorf("Temperature mismatch: %.8g - %.8g", mo.Temperature, mc.Temperature)
+		if math.Abs(mo.Temperature.Celsius()-mc.Temperature.Celsius()) > 0.001 {
+			return fmt.Errorf("Temperature mismatch: %.8g - %.8g", mo.Temperature.Celsius(), mc.Temperature.Celsius())
 		}
-		if math.Abs(mo.Dewpoint-mc.Dewpoint) > 0.001 {
-			return fmt.Errorf("Dewpoint mismatch: %.8g - %.8g", mo.Dewpoint, mc.Dewpoint)
+		if math.Abs(mo.Dewpoint.Celsius()-mc.Dewpoint.Celsius()) > 0.001 {
+			return fmt.Errorf("Dewpoint mismatch: %.8g - %.8g", mo.Dewpoint.Celsius(), mc.Dewpoint.Celsius())
 		}
 		if math.Abs(mo.Altimeter-mc.Altimeter) > 0.001 {
 			return fmt.Errorf("Altimeter mismatch: %.8g - %.8g", mo.Altimeter, mc.Altimeter)

@@ -8,13 +8,14 @@ import (
 
 // sttCommand represents a registered command with its template and handler.
 type sttCommand struct {
-	name           string    // Human-readable name for debugging
-	template       string    // Original template string
-	matchers       []matcher // Parsed matchers
-	handler        any       // Handler function
-	priority       int       // Higher priority wins when multiple match
-	thenVariant    string    // Output format for "then" variant (e.g., "TD%d")
-	sayAgainOnFail bool      // If true, emit SAYAGAIN when type parser fails
+	name              string    // Human-readable name for debugging
+	template          string    // Original template string
+	matchers          []matcher // Parsed matchers
+	handler           any       // Handler function
+	priority          int       // Higher priority wins when multiple match
+	thenVariant       string    // Output format for "then" variant (e.g., "TD%d")
+	sayAgainOnFail    bool      // If true, emit SAYAGAIN when type parser fails
+	sayAgainMinTokens int       // Minimum tokens consumed before SAYAGAIN triggers (0 = use default)
 }
 
 // sttCommands holds all registered commands.
@@ -62,6 +63,17 @@ func WithSayAgainOnFail() CommandOption {
 	}
 }
 
+// WithSayAgainMinTokens sets the minimum number of consumed tokens before
+// SAYAGAIN triggers. Use this for commands starting with common words like
+// "at" where a single keyword match is insufficient context. For example,
+// "at {fix} cleared {approach}" should only trigger SAYAGAIN if the fix
+// matched (2+ tokens consumed), not when just "at" matched.
+func WithSayAgainMinTokens(n int) CommandOption {
+	return func(c *sttCommand) {
+		c.sayAgainMinTokens = n
+	}
+}
+
 // registerSTTCommand registers a command with a template string and handler function.
 //
 // Template syntax:
@@ -78,6 +90,7 @@ func WithSayAgainOnFail() CommandOption {
 //   - `{sid}` - SID name
 //   - `{star}` - STAR name
 //   - `{num:min-max}` - Number in range
+//   - `{compass_dir}` - Cardinal/ordinal direction (returns short form: N/S/E/W/NE/NW/SE/SW)
 //   - `{skip}` - Skip tokens until next matcher
 //   - `[word {type}]` - Optional section with typed param (param is *T, nil if absent)
 //

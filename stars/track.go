@@ -25,9 +25,9 @@ type TrackState struct {
 	// freshest possible information for things like calculating headings,
 	// rates of altitude change, etc.
 	track             av.RadarTrack
-	trackTime         time.Time
+	trackTime         sim.Time
 	previousTrack     av.RadarTrack
-	previousTrackTime time.Time
+	previousTrackTime sim.Time
 
 	// Radar track history is maintained with a ring buffer where
 	// historyTracksIndex is the index of the next track to be written.
@@ -37,8 +37,8 @@ type TrackState struct {
 	historyTracks      [10]av.RadarTrack
 	historyTracksIndex int
 
-	FullLDBEndTime           time.Time // If the LDB displays the groundspeed. When to stop
-	DisplayRequestedAltitude *bool     // nil if unspecified
+	FullLDBEndTime           sim.Time // If the LDB displays the groundspeed. When to stop
+	DisplayRequestedAltitude *bool    // nil if unspecified
 
 	IsSelected bool // middle click
 
@@ -64,14 +64,14 @@ type TrackState struct {
 	ATPALeadAircraftCallsign  av.ADSBCallsign
 	DrawATPAGraphics          bool
 
-	POFlashingEndTime time.Time
-	UNFlashingEndTime time.Time
+	POFlashingEndTime sim.Time
+	UNFlashingEndTime sim.Time
 	IFFlashing        bool // Will continue to flash unless slewed or a successful handoff
 
-	SuspendedShowAltitudeEndTime time.Time
+	SuspendedShowAltitudeEndTime sim.Time
 
 	AcceptedHandoffSector     string
-	AcceptedHandoffDisplayEnd time.Time
+	AcceptedHandoffDisplayEnd sim.Time
 
 	// These are only set if a leader line direction was specified for this
 	// aircraft individually:
@@ -88,14 +88,14 @@ type TrackState struct {
 	DisplayPTL           bool
 
 	MSAW             bool // minimum safe altitude warning
-	MSAWStart        time.Time
+	MSAWStart        sim.Time
 	InhibitMSAW      bool // only applies if in an alert. clear when alert is over?
 	MSAWAcknowledged bool
-	MSAWSoundEnd     time.Time
+	MSAWSoundEnd     sim.Time
 
 	SPCAlert        bool
 	SPCAcknowledged bool
-	SPCSoundEnd     time.Time
+	SPCSoundEnd     sim.Time
 
 	MissingFlightPlanAcknowledged bool
 
@@ -103,13 +103,13 @@ type TrackState struct {
 	// a different code, we get a flashing DB in the datablock.
 	DBAcknowledged av.Squawk
 
-	FirstRadarTrackTime time.Time
+	FirstRadarTrackTime sim.Time
 	EnteredOurAirspace  bool
 
 	OutboundHandoffAccepted bool
-	OutboundHandoffFlashEnd time.Time
+	OutboundHandoffFlashEnd sim.Time
 
-	RDIndicatorEnd time.Time
+	RDIndicatorEnd sim.Time
 
 	// Set when the user enters a command to clear the primary scratchpad,
 	// but it is already empty. (In turn, this causes the exit
@@ -124,6 +124,7 @@ type TrackState struct {
 	// entirely.
 	PointOutAcknowledged bool
 	ForceQL              bool
+	InQLRegion           bool
 
 	// Unreasonable Mode-C
 	UnreasonableModeC       bool
@@ -133,7 +134,7 @@ type TrackState struct {
 	// applies locally; for owned tracks, the flight plan is modified so it
 	// applies globally.
 	InhibitACTypeDisplay      *bool
-	ForceACTypeDisplayEndTime time.Time
+	ForceACTypeDisplayEndTime sim.Time
 
 	// Draw the datablock in yellow (until cleared); currently only used for
 	// [MF]Y[SLEW] quick flight plans
@@ -158,7 +159,7 @@ const (
 )
 
 const (
-	FPMThreshold = 8400 / 100
+	FPMThreshold = 8400
 )
 
 func (ts *TrackState) TrackDeltaAltitude() int {
@@ -191,11 +192,11 @@ func (ts *TrackState) HeadingVector(nmPerLongitude, magneticVariation float32) m
 	return math.NM2LL(v, nmPerLongitude)
 }
 
-func (ts *TrackState) TrackHeading(nmPerLongitude float32) float32 {
+func (ts *TrackState) TrackHeading(nmPerLongitude float32) math.TrueHeading {
 	if !ts.HaveHeading() {
 		return 0
 	}
-	return math.Heading2LL(ts.previousTrack.Location, ts.track.Location, nmPerLongitude, 0)
+	return math.Heading2LL(ts.previousTrack.Location, ts.track.Location, nmPerLongitude)
 }
 
 func (sp *STARSPane) trackStateForACID(ctx *panes.Context, acid sim.ACID) (*TrackState, bool) {
@@ -210,6 +211,23 @@ func (sp *STARSPane) trackStateForACID(ctx *panes.Context, acid sim.ACID) (*Trac
 }
 
 func (sp *STARSPane) processEvents(ctx *panes.Context) {
+	for i := range ctx.Client.State.ATIS {
+		if sp.LastATIS[i] != ctx.Client.State.ATIS[i] || sp.LastGIText[i] != ctx.Client.State.GIText[i] {
+			// Don't flash the controller's own edit when its RPC response or the
+			// next world update brings the shared state back to this pane.
+			if pending := sp.pendingATISGITextUpdate[i]; pending.Valid &&
+				pending.ExpectedATIS == ctx.Client.State.ATIS[i] &&
+				pending.ExpectedGIText == ctx.Client.State.GIText[i] {
+				sp.FlashATIS[i] = false
+				sp.clearPendingATISGITextUpdate(i)
+			} else {
+				sp.FlashATIS[i] = ctx.FacilityAdaptation.Lists.SSA.FlashOnATISUpdate
+			}
+			sp.LastATIS[i] = ctx.Client.State.ATIS[i]
+			sp.LastGIText[i] = ctx.Client.State.GIText[i]
+		}
+	}
+
 	// First handle changes in sim.State.Tracks
 	for _, trk := range ctx.Client.State.Tracks {
 		if _, ok := sp.TrackState[trk.ADSBCallsign]; !ok {
@@ -227,7 +245,7 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 			state := sp.TrackState[trk.ADSBCallsign]
 			state.SPCAlert = true
 			state.SPCAcknowledged = false
-			state.SPCSoundEnd = ctx.Now.Add(AlertAudioDuration)
+			state.SPCSoundEnd = ctx.SimTime.Add(AlertAudioDuration)
 		}
 	}
 
@@ -298,7 +316,7 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 			if tcps, ok := sp.PointOuts[event.ACID]; ok {
 				if state, ok := sp.trackStateForACID(ctx, event.ACID); ok {
 					if ctx.UserControlsPosition(tcps.From) {
-						state.POFlashingEndTime = time.Now().Add(5 * time.Second)
+						state.POFlashingEndTime = ctx.SimTime.Add(5 * time.Second)
 					} else if ctx.UserControlsPosition(tcps.To) {
 						state.PointOutAcknowledged = true
 					}
@@ -313,7 +331,7 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 			if tcps, ok := sp.PointOuts[event.ACID]; ok && ctx.UserControlsPosition(tcps.From) {
 				sp.RejectedPointOuts[event.ACID] = nil
 				if state, ok := sp.trackStateForACID(ctx, event.ACID); ok {
-					state.UNFlashingEndTime = time.Now().Add(5 * time.Second)
+					state.UNFlashingEndTime = ctx.SimTime.Add(5 * time.Second)
 				}
 			}
 			delete(sp.PointOuts, event.ACID)
@@ -343,18 +361,21 @@ func (sp *STARSPane) processEvents(ctx *panes.Context) {
 				if outbound {
 					sp.playOnce(ctx.Platform, AudioHandoffAccepted)
 					state.OutboundHandoffAccepted = true
-					dur := time.Duration(ctx.FacilityAdaptation.HandoffAcceptFlashDuration) * time.Second
-					state.OutboundHandoffFlashEnd = time.Now().Add(dur)
+					dur := time.Duration(ctx.FacilityAdaptation.Datablocks.FDB.AcceptFlashDuration) * time.Second
+					state.OutboundHandoffFlashEnd = ctx.SimTime.Add(dur)
 					state.DisplayFDB = true
 
 					if event.Type == sim.AcceptedRedirectedHandoffEvent {
-						state.RDIndicatorEnd = time.Now().Add(30 * time.Second)
+						state.RDIndicatorEnd = ctx.SimTime.Add(30 * time.Second)
 					}
 				}
 				if outbound || inbound {
-					state.AcceptedHandoffSector = string(util.Select(outbound, event.ToController, event.FromController))
-					dur := time.Duration(ctx.FacilityAdaptation.HOSectorDisplayDuration) * time.Second
-					state.AcceptedHandoffDisplayEnd = time.Now().Add(dur)
+					otherPos := util.Select(outbound, event.ToController, event.FromController)
+					if otherCtrl := ctx.GetResolvedController(otherPos); otherCtrl != nil && otherCtrl.IsExternal() {
+						state.AcceptedHandoffSector = string(otherPos)
+						dur := time.Duration(ctx.FacilityAdaptation.Datablocks.FDB.SectorDisplayDuration) * time.Second
+						state.AcceptedHandoffDisplayEnd = ctx.SimTime.Add(dur)
+					}
 				}
 			}
 			// Clean up if a point out was instead taken as a handoff.
@@ -453,8 +474,8 @@ func (sp *STARSPane) updateMSAWs(ctx *panes.Context) {
 		if warn && !state.MSAW {
 			// It's a new alert
 			state.MSAWAcknowledged = false
-			state.MSAWSoundEnd = time.Now().Add(AlertAudioDuration)
-			state.MSAWStart = time.Now()
+			state.MSAWSoundEnd = ctx.SimTime.Add(AlertAudioDuration)
+			state.MSAWStart = ctx.SimTime
 		}
 		state.MSAW = warn
 	}
@@ -462,18 +483,17 @@ func (sp *STARSPane) updateMSAWs(ctx *panes.Context) {
 
 func (sp *STARSPane) updateRadarTracks(ctx *panes.Context) {
 	// FIXME: all aircraft radar tracks are updated at the same time.
-	now := ctx.Client.CurrentTime()
 	fa := ctx.Client.State.FacilityAdaptation
 	if sp.radarMode(fa.RadarSites) == RadarModeFused {
-		if now.Sub(sp.lastTrackUpdate) < 1*time.Second {
+		if ctx.SimTime.Sub(sp.lastTrackUpdate) < 1*time.Second {
 			return
 		}
 	} else {
-		if now.Sub(sp.lastTrackUpdate) < 5*time.Second {
+		if ctx.SimTime.Sub(sp.lastTrackUpdate) < 5*time.Second {
 			return
 		}
 	}
-	sp.lastTrackUpdate = now
+	sp.lastTrackUpdate = ctx.SimTime
 
 	for _, trk := range sp.visibleTracks {
 		state := sp.TrackState[trk.ADSBCallsign]
@@ -487,7 +507,7 @@ func (sp *STARSPane) updateRadarTracks(ctx *panes.Context) {
 		state.previousTrack = state.track
 		state.previousTrackTime = state.trackTime
 		state.track = trk.RadarTrack
-		state.trackTime = now
+		state.trackTime = ctx.SimTime
 
 		sp.checkUnreasonableModeC(state)
 	}
@@ -501,8 +521,8 @@ func (sp *STARSPane) updateRadarTracks(ctx *panes.Context) {
 	// History tracks are updated after a radar track update, only if
 	// H_RATE seconds have elapsed (4-94).
 	ps := sp.currentPrefs()
-	if now.Sub(sp.lastHistoryTrackUpdate).Seconds() >= float64(ps.RadarTrackHistoryRate) {
-		sp.lastHistoryTrackUpdate = now
+	if ctx.SimTime.Sub(sp.lastHistoryTrackUpdate).Seconds() >= float64(ps.RadarTrackHistoryRate) {
+		sp.lastHistoryTrackUpdate = ctx.SimTime
 		for _, trk := range sp.visibleTracks { // We only get radar tracks for visible aircraft
 			state := sp.TrackState[trk.ADSBCallsign]
 			if trk.IsTentative {
@@ -537,21 +557,33 @@ func (sp *STARSPane) updateQuicklookRegionTracks(ctx *panes.Context) {
 	for _, trk := range sp.visibleTracks {
 		state := sp.TrackState[trk.ADSBCallsign]
 
-		if trk.IsUnassociated() || state.DisplayFDB {
+		if trk.IsUnassociated() {
 			continue
-		} else {
-			fp := trk.FlightPlan
-			acType := ""
-			if fp != nil {
-				acType = fp.AircraftType
+		}
+
+		fp := trk.FlightPlan
+		acType := ""
+		if fp != nil {
+			acType = fp.AircraftType
+		}
+		inRegion := slices.ContainsFunc(qlfilt,
+			func(f sim.QuicklookRegion) bool {
+				return f.Match(state.track.Location, int(state.track.TransponderAltitude),
+					fp, userPositions, acType, fa.SignificantPoints)
+			})
+
+		if inRegion && !state.InQLRegion {
+			// Entry: track just entered a quicklook region.
+			state.DisplayFDB = true
+			state.InQLRegion = true
+		} else if !inRegion && state.InQLRegion {
+			// Exit: track just left a quicklook region.
+			// Don't clear DisplayFDB if it's being maintained by the
+			// outbound handoff acceptance logic.
+			if !state.OutboundHandoffAccepted {
+				state.DisplayFDB = false
 			}
-			state.DisplayFDB = slices.ContainsFunc(qlfilt,
-				func(f sim.QuicklookRegion) bool {
-					return f.Match(state.track.Location, int(state.track.TransponderAltitude),
-						fp, userPositions, acType, fa.SignificantPoints) &&
-						!f.Match(state.previousTrack.Location, int(state.previousTrack.TransponderAltitude),
-							fp, userPositions, acType, fa.SignificantPoints)
-				})
+			state.InQLRegion = false
 		}
 	}
 }
@@ -564,17 +596,15 @@ func (sp *STARSPane) checkUnreasonableModeC(state *TrackState) {
 		return
 	}
 
-	changeInAltitude := float64(state.previousTrack.TransponderAltitude - state.track.TransponderAltitude)
-	changeInTime := state.previousTrackTime.Sub(state.trackTime)
-	changeInTimeSeconds := changeInTime.Seconds()
+	deltaAlt := state.previousTrack.TransponderAltitude - state.track.TransponderAltitude
+	deltaMinutes := state.previousTrackTime.Sub(state.trackTime).Minutes()
 
-	var change float64
-
-	if changeInTimeSeconds != 0 {
-		change = changeInAltitude / changeInTimeSeconds
+	if deltaMinutes == 0 {
+		return
 	}
 
-	if change > FPMThreshold || change < -FPMThreshold {
+	rate := math.Abs(deltaAlt / float32(deltaMinutes))
+	if rate > FPMThreshold {
 		state.UnreasonableModeC = true
 		state.ConsecutiveNormalTracks = 0
 	} else if state.UnreasonableModeC {
@@ -729,7 +759,9 @@ func (sp *STARSPane) getGhostTracks(ctx *panes.Context) []*av.GhostTrack {
 				// Create a ghost track if appropriate, add it to the
 				// ghosts slice, and draw its radar track.
 				force := state.Ghost.State == GhostStateForced || ps.CRDA.ForceAllGhosts
-				heading := util.Select(state.HaveHeading(), state.TrackHeading(nmPerLongitude), trk.Heading)
+				heading := util.Select(state.HaveHeading(),
+					float32(math.TrueToMagnetic(state.TrackHeading(nmPerLongitude), ctx.MagneticVariation)),
+					float32(trk.Heading))
 
 				ghost := region.TryMakeGhost(trk.RadarTrack, heading, trk.FlightPlan.Scratchpad, force, offset,
 					leaderDirection, nmPerLongitude, otherRegion)
@@ -776,7 +808,9 @@ func (sp *STARSPane) drawGhosts(ctx *panes.Context, ghosts []*av.GhostTrack, tra
 		vll := sp.getLeaderLineVector(ctx, ghost.LeaderLineDirection)
 		pll := math.Add2f(pac, vll)
 
-		db.draw(td, pll, datablockFont, &strBuilder, brightness, ghost.LeaderLineDirection, ctx.Now.Unix())
+		halfSeconds := time.Now().UnixMilli() / 500
+		clockPhase := ctx.FacilityAdaptation.CurrentDatablockClockPhase(time.Now())
+		db.draw(td, pll, datablockFont, &strBuilder, brightness, ghost.LeaderLineDirection, clockPhase, halfSeconds)
 
 		// Leader line
 		ld.AddLine(pac, math.Add2f(pac, vll), color)
@@ -805,7 +839,7 @@ func (sp *STARSPane) drawTrack(trk sim.Track, state *TrackState, ctx *panes.Cont
 			primary, secondary, dist := site.CheckVisibility(pos, int(trk.TrueAltitude))
 
 			// Orient the box toward the radar
-			h := math.Heading2LL(site.Position, pos, ctx.NmPerLongitude, ctx.MagneticVariation)
+			h := float32(math.TrueToMagnetic(math.Heading2LL(site.Position, pos, ctx.NmPerLongitude), ctx.MagneticVariation))
 			rot := math.Rotator2f(h)
 
 			// blue box: x +/-9 pixels, y +/-3 pixels
@@ -844,7 +878,7 @@ func (sp *STARSPane) drawTrack(trk sim.Track, state *TrackState, ctx *panes.Cont
 			// heading with; this makes things look better when we first see a track or when
 			// restarting a simulation...
 			heading := util.Select(state.HaveHeading(),
-				state.TrackHeading(ctx.NmPerLongitude)+ctx.MagneticVariation, trk.Heading)
+				float32(math.TrueToMagnetic(state.TrackHeading(ctx.NmPerLongitude), ctx.MagneticVariation)), float32(trk.Heading))
 
 			rot := math.Rotator2f(heading)
 
@@ -1145,8 +1179,8 @@ func (sp *STARSPane) updateCAAircraft(ctx *panes.Context) {
 			if caConflict(cs0, cs1) {
 				sp.CAAircraft = append(sp.CAAircraft, CAAircraft{
 					ADSBCallsigns: [2]av.ADSBCallsign{cs0, cs1},
-					SoundEnd:      ctx.Now.Add(AlertAudioDuration),
-					Start:         time.Now(), // this rather than ctx.Now so they are unique and sort consistently for the list.
+					SoundEnd:      ctx.SimTime.Add(AlertAudioDuration),
+					Start:         ctx.SimTime,
 				})
 			}
 		}
@@ -1160,8 +1194,8 @@ func (sp *STARSPane) updateCAAircraft(ctx *panes.Context) {
 			if mciConflict(cs0, cs1) {
 				sp.MCIAircraft = append(sp.MCIAircraft, CAAircraft{
 					ADSBCallsigns: [2]av.ADSBCallsign{cs0, cs1},
-					SoundEnd:      ctx.Now.Add(AlertAudioDuration),
-					Start:         time.Now(), // this rather than ctx.Now so they are unique and sort consistently for the list.
+					SoundEnd:      ctx.SimTime.Add(AlertAudioDuration),
+					Start:         ctx.SimTime,
 				})
 			}
 		}
@@ -1221,7 +1255,7 @@ func (sp *STARSPane) updateInTrailDistance(ctx *panes.Context) {
 
 				state := sp.TrackState[trk.ADSBCallsign]
 				return vol.Inside(state.track.Location, state.track.TransponderAltitude,
-					state.TrackHeading(nmPerLongitude)+magneticVariation,
+					math.TrueToMagnetic(state.TrackHeading(nmPerLongitude), magneticVariation),
 					nmPerLongitude, magneticVariation)
 			})
 
@@ -1319,7 +1353,7 @@ func (sp *STARSPane) checkInTrailCwtSeparation(ctx *panes.Context, back, front s
 		ctx.Client.State.IsATPAVolume25nmEnabled(vol.Id) &&
 		math.NMDistance2LL(vol.Threshold, back.Location) < vol.Dist25nmApproach &&
 		back.OnExtendedCenterline && front.OnExtendedCenterline
-	cwtSeparation := av.CWTRequiredApproachSeparation(
+	cwtSeparation := av.CWTApproachSeparation(
 		front.FlightPlan.CWTCategory, back.FlightPlan.CWTCategory, eligible25nm)
 
 	state.MinimumMIT = cwtSeparation

@@ -41,7 +41,6 @@ type NewSimConfiguration struct {
 	mgr             *client.ConnectionManager
 	selectedServer  *client.Server
 	defaultFacility *string
-	tfrCache        *av.TFRCache
 	emergencies     []sim.Emergency
 	lg              *log.Logger
 
@@ -159,7 +158,7 @@ func loadEmergencies(e *util.ErrorLogger) []sim.Emergency {
 	return emergencies
 }
 
-func MakeNewSimConfiguration(mgr *client.ConnectionManager, defaultFacility *string, tfrCache *av.TFRCache, lg *log.Logger) *NewSimConfiguration {
+func MakeNewSimConfiguration(mgr *client.ConnectionManager, defaultFacility *string, lg *log.Logger) *NewSimConfiguration {
 	var emergencyLogger util.ErrorLogger
 	emergencies := loadEmergencies(&emergencyLogger)
 	if emergencyLogger.HaveErrors() {
@@ -171,7 +170,6 @@ func MakeNewSimConfiguration(mgr *client.ConnectionManager, defaultFacility *str
 		mgr:             mgr,
 		selectedServer:  mgr.LocalServer,
 		defaultFacility: defaultFacility,
-		tfrCache:        tfrCache,
 		emergencies:     emergencies,
 		NewSimRequest:   server.MakeNewSimRequest(),
 	}
@@ -239,18 +237,21 @@ func (c *NewSimConfiguration) initDefaultWindDirection() {
 			if slices.ContainsFunc(c.ScenarioSpec.DepartureRunways, func(r sim.DepartureRunway) bool {
 				return r.Airport == ap && r.Runway.Base() == rwy.Id
 			}) {
-				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(rwy.Heading))
+				// HeadingVector expects TrueHeading; we pass magnetic headings here,
+				// but the constant magnetic variation cancels in the vector average.
+				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(math.TrueHeading(rwy.Heading)))
 			}
 			if slices.ContainsFunc(c.ScenarioSpec.ArrivalRunways, func(r sim.ArrivalRunway) bool {
 				return r.Airport == ap && r.Runway.Base() == rwy.Id
 			}) {
-				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(rwy.Heading))
+				sumRunwayVecs = math.Add2f(sumRunwayVecs, math.HeadingVector(math.TrueHeading(rwy.Heading)))
 			}
 		}
 	}
 
-	avgRwyHeading := math.VectorHeading(sumRunwayVecs)
-	avgRwyMagneticHeading := avgRwyHeading + c.ScenarioSpec.MagneticVariation
+	// Runway headings from the database are already magnetic, so the
+	// average is magnetic as well; no further conversion needed.
+	avgRwyMagneticHeading := float32(math.VectorHeading(sumRunwayVecs))
 
 	// Set default wind direction range to ±30 degrees from average runway heading
 	windDirMin := int(math.NormalizeHeading(avgRwyMagneticHeading - 30))
@@ -309,7 +310,7 @@ func (c *NewSimConfiguration) fetchMETAR() {
 // loadAtmosphericData loads atmospheric data for the current facility and determines
 // the appropriate winds aloft altitudes based on whether it's a TRACON or ARTCC.
 func (c *NewSimConfiguration) loadAtmosphericData() {
-	_, c.isTRACON = av.DB.TRACONs[c.Facility]
+	c.isTRACON = av.DB.IsTRACON(c.Facility)
 
 	// Set altitudes based on facility type:
 	// - TRACON: single altitude at 5,000' (representative of terminal area traffic)
@@ -423,6 +424,9 @@ func getARTCCForFacility(facility string, catalog *server.ScenarioCatalog) strin
 	if traconInfo, ok := av.DB.TRACONs[facility]; ok {
 		return traconInfo.ARTCC
 	}
+	if atctInfo, ok := av.DB.ATCTs[facility]; ok {
+		return atctInfo.ARTCC
+	}
 	return facility
 }
 
@@ -445,17 +449,15 @@ func trimFacilityName(name, facilityType string) string {
 func formatFacilityLabel(facility string) string {
 	if traconInfo, ok := av.DB.TRACONs[facility]; ok {
 		name := trimFacilityName(traconInfo.Name, "TRACON")
-		if name == "" {
-			return facility
-		}
-		return fmt.Sprintf("%s (%s)", facility, name)
+		return util.Select(name == "", facility, fmt.Sprintf("%s (%s)", facility, name))
+	}
+	if atctInfo, ok := av.DB.ATCTs[facility]; ok {
+		name := trimFacilityName(atctInfo.Name, "ATCT")
+		return util.Select(name == "", facility, fmt.Sprintf("%s (%s)", facility, name))
 	}
 	if artccInfo, ok := av.DB.ARTCCs[facility]; ok {
 		name := trimFacilityName(artccInfo.Name, "ARTCC")
-		if name == "" {
-			return facility
-		}
-		return fmt.Sprintf("%s (%s)", facility, name)
+		return util.Select(name == "", facility, fmt.Sprintf("%s (%s)", facility, name))
 	}
 	return facility
 }
@@ -463,7 +465,7 @@ func formatFacilityLabel(facility string) string {
 // getAreaKey returns the area identifier for grouping scenarios.
 // For TRACONs, returns the groupName; for ARTCCs, returns the trimmed Area field.
 func getAreaKey(facility, groupName string, catalog *server.ScenarioCatalog) string {
-	if _, isTRACON := av.DB.TRACONs[facility]; isTRACON {
+	if av.DB.IsTRACON(facility) {
 		return groupName
 	}
 	return trimFacilityName(catalog.Area, "Area")
@@ -815,7 +817,7 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 
 					// Build area/group structure for this facility, only including matching catalogs
 					catalogs := catalogsByFacility[facility]
-					_, isTRACON := av.DB.TRACONs[facility]
+					isTRACON := av.DB.IsTRACON(facility)
 					areaToGroups := make(map[string]*areaInfo)
 
 					for groupName, gcfg := range catalogs {
@@ -1102,7 +1104,14 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 			imgui.TableNextColumn()
 			imgui.Text("Select TCW:")
 			imgui.TableNextColumn()
-			first := true
+			const tcwsPerRow = 8
+			tcwCol := 0
+			startX := imgui.CursorPosX()
+			style := imgui.CurrentStyle()
+			// Measure column width from the radio button circle plus the widest
+			// 2-character label, then add spacing.
+			colWidth := imgui.FrameHeight() + style.ItemInnerSpacing().X +
+				imgui.CalcTextSizeV("WW", false, 0).X + style.ItemSpacing().X
 			for tcw, cons := range util.SortedMap(rs.CurrentConsolidation) {
 				// Filter: relief shows only occupied, normal shows only unoccupied
 				if c.showReliefPositions != cons.IsOccupied() {
@@ -1113,10 +1122,11 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 					continue
 				}
 
-				if !first {
+				if tcwCol%tcwsPerRow != 0 {
 					imgui.SameLine()
+					imgui.SetCursorPosX(startX + float32(tcwCol%tcwsPerRow)*colWidth)
 				}
-				first = false
+				tcwCol++
 
 				label := controllerDisplayLabel(controllersForGroup, av.ControlPosition(tcw))
 				selected := tcw == c.selectedTCW
@@ -1149,10 +1159,21 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 
 				// Show all available TCPs (excludes primaries at occupied TCWs)
 				availableTCPs := getAvailableTCPs()
+				tcpCol := 0
+				tcpStartX := imgui.CursorPosX()
+				tcpStyle := imgui.CurrentStyle()
+				tcpColWidth := imgui.FrameHeight() + tcpStyle.ItemInnerSpacing().X +
+					imgui.CalcTextSizeV("WW", false, 0).X + tcpStyle.ItemSpacing().X
 				for tcp := range util.SortedMap(availableTCPs) {
 					if len(tcp) > 0 && tcp[0] == '_' {
 						continue
 					}
+
+					if tcpCol%tcwsPerRow != 0 {
+						imgui.SameLine()
+						imgui.SetCursorPosX(tcpStartX + float32(tcpCol%tcwsPerRow)*tcpColWidth)
+					}
+					tcpCol++
 
 					isSelected := c.selectedTCPs[tcp]
 					label := controllerDisplayLabel(controllersForGroup, av.ControlPosition(tcp))
@@ -1162,9 +1183,12 @@ func (c *NewSimConfiguration) DrawScenarioSelectionUI(p platform.Platform, confi
 						}
 						c.selectedTCPs[tcp] = isSelected
 					}
-					imgui.SameLine()
 				}
 
+				if tcpCol%tcwsPerRow != 0 {
+					imgui.SameLine()
+					imgui.SetCursorPosX(tcpStartX + float32(tcpCol%tcwsPerRow)*tcpColWidth)
+				}
 				imgui.Checkbox("Instructor", &c.Privileged)
 				if imgui.IsItemHovered() {
 					imgui.SetTooltip("Allows control of any aircraft regardless of position ownership")
@@ -1414,8 +1438,8 @@ func (c *NewSimConfiguration) DrawRatesUI(p platform.Platform) bool {
 }
 
 func (c *NewSimConfiguration) Start(config *Config) error {
-	c.TFRs = c.tfrCache.TFRsForTRACON(c.Facility, c.lg)
 	c.NewSimRequest.Emergencies = c.emergencies
+	c.ScenarioSpec.LaunchConfig.EnableTowerGoArounds = config.EnableTowerGoArounds
 
 	if c.newSimType == NewSimJoinRemote {
 		// Set the privileged flag from the main config
@@ -1747,7 +1771,9 @@ func drawScenarioInfoWindow(config *Config, c *client.ControlClient, activeRadar
 	imgui.SetNextWindowSizeConstraints(imgui.Vec2{sz.X + 50, 0}, imgui.Vec2{100000, 100000})
 
 	show := true
+	applyPinWindowClass("ScenarioInfo", config, p)
 	imgui.BeginV(c.State.SimDescription+"###ScenarioInfo", &show, imgui.WindowFlagsAlwaysAutoResize)
+	drawPinButton("ScenarioInfo", config, p)
 
 	if imgui.CollapsingHeaderBoolPtr("Controllers", nil) {
 		// Make big(ish) tables somewhat more legible
@@ -1904,6 +1930,72 @@ func drawScenarioInfoWindow(config *Config, c *client.ControlClient, activeRadar
 				imgui.EndTable()
 			}
 
+		}
+	}
+
+	if len(c.State.TFRs) > 0 {
+		if imgui.CollapsingHeaderBoolPtr("TFRs", nil) {
+			tableFlags := imgui.TableFlagsBordersV | imgui.TableFlagsBordersOuterH |
+				imgui.TableFlagsRowBg | imgui.TableFlagsSizingStretchProp
+			if imgui.BeginTableV("tfrs", 5, tableFlags, imgui.Vec2{}, 0) {
+				imgui.TableSetupColumn("Type")
+				imgui.TableSetupColumn("Name")
+				imgui.TableSetupColumn("ARTCC")
+				imgui.TableSetupColumn("Effective")
+				imgui.TableSetupColumn("Expires")
+				imgui.TableHeadersRow()
+
+				ui.fixedFont.ImguiPush()
+				for _, tfr := range c.State.TFRs {
+					imgui.TableNextRow()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.Type)
+					rowHovered := imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.LocalName)
+					rowHovered = rowHovered || imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.ARTCC)
+					rowHovered = rowHovered || imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.Effective.Format("2006-01-02 15:04Z"))
+					rowHovered = rowHovered || imgui.IsItemHovered()
+					imgui.TableNextColumn()
+					imgui.Text(tfr.Expire.Format("2006-01-02 15:04Z"))
+					rowHovered = rowHovered || imgui.IsItemHovered()
+
+					if rowHovered {
+						var lines []string
+						if tfr.Regulation != "" {
+							r := tfr.Regulation
+							if tfr.Type != "" {
+								r += " - " + tfr.Type
+							}
+							lines = append(lines, r)
+						}
+						if tfr.City != "" || tfr.State != "" {
+							loc := tfr.City
+							if loc != "" && tfr.State != "" {
+								loc += ", "
+							}
+							loc += tfr.State
+							lines = append(lines, loc)
+						}
+						if tfr.AltDescr != "" {
+							lines = append(lines, tfr.AltDescr)
+						}
+						if tfr.Purpose != "" {
+							lines = append(lines, tfr.Purpose)
+						}
+						if len(lines) > 0 {
+							imgui.SetTooltip(strings.Join(lines, "\n"))
+						}
+					}
+				}
+				imgui.PopFont()
+
+				imgui.EndTable()
+			}
 		}
 	}
 
