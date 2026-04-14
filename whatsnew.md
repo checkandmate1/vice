@@ -1,5 +1,6 @@
 - Scenario updates: ZNY (Ryan G), SCT (Ketan K), ZJX, F11 (manaphy), MIA (Gecko), N90 (Matt P)
 - Navigation / flight model:
+  - Added support for visual approaches (Jordan Williams)
   - Handle "at or above/at or below" speed restrictions more reasonably (don't treat them all as "at")
   - Added support for intercepting RNAV t-segments
   - Added support for "join the approach" for non-ILS/LOC approaches
