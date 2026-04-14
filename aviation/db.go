@@ -96,6 +96,11 @@ type Navaid struct {
 	Type     string
 	Name     string
 	Location math.Point2LL
+
+	HasDME          bool
+	DMELocation     math.Point2LL
+	DMEElevation    int
+	HasDMEElevation bool
 }
 
 type Fix struct {
@@ -160,6 +165,13 @@ func (d StaticDatabase) LookupWaypoint(f string) (math.Point2LL, bool) {
 	} else {
 		return math.Point2LL{}, false
 	}
+}
+
+func (d StaticDatabase) LookupDME(f string) (math.Point2LL, int, bool) {
+	if n, ok := d.Navaids[strings.ToUpper(f)]; ok && n.HasDME && n.HasDMEElevation {
+		return n.DMELocation, n.DMEElevation, true
+	}
+	return math.Point2LL{}, 0, false
 }
 
 func (d StaticDatabase) LookupAirport(name string) (FAAAirport, bool) {
