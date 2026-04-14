@@ -65,6 +65,8 @@ type Nav struct {
 	FinalAltitude float32
 	Waypoints     av.WaypointArray
 
+	PendingWaypointActionEvents []av.WaypointActionEvent
+
 	Rand *rand.Rand
 }
 

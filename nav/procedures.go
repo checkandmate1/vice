@@ -90,14 +90,17 @@ func (mc *ManeuverComplete) Done(nav *Nav, simTime Time, wxs wx.Sample, targetHd
 
 // LateralManeuver describes a single phase of flight: fly a heading until
 // a condition is met. A sequence of LateralManeuvers forms a procedure
-// turn or hold circuit.
+// turn, hold circuit, or ordered heading-leg instruction.
 type LateralManeuver struct {
-	Heading        math.MagneticHeading // heading to fly
-	Track          math.MagneticHeading // if non-zero, wind-corrected heading via headingForTrack
-	FlyToward      math.Point2LL        // if non-zero, heading = bearing to this point each tick
-	Turn           av.TurnDirection
-	Until          ManeuverComplete
-	AssignAltitude *float32 // if non-nil, set nav.Altitude when this maneuver becomes active
+	Heading              math.MagneticHeading // heading to fly
+	Track                math.MagneticHeading // if non-zero, wind-corrected heading via headingForTrack
+	FlyToward            math.Point2LL        // if non-zero, heading = bearing to this point each tick
+	Turn                 av.TurnDirection
+	Until                ManeuverComplete
+	AssignAltitude       *float32 // if non-nil, set nav.Altitude when this maneuver becomes active
+	ClearAltitudeOnFinal bool
+	Fix                  string
+	Actions              av.WaypointActions
 }
 
 func (m *LateralManeuver) String() string {
@@ -124,6 +127,10 @@ func (m *LateralManeuver) String() string {
 		until = fmt.Sprintf("until intercept %03d", int(m.Until.InterceptCourse))
 	case UntilControllerIntervention:
 		until = "until controller intervention"
+	case UntilAltitude:
+		until = fmt.Sprintf("until altitude %d", m.Until.Altitude)
+	case UntilDME:
+		until = fmt.Sprintf("until DME %.1f", m.Until.DMEDistance)
 	}
 
 	if until != "" {
@@ -156,14 +163,18 @@ func (nav *Nav) maneuverGetHeading(wxs wx.Sample, simTime Time) (math.MagneticHe
 	if m.Until.Done(nav, simTime, wxs, heading) {
 		nav.Heading.Maneuvers = nav.Heading.Maneuvers[1:]
 		if len(nav.Heading.Maneuvers) == 0 {
-			// All maneuvers complete; clear altitude and let waypoint following resume.
-			nav.Altitude = NavAltitude{}
+			if m.ClearAltitudeOnFinal {
+				nav.Altitude = NavAltitude{}
+			}
 			return heading, m.Turn, StandardTurnRate
 		}
 		// Recompute heading for the new maneuver
 		m = &nav.Heading.Maneuvers[0]
 		if m.AssignAltitude != nil {
 			nav.setAssignedAltitude(*m.AssignAltitude)
+		}
+		if event := nav.activateWaypointActions(m.Fix, m.Actions); event != nil {
+			nav.PendingWaypointActionEvents = append(nav.PendingWaypointActionEvents, *event)
 		}
 		heading = nav.maneuverHeading(m, wxs)
 	}
@@ -212,6 +223,9 @@ func (nav *Nav) flyProcedureTurnIfNecessary() {
 	}
 
 	nav.Heading = NavHeading{Maneuvers: maneuvers}
+	if len(nav.Heading.Maneuvers) > 0 {
+		nav.Heading.Maneuvers[len(nav.Heading.Maneuvers)-1].ClearAltitudeOnFinal = true
+	}
 }
 
 func makeStandard45Maneuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []LateralManeuver {
