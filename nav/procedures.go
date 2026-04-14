@@ -27,6 +27,8 @@ const (
 	UntilFix                                                // done when ETA to Until.Fix < 2s
 	UntilIntercept                                          // done when shouldTurnToIntercept fires for course through Fix
 	UntilControllerIntervention                             // never completes; lasts until controller issues a new instruction
+	UntilAltitude                                           // done when reaching Until.Altitude
+	UntilDME                                                // done when crossing Until.DMEDistance from Until.DMEFix
 )
 
 // ManeuverComplete encapsulates the completion condition for a lateral
@@ -34,15 +36,21 @@ const (
 // its parameters. Time and distance conditions capture their start
 // state lazily on first check.
 type ManeuverComplete struct {
-	Type    ManeuverCompleteType
-	Heading math.MagneticHeading // target heading (UntilHeading)
-	Seconds float32              // duration in seconds (UntilTime)
-	Dist    float32              // distance in nm (UntilDist)
-	Fix     math.Point2LL        // target fix (UntilFix, UntilIntercept)
+	Type     ManeuverCompleteType
+	Heading  math.MagneticHeading // target heading (UntilHeading)
+	Seconds  float32              // duration in seconds (UntilTime)
+	Dist     float32              // distance in nm (UntilDist)
+	Fix      math.Point2LL        // target fix (UntilFix, UntilIntercept)
+	Altitude int                  // target altitude (UntilAltitude)
 
 	// UntilIntercept: inbound course to intercept and turn direction for the intercept turn.
 	InterceptCourse math.MagneticHeading
 	InterceptTurn   av.TurnDirection
+
+	// UntilDME: DME distance from a fix.
+	DMEDistance     float32
+	DMEFix          math.Point2LL
+	DMEFixElevation int
 
 	// Lazy-init start state for time/distance conditions.
 	Start    Time          // captured on first Done() call (UntilTime)
@@ -69,6 +77,12 @@ func (mc *ManeuverComplete) Done(nav *Nav, simTime Time, wxs wx.Sample, targetHd
 		return nav.shouldTurnToIntercept(mc.Fix, mc.InterceptCourse, mc.InterceptTurn, wxs) == turnToInterceptTurn
 	case UntilControllerIntervention:
 		return false
+	case UntilAltitude:
+		return nav.FlightState.Altitude >= float32(mc.Altitude)
+	case UntilDME:
+		dist := math.DMEDistance(nav.FlightState.Position, nav.FlightState.Altitude,
+			mc.DMEFix, float32(mc.DMEFixElevation))
+		return dist >= mc.DMEDistance
 	default:
 		panic(fmt.Sprintf("unhandled ManeuverCompleteType: %d", mc.Type))
 	}
