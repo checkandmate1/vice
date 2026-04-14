@@ -73,7 +73,7 @@
           "NEWEL,ELIOT,ZIMMZ,PARKE,LANNA,BIGGY,SBJ,WHITE,BAYYS,BDR,BETTE,COATE,GAYEL,GREKI,HAAYS,HAPIE,MERIT,NEION,SHIPP,WAVEY": {
             "cleared_altitude": 5000,
             "sid": "TNNIS6",
-            "waypoints": "_LGA_13b JUTES/a3000+ TNNIS/a5000+/h045"
+            "waypoints": "KLGA-13 JUTES/a3000+ TNNIS/a5000+/h045"
           }
         },
         "31": {
@@ -492,13 +492,13 @@
             "cleared_altitude": 7000,
             "handoff_controller": "1L",
             "sid": "HPN8",
-            "waypoints": "N041.03.28.067,W073.38.12.599/ho/h270"
+            "waypoints": "KHPN-34/h163@a8 N041.03.28.067,W073.38.12.599/ho/h270"
           },
           "DIXIE": {
             "cleared_altitude": 6000,
             "handoff_controller": "1L",
             "sid": "HPN8",
-            "waypoints": "N041.03.28.067,W073.38.12.599/ho/h270"
+            "waypoints": "KHPN-34/h163@a8 N041.03.28.067,W073.38.12.599/ho/h270"
           }
         },
         "34": {
@@ -506,13 +506,13 @@
             "cleared_altitude": 7000,
             "handoff_controller": "1L",
             "sid": "HPN8",
-            "waypoints": "N041.03.28.067,W073.38.12.599/ho/h270"
+            "waypoints": "KHPN-16/h343@a10 N041.03.28.067,W073.38.12.599/ho/h270"
           },
           "DIXIE": {
             "cleared_altitude": 6000,
             "handoff_controller": "1L",
             "sid": "HPN8",
-            "waypoints": "N041.03.28.067,W073.38.12.599/ho/h270"
+            "waypoints": "KHPN-16/h343@a10 N041.03.28.067,W073.38.12.599/ho/h270"
           }
         }
       },
