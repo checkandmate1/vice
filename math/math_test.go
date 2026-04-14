@@ -68,6 +68,19 @@ func TestParseLatLong(t *testing.T) {
 	}
 }
 
+func TestDMEDistance(t *testing.T) {
+	a := Point2LL{-73, 40}
+	b := Point2LL{-73, 40}
+	if got := DMEDistance(a, NauticalMilesToFeet, b, 0); Abs(got-1) > 1e-5 {
+		t.Fatalf("expected 1nm vertical DME, got %.6f", got)
+	}
+
+	b = Point2LL{a[0] + 3/NMPerLongitudeAt(a), a[1]}
+	if got := DMEDistance(a, 4*NauticalMilesToFeet, b, 0); Abs(got-5) > 1e-2 {
+		t.Fatalf("expected 3-4-5 DME distance, got %.6f", got)
+	}
+}
+
 func TestPointInPolygon(t *testing.T) {
 	type testCase struct {
 		name     string
