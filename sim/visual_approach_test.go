@@ -940,6 +940,17 @@ func TestAirportAdvisoryLowVisibility(t *testing.T) {
 	}
 }
 
+func TestEffectiveVisualRangeObscurationPenalty(t *testing.T) {
+	clear := wx.METAR{Raw: "KJFK 10SM BKN050"}
+	haze := wx.METAR{Raw: "KJFK 10SM HZ BKN050"}
+
+	clearRange := effectiveVisualRange(clear, 0)
+	hazeRange := effectiveVisualRange(haze, 0)
+	if hazeRange >= clearRange {
+		t.Fatalf("obscured range = %.2f, clear range = %.2f; expected obscuration penalty", hazeRange, clearRange)
+	}
+}
+
 func TestDelayedFieldInSightCanExpireWithoutSeeingField(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})

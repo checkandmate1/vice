@@ -2312,6 +2312,9 @@ func effectiveVisualRange(metar wx.METAR, altitudeAGL float32) float32 {
 		vis = 15
 	}
 	visNM := vis * math.StatuteMilesToNauticalMiles
+	if metar.HasObscuration() {
+		visNM *= 0.85
+	}
 
 	// Apply the slant-path extinction integral.
 	if altitudeAGL > 1 { // avoid division by zero; at ground level factor is 1

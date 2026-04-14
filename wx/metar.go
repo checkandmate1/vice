@@ -161,6 +161,18 @@ func (m METAR) Ceiling() (int, error) {
 	return 12000, nil
 }
 
+// HasObscuration returns true if the METAR reports visibility-reducing weather
+// phenomena such as haze, mist, fog, smoke, dust, sand, ash, or spray.
+func (m METAR) HasObscuration() bool {
+	for f := range strings.FieldsSeq(m.Raw) {
+		switch f {
+		case "HZ", "BR", "FG", "MIFG", "BCFG", "PRFG", "FZFG", "FU", "VA", "DU", "SA", "PY":
+			return true
+		}
+	}
+	return false
+}
+
 func METARForTime(metar []METAR, t time.Time) METAR {
 	if len(metar) == 0 {
 		return METAR{}

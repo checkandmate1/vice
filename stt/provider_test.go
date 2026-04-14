@@ -2346,6 +2346,14 @@ func TestAirportAdvisorySTTPatterns(t *testing.T) {
 			expected: "AAL123 AP/11/6",
 		},
 		{
+			name:       "natural airport advisory",
+			transcript: "American 123 the airport is at your eleven o'clock eight miles",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP/11/8",
+		},
+		{
 			name:       "airport name before o'clock position",
 			transcript: "American 123 kennedy at your eleven o'clock eight miles",
 			aircraft: map[string]Aircraft{
