@@ -1,4 +1,5 @@
 - Scenario updates: ZNY (Ryan G), SCT (Ketan K), ZJX, F11 (manaphy), MIA (Gecko), N90 (Matt P)
+- Updated radio static/muffling model (radarcontacto)
 - Navigation / flight model:
   - Added support for visual approaches (Jordan Williams)
   - Handle "at or above/at or below" speed restrictions more reasonably (don't treat them all as "at")
@@ -13,12 +14,12 @@
   - "good rate" for climbs/descents: "descend and maintain 3,000, good rate through 5,000", etc.
   - optional altitudes to expedite to: "expedite through 5,000", etc.
   - Fixed bugs with aircraft on approach not descending as much as they should.
+- ERAM
+  - Added ALTIM SET and WX REPORT floating windows, including AR/WR keyboard commands and configurable window menus (Michael Knight)
 - STARS
   - Added support for "Create interfacility VFR flight plan from active local track"
   - Fixed bug where WX3 would never have any contents
   - GI and ATIS text in the SSA list is managed by the server (so updates are shared among controllers)
-- ERAM
-  - Added ALTIM SET and WX REPORT floating windows, including AR/WR keyboard commands and configurable window menus (Michael Knight)
 - Facility engineering:
   - Support "at or above/at or below" speed restrictions
   - Removed "speed_restriction" from departure routes; this was unused/redundant
