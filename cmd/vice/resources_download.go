@@ -542,9 +542,14 @@ func maybeDownload(filename, fullPath, hash string, progressCh chan<- downloadPr
 		progressCh: progressCh,
 	}
 
-	_, err = io.Copy(f, pr)
-	if err != nil {
+	hasher := sha256.New()
+	if _, err = io.Copy(io.MultiWriter(f, hasher), pr); err != nil {
 		return fmt.Errorf("%s: failed to write: %w", filename, err)
+	}
+
+	if got := hex.EncodeToString(hasher.Sum(nil)); got != hash {
+		os.Remove(fullPath)
+		return fmt.Errorf("%s: download hash mismatch (got %s, want %s)", filename, got, hash)
 	}
 
 	return nil
