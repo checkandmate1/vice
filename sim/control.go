@@ -3081,7 +3081,7 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 		rt.Type = av.RadioTransmissionUnexpected
 
 	case PendingTransmissionRequestVectors:
-		rt = av.MakeContactTransmission("[we've overshot the localizer, request vectors|unable to intercept, request new heading|we missed the localizer, request vectors]")
+		rt = av.MakeContactTransmission("[we're going to overshoot the localizer, request vectors|we're gonna be unable to intercept, request new heading|we're going to miss the localizer, request vectors]")
 		rt.Type = av.RadioTransmissionUnexpected
 
 	case PendingTransmissionEmergency:
