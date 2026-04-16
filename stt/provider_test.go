@@ -2500,6 +2500,38 @@ func TestTrafficAdvisorySTTPatterns(t *testing.T) {
 			},
 			expected: "AAL123 TRAFFIC/10/2/30",
 		},
+		{
+			name:       "other traffic maintains visual separation",
+			transcript: "American 123 traffic your ten o'clock two miles a seven thirty seven three thousand they have you in sight and will maintain visual separation",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC/10/2/30/VISSEP",
+		},
+		{
+			name:       "landing the parallel with other traffic maintaining visual",
+			transcript: "American 123 traffic landing the parallel your ten o'clock two miles a seven thirty seven three thousand they have you in sight and will maintain visual separation",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC/10/2/30/VISSEP",
+		},
+		{
+			name:       "other traffic maintains visual with dropped word",
+			transcript: "American 123 traffic your ten o'clock two miles a seven thirty seven three thousand they have you in sight will maintain visual separation",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC/10/2/30/VISSEP",
+		},
+		{
+			name:       "other traffic maintains visual with misheard sight",
+			transcript: "American 123 traffic your ten o'clock two miles a seven thirty seven three thousand they have you in site and will maintain visual separation",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC/10/2/30/VISSEP",
+		},
 	}
 
 	for _, tt := range tests {

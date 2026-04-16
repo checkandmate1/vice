@@ -2045,15 +2045,24 @@ func (s *Sim) ATISCommand(tcw TCW, callsign av.ADSBCallsign, letter string) (av.
 }
 
 // TrafficAdvisory handles controller-issued traffic advisories.
-// Command format: TRAFFIC/oclock/miles/altitude (e.g., TRAFFIC/10/4/30 for 10 o'clock, 4 miles, 3000 ft)
+// Command format: TRAFFIC/oclock/miles/altitude (e.g., TRAFFIC/10/4/30 for 10 o'clock, 4 miles, 3000 ft).
+// An optional trailing /VISSEP indicates the other traffic has us in sight and will maintain visual separation;
+// in that case the pilot simply acknowledges without reporting the traffic in sight.
 func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, command string) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
-	// Parse the command: TRAFFIC/oclock/miles/altitude
+	// Parse the command: TRAFFIC/oclock/miles/altitude[/VISSEP]
 	parts := strings.Split(command, "/")
-	if len(parts) != 4 {
+	if len(parts) != 4 && len(parts) != 5 {
 		return nil, ErrInvalidCommandSyntax
+	}
+	otherMaintainsVisual := false
+	if len(parts) == 5 {
+		if parts[4] != "VISSEP" {
+			return nil, ErrInvalidCommandSyntax
+		}
+		otherMaintainsVisual = true
 	}
 
 	oclock, err := strconv.Atoi(parts[1])
@@ -2076,6 +2085,9 @@ func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, command string)
 	return s.dispatchAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) error { return nil },
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			if otherMaintainsVisual {
+				return av.TrafficAdvisoryIntent{Response: av.TrafficResponseAcknowledged}
+			}
 			return s.handleTrafficAdvisory(ac, oclock, miles, trafficAltFeet)
 		})
 }

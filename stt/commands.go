@@ -1922,11 +1922,12 @@ func extractDegrees(tokens []Token) (int, string, int) {
 
 // extractTraffic extracts traffic advisory components: o'clock position, distance in miles, and altitude.
 // Pattern: "(N) o'clock, (M) miles, (direction), (aircraft type), (at) (altitude)"
-// Returns o'clock (1-12), miles, encoded altitude (in 100s of feet), and tokens consumed.
-// The direction and aircraft type are ignored.
-func extractTraffic(tokens []Token) (int, int, int, int) {
+// Returns o'clock (1-12), miles, encoded altitude (in 100s of feet), whether
+// other traffic will maintain visual separation, and tokens consumed. The
+// direction and aircraft type are ignored.
+func extractTraffic(tokens []Token) (int, int, int, bool, int) {
 	if len(tokens) == 0 {
-		return 0, 0, 0, 0
+		return 0, 0, 0, false, 0
 	}
 
 	consumed := 0
@@ -1957,7 +1958,7 @@ func extractTraffic(tokens []Token) (int, int, int, int) {
 	}
 
 	if oclock == 0 {
-		return 0, 0, 0, 0
+		return 0, 0, 0, false, 0
 	}
 
 	// Phase 2: Find distance in miles
@@ -1988,7 +1989,7 @@ func extractTraffic(tokens []Token) (int, int, int, int) {
 	}
 
 	if miles == 0 {
-		return 0, 0, 0, 0
+		return 0, 0, 0, false, 0
 	}
 
 	// Phase 3: Skip direction, runway relationship, and aircraft type; find altitude.
@@ -2128,7 +2129,13 @@ func extractTraffic(tokens []Token) (int, int, int, int) {
 	}
 
 	if alt == 0 {
-		return 0, 0, 0, 0
+		return 0, 0, 0, false, 0
+	}
+
+	otherAircraftWillMaintainVisualSeparation := false
+	if next, ok := consumeOtherAircraftMaintainsVisualSeparation(tokens, consumed); ok {
+		otherAircraftWillMaintainVisualSeparation = true
+		consumed = next
 	}
 
 	// Consume trailing traffic advisory words that follow the altitude.
@@ -2148,7 +2155,49 @@ func extractTraffic(tokens []Token) (int, int, int, int) {
 		break
 	}
 
-	return oclock, miles, alt, consumed
+	return oclock, miles, alt, otherAircraftWillMaintainVisualSeparation, consumed
+}
+
+// consumeOtherAircraftMaintainsVisualSeparation recognizes the phrase
+// "they have you in sight and will maintain visual separation" at the end of
+// a traffic advisory. STT transcription is noisy, so we fuzzy-match each word,
+// tolerate a dropped word by advancing the phrase, and tolerate an extra
+// spurious token by skipping it. The phrase is accepted if at least 8 of its
+// 10 words match.
+func consumeOtherAircraftMaintainsVisualSeparation(tokens []Token, pos int) (int, bool) {
+	phrase := []string{"they", "have", "you", "in", "sight", "and", "will", "maintain", "visual", "separation"}
+
+	phraseIdx, tokenIdx := 0, pos
+	matches := 0
+	lastMatchedTokenIdx := pos - 1
+	endTokenIdx := min(pos+len(phrase)+5, len(tokens))
+
+	for phraseIdx < len(phrase) && tokenIdx < endTokenIdx {
+		text := tokens[tokenIdx].Text
+
+		if FuzzyMatch(text, phrase[phraseIdx], 0.8) {
+			matches++
+			lastMatchedTokenIdx = tokenIdx
+			phraseIdx++
+			tokenIdx++
+			continue
+		}
+
+		// The expected phrase word may have been dropped; if the following
+		// phrase word matches the current token, skip ahead in the phrase.
+		if phraseIdx+1 < len(phrase) && FuzzyMatch(text, phrase[phraseIdx+1], 0.8) {
+			phraseIdx++
+			continue
+		}
+
+		// Otherwise treat the current token as a stray insertion and skip it.
+		tokenIdx++
+	}
+
+	if matches < 8 {
+		return pos, false
+	}
+	return lastMatchedTokenIdx + 1, true
 }
 
 func consumeTrafficLandingParallel(tokens []Token, pos int) (int, bool) {

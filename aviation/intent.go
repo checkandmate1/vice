@@ -855,9 +855,10 @@ func (a ATISIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 type TrafficAdvisoryResponse int
 
 const (
-	TrafficResponseIMC         TrafficAdvisoryResponse = iota // In IMC, can't see traffic
-	TrafficResponseLooking                                    // No traffic visible, will look
-	TrafficResponseTrafficSeen                                // Traffic is in sight
+	TrafficResponseIMC          TrafficAdvisoryResponse = iota // In IMC, can't see traffic
+	TrafficResponseLooking                                     // No traffic visible, will look
+	TrafficResponseTrafficSeen                                 // Traffic is in sight
+	TrafficResponseAcknowledged                                // Other traffic is maintaining visual separation
 )
 
 // TrafficAdvisoryIntent represents a pilot's response to a traffic advisory
@@ -878,6 +879,8 @@ func (t TrafficAdvisoryIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		} else {
 			rt.Add("[we have the traffic|traffic in sight|we see the traffic|got the traffic]")
 		}
+	case TrafficResponseAcknowledged:
+		rt.Add("[roger|copy the traffic|roger, we have the traffic]")
 	}
 }
 

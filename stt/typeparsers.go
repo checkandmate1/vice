@@ -717,9 +717,10 @@ func (p *trafficParser) goType() reflect.Type {
 }
 
 type trafficResult struct {
-	oclock   int
-	miles    int
-	altitude int
+	oclock                      int
+	miles                       int
+	altitude                    int
+	otherTrafficMaintainsVisual bool
 }
 
 func (p *trafficParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, string) {
@@ -728,9 +729,14 @@ func (p *trafficParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, s
 	}
 
 	// Delegate to existing extractTraffic function
-	oclock, miles, alt, consumed := extractTraffic(tokens[pos:])
+	oclock, miles, alt, otherTrafficMaintainsVisual, consumed := extractTraffic(tokens[pos:])
 	if consumed > 0 {
-		return trafficResult{oclock: oclock, miles: miles, altitude: alt}, consumed, ""
+		return trafficResult{
+			oclock:                      oclock,
+			miles:                       miles,
+			altitude:                    alt,
+			otherTrafficMaintainsVisual: otherTrafficMaintainsVisual,
+		}, consumed, ""
 	}
 
 	return nil, 0, ""
