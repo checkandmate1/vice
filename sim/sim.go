@@ -1321,6 +1321,13 @@ func (s *Sim) applyWaypointActionEvent(ac *Aircraft, actions av.WaypointActions)
 		}
 
 		if actions.PointOut != "" {
+			// During prespawn uncontrolled-only phase, cull if point-out target is a human controller
+			// rather than initiating the point out.
+			if s.prespawnUncontrolledOnly && !s.isVirtualController(actions.PointOut) {
+				s.deleteAircraft(ac)
+				return true
+			}
+
 			if ctrl, ok := s.State.Controllers[TCP(actions.PointOut)]; ok {
 				// Only do automatic point outs for virtual controllers
 				if s.isVirtualController(ac.ControllerFrequency) {
