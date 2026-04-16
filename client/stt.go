@@ -822,12 +822,15 @@ func makeWhisperPrompt(state SimState) string {
 		"reduce speed to", "maintain maximum forward speed", "contact tower",
 		"expect", "vectors", "squawk", "ident", "altimieter", "radar contact",
 		"reduce to final approach speed", "miles from", "established", "cleared",
+		"cleared straight-in",
 		"until established", "on the localizer", "flight level", "niner",
 		"climb via", "descend via", "arrival",
+		"expedite climb", "expedite descent", "good rate",
 		"hold", "as published", "radial inbound", "minute legs", "left turns", "right turns",
 		"expect further clearance", "mach", "say mach", "maintain mach",
 		"field in sight", "airport in sight", "visual approach",
 		"the field is at your", "the airport is at your",
+		"caution wake turbulence", "maintain visual separation", "landing the parallel",
 	}
 
 	// Add telephony and approaches for user-controlled tracks.
