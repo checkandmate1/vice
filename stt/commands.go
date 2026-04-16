@@ -1991,12 +1991,17 @@ func extractTraffic(tokens []Token) (int, int, int, int) {
 		return 0, 0, 0, 0
 	}
 
-	// Phase 3: Skip direction and aircraft type, find altitude
+	// Phase 3: Skip direction, runway relationship, and aircraft type; find altitude.
 	// The altitude is the current position of the traffic. If followed by "climbing/descending XXXX",
 	// we use the first altitude (current), not the target.
 	// Altitudes are multiples of 100 feet; aircraft types like 787 are not.
 	for consumed < len(tokens) && consumed < 40 {
 		t := tokens[consumed]
+
+		if next, ok := consumeTrafficLandingParallel(tokens, consumed); ok {
+			consumed = next
+			continue
+		}
 
 		// Check for altitude pattern (TokenAltitude from "N thousand" parsing)
 		if t.Type == TokenAltitude {
@@ -2144,6 +2149,27 @@ func extractTraffic(tokens []Token) (int, int, int, int) {
 	}
 
 	return oclock, miles, alt, consumed
+}
+
+func consumeTrafficLandingParallel(tokens []Token, pos int) (int, bool) {
+	if pos >= len(tokens) {
+		return pos, false
+	}
+
+	text := strings.ToLower(tokens[pos].Text)
+	if text != "landing" && text != "land" {
+		return pos, false
+	}
+
+	next := pos + 1
+	if next < len(tokens) && strings.ToLower(tokens[next].Text) == "the" {
+		next++
+	}
+	if next >= len(tokens) || !FuzzyMatch(tokens[next].Text, "parallel", 0.8) {
+		return pos, false
+	}
+
+	return next + 1, true
 }
 
 // extractHoldParams extracts hold parameters from tokens for controller-specified holds.

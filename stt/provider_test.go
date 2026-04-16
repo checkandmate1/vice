@@ -2475,6 +2475,47 @@ func TestAirportAdvisorySTTPatterns(t *testing.T) {
 	}
 }
 
+func TestTrafficAdvisorySTTPatterns(t *testing.T) {
+	provider := NewTranscriber(nil)
+
+	tests := []struct {
+		name       string
+		transcript string
+		aircraft   map[string]Aircraft
+		expected   string
+	}{
+		{
+			name:       "landing the parallel before position",
+			transcript: "American 123 traffic landing the parallel your ten o'clock two miles a seven thirty seven three thousand",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC/10/2/30",
+		},
+		{
+			name:       "landing the parallel after distance",
+			transcript: "American 123 traffic your ten o'clock two miles landing the parallel a seven thirty seven three thousand",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC/10/2/30",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := provider.DecodeTranscript(tt.aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestExtractFix(t *testing.T) {
 	fixes := map[string]string{
 		"jenny":     "JENNY",

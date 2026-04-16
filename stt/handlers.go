@@ -1277,6 +1277,15 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
+		"traffic landing [the] parallel [at] [your] {traffic}",
+		func(tr trafficResult) string {
+			return fmt.Sprintf("TRAFFIC/%d/%d/%d", tr.oclock, tr.miles, tr.altitude)
+		},
+		WithName("traffic_advisory"),
+		WithPriority(10),
+	)
+
+	registerSTTCommand(
 		"maintain visual separation [from] [the] [traffic]",
 		func() string { return "VISSEP" },
 		WithName("visual_separation"),
