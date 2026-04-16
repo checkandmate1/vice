@@ -119,6 +119,48 @@ func TestAssignSpeedUntilPreservesRangeRestriction(t *testing.T) {
 	}
 }
 
+func TestAssignedAtOrAboveSpeedDoesNotAccelerateWhenAlreadyCompliant(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/star HAUPT/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "B38M",
+		InitialAltitude:  3000,
+		InitialSpeed:     210,
+		OnSTAR:           true,
+	})
+
+	sr := av.MakeAtOrAboveSpeedRestriction(190)
+	f.nav.AssignSpeed(&sr, false)
+
+	targetAltitude, _, _ := f.nav.TargetAltitude()
+	targetSpeed, _ := f.nav.TargetSpeed(targetAltitude, &f.fp, f.weather(f.nav.FlightState.Altitude), nil)
+	if targetSpeed != f.nav.FlightState.IAS {
+		t.Fatalf("target speed = %.0f, want current compliant speed %.0f", targetSpeed, f.nav.FlightState.IAS)
+	}
+}
+
+func TestAssignedAtOrBelowSpeedDoesNotAccelerateWhenAlreadyCompliant(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/star HAUPT/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "B38M",
+		InitialAltitude:  3000,
+		InitialSpeed:     190,
+		OnSTAR:           true,
+	})
+
+	sr := av.MakeAtOrBelowSpeedRestriction(210)
+	f.nav.AssignSpeed(&sr, false)
+
+	targetAltitude, _, _ := f.nav.TargetAltitude()
+	targetSpeed, _ := f.nav.TargetSpeed(targetAltitude, &f.fp, f.weather(f.nav.FlightState.Altitude), nil)
+	if targetSpeed != f.nav.FlightState.IAS {
+		t.Fatalf("target speed = %.0f, want current compliant speed %.0f", targetSpeed, f.nav.FlightState.IAS)
+	}
+}
+
 // TestDirectSpeedCancelsAfterFixSpeed verifies that a direct speed
 // assignment clears any pending after-fix speed (regression test for 3155bf14).
 func TestDirectSpeedCancelsAfterFixSpeed(t *testing.T) {

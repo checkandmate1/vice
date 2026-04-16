@@ -134,6 +134,9 @@ func (nav *Nav) TargetSpeed(targetAltitude float32, fp *av.FlightPlan, wxs wx.Sa
 			tas := av.MachToTAS(sr.Range[0], wxs.Temperature())
 			return av.TASToIAS(tas, nav.FlightState.Altitude), MaximumRate
 		}
+		if _, exact := sr.ExactValue(); !exact {
+			return math.Clamp(nav.FlightState.IAS, sr.Range[0], sr.Range[1]), MaximumRate
+		}
 		naturalIAS, _ := nav.targetAltitudeIAS()
 		return nav.restrictedSpeed(sr, naturalIAS), MaximumRate
 	}
