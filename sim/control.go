@@ -1535,7 +1535,7 @@ func (s *Sim) AirportAdvisory(tcw TCW, callsign av.ADSBCallsign, command string)
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
 			// If the pilot already has the field in sight, just confirm.
 			if ac.FieldInSight || ac.RequestedVisual {
-				return av.FieldInSightIntent{HasField: true}
+				return av.LookForFieldFound
 			}
 
 			return s.handleAirportAdvisory(ac, oclock, miles)
@@ -1550,12 +1550,14 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	// Use the shared eligibility check for VMC, ceiling, range, and bearing.
 	elig := s.checkVisualEligibility(ac)
 	if !elig.FieldInSight {
-		// Distinguish IMC (no "looking") from out-of-range/bearing (pilot says "looking").
-		if elig.Reason == visualEligibilityIMC {
-			return av.FieldInSightIntent{}
+		switch elig.Reason {
+		case visualEligibilityIMC:
+			return av.LookForFieldLookingIMC
+		case visualEligibilityObscured:
+			return av.LookForFieldLookingObscured
 		}
 		ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
-		return av.FieldInSightIntent{Looking: true}
+		return av.LookForFieldLooking
 	}
 
 	// Validate the controller's o'clock direction against the actual bearing.
@@ -1564,7 +1566,7 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	bearingError := math.HeadingDifference(reportedBearing, elig.BearingToAirport)
 	if bearingError > 30 {
 		ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
-		return av.FieldInSightIntent{Looking: true}
+		return av.LookForFieldLooking
 	}
 
 	// Probability increases as distance decreases relative to effective range.
@@ -1573,12 +1575,12 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 
 	if s.Rand.Float32() < seeProb {
 		ac.FieldInSight = true
-		return av.FieldInSightIntent{HasField: true}
+		return av.LookForFieldFound
 	}
 
 	// "Looking" — schedule possible delayed field-in-sight call.
 	ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
-	return av.FieldInSightIntent{Looking: true}
+	return av.LookForFieldLooking
 }
 
 func (s *Sim) ExpediteDescent(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
@@ -2293,6 +2295,7 @@ const (
 	visualEligibilityNoAirport
 	visualEligibilityIMC
 	visualEligibilityOutOfRange
+	visualEligibilityObscured
 	visualEligibilityBadBearing
 )
 
@@ -2344,10 +2347,11 @@ func (s *Sim) checkVisualEligibility(ac *Aircraft) VisualEligibility {
 	maxRange := effectiveVisualRange(metar, altAGL)
 	dist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
 	if dist > maxRange {
+		reason := util.Select(visualWeatherObscuresField(metar, dist), visualEligibilityObscured, visualEligibilityOutOfRange)
 		return VisualEligibility{
 			Distance: dist,
 			MaxRange: maxRange,
-			Reason:   visualEligibilityOutOfRange,
+			Reason:   reason,
 		}
 	}
 
@@ -2430,6 +2434,19 @@ func effectiveVisualRange(metar wx.METAR, altitudeAGL float32) float32 {
 		return visualMaxDistance
 	}
 	return visNM
+}
+
+func visualWeatherObscuresField(metar wx.METAR, dist float32) bool {
+	if dist > visualMaxDistance {
+		return false
+	}
+
+	if metar.HasObscuration() {
+		return true
+	}
+
+	vis, err := metar.Visibility()
+	return err == nil && vis < 10
 }
 
 // checkSpontaneousVisualRequest checks if an arrival aircraft should

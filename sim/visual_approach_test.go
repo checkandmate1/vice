@@ -175,42 +175,39 @@ func (vs *VisualScenario) ClearPendingTransmissions() {
 	vs.Sim.PendingContacts = make(map[TCP][]PendingContact)
 }
 
-// ExpectFieldInSight asserts the intent is FieldInSightIntent with HasField=true.
+// ExpectFieldInSight asserts the intent is LookForFieldFound.
 func (vs *VisualScenario) ExpectFieldInSight(intent av.CommandIntent) {
 	vs.t.Helper()
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		vs.t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		vs.t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if !fi.HasField {
-		vs.t.Error("expected HasField=true")
+	if fi != av.LookForFieldFound {
+		vs.t.Errorf("expected LookForFieldFound, got %v", fi)
 	}
 }
 
-// ExpectLooking asserts the intent is FieldInSightIntent with Looking=true.
+// ExpectLooking asserts the intent is LookForFieldLooking.
 func (vs *VisualScenario) ExpectLooking(intent av.CommandIntent) {
 	vs.t.Helper()
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		vs.t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		vs.t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if !fi.Looking {
-		vs.t.Error("expected Looking=true")
-	}
-	if fi.HasField {
-		vs.t.Error("expected HasField=false when Looking")
+	if fi != av.LookForFieldLooking {
+		vs.t.Errorf("expected LookForFieldLooking, got %v", fi)
 	}
 }
 
-// ExpectIMC asserts the intent is FieldInSightIntent with neither HasField nor Looking.
+// ExpectIMC asserts the intent is LookForFieldLookingIMC.
 func (vs *VisualScenario) ExpectIMC(intent av.CommandIntent) {
 	vs.t.Helper()
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		vs.t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		vs.t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if fi.HasField || fi.Looking {
-		vs.t.Errorf("expected IMC response (HasField=false, Looking=false), got HasField=%v Looking=%v", fi.HasField, fi.Looking)
+	if fi != av.LookForFieldLookingIMC {
+		vs.t.Errorf("expected LookForFieldLookingIMC, got %v", fi)
 	}
 }
 
@@ -994,17 +991,14 @@ func TestAirportAdvisoryAccuracyCheck(t *testing.T) {
 			ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180) // 5nm north heading south
 
 			intent := sim.handleAirportAdvisory(ac, tt.oclock, tt.miles)
-			fi, ok := intent.(av.FieldInSightIntent)
+			fi, ok := intent.(av.LookForFieldIntent)
 			if !ok {
-				t.Fatalf("expected FieldInSightIntent, got %T", intent)
+				t.Fatalf("expected LookForFieldIntent, got %T", intent)
 			}
 
 			if tt.wantLooking {
-				if fi.HasField {
-					t.Error("expected looking (bad direction), but got field in sight")
-				}
-				if !fi.Looking {
-					t.Error("expected looking=true for bad direction, got IMC response")
+				if fi != av.LookForFieldLooking {
+					t.Errorf("expected LookForFieldLooking for bad direction, got %v", fi)
 				}
 			}
 		})
@@ -1019,12 +1013,12 @@ func TestAirportAdvisoryIMC(t *testing.T) {
 
 	ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180)
 	intent := sim.handleAirportAdvisory(ac, 6, 5)
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if fi.HasField || fi.Looking {
-		t.Error("expected IMC response (HasField=false, Looking=false)")
+	if fi != av.LookForFieldLookingIMC {
+		t.Errorf("expected LookForFieldLookingIMC, got %v", fi)
 	}
 }
 
@@ -1037,15 +1031,12 @@ func TestAirportAdvisoryTooFar(t *testing.T) {
 	// so we isolate the distance check from the bearing error check.
 	ac := makeVisualTestAircraft(math.Point2LL{0, 30.0 / 60}, 180)
 	intent := sim.handleAirportAdvisory(ac, 12, 30)
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if fi.HasField {
-		t.Error("expected looking for distant airport, got field in sight")
-	}
-	if !fi.Looking {
-		t.Error("expected looking=true for too-far airport")
+	if fi != av.LookForFieldLooking {
+		t.Errorf("expected LookForFieldLooking for too-far airport, got %v", fi)
 	}
 }
 
@@ -1058,12 +1049,12 @@ func TestAirportAdvisoryAboveCeiling(t *testing.T) {
 	// Aircraft at 4000ft, above ceiling (elev 0 + 3000 = 3000).
 	ac := makeVisualTestAircraftAlt(math.Point2LL{0, 5.0 / 60}, 180, 4000)
 	intent := sim.handleAirportAdvisory(ac, 12, 5)
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if fi.HasField || fi.Looking {
-		t.Error("expected IMC response for aircraft above ceiling")
+	if fi != av.LookForFieldLookingIMC {
+		t.Errorf("expected LookForFieldLookingIMC for aircraft above ceiling, got %v", fi)
 	}
 }
 
@@ -1076,15 +1067,30 @@ func TestAirportAdvisoryLowVisibility(t *testing.T) {
 	// Aircraft at 8nm, beyond 5SM visibility → should be "looking".
 	ac := makeVisualTestAircraft(math.Point2LL{0, 8.0 / 60}, 180)
 	intent := sim.handleAirportAdvisory(ac, 12, 8)
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if fi.HasField {
-		t.Error("expected looking for aircraft beyond visibility range, got field in sight")
+	if fi != av.LookForFieldLookingObscured {
+		t.Errorf("expected LookForFieldLookingObscured for aircraft beyond visibility range, got %v", fi)
 	}
-	if !fi.Looking {
-		t.Error("expected looking=true for aircraft beyond visibility range")
+}
+
+func TestAirportAdvisoryObscuration(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
+	sim := makeVisualTestSim(airportLoc, "13L")
+	sim.State.METAR["KJFK"] = wx.METAR{Raw: "KJFK 10SM HZ BKN050"}
+
+	// Haze reduces the effective range below this distance even with 10SM reported visibility.
+	ac := makeVisualTestAircraft(math.Point2LL{0, 21.0 / 60}, 180)
+	intent := sim.handleAirportAdvisory(ac, 12, 21)
+	fi, ok := intent.(av.LookForFieldIntent)
+	if !ok {
+		t.Fatalf("expected LookForFieldIntent, got %T", intent)
+	}
+	if fi != av.LookForFieldLookingObscured {
+		t.Errorf("expected LookForFieldLookingObscured for obscured field, got %v", fi)
 	}
 }
 
@@ -1369,12 +1375,12 @@ func TestScenarioAPThenClearedVisual(t *testing.T) {
 
 	// Issue AP: 12 o'clock, 5 miles. Should get field in sight or looking.
 	intent := vs.AirportAdvisory(12, 5)
-	fi, ok := intent.(av.FieldInSightIntent)
+	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
-		t.Fatalf("expected FieldInSightIntent, got %T", intent)
+		t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
 
-	if fi.HasField {
+	if fi == av.LookForFieldFound {
 		// Great — pilot sees the field. Should accept CVA now.
 		intent, err := vs.ClearedVisual("36")
 		if err != nil {
@@ -1383,7 +1389,7 @@ func TestScenarioAPThenClearedVisual(t *testing.T) {
 		if intent == nil {
 			t.Fatal("expected non-nil intent from CVA")
 		}
-	} else if fi.Looking {
+	} else if fi == av.LookForFieldLooking {
 		// Pilot is looking — advance time and check delayed callback.
 		vs.AdvanceTime(25 * time.Second)
 		vs.CheckDelayedFieldInSight()

@@ -5,14 +5,13 @@
   - Handle "at or above/at or below" speed restrictions more reasonably (don't treat them all as "at")
   - Added support for intercepting RNAV t-segments
   - Added support for "join the approach" for non-ILS/LOC approaches
-  - Fixed a few bugs with "at (fix), cleared straight in (approach)"
-- Added multiple new control instructions:
-  - "after FIX, climb/descend and maintain ALT"
-  - "after FIX, reduce/maintain/increase SPEED"
-  - "speed SPEED1 until FIX1, then SPEED2 until FIX2, then SPEED3", etc.
-  - "cross {fix} {miles} miles {direction} of {fix}"
-  - "good rate" for climbs/descents: "descend and maintain 3,000, good rate through 5,000", etc.
-  - optional altitudes to expedite to: "expedite through 5,000", etc.
+  - Fixed a few bugs with "at {fix}, cleared straight in {approach}"
+  - Added "after {fix}, climb/descend and maintain {altitude}"
+  - Added "after {fix}, reduce/maintain/increase {speed}"
+  - Added "speed {speed1} until {fix1}, then {speed2} until {fix2}, then {speed3}", etc.
+  - Added "cross {fix} {miles} miles {direction} of {fix}"
+  - Added "good rate" for climbs/descents: "descend and maintain 3,000, good rate through 5,000", etc.
+  - Added optional altitudes to expedite to: "expedite through 5,000", etc.
   - Fixed bugs with aircraft on approach not descending as much as they should.
 - ERAM
   - Added ALTIM SET and WX REPORT floating windows, including AR/WR keyboard commands and configurable window menus (Michael Knight)

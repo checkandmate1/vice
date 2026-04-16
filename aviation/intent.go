@@ -942,24 +942,32 @@ func (m MixUpIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// FieldInSight Intent
+// LookForFieldIntent
 
-// FieldInSightIntent represents a pilot's response to an AP (airport advisory) command.
-// The pilot may report "field in sight", "looking", or an IMC response.
-type FieldInSightIntent struct {
-	HasField bool // true if pilot can see the airport
-	Looking  bool // true if pilot says "looking" (can't see yet but not IMC)
-}
+// LookForFieldIntent represents a pilot's response to an AP (airport advisory) command.
+type LookForFieldIntent int
 
-func (f FieldInSightIntent) Render(rt *RadioTransmission, r *rand.Rand) {
-	if f.HasField {
-		rt.Add("[field in sight|we have the field in sight|we have the airport in sight]")
-	} else if f.Looking {
+const (
+	LookForFieldLooking LookForFieldIntent = iota
+	LookForFieldLookingIMC
+	LookForFieldLookingObscured
+	LookForFieldFound
+)
+
+func (f LookForFieldIntent) Render(rt *RadioTransmission, r *rand.Rand) {
+	switch f {
+	case LookForFieldLooking:
 		rt.Add("[looking|looking for it]")
-	} else {
+	case LookForFieldLookingIMC:
 		rt.Add("[we're in the clouds|we're IMC|we don't have the field]")
+	case LookForFieldLookingObscured:
+		rt.Add("[looking, it's pretty hazy|looking, visibility is pretty bad]")
+	case LookForFieldFound:
+		rt.Add("[field in sight|we have the field|airport in sight|in sight]")
 	}
 }
+
+///////////////////////////////////////////////////////////////////////////
 
 // RenderIntents converts a slice of CommandIntents into a single coherent RadioTransmission.
 // It handles merging related intents (e.g., altitude + expedite), PTACs, etc., for more
