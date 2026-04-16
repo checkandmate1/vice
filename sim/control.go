@@ -1550,13 +1550,13 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	// Use the shared eligibility check for VMC, ceiling, range, and bearing.
 	elig := s.checkVisualEligibility(ac)
 	if !elig.FieldInSight {
-		switch elig.Reason {
-		case visualEligibilityIMC:
+		if elig.Reason == visualEligibilityIMC {
 			return av.LookForFieldLookingIMC
-		case visualEligibilityObscured:
-			return av.LookForFieldLookingObscured
 		}
 		ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
+		if elig.Reason == visualEligibilityObscured {
+			return av.LookForFieldLookingObscured
+		}
 		return av.LookForFieldLooking
 	}
 
