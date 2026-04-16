@@ -269,13 +269,7 @@ func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		rt.Add("[maintain present speed|present speed we'll keep it at {spd}|maintaining {spd}]", s.Speed)
 	case SpeedUntilFinal:
 		if s.Until != nil {
-			if s.Until.Fix != "" {
-				rt.Add("{spd} until {fix}", s.Speed, s.Until.Fix)
-			} else if s.Until.DME > 0 {
-				rt.Add("{spd} until {num} D M E", s.Speed, s.Until.DME)
-			} else if s.Until.MileFinal > 0 {
-				rt.Add("{spd} until {num} mile final", s.Speed, s.Until.MileFinal)
-			}
+			s.renderUntil(rt, "")
 		} else {
 			rt.Add("[speed {spd} for now|we'll keep it at {spd} for now]", s.Speed)
 		}
@@ -304,17 +298,31 @@ func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 			rt.Add("[speed {spd}|maintain {spd}|{spd}]", s.Speed)
 		}
 	case SpeedAtOrAbove:
-		if s.AfterFix != "" {
+		if s.Until != nil {
+			s.renderUntil(rt, " or greater")
+		} else if s.AfterFix != "" {
 			rt.Add("[after {fix} maintain {spd} or greater|after {fix} {spd} or greater]", s.AfterFix, s.Speed)
 		} else {
 			rt.Add("[maintain {spd} or greater|{spd} or greater|{spd} or above]", s.Speed)
 		}
 	case SpeedAtOrBelow:
-		if s.AfterFix != "" {
+		if s.Until != nil {
+			s.renderUntil(rt, " or less")
+		} else if s.AfterFix != "" {
 			rt.Add("[after {fix} do not exceed {spd}|after {fix} {spd} or less]", s.AfterFix, s.Speed)
 		} else {
 			rt.Add("[do not exceed {spd}|not exceeding {spd}|{spd} or less]", s.Speed)
 		}
+	}
+}
+
+func (s SpeedIntent) renderUntil(rt *RadioTransmission, suffix string) {
+	if s.Until.Fix != "" {
+		rt.Add("{spd}"+suffix+" until {fix}", s.Speed, s.Until.Fix)
+	} else if s.Until.DME > 0 {
+		rt.Add("{spd}"+suffix+" until {num} D M E", s.Speed, s.Until.DME)
+	} else if s.Until.MileFinal > 0 {
+		rt.Add("{spd}"+suffix+" until {num} mile final", s.Speed, s.Until.MileFinal)
 	}
 }
 

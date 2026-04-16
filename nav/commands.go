@@ -256,6 +256,12 @@ func (nav *Nav) AssignSpeedUntil(sr *av.SpeedRestriction, until *av.SpeedUntil) 
 	}
 
 	nav.Speed = NavSpeed{Assigned: sr}
+	if !exact {
+		if sr.Range[0] > 0 && sr.Range[1] == av.MaxSpeed {
+			return av.SpeedIntent{Speed: sr.Range[0], Type: av.SpeedAtOrAbove, Until: until}
+		}
+		return av.SpeedIntent{Speed: sr.Range[1], Type: av.SpeedAtOrBelow, Until: until}
+	}
 	return av.SpeedIntent{Speed: speed, Type: av.SpeedUntilFinal, Until: until}
 }
 

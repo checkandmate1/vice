@@ -87,6 +87,38 @@ func TestAfterFixSpeed(t *testing.T) {
 	f.Run()
 }
 
+func TestAssignSpeedUntilPreservesRangeRestriction(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/star DETGY/star HAUPT/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  11000,
+		InitialSpeed:     250,
+		OnSTAR:           true,
+	})
+
+	until := &av.SpeedUntil{Fix: "DETGY"}
+
+	above := av.MakeAtOrAboveSpeedRestriction(250)
+	aboveIntent, ok := f.nav.AssignSpeedUntil(&above, until).(av.SpeedIntent)
+	if !ok {
+		t.Fatalf("expected SpeedIntent for at-or-above speed until, got %T", aboveIntent)
+	}
+	if aboveIntent.Type != av.SpeedAtOrAbove || aboveIntent.Until != until {
+		t.Fatalf("expected at-or-above speed until intent, got %+v", aboveIntent)
+	}
+
+	below := av.MakeAtOrBelowSpeedRestriction(210)
+	belowIntent, ok := f.nav.AssignSpeedUntil(&below, until).(av.SpeedIntent)
+	if !ok {
+		t.Fatalf("expected SpeedIntent for at-or-below speed until, got %T", belowIntent)
+	}
+	if belowIntent.Type != av.SpeedAtOrBelow || belowIntent.Until != until {
+		t.Fatalf("expected at-or-below speed until intent, got %+v", belowIntent)
+	}
+}
+
 // TestDirectSpeedCancelsAfterFixSpeed verifies that a direct speed
 // assignment clears any pending after-fix speed (regression test for 3155bf14).
 func TestDirectSpeedCancelsAfterFixSpeed(t *testing.T) {
