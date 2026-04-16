@@ -27,3 +27,6 @@
   - Added "flash_on_atis_update" adaptation for STARS SSA lists
   - Added support for actions at waypoints until reaching an altitude or DME from a fix, e.g. "FIX/h090@a30/h120" departs fix at an 090 heading until reaching 3,000', then flies 120.
 - Added UI option to force (realistic) square windows for STARS/ERAM radar displays
+
+- Visual approach/separation improvements
+  - Support "approved" after an aircraft says they will maintain visual separation from traffic

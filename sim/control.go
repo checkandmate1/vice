@@ -2105,6 +2105,7 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	}
 
 	if isIMC {
+		ac.OfferedVisualSeparation = false
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseIMC}
 	}
 
@@ -2143,6 +2144,7 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 		// No traffic found - respond "looking"
 		ac.TrafficLookingCallsign = ""
 		ac.TrafficLookingUntil = Time{}
+		ac.OfferedVisualSeparation = false
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 	}
 
@@ -2173,12 +2175,17 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 		ac.TrafficInSightTime = s.State.SimTime
 		ac.TrafficLookingCallsign = ""
 		ac.TrafficLookingUntil = Time{}
-		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseTrafficSeen, WillMaintainSeparation: s.Rand.Float32() < 0.3}
+		ac.OfferedVisualSeparation = s.Rand.Float32() < 0.3
+		return av.TrafficAdvisoryIntent{
+			Response:               av.TrafficResponseTrafficSeen,
+			WillMaintainSeparation: ac.OfferedVisualSeparation,
+		}
 	}
 
 	// "Looking" - schedule possible delayed traffic-in-sight call
 	ac.TrafficLookingCallsign = trafficFound
 	ac.TrafficLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
+	ac.OfferedVisualSeparation = false
 	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 }
 
@@ -2506,10 +2513,31 @@ func (s *Sim) MaintainVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.Co
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
 			// Check if aircraft has traffic in sight (within last 60 seconds)
 			if ac.TrafficInSight && s.State.SimTime.Sub(ac.TrafficInSightTime) < 60*time.Second {
+				ac.OfferedVisualSeparation = false
+				ac.MaintainingVisualSeparation = true
 				return av.VisualSeparationIntent{}
 			}
 			// If they don't have traffic in sight, they can't maintain visual separation
 			return av.MakeUnableIntent("unable, we don't have the traffic")
+		})
+}
+
+// ApproveVisualSeparation handles "approved" after a pilot has volunteered
+// to maintain visual separation from traffic called by the controller.
+func (s *Sim) ApproveVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) error { return nil },
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			if ac.OfferedVisualSeparation &&
+				ac.TrafficInSight &&
+				s.State.SimTime.Sub(ac.TrafficInSightTime) < 60*time.Second {
+				ac.OfferedVisualSeparation = false
+				ac.MaintainingVisualSeparation = true
+			}
+			return nil
 		})
 }
 
@@ -3610,6 +3638,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 	case 'A':
 		if command == "A" {
 			return s.AltitudeOurDiscretion(tcw, callsign)
+		} else if command == "APPROVED" {
+			return s.ApproveVisualSeparation(tcw, callsign)
 		} else if command == "AGAIN" {
 			// AGAIN is handled specially in RunAircraftControlCommands for TTS synthesis
 			return nil, nil

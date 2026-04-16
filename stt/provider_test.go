@@ -764,6 +764,14 @@ func TestVFRCommands(t *testing.T) {
 			expected: "N345 GA",
 		},
 		{
+			name:       "approved",
+			transcript: "United 123 approved",
+			aircraft: map[string]Aircraft{
+				"United 123": {Callsign: "UAL123", State: "arrival"},
+			},
+			expected: "UAL123 APPROVED",
+		},
+		{
 			name:       "callsign plus facility name implies go ahead",
 			transcript: "November 345 boston approach",
 			aircraft: map[string]Aircraft{

@@ -1232,6 +1232,13 @@ func registerAllCommands() {
 	)
 
 	registerSTTCommand(
+		"approved",
+		func() string { return "APPROVED" },
+		WithName("approved"),
+		WithPriority(15),
+	)
+
+	registerSTTCommand(
 		"say request",
 		func() string { return "GA" },
 		WithName("say_request"),

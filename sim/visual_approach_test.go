@@ -1145,6 +1145,49 @@ func TestDelayedTrafficInSightCanExpireWithoutSeeingTraffic(t *testing.T) {
 	}
 }
 
+func TestApprovedAcceptsVolunteeredVisualSeparationWithoutReadback(t *testing.T) {
+	vs := NewVisualScenario(t, math.Point2LL{0, 0}, "13L", math.Point2LL{0, 5.0 / 60}, 180)
+
+	vs.AC.TrafficInSight = true
+	vs.AC.TrafficInSightCallsign = "DAL456"
+	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
+	vs.AC.OfferedVisualSeparation = true
+
+	result := vs.Sim.RunAircraftControlCommands(vs.tcw, vs.callsign, "APPROVED")
+	if result.Error != nil {
+		t.Fatalf("APPROVED returned error: %v", result.Error)
+	}
+	if result.ReadbackSpokenText != "" {
+		t.Fatalf("APPROVED should not produce a pilot readback, got %q", result.ReadbackSpokenText)
+	}
+	if vs.AC.OfferedVisualSeparation {
+		t.Fatal("APPROVED should clear the pending volunteered visual separation")
+	}
+	if !vs.AC.MaintainingVisualSeparation {
+		t.Fatal("APPROVED should count as issuing maintain visual separation")
+	}
+}
+
+func TestMaintainVisualSeparationMarksAircraftState(t *testing.T) {
+	vs := NewVisualScenario(t, math.Point2LL{0, 0}, "13L", math.Point2LL{0, 5.0 / 60}, 180)
+
+	vs.AC.TrafficInSight = true
+	vs.AC.TrafficInSightCallsign = "DAL456"
+	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
+	vs.AC.OfferedVisualSeparation = true
+
+	_, err := vs.Sim.MaintainVisualSeparation(vs.tcw, vs.callsign)
+	if err != nil {
+		t.Fatalf("VISSEP returned error: %v", err)
+	}
+	if vs.AC.OfferedVisualSeparation {
+		t.Fatal("VISSEP should clear the pending volunteered visual separation")
+	}
+	if !vs.AC.MaintainingVisualSeparation {
+		t.Fatal("VISSEP should mark the aircraft as maintaining visual separation")
+	}
+}
+
 func TestCVAFollowTrafficRequiresRecentApproachClearedTraffic(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc, Elevation: 13})

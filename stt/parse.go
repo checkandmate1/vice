@@ -3,6 +3,7 @@ package stt
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	av "github.com/mmp/vice/aviation"
@@ -118,10 +119,20 @@ func ParseCommands(tokens []Token, ac Aircraft) ([]string, float64) {
 	// Post-processing: if "knots" appears in the transcript, convert altitude commands to speed
 	commands = convertAltitudeToSpeedIfKnots(tokens, commands)
 	commands = coalesceAfterFixAltitudes(commands)
+	commandsBeforeApprovalFilter := len(commands)
+	commands = removeCombinedApproved(commands)
+	totalConf -= float64(commandsBeforeApprovalFilter - len(commands))
 
 	avgConf := totalConf / float64(len(commands))
 	logLocalStt("ParseCommands: result=%v (avgConf=%.2f)", commands, avgConf)
 	return commands, avgConf
+}
+
+func removeCombinedApproved(commands []string) []string {
+	if len(commands) <= 1 {
+		return commands
+	}
+	return slices.DeleteFunc(commands, func(cmd string) bool { return cmd == "APPROVED" })
 }
 
 // convertAltitudeToSpeedIfKnots checks if "knots" appears anywhere in the tokens.

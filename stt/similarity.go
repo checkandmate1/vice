@@ -449,22 +449,23 @@ var fuzzyMatchBlocklist = map[string][]string{
 	"intercept":    {"increase", "speed"},  // "intercept localizer" vs "increase/speed"
 	"increase":     {"intercept", "cross"}, // "increase speed" vs "cross fix"
 	"cross":        {"increase"},
-	"see":          {"speed"},             // "see ya" vs "speed"
-	"degrees":      {"increase"},          // garbled STT output
-	"flight":       {"right"},             // "flight 638" vs "turn right"
-	"heading":      {"descending"},        // "heading 180" vs "descend"
-	"had":          {"heading"},           // "just had to" vs "heading" command
-	"descend":      {"present"},           // "descend and maintain" vs "present heading"
-	"present":      {"descend"},           // "present heading" vs "descend"
-	"maximum":      {"minimum"},           // "maximum speed" vs "minimum speed"
-	"minimum":      {"maximum"},           // "minimum speed" vs "maximum speed"
-	"stand":        {"ident"},             // "stand on the sand" vs "squawk ident"
-	"red":          {"right", "reduce"},   // garbled word in phrases like "Red or Collins"
-	"rig":          {"right"},             // garbage word vs turn direction
-	"departure":    {"depart"},            // position ID ("NY departure") vs depart fix instruction
-	"departures":   {"depart"},            // position ID plural vs depart instruction
-	"project":      {"direct", "proceed"}, // "project" in "miami project" is not "direct"
-	"approach":     {"direct", "proceed"}, // "approach" in position ID is not direct
+	"see":          {"speed"},                         // "see ya" vs "speed"
+	"degrees":      {"increase"},                      // garbled STT output
+	"flight":       {"right"},                         // "flight 638" vs "turn right"
+	"heading":      {"descending"},                    // "heading 180" vs "descend"
+	"had":          {"heading"},                       // "just had to" vs "heading" command
+	"descend":      {"present"},                       // "descend and maintain" vs "present heading"
+	"present":      {"descend"},                       // "present heading" vs "descend"
+	"maximum":      {"minimum"},                       // "maximum speed" vs "minimum speed"
+	"minimum":      {"maximum"},                       // "minimum speed" vs "maximum speed"
+	"stand":        {"ident"},                         // "stand on the sand" vs "squawk ident"
+	"red":          {"right", "reduce"},               // garbled word in phrases like "Red or Collins"
+	"rig":          {"right"},                         // garbage word vs turn direction
+	"departure":    {"depart"},                        // position ID ("NY departure") vs depart fix instruction
+	"departures":   {"depart"},                        // position ID plural vs depart instruction
+	"project":      {"direct", "proceed"},             // "project" in "miami project" is not "direct"
+	"approach":     {"approved", "direct", "proceed"}, // "approach" in position ID is not direct
+	"approved":     {"approach"},
 	"pro":          {"direct", "proceed"}, // Garbled "pro" is not direct/proceed
 	"redo":         {"right"},             // "redo speed" should not match "turn right"
 	"san":          {"say"},               // "san juan" should not match "say"
