@@ -707,7 +707,7 @@ func (sd *dispatcher) RunAircraftCommands(cmds *AircraftCommandsArgs, result *Ai
 		return nil // don't continue with the commands
 	}
 
-	execResult := c.sim.RunAircraftControlCommands(c.tcw, cmds.Callsign, cmds.Commands)
+	execResult := c.sim.RunAircraftControlCommands(c.tcw, cmds.Callsign, cmds.Commands, cmds.AudioDuration)
 	result.RemainingInput = execResult.RemainingInput
 	if execResult.Error != nil {
 		result.ErrorMessage = execResult.Error.Error()

@@ -26,13 +26,13 @@ func (nav *Nav) GoAroundWithProcedure(altitude float32, runwayEndWP av.Waypoint)
 	nav.Waypoints = av.WaypointArray{runwayEndWP, nav.FlightState.ArrivalAirport}
 }
 
-func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool, simTime Time) av.CommandIntent {
+func (nav *Nav) AssignAltitude(alt float32, afterSpeed bool, simTime Time, delayReduction time.Duration) av.CommandIntent {
 	nav.clearFixAltitudes()
 	intent, ok := nav.prepareAltitudeAssignment(alt, afterSpeed)
 	if !ok {
 		return intent
 	}
-	nav.enqueueAssignedAltitude(alt, simTime)
+	nav.enqueueAssignedAltitude(alt, simTime, delayReduction)
 	return intent
 }
 
@@ -97,13 +97,19 @@ func (nav *Nav) setAssignedAltitude(alt float32) {
 	}
 }
 
-func (nav *Nav) enqueueAssignedAltitude(alt float32, simTime Time) {
+func (nav *Nav) enqueueAssignedAltitude(alt float32, simTime Time, delayReduction time.Duration) {
 	active := nav.activeAssignedAltitude()
 	delay := 2 + 2*nav.Rand.Float32()
+	d := time.Duration(delay * float32(time.Second))
+	if d > delayReduction {
+		d -= delayReduction
+	} else {
+		d = 0
+	}
 	nav.Altitude = NavAltitude{
 		Assigned:       &alt,
 		ActiveAssigned: active,
-		ActivateAt:     simTime.Add(time.Duration(delay * float32(time.Second))),
+		ActivateAt:     simTime.Add(d),
 	}
 }
 
@@ -430,13 +436,13 @@ func (nav *Nav) setRate(rate RateQualifier, throughAlt *float32, direction av.Al
 	}
 }
 
-func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time) av.CommandIntent {
+func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time, delayReduction time.Duration) av.CommandIntent {
 	if hdg <= 0 || hdg > 360 {
 		return av.MakeUnableIntent("unable. {hdg} isn't a valid heading", hdg)
 	}
 
 	cancelHold := nav.Heading.Hold != nil
-	nav.assignHeading(hdg, turn, simTime)
+	nav.assignHeading(hdg, turn, simTime, delayReduction)
 
 	intent := av.HeadingIntent{
 		Heading:    hdg,
@@ -458,7 +464,7 @@ func (nav *Nav) AssignHeading(hdg math.MagneticHeading, turn av.TurnDirection, s
 	return intent
 }
 
-func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time) {
+func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, simTime Time, delayReduction time.Duration) {
 	approachCleared := nav.Approach.Cleared
 
 	if _, ok := nav.AssignedHeading(); !ok {
@@ -483,11 +489,11 @@ func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, s
 
 	// Don't carry this from a waypoint we may have previously passed.
 	nav.Approach.NoPT = false
-	nav.EnqueueHeading(hdg, turn, approachCleared, simTime)
+	nav.EnqueueHeading(hdg, turn, approachCleared, simTime, delayReduction)
 }
 
-func (nav *Nav) FlyPresentHeading(simTime Time) av.CommandIntent {
-	nav.assignHeading(nav.FlightState.Heading, av.TurnClosest, simTime)
+func (nav *Nav) FlyPresentHeading(simTime Time, delayReduction time.Duration) av.CommandIntent {
+	nav.assignHeading(nav.FlightState.Heading, av.TurnClosest, simTime, delayReduction)
 	return av.HeadingIntent{
 		Heading: nav.FlightState.Heading,
 		Type:    av.HeadingPresent,
@@ -632,7 +638,7 @@ func (nav *Nav) ExpectDirect(fix string) av.CommandIntent {
 	return nil
 }
 
-func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime Time) av.CommandIntent {
+func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime Time, delayReduction time.Duration) av.CommandIntent {
 	if wps, source, err := nav.directFixWaypoints(fix); err == nil {
 		if hold := nav.Heading.Hold; hold != nil {
 			// We'll finish our lap and then depart the holding fix direct to the fix
@@ -653,7 +659,7 @@ func (nav *Nav) DirectFix(fix string, turn av.TurnDirection, simTime Time) av.Co
 				Turn:      turn,
 			}
 		} else {
-			nav.EnqueueDirectFix(wps, turn, simTime)
+			nav.EnqueueDirectFix(wps, turn, simTime, delayReduction)
 			nav.Approach.NoPT = false
 			if source == waypointSourceApproach && !nav.Approach.Cleared {
 				// The waypoints came from the approach but the aircraft

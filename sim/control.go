@@ -20,6 +20,13 @@ import (
 	"github.com/mmp/vice/wx"
 )
 
+// callsignAudioOffset is the approximate time taken by the callsign at the
+// start of a voice transmission. When a controller issues a long instruction,
+// we subtract (audioDuration - callsignAudioOffset) from the pilot-reaction
+// delay in the Nav layer to offset the latency already spent receiving the
+// voice transmission.
+const callsignAudioOffset = time.Second
+
 // TCWCanCommandAircraft returns true if the TCW can issue ATC commands to an aircraft
 // (altitude, heading, speed, etc.). This is true if the TCW is privileged or controls
 // the position whose frequency the aircraft is tuned to.
@@ -1347,24 +1354,25 @@ func (s *Sim) PilotMixUp(tcw TCW, callsign av.ADSBCallsign) (string, error) {
 	return "", err
 }
 
-func (s *Sim) AssignAltitude(tcw TCW, callsign av.ADSBCallsign, altitude int, afterSpeed bool) (av.CommandIntent, error) {
+func (s *Sim) AssignAltitude(tcw TCW, callsign av.ADSBCallsign, altitude int, afterSpeed bool, delayReduction time.Duration) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.AssignAltitude(altitude, afterSpeed, s.State.SimTime)
+			return ac.AssignAltitude(altitude, afterSpeed, s.State.SimTime, delayReduction)
 		})
 }
 
 type HeadingArgs struct {
-	TCW          TCW
-	ADSBCallsign av.ADSBCallsign
-	Heading      int
-	Present      bool
-	LeftDegrees  int
-	RightDegrees int
-	Turn         av.TurnDirection
+	TCW            TCW
+	ADSBCallsign   av.ADSBCallsign
+	Heading        int
+	Present        bool
+	LeftDegrees    int
+	RightDegrees   int
+	Turn           av.TurnDirection
+	DelayReduction time.Duration
 }
 
 func (s *Sim) AssignHeading(hdg *HeadingArgs) (av.CommandIntent, error) {
@@ -1374,13 +1382,13 @@ func (s *Sim) AssignHeading(hdg *HeadingArgs) (av.CommandIntent, error) {
 	return s.dispatchControlledAircraftCommand(hdg.TCW, hdg.ADSBCallsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
 			if hdg.Present {
-				return ac.FlyPresentHeading(s.State.SimTime)
+				return ac.FlyPresentHeading(s.State.SimTime, hdg.DelayReduction)
 			} else if hdg.LeftDegrees != 0 {
-				return ac.TurnLeft(hdg.LeftDegrees, s.State.SimTime)
+				return ac.TurnLeft(hdg.LeftDegrees, s.State.SimTime, hdg.DelayReduction)
 			} else if hdg.RightDegrees != 0 {
-				return ac.TurnRight(hdg.RightDegrees, s.State.SimTime)
+				return ac.TurnRight(hdg.RightDegrees, s.State.SimTime, hdg.DelayReduction)
 			} else {
-				return ac.AssignHeading(hdg.Heading, hdg.Turn, s.State.SimTime)
+				return ac.AssignHeading(hdg.Heading, hdg.Turn, s.State.SimTime, hdg.DelayReduction)
 			}
 		})
 }
@@ -1684,13 +1692,13 @@ func (s *Sim) ExpectDirect(tcw TCW, callsign av.ADSBCallsign, fix string) (av.Co
 		})
 }
 
-func (s *Sim) DirectFix(tcw TCW, callsign av.ADSBCallsign, fix string, turn av.TurnDirection) (av.CommandIntent, error) {
+func (s *Sim) DirectFix(tcw TCW, callsign av.ADSBCallsign, fix string, turn av.TurnDirection, delayReduction time.Duration) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.DirectFix(fix, turn, s.State.SimTime)
+			return ac.DirectFix(fix, turn, s.State.SimTime, delayReduction)
 		})
 }
 
@@ -3282,8 +3290,16 @@ type ControlCommandsResult struct {
 // Returns the remaining unparsed input and any error that occurred.
 // This is the core command execution logic shared by the dispatcher and automated test code.
 // All intents from commands are collected and rendered together as a single transmission.
-func (s *Sim) RunAircraftControlCommands(tcw TCW, callsign av.ADSBCallsign, commandStr string) ControlCommandsResult {
+// audioDuration is the length of the voice transmission (zero for typed or non-voice commands);
+// the pilot-reaction delay applied by deferred-action Nav commands is reduced by
+// (audioDuration - callsignAudioOffset), floored at zero.
+func (s *Sim) RunAircraftControlCommands(tcw TCW, callsign av.ADSBCallsign, commandStr string, audioDuration time.Duration) ControlCommandsResult {
 	commands := strings.Fields(commandStr)
+
+	delayReduction := audioDuration - callsignAudioOffset
+	if delayReduction < 0 {
+		delayReduction = 0
+	}
 
 	// Parse addressing form suffix from callsign: /T indicates type+trailing3 addressing
 	// (e.g., "skyhawk 3 alpha bravo" instead of "november 1 2 3 alpha bravo")
@@ -3364,7 +3380,7 @@ func (s *Sim) RunAircraftControlCommands(tcw TCW, callsign av.ADSBCallsign, comm
 	var intents []av.CommandIntent
 
 	for i, command := range commands {
-		intent, err := s.runOneControlCommand(tcw, callsign, command)
+		intent, err := s.runOneControlCommand(tcw, callsign, command, delayReduction)
 		if err != nil {
 			// Post any collected intents before returning error
 			spokenText := s.renderAndPostReadback(callsign, tcw, intents)
@@ -3659,7 +3675,9 @@ func parseLAHSOSuffix(spec string) (base string, lahsoRunway string) {
 
 // runOneControlCommand executes a single control command for an aircraft.
 // Returns the intent generated by the command (if any) for batching.
-func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command string) (av.CommandIntent, error) {
+// delayReduction is subtracted from the pilot-reaction delay on deferred
+// Nav commands (heading, direct-fix, altitude), floored at zero.
+func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command string, delayReduction time.Duration) (av.CommandIntent, error) {
 	if len(command) == 0 {
 		return nil, ErrInvalidCommandSyntax
 	}
@@ -3674,7 +3692,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			// Sometimes STT transcript interpretation forgets altitudes are in 100s...
 			alt /= 100
 		}
-		return s.AssignAltitude(tcw, callsign, 100*alt, false)
+		return s.AssignAltitude(tcw, callsign, 100*alt, false, delayReduction)
 	}
 
 	switch command[0] {
@@ -3820,7 +3838,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				return nil, ErrInvalidCommandSyntax
 			}
 		} else if len(command) >= 4 && len(command) <= 6 {
-			return s.DirectFix(tcw, callsign, command[1:], av.TurnClosest)
+			return s.DirectFix(tcw, callsign, command[1:], av.TurnClosest, delayReduction)
 		} else {
 			return nil, ErrInvalidCommandSyntax
 		}
@@ -3901,17 +3919,19 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		if len(command) == 1 {
 			// Present heading
 			return s.AssignHeading(&HeadingArgs{
-				TCW:          tcw,
-				ADSBCallsign: callsign,
-				Present:      true,
+				TCW:            tcw,
+				ADSBCallsign:   callsign,
+				Present:        true,
+				DelayReduction: delayReduction,
 			})
 		} else if hdg, err := strconv.Atoi(command[1:]); err == nil {
 			// Fly heading xxx
 			return s.AssignHeading(&HeadingArgs{
-				TCW:          tcw,
-				ADSBCallsign: callsign,
-				Heading:      hdg,
-				Turn:         av.TurnClosest,
+				TCW:            tcw,
+				ADSBCallsign:   callsign,
+				Heading:        hdg,
+				Turn:           av.TurnClosest,
+				DelayReduction: delayReduction,
 			})
 		} else {
 			// Hold at fix (published or controller-specified)
@@ -3933,16 +3953,17 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 
 	case 'L':
 		if len(command) >= 5 && command[1] == 'D' {
-			return s.DirectFix(tcw, callsign, command[2:], av.TurnLeft)
+			return s.DirectFix(tcw, callsign, command[2:], av.TurnLeft, delayReduction)
 		} else if l := len(command); l > 2 && command[l-1] == 'D' {
 			deg, err := strconv.Atoi(command[1 : l-1])
 			if err != nil {
 				return nil, err
 			}
 			return s.AssignHeading(&HeadingArgs{
-				TCW:          tcw,
-				ADSBCallsign: callsign,
-				LeftDegrees:  deg,
+				TCW:            tcw,
+				ADSBCallsign:   callsign,
+				LeftDegrees:    deg,
+				DelayReduction: delayReduction,
 			})
 		} else {
 			hdg, err := strconv.Atoi(command[1:])
@@ -3950,10 +3971,11 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				return nil, err
 			}
 			return s.AssignHeading(&HeadingArgs{
-				TCW:          tcw,
-				ADSBCallsign: callsign,
-				Heading:      hdg,
-				Turn:         av.TurnLeft,
+				TCW:            tcw,
+				ADSBCallsign:   callsign,
+				Heading:        hdg,
+				Turn:           av.TurnLeft,
+				DelayReduction: delayReduction,
 			})
 		}
 	case 'M': // mach speed
@@ -3978,16 +4000,17 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		} else if command == "RST" {
 			return s.RadarServicesTerminated(tcw, callsign)
 		} else if len(command) >= 5 && command[1] == 'D' {
-			return s.DirectFix(tcw, callsign, command[2:], av.TurnRight)
+			return s.DirectFix(tcw, callsign, command[2:], av.TurnRight, delayReduction)
 		} else if l := len(command); l > 2 && command[l-1] == 'D' {
 			deg, err := strconv.Atoi(command[1 : l-1])
 			if err != nil {
 				return nil, err
 			}
 			return s.AssignHeading(&HeadingArgs{
-				TCW:          tcw,
-				ADSBCallsign: callsign,
-				RightDegrees: deg,
+				TCW:            tcw,
+				ADSBCallsign:   callsign,
+				RightDegrees:   deg,
+				DelayReduction: delayReduction,
 			})
 		} else {
 			hdg, err := strconv.Atoi(command[1:])
@@ -3995,10 +4018,11 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				return nil, err
 			}
 			return s.AssignHeading(&HeadingArgs{
-				TCW:          tcw,
-				ADSBCallsign: callsign,
-				Heading:      hdg,
-				Turn:         av.TurnRight,
+				TCW:            tcw,
+				ADSBCallsign:   callsign,
+				Heading:        hdg,
+				Turn:           av.TurnRight,
+				DelayReduction: delayReduction,
 			})
 		}
 
@@ -4070,15 +4094,17 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			if deg, err := strconv.Atoi(command[1 : n-1]); err == nil {
 				if command[n-1] == 'L' {
 					return s.AssignHeading(&HeadingArgs{
-						TCW:          tcw,
-						ADSBCallsign: callsign,
-						LeftDegrees:  deg,
+						TCW:            tcw,
+						ADSBCallsign:   callsign,
+						LeftDegrees:    deg,
+						DelayReduction: delayReduction,
 					})
 				} else if command[n-1] == 'R' {
 					return s.AssignHeading(&HeadingArgs{
-						TCW:          tcw,
-						ADSBCallsign: callsign,
-						RightDegrees: deg,
+						TCW:            tcw,
+						ADSBCallsign:   callsign,
+						RightDegrees:   deg,
+						DelayReduction: delayReduction,
 					})
 				}
 			}
@@ -4102,7 +4128,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 				if err != nil {
 					return nil, err
 				}
-				return s.AssignAltitude(tcw, callsign, 100*alt, true)
+				return s.AssignAltitude(tcw, callsign, 100*alt, true, delayReduction)
 
 			default:
 				return nil, ErrInvalidCommandSyntax

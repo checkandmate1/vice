@@ -531,7 +531,7 @@ func AssertUnable(t *testing.T, intent av.CommandIntent) {
 
 func (f *FlightTest) AssignAltitude(alt float32) {
 	f.t.Helper()
-	f.nav.AssignAltitude(alt, false, f.simTime)
+	f.nav.AssignAltitude(alt, false, f.simTime, 0)
 }
 
 func (f *FlightTest) AssignSpeed(spd float32) {
@@ -615,17 +615,17 @@ func (f *FlightTest) ClearedApproach(id string) {
 
 func (f *FlightTest) AssignHeading(hdg int, turn av.TurnDirection) {
 	f.t.Helper()
-	f.nav.AssignHeading(math.MagneticHeading(hdg), turn, f.simTime)
+	f.nav.AssignHeading(math.MagneticHeading(hdg), turn, f.simTime, 0)
 }
 
 func (f *FlightTest) DirectFix(fix string) {
 	f.t.Helper()
-	f.nav.DirectFix(fix, av.TurnClosest, f.simTime)
+	f.nav.DirectFix(fix, av.TurnClosest, f.simTime, 0)
 }
 
 func (f *FlightTest) DirectFixWithTurn(fix string, turn av.TurnDirection) {
 	f.t.Helper()
-	f.nav.DirectFix(fix, turn, f.simTime)
+	f.nav.DirectFix(fix, turn, f.simTime, 0)
 }
 
 func (f *FlightTest) ExpediteDescent() {

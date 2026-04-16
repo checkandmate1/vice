@@ -254,8 +254,8 @@ func (ac *Aircraft) Ident(now Time) av.CommandIntent {
 	return av.TransponderIntent{Ident: true}
 }
 
-func (ac *Aircraft) AssignAltitude(altitude int, afterSpeed bool, simTime Time) av.CommandIntent {
-	return ac.Nav.AssignAltitude(float32(altitude), afterSpeed, simTime.NavTime())
+func (ac *Aircraft) AssignAltitude(altitude int, afterSpeed bool, simTime Time, delayReduction time.Duration) av.CommandIntent {
+	return ac.Nav.AssignAltitude(float32(altitude), afterSpeed, simTime.NavTime(), delayReduction)
 }
 
 func (ac *Aircraft) AssignMach(mach float32, afterAltitude bool, temp av.Temperature) av.CommandIntent {
@@ -330,13 +330,13 @@ func (ac *Aircraft) GoodRateThrough(alt float32) av.CommandIntent {
 	return ac.Nav.GoodRateThrough(alt)
 }
 
-func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime Time) av.CommandIntent {
-	return ac.Nav.AssignHeading(math.MagneticHeading(heading), turn, simTime.NavTime())
+func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime Time, delayReduction time.Duration) av.CommandIntent {
+	return ac.Nav.AssignHeading(math.MagneticHeading(heading), turn, simTime.NavTime(), delayReduction)
 }
 
-func (ac *Aircraft) TurnLeft(deg int, simTime Time) av.CommandIntent {
+func (ac *Aircraft) TurnLeft(deg int, simTime Time, delayReduction time.Duration) av.CommandIntent {
 	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(-deg))
-	ac.Nav.AssignHeading(hdg, av.TurnLeft, simTime.NavTime())
+	ac.Nav.AssignHeading(hdg, av.TurnLeft, simTime.NavTime(), delayReduction)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnLeft,
 		Heading: hdg,
@@ -344,9 +344,9 @@ func (ac *Aircraft) TurnLeft(deg int, simTime Time) av.CommandIntent {
 	}
 }
 
-func (ac *Aircraft) TurnRight(deg int, simTime Time) av.CommandIntent {
+func (ac *Aircraft) TurnRight(deg int, simTime Time, delayReduction time.Duration) av.CommandIntent {
 	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(deg))
-	ac.Nav.AssignHeading(hdg, av.TurnRight, simTime.NavTime())
+	ac.Nav.AssignHeading(hdg, av.TurnRight, simTime.NavTime(), delayReduction)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnRight,
 		Heading: hdg,
@@ -354,16 +354,16 @@ func (ac *Aircraft) TurnRight(deg int, simTime Time) av.CommandIntent {
 	}
 }
 
-func (ac *Aircraft) FlyPresentHeading(simTime Time) av.CommandIntent {
-	return ac.Nav.FlyPresentHeading(simTime.NavTime())
+func (ac *Aircraft) FlyPresentHeading(simTime Time, delayReduction time.Duration) av.CommandIntent {
+	return ac.Nav.FlyPresentHeading(simTime.NavTime(), delayReduction)
 }
 
 func (ac *Aircraft) ExpectDirect(fix string) av.CommandIntent {
 	return ac.Nav.ExpectDirect(strings.ToUpper(fix))
 }
 
-func (ac *Aircraft) DirectFix(fix string, turn av.TurnDirection, simTime Time) av.CommandIntent {
-	return ac.Nav.DirectFix(strings.ToUpper(fix), turn, simTime.NavTime())
+func (ac *Aircraft) DirectFix(fix string, turn av.TurnDirection, simTime Time, delayReduction time.Duration) av.CommandIntent {
+	return ac.Nav.DirectFix(strings.ToUpper(fix), turn, simTime.NavTime(), delayReduction)
 }
 
 func (ac *Aircraft) HoldAtFix(fix string, hold *av.Hold) av.CommandIntent {

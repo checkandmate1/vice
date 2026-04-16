@@ -328,7 +328,7 @@ func TestRunOneControlCommandAtFixClearedStraightInApproach(t *testing.T) {
 		lg:              lg,
 	}
 
-	intent, err := s.runOneControlCommand("TCW1", callsign, "AMATTY/CSIRG24")
+	intent, err := s.runOneControlCommand("TCW1", callsign, "AMATTY/CSIRG24", 0)
 	if err != nil {
 		t.Fatalf("runOneControlCommand() returned error: %v", err)
 	}

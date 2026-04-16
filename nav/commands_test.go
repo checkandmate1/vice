@@ -28,7 +28,7 @@ func TestCommandValidation(t *testing.T) {
 
 	t.Run("AltitudeAboveCeiling", func(t *testing.T) {
 		f := makeNav(t)
-		intent := f.nav.AssignAltitude(99000, false, f.simTime)
+		intent := f.nav.AssignAltitude(99000, false, f.simTime, 0)
 		AssertUnable(t, intent)
 	})
 
@@ -41,7 +41,7 @@ func TestCommandValidation(t *testing.T) {
 
 	t.Run("DirectFixInvalid", func(t *testing.T) {
 		f := makeNav(t)
-		intent := f.nav.DirectFix("ZZZZZZ", av.TurnClosest, f.simTime)
+		intent := f.nav.DirectFix("ZZZZZZ", av.TurnClosest, f.simTime, 0)
 		AssertUnable(t, intent)
 	})
 
@@ -176,26 +176,26 @@ func TestExpectDirectReducesDelay(t *testing.T) {
 
 	// Without ExpectDirect
 	fNoExpect := makeFlight(t)
-	fNoExpect.nav.AssignHeading(math.MagneticHeading(360), av.TurnClosest, fNoExpect.simTime)
+	fNoExpect.nav.AssignHeading(math.MagneticHeading(360), av.TurnClosest, fNoExpect.simTime, 0)
 	// Wait for heading to take effect
 	for i := 0; i < 10; i++ {
 		wxs := fNoExpect.weather(fNoExpect.nav.FlightState.Altitude)
 		fNoExpect.nav.UpdateWithWeather(fNoExpect.callsign, wxs, &fNoExpect.fp, fNoExpect.simTime, nil)
 		fNoExpect.simTime = fNoExpect.simTime.Add(1e9) // 1 second
 	}
-	fNoExpect.nav.DirectFix("DETGY", av.TurnClosest, fNoExpect.simTime)
+	fNoExpect.nav.DirectFix("DETGY", av.TurnClosest, fNoExpect.simTime, 0)
 	noExpectDelay := fNoExpect.nav.DeferredNavHeading.Time
 
 	// With ExpectDirect
 	fExpect := makeFlight(t)
-	fExpect.nav.AssignHeading(math.MagneticHeading(360), av.TurnClosest, fExpect.simTime)
+	fExpect.nav.AssignHeading(math.MagneticHeading(360), av.TurnClosest, fExpect.simTime, 0)
 	for i := 0; i < 10; i++ {
 		wxs := fExpect.weather(fExpect.nav.FlightState.Altitude)
 		fExpect.nav.UpdateWithWeather(fExpect.callsign, wxs, &fExpect.fp, fExpect.simTime, nil)
 		fExpect.simTime = fExpect.simTime.Add(1e9)
 	}
 	fExpect.nav.ExpectDirect("DETGY")
-	fExpect.nav.DirectFix("DETGY", av.TurnClosest, fExpect.simTime)
+	fExpect.nav.DirectFix("DETGY", av.TurnClosest, fExpect.simTime, 0)
 	expectDelay := fExpect.nav.DeferredNavHeading.Time
 
 	// With expect, the delay should be shorter (earlier time)

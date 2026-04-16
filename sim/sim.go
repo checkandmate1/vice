@@ -1496,7 +1496,7 @@ func (s *Sim) updateState() {
 						// Execute waypoint commands using the waypoint commands controller (typically an instructor)
 						nav.NavLog(string(callsign), s.State.SimTime.NavTime(), nav.NavLogCommand, "aircraft=%s fix=%s commands=%s", callsign, passedWaypoint.Fix, cmds)
 						s.lg.Infof("Waypoint commands: Aircraft %s passed %s, executing: %s", callsign, passedWaypoint.Fix, cmds)
-						result := s.RunAircraftControlCommands(TCW(tcp), callsign, cmds)
+						result := s.RunAircraftControlCommands(TCW(tcp), callsign, cmds, 0)
 						if result.Error != nil {
 							nav.NavLog(string(callsign), s.State.SimTime.NavTime(), nav.NavLogCommand, "aircraft=%s error=%v remaining=%s", callsign, result.Error,
 								result.RemainingInput)

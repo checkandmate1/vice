@@ -505,8 +505,10 @@ func (nav *Nav) DepartureHeading() (int, DepartureHeadingState) {
 // EnqueueHeading enqueues the given heading assignment to be followed a
 // few seconds in the future. It should only be called for heading changes
 // due to controller instructions to the pilot and never in cases where the
-// autopilot is changing the heading assignment.
-func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, approachCleared bool, simTime Time) {
+// autopilot is changing the heading assignment. delayReduction is subtracted
+// from the pilot-reaction delay (floored at zero) to offset latency already
+// spent receiving the voice transmission.
+func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, approachCleared bool, simTime Time, delayReduction time.Duration) {
 	var delay float32
 	if approachCleared {
 		// Minimal delay if the aircraft has been cleared for an approach.
@@ -519,8 +521,14 @@ func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, 
 		delay = 2 + 2*nav.Rand.Float32()
 	}
 
+	d := time.Duration(delay * float32(time.Second))
+	if d > delayReduction {
+		d -= delayReduction
+	} else {
+		d = 0
+	}
 	nav.DeferredNavHeading = &DeferredNavHeading{
-		Time:    simTime.Add(time.Duration(delay * float32(time.Second))),
+		Time:    simTime.Add(d),
 		Heading: &hdg,
 		Turn:    &turn,
 	}
@@ -537,7 +545,7 @@ func (nav *Nav) AssignedWaypoints() []av.Waypoint {
 	return nav.Waypoints
 }
 
-func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTime Time) {
+func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTime Time, delayReduction time.Duration) {
 	var delay float32
 	if len(wps) > 0 && nav.ExpectedDirectFix == wps[0].Fix {
 		// Pilot was told to expect this fix; shorter delay
@@ -551,8 +559,14 @@ func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTi
 		delay = 8 + 5*nav.Rand.Float32()
 	}
 
+	d := time.Duration(delay * float32(time.Second))
+	if d > delayReduction {
+		d -= delayReduction
+	} else {
+		d = 0
+	}
 	dh := &DeferredNavHeading{
-		Time:      simTime.Add(time.Duration(delay * float32(time.Second))),
+		Time:      simTime.Add(d),
 		Waypoints: wps,
 	}
 	if turn != av.TurnClosest {

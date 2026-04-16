@@ -253,7 +253,7 @@ func TestE2E_STTToSim(t *testing.T) {
 			}
 
 			// Step 4: Execute command
-			res := s.RunAircraftControlCommands(sim.E2ETCW(), av.ADSBCallsign(callsign), commands)
+			res := s.RunAircraftControlCommands(sim.E2ETCW(), av.ADSBCallsign(callsign), commands, 0)
 
 			if tt.wantError && res.Error == nil {
 				t.Error("expected error from command dispatch, got nil")

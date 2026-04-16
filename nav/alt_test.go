@@ -524,7 +524,7 @@ func TestAltitudeAfterSpeedDelaysAfterSpeedReached(t *testing.T) {
 		InitialSpeed:     250,
 	})
 	f.AssignSpeed(180)
-	intent := f.nav.AssignAltitude(3000, true, f.simTime)
+	intent := f.nav.AssignAltitude(3000, true, f.simTime, 0)
 	if altIntent, ok := intent.(av.AltitudeIntent); !ok || altIntent.AfterSpeed == nil || *altIntent.AfterSpeed != 180 {
 		t.Fatalf("expected altitude after speed intent, got %T: %v", intent, intent)
 	}
@@ -669,13 +669,13 @@ func TestGoodRateDescentFasterThanNormal(t *testing.T) {
 
 	// Normal rate
 	fNormal := makeTestFlight()
-	fNormal.nav.AssignAltitude(3000, false, fNormal.simTime)
+	fNormal.nav.AssignAltitude(3000, false, fNormal.simTime, 0)
 	runForTicks(fNormal, 120)
 	normalAlt := fNormal.nav.FlightState.Altitude
 
 	// Good rate
 	fGood := makeTestFlight()
-	fGood.nav.AssignAltitude(3000, false, fGood.simTime)
+	fGood.nav.AssignAltitude(3000, false, fGood.simTime, 0)
 	fGood.nav.GoodRateDescent()
 	runForTicks(fGood, 120)
 	goodAlt := fGood.nav.FlightState.Altitude
