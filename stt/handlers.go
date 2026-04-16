@@ -1355,4 +1355,13 @@ func registerAllCommands() {
 		WithName("airport_advisory_named"),
 		WithPriority(9), // Lower priority so explicit "airport"/"field" patterns win
 	)
+	// "do you have the field/airport in sight" — bare inquiry with no o'clock
+	// or distance. The probability of sighting depends on distance vs. the
+	// weather-influenced effective visual range.
+	registerSTTCommand(
+		"[do] have field|airport in sight",
+		func() string { return "AP" },
+		WithName("airport_in_sight_inquiry"),
+		WithPriority(10),
+	)
 }

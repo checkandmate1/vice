@@ -2459,6 +2459,30 @@ func TestAirportAdvisorySTTPatterns(t *testing.T) {
 			},
 			expected: "AAL123 AP/11/8",
 		},
+		{
+			name:       "do you have the field in sight",
+			transcript: "American 123 do you have the field in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP",
+		},
+		{
+			name:       "do you have the airport in sight",
+			transcript: "American 123 do you have the airport in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP",
+		},
+		{
+			name:       "you have the field in sight (do garbled)",
+			transcript: "American 123 you have the field in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP",
+		},
 	}
 
 	for _, tt := range tests {

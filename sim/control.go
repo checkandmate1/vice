@@ -1508,6 +1508,23 @@ func (s *Sim) SayHeading(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, e
 		})
 }
 
+// AirportInSightInquiry handles the bare "AP" command. The controller asks
+// "do you have the field in sight?" without specifying a direction; the
+// pilot's response depends on weather, ceiling, and distance to the airport —
+// no o'clock/bearing validation is performed.
+func (s *Sim) AirportInSightInquiry(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			if ac.FieldInSight || ac.RequestedVisual {
+				return av.LookForFieldFound
+			}
+			return s.handleAirportAdvisory(ac, 0, 0)
+		})
+}
+
 // AirportAdvisory handles the AP/{oclock}/{miles} command. The controller tells the
 // pilot where to look for the airport: "airport, {oclock} o'clock, {miles} miles".
 // The pilot responds with "field in sight", "looking", or an IMC indication.
@@ -1561,12 +1578,16 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	}
 
 	// Validate the controller's o'clock direction against the actual bearing.
-	oclockHeading := float32((oclock % 12) * 30)
-	reportedBearing := math.MagneticHeading(math.NormalizeHeading(float32(ac.Heading()) + oclockHeading))
-	bearingError := math.HeadingDifference(reportedBearing, elig.BearingToAirport)
-	if bearingError > 30 {
-		ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
-		return av.LookForFieldLooking
+	// oclock == 0 means the controller didn't give a direction (bare "AP"
+	// inquiry), so skip this check.
+	if oclock > 0 {
+		oclockHeading := float32((oclock % 12) * 30)
+		reportedBearing := math.MagneticHeading(math.NormalizeHeading(float32(ac.Heading()) + oclockHeading))
+		bearingError := math.HeadingDifference(reportedBearing, elig.BearingToAirport)
+		if bearingError > 30 {
+			ac.FieldLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
+			return av.LookForFieldLooking
+		}
 	}
 
 	// Probability increases as distance decreases relative to effective range.
@@ -3665,6 +3686,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		} else if command == "AGAIN" {
 			// AGAIN is handled specially in RunAircraftControlCommands for TTS synthesis
 			return nil, nil
+		} else if command == "AP" {
+			return s.AirportInSightInquiry(tcw, callsign)
 		} else if strings.HasPrefix(command, "AP/") {
 			return s.AirportAdvisory(tcw, callsign, command)
 		} else if strings.HasPrefix(command, "ATIS/") {
