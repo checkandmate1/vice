@@ -2516,6 +2516,53 @@ func TestTrafficAdvisorySTTPatterns(t *testing.T) {
 	}
 }
 
+func TestCautionWakeTurbulenceSTTPatterns(t *testing.T) {
+	provider := NewTranscriber(nil)
+
+	tests := []struct {
+		name       string
+		transcript string
+		expected   string
+	}{
+		{
+			name:       "wake advisory only",
+			transcript: "American 123 caution wake turbulence following a heavy triple seven",
+			expected:   "AAL123 CWT",
+		},
+		{
+			name:       "wake advisory followed by altitude",
+			transcript: "American 123 caution wake turbulence following a heavy triple seven descend and maintain two thousand",
+			expected:   "AAL123 CWT D20",
+		},
+		{
+			name:       "wake advisory followed by heading",
+			transcript: "American 123 caution wake turbulence following an Airbus A320 turn left heading two seven zero",
+			expected:   "AAL123 CWT L270",
+		},
+		{
+			name:       "garbled following aircraft type still produces wake advisory",
+			transcript: "American 123 caution wake turbulence following a seven seventy seven descend and maintain two thousand",
+			expected:   "AAL123 CWT D20",
+		},
+	}
+
+	aircraft := map[string]Aircraft{
+		"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := provider.DecodeTranscript(aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestExtractFix(t *testing.T) {
 	fixes := map[string]string{
 		"jenny":     "JENNY",

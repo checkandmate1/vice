@@ -2521,6 +2521,18 @@ func (s *Sim) MaintainVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.Co
 		})
 }
 
+// CautionWakeTurbulence handles "caution wake turbulence" advisories.
+func (s *Sim) CautionWakeTurbulence(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchAircraftCommand(tcw, callsign,
+		nil,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return av.CautionWakeTurbulenceIntent{}
+		})
+}
+
 // ApproveVisualSeparation handles "approved" after a pilot has volunteered
 // to maintain visual separation from traffic called by the controller.
 func (s *Sim) ApproveVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
@@ -3691,6 +3703,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 	case 'C':
 		if command == "CAC" {
 			return s.CancelApproachClearance(tcw, callsign)
+		} else if command == "CWT" {
+			return s.CautionWakeTurbulence(tcw, callsign)
 		} else if command == "CVS" {
 			return s.ClimbViaSID(tcw, callsign)
 		} else if strings.HasPrefix(command, "CVA") {

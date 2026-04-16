@@ -1292,6 +1292,13 @@ func registerAllCommands() {
 		WithPriority(15),
 	)
 
+	registerSTTCommand(
+		"caution wake turbulence",
+		func() string { return "CWT" },
+		WithName("caution_wake_turbulence"),
+		WithPriority(15),
+	)
+
 	// === ATIS INFORMATION ===
 	registerSTTCommand(
 		"information {atis_letter} [is] [current]",

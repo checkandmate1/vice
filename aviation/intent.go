@@ -888,6 +888,13 @@ func (v VisualSeparationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	rt.Add("[will maintain visual separation|we'll maintain visual separation|maintaining visual separation|visual separation]")
 }
 
+// CautionWakeTurbulenceIntent represents a pilot's acknowledgment of a wake turbulence advisory.
+type CautionWakeTurbulenceIntent struct{}
+
+func (c CautionWakeTurbulenceIntent) Render(rt *RadioTransmission, r *rand.Rand) {
+	rt.Add("[roger|copy the wake]")
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // SayAgain Intent
 
