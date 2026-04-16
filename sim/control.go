@@ -2514,7 +2514,6 @@ func (s *Sim) MaintainVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.Co
 			// Check if aircraft has traffic in sight (within last 60 seconds)
 			if ac.TrafficInSight && s.State.SimTime.Sub(ac.TrafficInSightTime) < 60*time.Second {
 				ac.OfferedVisualSeparation = false
-				ac.MaintainingVisualSeparation = true
 				return av.VisualSeparationIntent{}
 			}
 			// If they don't have traffic in sight, they can't maintain visual separation
@@ -2535,7 +2534,6 @@ func (s *Sim) ApproveVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.Com
 				ac.TrafficInSight &&
 				s.State.SimTime.Sub(ac.TrafficInSightTime) < 60*time.Second {
 				ac.OfferedVisualSeparation = false
-				ac.MaintainingVisualSeparation = true
 			}
 			return nil
 		})

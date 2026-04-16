@@ -1163,9 +1163,6 @@ func TestApprovedAcceptsVolunteeredVisualSeparationWithoutReadback(t *testing.T)
 	if vs.AC.OfferedVisualSeparation {
 		t.Fatal("APPROVED should clear the pending volunteered visual separation")
 	}
-	if !vs.AC.MaintainingVisualSeparation {
-		t.Fatal("APPROVED should count as issuing maintain visual separation")
-	}
 }
 
 func TestMaintainVisualSeparationMarksAircraftState(t *testing.T) {
@@ -1182,9 +1179,6 @@ func TestMaintainVisualSeparationMarksAircraftState(t *testing.T) {
 	}
 	if vs.AC.OfferedVisualSeparation {
 		t.Fatal("VISSEP should clear the pending volunteered visual separation")
-	}
-	if !vs.AC.MaintainingVisualSeparation {
-		t.Fatal("VISSEP should mark the aircraft as maintaining visual separation")
 	}
 }
 
