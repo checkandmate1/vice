@@ -710,8 +710,9 @@ func (nav *Nav) syntheticDirectVisualApproach(runway string) *av.Approach {
 	thresholdWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(rwy.Elevation + rwy.ThresholdCrossingHeight)))
 
 	return &av.Approach{
-		Id:        "V" + runway,
+		Id:        "VIS" + runway,
 		FullName:  "Visual Approach Runway " + runway,
+		Type:      av.DirectVisualApproach,
 		Runway:    runway,
 		Threshold: threshold,
 		Waypoints: []av.WaypointArray{{
@@ -1050,8 +1051,9 @@ func (nav *Nav) setDirectVisualApproach(runway string, waypoints []av.Waypoint) 
 	}
 
 	nav.Approach.Assigned = &av.Approach{
-		Id:                "V" + runway,
+		Id:                "VIS" + runway,
 		FullName:          "Visual Approach Runway " + runway,
+		Type:              av.DirectVisualApproach,
 		Runway:            runway,
 		Threshold:         rwy.Threshold,
 		OppositeThreshold: opp.Threshold,
@@ -1059,7 +1061,7 @@ func (nav *Nav) setDirectVisualApproach(runway string, waypoints []av.Waypoint) 
 	if len(waypoints) > 0 {
 		nav.Approach.Assigned.Waypoints = []av.WaypointArray{util.DuplicateSlice(waypoints)}
 	}
-	nav.Approach.AssignedId = "V" + runway
+	nav.Approach.AssignedId = "VIS" + runway
 	nav.Approach.Cleared = true
 	return true
 }
