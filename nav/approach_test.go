@@ -8,6 +8,7 @@ import (
 	gomath "math"
 	"testing"
 
+	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
 )
 
@@ -417,6 +418,51 @@ func TestLocalizerOvershootNearFAF(t *testing.T) {
 			t.Errorf("expected RequestVectors to be set (too close to FAF)")
 		}
 	})
+
+	f.Run()
+}
+
+// TestHeadingAndClearanceWhenOffHeading verifies that issuing a heading
+// change together with an approach clearance does not trigger a spurious
+// "unable to intercept" when the aircraft is still turning to the newly
+// assigned heading. shouldTurnToIntercept must not be evaluated from the
+// stale physical heading — it would simulate a fake direct turn from
+// the current heading to the localizer and wrongly report a major
+// overshoot.
+func TestHeadingAndClearanceWhenOffHeading(t *testing.T) {
+	// Aircraft 5nm outbound, 0.3nm NW of centerline, flying outbound
+	// (~044°) — close to the extended centerline but heading the opposite
+	// direction from landing. Controller issues heading 200° (a ~24°
+	// intercept angle against the ~224° localizer) together with approach
+	// clearance. Before the fix the pilot would immediately reject with
+	// "unable to intercept" on the very first tick.
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.ThresholdOffset(5, -0.3)
+
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  3000,
+		InitialSpeed:     180,
+		InitialHeading:   44,
+	})
+
+	f.ExpectApproach("I22L")
+	f.AssignHeading(200, av.TurnClosest)
+	f.ClearedApproach("I22L")
+
+	// RequestVectors must never be set: the aircraft should turn to 200°
+	// and then evaluate the intercept normally.
+	for tick := 1; tick <= 300; tick++ {
+		f.AfterTicks(tick, func(f *FlightTest) {
+			if f.nav.Approach.RequestVectors {
+				t.Fatalf("tick %d: RequestVectors unexpectedly set (hdg=%.0f)",
+					tick, f.nav.FlightState.Heading)
+			}
+		})
+	}
 
 	f.Run()
 }

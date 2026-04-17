@@ -55,6 +55,14 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (h
 			nav.approachOvershootRequestVectors()
 			return
 		}
+		// If the aircraft is still turning to the assigned heading, don't
+		// evaluate the intercept yet — shouldTurnToIntercept would simulate
+		// a direct turn from the current physical heading to the localizer,
+		// which isn't the path the aircraft is going to fly. Re-check on a
+		// later tick once the aircraft is established on the assigned heading.
+		if math.HeadingDifference(nav.FlightState.Heading, assignedMag) > 5 {
+			return
+		}
 		hdgMag := math.TrueToMagnetic(courseTrue, nav.FlightState.MagneticVariation)
 		switch nav.shouldTurnToIntercept(courseLine[0], hdgMag, av.TurnClosest, wxs) {
 		case turnToInterceptWait:
