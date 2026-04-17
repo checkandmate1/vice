@@ -712,3 +712,22 @@ func TestAtmosClimbFactorNoNaN(t *testing.T) {
 		}
 	}
 }
+
+// TestCrossDMEAtAltitude verifies that a "cross N DME at altitude" restriction
+// on a cleared visual approach drives descent to that altitude by the time
+// the aircraft reaches the synthetic waypoint.
+func TestCrossDMEAtAltitude(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+	f.nav.FlightState.Altitude = 4000
+
+	ar := av.MakeAtAltitudeRestriction(3000)
+	if _, ok := f.nav.CrossDMEAt(5, &ar, nil).(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable")
+	}
+
+	f.AtFix("_22L_5DME", func(f *FlightTest) {
+		f.AssertAltitudeNear(3000, 150)
+	})
+
+	f.Run()
+}

@@ -594,3 +594,278 @@ func TestAtFixClearedInvalidFix(t *testing.T) {
 	intent := f.nav.AtFixCleared("BOGUS", "I22L", false)
 	AssertUnable(t, intent)
 }
+
+// setupClearedVisual returns a FlightTest positioned on a simple straight-in
+// visual approach to the given runway at KJFK, with the approach already
+// cleared. The route is intercept (10nm) → 3nm final → threshold.
+func setupClearedVisual(t *testing.T, runway string) *FlightTest {
+	t.Helper()
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL DETGY",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  4000,
+		InitialSpeed:     200,
+	})
+
+	rwy, ok := av.LookupRunway("KJFK", runway)
+	if !ok {
+		t.Fatalf("unknown runway KJFK/%s", runway)
+	}
+
+	nmPerLong := f.nav.FlightState.NmPerLongitude
+	magVar := f.nav.FlightState.MagneticVariation
+	rwyTrue := math.MagneticToTrue(rwy.Heading, magVar)
+	reciprocal := math.TrueHeading(math.NormalizeHeading(float32(rwyTrue) + 180))
+
+	offset := func(dist float32) math.Point2LL {
+		return math.Offset2LL(rwy.Threshold, reciprocal, dist, nmPerLong)
+	}
+
+	f.nav.FlightState.Position = offset(12)
+	f.nav.FlightState.Heading = math.TrueToMagnetic(rwyTrue, magVar)
+
+	intercept := av.Waypoint{Fix: "_" + runway + "_INTERCEPT", Location: offset(10)}
+	intercept.SetOnApproach(true)
+
+	final3 := av.Waypoint{Fix: "_" + runway + "_3NM_FINAL", Location: offset(3)}
+	final3.SetOnApproach(true)
+	final3.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(rwy.Elevation) + 900))
+
+	threshold := av.Waypoint{Fix: "_" + runway + "_THRESHOLD", Location: rwy.Threshold}
+	threshold.SetOnApproach(true)
+	threshold.SetLand(true)
+	threshold.SetFlyOver(true)
+	threshold.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(rwy.Elevation + rwy.ThresholdCrossingHeight)))
+
+	f.nav.Waypoints = []av.Waypoint{intercept, final3, threshold}
+
+	f.nav.Approach.Assigned = &av.Approach{
+		Id:        "VIS" + runway,
+		FullName:  "Visual Approach Runway " + runway,
+		Type:      av.DirectVisualApproach,
+		Runway:    runway,
+		Threshold: rwy.Threshold,
+	}
+	f.nav.Approach.AssignedId = "VIS" + runway
+	f.nav.Approach.Cleared = true
+
+	return f
+}
+
+// TestCrossDMEAtRequiresVisualApproach verifies that CrossDMEAt returns
+// Unable when the aircraft isn't cleared for a visual approach.
+func TestCrossDMEAtRequiresVisualApproach(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  10000,
+		InitialSpeed:     250,
+	})
+
+	ar := av.MakeAtAltitudeRestriction(3000)
+	AssertUnable(t, f.nav.CrossDMEAt(10, &ar, nil))
+
+	// Also unable when an ILS approach is expected but no visual clearance.
+	f.ExpectApproach("I22L")
+	AssertUnable(t, f.nav.CrossDMEAt(10, &ar, nil))
+
+	// And unable when cleared for a non-visual approach whose ID happens to
+	// start with "V" (e.g., a VOR approach) — the check must be type-based,
+	// not a brittle prefix match.
+	f.nav.Approach.Assigned = &av.Approach{
+		Id:     "V22L",
+		Type:   av.VORApproach,
+		Runway: "22L",
+	}
+	f.nav.Approach.AssignedId = "V22L"
+	f.nav.Approach.Cleared = true
+	AssertUnable(t, f.nav.CrossDMEAt(10, &ar, nil))
+}
+
+// TestCrossDMEAtOutOfRange verifies that distances outside [1, 30] are rejected.
+func TestCrossDMEAtOutOfRange(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+	ar := av.MakeAtAltitudeRestriction(3000)
+	AssertUnable(t, f.nav.CrossDMEAt(0, &ar, nil))
+	AssertUnable(t, f.nav.CrossDMEAt(-5, &ar, nil))
+	AssertUnable(t, f.nav.CrossDMEAt(31, &ar, nil))
+}
+
+// TestCrossDMEAtInsertsWaypoint verifies that a synthetic DME waypoint is
+// inserted at the correct distance from the threshold along the approach route.
+func TestCrossDMEAtInsertsWaypoint(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+
+	ar := av.MakeAtAltitudeRestriction(3000)
+	intent := f.nav.CrossDMEAt(5, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	idx := -1
+	for i, wp := range f.nav.Waypoints {
+		if wp.Fix == "_22L_5DME" {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		t.Fatalf("synthetic _22L_5DME waypoint not inserted; route: %v", waypointFixes(f.nav.Waypoints))
+	}
+	if !f.nav.Waypoints[idx].SyntheticCrossing() {
+		t.Errorf("expected synthetic waypoint flag on _22L_5DME")
+	}
+	if !f.nav.Waypoints[idx].OnApproach() {
+		t.Errorf("expected OnApproach flag on _22L_5DME")
+	}
+	if ar := f.nav.Waypoints[idx].AltitudeRestriction(); ar == nil || ar.Range[0] != 3000 {
+		t.Errorf("expected 3000 altitude restriction on synthetic waypoint")
+	}
+
+	last := f.nav.Waypoints[len(f.nav.Waypoints)-1].Location
+	if d := math.NMDistance2LL(f.nav.Waypoints[idx].Location, last); d < 4.5 || d > 5.5 {
+		t.Errorf("expected synthetic waypoint ~5nm from threshold, got %.2f", d)
+	}
+}
+
+// TestCrossDMEAtExtrapolates verifies that dist beyond the route length
+// causes the synthetic waypoint to be extrapolated past wp[0].
+func TestCrossDMEAtExtrapolates(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+
+	ar := av.MakeAtAltitudeRestriction(4000)
+	intent := f.nav.CrossDMEAt(15, &ar, nil)
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable: %v", intent)
+	}
+
+	if f.nav.Waypoints[0].Fix != "_22L_15DME" {
+		t.Fatalf("expected _22L_15DME at index 0, got %q", f.nav.Waypoints[0].Fix)
+	}
+	last := f.nav.Waypoints[len(f.nav.Waypoints)-1].Location
+	if d := math.NMDistance2LL(f.nav.Waypoints[0].Location, last); d < 14.5 || d > 15.5 {
+		t.Errorf("expected extrapolated waypoint ~15nm from threshold, got %.2f", d)
+	}
+}
+
+// TestCrossDMEAtReplacement verifies that altitude- and speed-only synthetic
+// DME waypoints replace cleanly and independently.
+func TestCrossDMEAtReplacement(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+
+	ar1 := av.MakeAtAltitudeRestriction(3000)
+	sr1 := av.MakeAtSpeedRestriction(210)
+	f.nav.CrossDMEAt(5, &ar1, &sr1)
+
+	// One combined synthetic for 5 DME with both restrictions.
+	found := slicesIndex(f.nav.Waypoints, "_22L_5DME")
+	if found < 0 {
+		t.Fatalf("expected _22L_5DME, got %v", waypointFixes(f.nav.Waypoints))
+	}
+	if f.nav.Waypoints[found].AltitudeRestriction() == nil || f.nav.Waypoints[found].SpeedRestriction() == nil {
+		t.Fatalf("expected 5 DME waypoint to carry both restrictions")
+	}
+
+	// Update only altitude at a different distance → new 7 DME waypoint
+	// carries altitude; 5 DME waypoint retains only speed.
+	ar2 := av.MakeAtAltitudeRestriction(4000)
+	f.nav.CrossDMEAt(7, &ar2, nil)
+
+	five := slicesIndex(f.nav.Waypoints, "_22L_5DME")
+	seven := slicesIndex(f.nav.Waypoints, "_22L_7DME")
+	if five < 0 || seven < 0 {
+		t.Fatalf("expected both _22L_5DME and _22L_7DME, got %v", waypointFixes(f.nav.Waypoints))
+	}
+	if seven >= five {
+		t.Errorf("expected _22L_7DME (farther from threshold) before _22L_5DME in route")
+	}
+	if f.nav.Waypoints[seven].AltitudeRestriction() == nil || f.nav.Waypoints[seven].SpeedRestriction() != nil {
+		t.Errorf("expected 7 DME to carry only altitude")
+	}
+	if f.nav.Waypoints[five].AltitudeRestriction() != nil || f.nav.Waypoints[five].SpeedRestriction() == nil {
+		t.Errorf("expected 5 DME to carry only speed")
+	}
+
+	// Replace the speed at a new 6 DME; the 5 DME speed-only waypoint should disappear.
+	sr2 := av.MakeAtSpeedRestriction(190)
+	f.nav.CrossDMEAt(6, nil, &sr2)
+
+	if idx := slicesIndex(f.nav.Waypoints, "_22L_5DME"); idx >= 0 {
+		t.Errorf("expected _22L_5DME to be removed, got %v", waypointFixes(f.nav.Waypoints))
+	}
+	if idx := slicesIndex(f.nav.Waypoints, "_22L_6DME"); idx < 0 {
+		t.Errorf("expected _22L_6DME after speed replacement")
+	}
+}
+
+// TestCrossDMEAtShortRouteAfterDeletion verifies that reissuing a CDME
+// command when the remaining route is just [existing_DME_synthetic, threshold]
+// — which happens after the aircraft has passed all prior visual waypoints —
+// returns Unable instead of panicking.
+func TestCrossDMEAtShortRouteAfterDeletion(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+
+	ar1 := av.MakeAtAltitudeRestriction(3000)
+	if _, ok := f.nav.CrossDMEAt(5, &ar1, nil).(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable on first CDME")
+	}
+
+	// Simulate the aircraft having passed all prior waypoints: route is
+	// reduced to just the synthetic DME waypoint and the threshold.
+	dmeIdx := slicesIndex(f.nav.Waypoints, "_22L_5DME")
+	if dmeIdx < 0 {
+		t.Fatalf("expected _22L_5DME in route")
+	}
+	last := len(f.nav.Waypoints) - 1
+	f.nav.Waypoints = []av.Waypoint{f.nav.Waypoints[dmeIdx], f.nav.Waypoints[last]}
+
+	// Reissue altitude-only CDME: the deletion pass removes the 5 DME
+	// synthetic (alt was its only restriction), leaving just the threshold.
+	// Must return Unable, not panic.
+	ar2 := av.MakeAtAltitudeRestriction(2500)
+	AssertUnable(t, f.nav.CrossDMEAt(7, &ar2, nil))
+}
+
+// TestCrossDMEAtUsesDeferredWaypoints verifies the synthetic waypoint is
+// inserted into DeferredNavHeading.Waypoints when present.
+func TestCrossDMEAtUsesDeferredWaypoints(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+
+	origLen := len(f.nav.Waypoints)
+	deferred := append([]av.Waypoint(nil), f.nav.Waypoints...)
+	f.nav.DeferredNavHeading = &DeferredNavHeading{Waypoints: deferred}
+
+	ar := av.MakeAtAltitudeRestriction(3000)
+	if _, ok := f.nav.CrossDMEAt(5, &ar, nil).(av.UnableIntent); ok {
+		t.Fatalf("unexpected unable")
+	}
+
+	if len(f.nav.Waypoints) != origLen {
+		t.Errorf("expected nav.Waypoints untouched (len %d), got %d", origLen, len(f.nav.Waypoints))
+	}
+	if slicesIndex(f.nav.DeferredNavHeading.Waypoints, "_22L_5DME") < 0 {
+		t.Errorf("expected _22L_5DME in deferred route, got %v",
+			waypointFixes(f.nav.DeferredNavHeading.Waypoints))
+	}
+}
+
+func slicesIndex(wps []av.Waypoint, name string) int {
+	for i, wp := range wps {
+		if wp.Fix == name {
+			return i
+		}
+	}
+	return -1
+}
+
+func waypointFixes(wps []av.Waypoint) []string {
+	fixes := make([]string, len(wps))
+	for i, wp := range wps {
+		fixes[i] = wp.Fix
+	}
+	return fixes
+}

@@ -777,6 +777,9 @@ func (FixSnippetFormatter) Written(arg any) string {
 		if namedFix, dist, dir, ok := ParseSyntheticCrossingFix(fix); ok {
 			return fmt.Sprintf("%d miles %s of %s", dist, math.Compass(dir.Heading()), namedFix)
 		}
+		if _, dist, ok := ParseSyntheticDMEFix(fix); ok {
+			return fmt.Sprintf("%d D M E", dist)
+		}
 	}
 
 	// Cut off any trailing bits like COLIN.JT
@@ -1006,6 +1009,9 @@ func GetFixTelephony(fix string) string {
 	if strings.HasPrefix(fix, "_") {
 		if namedFix, dist, dir, ok := ParseSyntheticCrossingFix(fix); ok {
 			return fmt.Sprintf("%d miles %s of %s", dist, math.Compass(dir.Heading()), GetFixTelephony(namedFix))
+		}
+		if _, dist, ok := ParseSyntheticDMEFix(fix); ok {
+			return fmt.Sprintf("%d D M E", dist)
 		}
 	}
 

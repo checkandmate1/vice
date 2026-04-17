@@ -897,6 +897,28 @@ func (p *speedUntilParser) parse(tokens []Token, pos int, ac Aircraft) (any, int
 	return nil, 0, ""
 }
 
+// dmeParser extracts a DME distance like "10 DME" or "10 D M E".
+type dmeParser struct{}
+
+func (p *dmeParser) identifier() string {
+	return "dme"
+}
+
+func (p *dmeParser) goType() reflect.Type {
+	return reflect.TypeOf(0)
+}
+
+func (p *dmeParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, string) {
+	if pos >= len(tokens) {
+		return nil, 0, ""
+	}
+	dist, consumed := extractDME(tokens[pos:])
+	if consumed > 0 {
+		return dist, consumed, ""
+	}
+	return nil, 0, ""
+}
+
 // standaloneAltitudeParser only matches TokenAltitude tokens (created by "thousand").
 // This is stricter than altitudeParser - it won't match plain numbers.
 type standaloneAltitudeParser struct{}
@@ -1052,6 +1074,8 @@ func getTypeParser(typeID string) typeParser {
 		return &garbledWordParser{}
 	case "speed_until":
 		return &speedUntilParser{}
+	case "dme":
+		return &dmeParser{}
 	case "contact_frequency":
 		return &contactFrequencyParser{}
 	case "standalone_altitude":

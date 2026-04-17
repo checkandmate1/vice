@@ -1754,6 +1754,17 @@ func (s *Sim) CrossDistanceFromFixAt(tcw TCW, callsign av.ADSBCallsign, fix stri
 		})
 }
 
+func (s *Sim) CrossDMEAt(tcw TCW, callsign av.ADSBCallsign, dist float32, ar *av.AltitudeRestriction,
+	sr *av.SpeedRestriction) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return ac.CrossDMEAt(dist, ar, sr)
+		})
+}
+
 func (s *Sim) AfterFixSpeed(tcw TCW, callsign av.ADSBCallsign, fix string, sr *av.SpeedRestriction) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
@@ -3763,6 +3774,44 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		} else if strings.HasPrefix(command, "CVA") {
 			runway, lahsoRunway := parseLAHSOSuffix(command[3:])
 			return s.ClearedVisualApproach(tcw, callsign, runway, lahsoRunway)
+		} else if strings.HasPrefix(command, "CDME") && len(command) > 4 {
+			distStr, rest, _ := strings.Cut(command[4:], "/")
+			d, err := strconv.Atoi(distStr)
+			if err != nil {
+				return nil, ErrInvalidCommandSyntax
+			}
+			var ar *av.AltitudeRestriction
+			var sr *av.SpeedRestriction
+			if rest != "" {
+				for _, cmd := range strings.Split(rest, "/") {
+					if len(cmd) == 0 {
+						return nil, ErrInvalidCommandSyntax
+					}
+					if cmd[0] == 'A' && len(cmd) > 1 {
+						if ar, err = av.ParseAltitudeRestriction(cmd[1:]); err != nil {
+							return nil, err
+						}
+						ar.Range[0] *= 100
+						if ar.Range[1] != av.MaxAltitude {
+							ar.Range[1] *= 100
+						}
+					} else if cmd[0] == 'S' {
+						if sr, err = av.ParseSpeedRestriction(cmd[1:]); err != nil {
+							return nil, err
+						}
+					} else if cmd[0] == 'M' {
+						if sr, err = av.ParseSpeedRestriction(cmd); err != nil {
+							return nil, err
+						}
+					} else {
+						return nil, ErrInvalidCommandSyntax
+					}
+				}
+			}
+			if ar == nil && sr == nil {
+				return nil, ErrInvalidCommandSyntax
+			}
+			return s.CrossDMEAt(tcw, callsign, float32(d), ar, sr)
 		} else if command == "CSI" || (strings.HasPrefix(command, "CSI") && !util.IsAllNumbers(command[3:])) {
 			return s.ClearedApproach(tcw, callsign, command[3:], true)
 		} else if components := strings.Split(command, "/"); len(components) > 1 {

@@ -995,6 +995,144 @@ func (nav *Nav) CrossDistanceFromFixAt(fix string, dist float32, dir math.Cardin
 	return intent
 }
 
+// CrossDMEAt inserts a synthetic crossing restriction at a given DME from
+// the runway threshold of the currently cleared visual approach. The
+// synthetic waypoint is placed along the approach route by walking backwards
+// from the threshold accumulating track miles; if dist exceeds the total
+// route length, the point is extrapolated backwards along the first leg.
+func (nav *Nav) CrossDMEAt(dist float32, ar *av.AltitudeRestriction, sr *av.SpeedRestriction) av.CommandIntent {
+	if dist <= 0 || dist > 30 {
+		return av.MakeUnableIntent("unable, that distance is out of range")
+	}
+
+	ap := nav.Approach.Assigned
+	if ap == nil || !nav.Approach.Cleared ||
+		(ap.Type != av.DirectVisualApproach && ap.Type != av.ChartedVisualApproach) {
+		return av.MakeUnableIntent("unable, we're not cleared for a visual approach")
+	}
+	runway := ap.Runway
+
+	useDeferred := false
+	routeWps := []av.Waypoint(nav.Waypoints)
+	if dh := nav.DeferredNavHeading; dh != nil && len(dh.Waypoints) > 0 {
+		useDeferred = true
+		routeWps = dh.Waypoints
+	}
+	commitRouteWps := func() {
+		if useDeferred {
+			nav.DeferredNavHeading.Waypoints = routeWps
+		} else {
+			nav.Waypoints = routeWps
+		}
+	}
+
+	if len(routeWps) < 2 {
+		return av.MakeUnableIntent("unable")
+	}
+
+	// 1. Clear matching restriction categories on any existing synthetic DME
+	// waypoints for this runway; drop any that end up with no restrictions.
+	for i := 0; i < len(routeWps); {
+		wp := &routeWps[i]
+		if wpRunway, _, ok := av.ParseSyntheticDMEFix(wp.Fix); ok && wpRunway == runway {
+			if ar != nil {
+				wp.ClearAltitudeRestriction()
+			}
+			if sr != nil {
+				wp.ClearSpeedRestriction()
+			}
+			if !wp.HasAltitudeRestriction() && !wp.HasSpeedRestriction() {
+				routeWps = slices.Delete(routeWps, i, i+1)
+				continue
+			}
+		}
+		i++
+	}
+	commitRouteWps()
+
+	// Deletion above can leave the threshold alone (e.g., the aircraft has
+	// passed all prior visual waypoints and the only remaining synthetic
+	// was just removed); without at least two waypoints we have no route to
+	// measure along.
+	if len(routeWps) < 2 {
+		return av.MakeUnableIntent("unable")
+	}
+
+	// 2. Walk backward from the threshold, accumulating track miles, and
+	// place the synthetic waypoint on the first leg that spans `dist`. If
+	// `dist` exceeds the full route length, extrapolate past wp[0] along
+	// the direction from wp[1] back to wp[0].
+	nmPerLong := nav.FlightState.NmPerLongitude
+	var syntheticLoc math.Point2LL
+	var insertIdx int
+	var cum float32 // cumulative track miles from threshold to routeWps[i+1]
+	placed := false
+	for i := len(routeWps) - 2; i >= 0 && !placed; i-- {
+		legLen := math.NMDistance2LLFast(routeWps[i].Location, routeWps[i+1].Location, nmPerLong)
+		if dist <= cum+legLen {
+			t := (dist - cum) / legLen
+			syntheticLoc = math.Point2LL(math.Lerp2f(t, routeWps[i+1].Location, routeWps[i].Location))
+			insertIdx = i + 1
+			placed = true
+		}
+		cum += legLen
+	}
+	if !placed {
+		wp0NM := math.LL2NM(routeWps[0].Location, nmPerLong)
+		wp1NM := math.LL2NM(routeWps[1].Location, nmPerLong)
+		dirBack := math.Normalize2f(math.Sub2f(wp0NM, wp1NM))
+		syntheticLoc = math.NM2LL(math.Add2f(wp0NM, math.Scale2f(dirBack, dist-cum)), nmPerLong)
+		insertIdx = 0
+	}
+
+	// 4. Apply restrictions to a new or existing synthetic DME waypoint.
+	name := fmt.Sprintf("_%s_%dDME", runway, int(dist))
+	existingIdx := slices.IndexFunc(routeWps, func(wp av.Waypoint) bool { return wp.Fix == name })
+	var wp *av.Waypoint
+	if existingIdx >= 0 {
+		wp = &routeWps[existingIdx]
+		wp.Location = syntheticLoc
+	} else {
+		newWp := av.Waypoint{Fix: name, Location: syntheticLoc}
+		newWp.SetSyntheticCrossing(true)
+		if insertIdx < len(routeWps) {
+			newWp.SetOnSID(routeWps[insertIdx].OnSID())
+			newWp.SetOnSTAR(routeWps[insertIdx].OnSTAR())
+			newWp.SetOnApproach(routeWps[insertIdx].OnApproach())
+		}
+		routeWps = slices.Insert(routeWps, insertIdx, newWp)
+		wp = &routeWps[insertIdx]
+	}
+
+	intent := av.NavigationIntent{
+		Type:     av.NavCrossDME,
+		Fix:      name,
+		Distance: dist,
+	}
+
+	if ar != nil {
+		wp.SetAltitudeRestriction(*ar)
+		intent.AltRestriction = ar
+		nav.Altitude = NavAltitude{}
+	}
+
+	if sr != nil {
+		wp.SetSpeedRestriction(*sr)
+		if sr.IsMach {
+			intent.SpeedRestriction = sr
+		} else {
+			naturalIAS, _ := nav.targetAltitudeIAS()
+			s := nav.restrictedSpeed(sr, naturalIAS)
+			intentSpeed := av.MakeAtSpeedRestriction(s)
+			intent.SpeedRestriction = &intentSpeed
+		}
+		nav.Speed = NavSpeed{}
+	}
+	commitRouteWps()
+
+	return intent
+}
+
 func (nav *Nav) AfterFixSpeed(fix string, sr *av.SpeedRestriction) av.CommandIntent {
 	if !nav.fixInRoute(fix) {
 		return av.MakeUnableIntent("unable. {fix} isn't in our route", fix)

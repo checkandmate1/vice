@@ -507,6 +507,7 @@ var secondaryAcCommands = [][3]string{
 	{"*CSI_appr", `"Cleared straight-in _appr_ approach.`, "*CSII6*"},
 	{"*I*", `"Intercept the localizer."`, "*I*"},
 	{"*CVA_rwy*", `"Cleared visual approach runway _rwy_." Requires field in sight, visual request, or traffic in sight.`, "*CVA13L*"},
+	{"*CDME_nm*/A_alt*", `"Cross _nm_ DME at _alt_" on a cleared visual approach. Append *+* for "or above", *-* for "or below". Combine with *S_spd* for a speed.`, "*CDME10/A30+*"},
 	{"*AP/_oclock_/_miles_*", `"Airport, _oclock_ o'clock, _miles_ miles." Pilot responds with field in sight or looking.`, "*AP/12/5*"},
 	{"*ID*", `"Ident."`, "*ID*"},
 	{"*CVS*", `"Climb via the SID"`, "*CVS*"},

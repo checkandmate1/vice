@@ -572,6 +572,7 @@ const (
 	NavDepartFixHeading
 	NavCrossFixAt
 	NavCrossDistanceFromFixAt
+	NavCrossDME
 	NavResumeOwnNav
 	NavAltitudeDiscretion
 )
@@ -585,9 +586,9 @@ type NavigationIntent struct {
 	Turn             TurnDirection                 // for NavDirectFix / NavDirectFixFromHold
 	HoldDirection    string                        // "left" or "right" for holds
 	HoldLegLength    string                        // e.g., "2 mile" or "1 minute"
-	AltRestriction   *AltitudeRestriction          // for CrossFixAt / CrossDistanceFromFixAt
-	SpeedRestriction *SpeedRestriction             // for CrossFixAt / CrossDistanceFromFixAt
-	Distance         float32                       // for CrossDistanceFromFixAt
+	AltRestriction   *AltitudeRestriction          // for Cross{FixAt,DistanceFromFixAt,DME}
+	SpeedRestriction *SpeedRestriction             // for Cross{FixAt,DistanceFromFixAt,DME}
+	Distance         float32                       // for Cross{DistanceFromFixAt,DME}
 	Direction        math.CardinalOrdinalDirection // for CrossDistanceFromFixAt
 }
 
@@ -631,6 +632,20 @@ func (n NavigationIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 	case NavCrossDistanceFromFixAt:
 		rt.Add("cross {num} miles "+math.Compass(n.Direction.Heading())+" of {fix}",
 			int(n.Distance), n.Fix)
+		if n.AltRestriction != nil {
+			rt.Add("{altrest}", n.AltRestriction)
+		}
+		if n.SpeedRestriction != nil {
+			if n.SpeedRestriction.IsMach {
+				mach, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {mach}", mach)
+			} else {
+				speed, _ := n.SpeedRestriction.ExactValue()
+				rt.Add("at {spd}", speed)
+			}
+		}
+	case NavCrossDME:
+		rt.Add("cross {num} D M E", int(n.Distance))
 		if n.AltRestriction != nil {
 			rt.Add("{altrest}", n.AltRestriction)
 		}

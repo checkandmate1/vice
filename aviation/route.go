@@ -2344,6 +2344,24 @@ func ParseSyntheticCrossingFix(fix string) (string, int, math.CardinalOrdinalDir
 	return parts[0], dist, dir, true
 }
 
+// ParseSyntheticDMEFix parses a synthetic cross-DME waypoint name like
+// "_04L_10DME" and returns the runway and distance (in nm) from the threshold.
+func ParseSyntheticDMEFix(fix string) (string, int, bool) {
+	if !strings.HasPrefix(fix, "_") || !strings.HasSuffix(fix, "DME") {
+		return "", 0, false
+	}
+	inner := strings.TrimSuffix(fix[1:], "DME")
+	i := strings.LastIndex(inner, "_")
+	if i <= 0 || i == len(inner)-1 {
+		return "", 0, false
+	}
+	dist, err := strconv.Atoi(inner[i+1:])
+	if err != nil {
+		return "", 0, false
+	}
+	return inner[:i], dist, true
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // DMEArc
 

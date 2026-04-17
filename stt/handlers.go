@@ -841,6 +841,88 @@ func registerAllCommands() {
 		WithPriority(14),
 	)
 
+	// Cross N DME commands. These apply to a cleared visual approach; the
+	// runway threshold is the DME reference. The compound variants fire the
+	// visual approach clearance first so the approach is set up before the
+	// crossing restriction is applied.
+	registerSTTCommand(
+		"cross {dme} [at] [and] [maintain] {altitude}",
+		func(dist int, alt int) string { return fmt.Sprintf("CDME%d/A%d", dist, alt) },
+		WithName("cross_dme_altitude"),
+		WithPriority(14),
+	)
+	registerSTTCommand(
+		"cross {dme} [at] [or] above {altitude}",
+		func(dist int, alt int) string { return fmt.Sprintf("CDME%d/A%d+", dist, alt) },
+		WithName("cross_dme_at_or_above"),
+		WithPriority(16),
+	)
+	registerSTTCommand(
+		"cross {dme} [at] [or] below {altitude}",
+		func(dist int, alt int) string { return fmt.Sprintf("CDME%d/A%d-", dist, alt) },
+		WithName("cross_dme_at_or_below"),
+		WithPriority(16),
+	)
+
+	// Compound: "cross N DME ..., cleared visual approach RWY" — emit CVA first so
+	// the visual approach is established before the crossing restriction.
+	registerSTTCommand(
+		"cross {dme} [at] [and] [maintain] {altitude} [,] cleared [the] {visual_approach_lahso}",
+		func(dist int, alt int, appr string) string {
+			return fmt.Sprintf("CVA%s CDME%d/A%d", appr, dist, alt)
+		},
+		WithName("cross_dme_altitude_cleared_visual"),
+		WithPriority(18),
+		WithSayAgainOnFail(),
+	)
+	registerSTTCommand(
+		"cross {dme} [at] [or] above {altitude} [,] cleared [the] {visual_approach_lahso}",
+		func(dist int, alt int, appr string) string {
+			return fmt.Sprintf("CVA%s CDME%d/A%d+", appr, dist, alt)
+		},
+		WithName("cross_dme_at_or_above_cleared_visual"),
+		WithPriority(19),
+		WithSayAgainOnFail(),
+	)
+	registerSTTCommand(
+		"cross {dme} [at] [or] below {altitude} [,] cleared [the] {visual_approach_lahso}",
+		func(dist int, alt int, appr string) string {
+			return fmt.Sprintf("CVA%s CDME%d/A%d-", appr, dist, alt)
+		},
+		WithName("cross_dme_at_or_below_cleared_visual"),
+		WithPriority(19),
+		WithSayAgainOnFail(),
+	)
+
+	// Compound: "cleared visual approach RWY, cross N DME ..." — same result.
+	registerSTTCommand(
+		"cleared [the] {visual_approach_lahso} [,] cross {dme} [at] [and] [maintain] {altitude}",
+		func(appr string, dist int, alt int) string {
+			return fmt.Sprintf("CVA%s CDME%d/A%d", appr, dist, alt)
+		},
+		WithName("cleared_visual_cross_dme_altitude"),
+		WithPriority(18),
+		WithSayAgainOnFail(),
+	)
+	registerSTTCommand(
+		"cleared [the] {visual_approach_lahso} [,] cross {dme} [at] [or] above {altitude}",
+		func(appr string, dist int, alt int) string {
+			return fmt.Sprintf("CVA%s CDME%d/A%d+", appr, dist, alt)
+		},
+		WithName("cleared_visual_cross_dme_at_or_above"),
+		WithPriority(19),
+		WithSayAgainOnFail(),
+	)
+	registerSTTCommand(
+		"cleared [the] {visual_approach_lahso} [,] cross {dme} [at] [or] below {altitude}",
+		func(appr string, dist int, alt int) string {
+			return fmt.Sprintf("CVA%s CDME%d/A%d-", appr, dist, alt)
+		},
+		WithName("cleared_visual_cross_dme_at_or_below"),
+		WithPriority(19),
+		WithSayAgainOnFail(),
+	)
+
 	registerSTTCommand(
 		"depart {fix} [heading] {heading}",
 		func(fix string, hdg int) string { return fmt.Sprintf("D%s/H%03d", fix, hdg) },

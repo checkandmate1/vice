@@ -1008,6 +1008,16 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                     centerline.</td>
                     <td><code>CVA13L</code></td>
                   </tr>
+                  <tr>
+                    <td><code>CDME</code><i>nm</i><code>/A</code><i>alt</i></td>
+                    <td>Adds a "cross <i>nm</i> DME at <i>alt</i>" crossing
+                    restriction to a cleared visual approach, with the
+                    runway threshold as the DME reference. Append
+                    <code>+</code> for "at or above" or <code>-</code>
+                    for "at or below". Combine with <code>/S</code><i>spd</i>
+                    (or <code>/M</code><i>mach</i>) for a speed restriction.</td>
+                    <td><code>CDME10/A30+</code></td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -1147,7 +1157,8 @@ ZBW, ZDV, ZJX, ZLA, ZLC, and ZNY.
                 <tr><td>Altitude at Fix</td>
                   <td>
                     <i>Cross (fix) at (altitude)</i> /  <i>Cross (fix) at or above (altitude)</i> /
-                    <i>Cross (distance) miles (direction) of (fix) at (altitude)</i>
+                    <i>Cross (distance) miles (direction) of (fix) at (altitude)</i> /
+                    <i>Cross (distance) DME at (altitude)</i> (on a cleared visual approach, optionally combined with <i>cleared visual approach runway (runway)</i>)
                   </td>
                 </tr>
                 <tr><td>Altitude after Speed</td>

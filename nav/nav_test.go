@@ -221,6 +221,19 @@ func TestContactMessageIncludesCrossFixSpeed(t *testing.T) {
 	}
 }
 
+func TestContactMessageIncludesCrossDMEAltitude(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+
+	ar := av.MakeAtAltitudeRestriction(3000)
+	f.nav.CrossDMEAt(5, &ar, nil)
+
+	written := strings.ToLower(f.nav.ContactMessage(nil, "", "", false, false).Written(f.nav.Rand))
+	if !strings.Contains(written, "cross") || !strings.Contains(written, "5 d m e") ||
+		!strings.Contains(written, "3,000") {
+		t.Fatalf("contact message missing cross-DME restriction: %q", written)
+	}
+}
+
 func TestContactMessageIncludesCrossDistanceAltitudeAndSpeed(t *testing.T) {
 	f := NewArrivalFlight(t, ArrivalConfig{
 		Waypoints:        "SAJUL/a10000/star DETGY/a7000/star HAUPT/a6000/star",
