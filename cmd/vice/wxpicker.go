@@ -524,23 +524,29 @@ func drawMonthNavigation(date *time.Time, validDays []time.Time, columnWidth flo
 
 	changed := false
 	year, month := date.Year(), date.Month()
-	prevMonth := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
-	nextMo := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
+	currentMoStart := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	prevMonth := currentMoStart.AddDate(0, -1, 0)
+	nextMo := currentMoStart.AddDate(0, 1, 0)
 
 	// Month/Year navigation
 	imgui.PushStyleVarVec2(imgui.StyleVarItemSpacing, imgui.Vec2{2, 2})
 
-	// Previous month button
+	// Previous month button: jump to the last valid day strictly before
+	// the current month. This avoids snapping via the nearest-valid-day
+	// heuristic in validateAndAdjustDate, which can move us the wrong way
+	// across a gap.
 	prevDisabled := isMonthBeforeRange(prevMonth, start)
 	if prevDisabled {
 		imgui.BeginDisabled()
 	}
 	if imgui.ArrowButton("##prev", imgui.DirLeft) {
-		*date = prevMonth
-		if date.Before(start) {
-			*date = start
+		idx, _ := slices.BinarySearchFunc(validDays, currentMoStart, func(a, b time.Time) int {
+			return a.Compare(b)
+		})
+		if idx > 0 {
+			*date = validDays[idx-1]
+			changed = true
 		}
-		changed = true
 	}
 	if prevDisabled {
 		imgui.EndDisabled()
@@ -557,17 +563,20 @@ func drawMonthNavigation(date *time.Time, validDays []time.Time, columnWidth flo
 	imgui.SameLine()
 	imgui.SetCursorPosX(columnWidth - buttonSize)
 
-	// Next month button
+	// Next month button: jump to the first valid day at or after the
+	// next month start.
 	nextDisabled := isMonthAfterRange(nextMo, end)
 	if nextDisabled {
 		imgui.BeginDisabled()
 	}
 	if imgui.ArrowButton("##next", imgui.DirRight) {
-		*date = nextMo
-		if date.After(end) {
-			*date = end
+		idx, _ := slices.BinarySearchFunc(validDays, nextMo, func(a, b time.Time) int {
+			return a.Compare(b)
+		})
+		if idx < len(validDays) {
+			*date = validDays[idx]
+			changed = true
 		}
-		changed = true
 	}
 	if nextDisabled {
 		imgui.EndDisabled()
