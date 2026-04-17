@@ -30,3 +30,8 @@
 
 - Visual approach/separation improvements
   - Support "approved" after an aircraft says they will maintain visual separation from traffic
+  - Added "cross # DME at {altitude/speed}" for visual approaches
+  - Added support for "traffic has you in sight and will maintain visual separation"
+  - Handle "caution wake turbulence" in control instruciton
+  - Added support for "landing the parallel" traffic advisories
+
