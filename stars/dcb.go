@@ -135,8 +135,7 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 	barExtent := sp.dcbBarExtent(ctx)
 	if ctx.Mouse != nil && sp.activeSpinner == nil && ctx.Mouse.Wheel[1] != 0 && barExtent.Inside(ctx.Mouse.Pos) {
 		bs := sp.dcbButtonScale(ctx) * dcbButtonSize
-		// Positive wheel -> scroll to reveal later buttons (increase offset).
-		sp.dcbScroll -= ctx.Mouse.Wheel[1] * bs
+		sp.dcbScroll += ctx.Mouse.Wheel[1] * bs
 	}
 	sp.dcbScroll = math.Clamp(sp.dcbScroll, 0, maxScroll)
 
