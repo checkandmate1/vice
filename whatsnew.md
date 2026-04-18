@@ -17,7 +17,6 @@
   - Added ALTIM SET and WX REPORT floating windows, including AR/WR keyboard commands and configurable window menus (Michael Knight)
 - STARS
   - Added support for "Create interfacility VFR flight plan from active local track"
-  - Fixed bug where WX3 would never have any contents
   - GI and ATIS text in the SSA list is managed by the server (so updates are shared among controllers)
 - Facility engineering:
   - Support "at or above/at or below" speed restrictions
@@ -30,8 +29,9 @@
 
 - Visual approach/separation improvements
   - Support "approved" after an aircraft says they will maintain visual separation from traffic
-  - Added "cross # DME at {altitude/speed}" for visual approaches
+  - Added "cross {miles} DME at {altitude/speed}" instruction for visual approaches
   - Added support for "traffic has you in sight and will maintain visual separation"
-  - Handle "caution wake turbulence" in control instruciton
+  - Handle "caution wake turbulence" in control instruction
   - Added support for "landing the parallel" traffic advisories
-
+  - And more...
+- Fixed bug where aircraft on perfectly reasonable headings would ask for a vector to intercept when cleared for an approach

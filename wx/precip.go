@@ -1,6 +1,7 @@
 package wx
 
 import (
+	_ "embed"
 	"fmt"
 	"image"
 	"image/draw"
@@ -82,31 +83,11 @@ func FetchRadarImage(center math.Point2LL, radius float32, resolution int) (imag
 	return img, bbox, err
 }
 
-// NWS standard base reflectivity dBZ→RGB color table. These are the colors
-// the NOAA GeoServer actually renders for conus_bref_qcd.
-type nwsColorEntry struct {
-	dbz     float32
-	r, g, b byte
-}
-
-var nwsReflectivityColors = []nwsColorEntry{
-	{-25, 0, 0, 0},
-	{5, 0, 236, 236},
-	{10, 1, 160, 246},
-	{15, 0, 0, 246},
-	{20, 0, 255, 0},
-	{25, 0, 200, 0},
-	{30, 0, 144, 0},
-	{35, 255, 255, 0},
-	{40, 231, 192, 0},
-	{45, 255, 144, 0},
-	{50, 255, 0, 0},
-	{55, 214, 0, 0},
-	{60, 192, 0, 0},
-	{65, 255, 0, 255},
-	{70, 153, 85, 201},
-	{75, 255, 255, 255},
-}
+// A single scanline of this color map, converted to RGB bytes:
+// https://opengeo.ncep.noaa.gov/geoserver/styles/reflectivity.png
+//
+//go:embed radar_reflectivity.rgb
+var radarReflectivity []byte
 
 type kdNode struct {
 	rgb [3]byte
@@ -120,29 +101,15 @@ func makeRadarKdTree() *kdNode {
 		dbz float32
 	}
 
-	// Generate ~500 entries by linearly interpolating between adjacent NWS
-	// color pairs, so that the k-d tree has fine-grained coverage of the
-	// color space the NOAA GeoServer actually produces.
-	const stepsPerSegment = 32
 	var r []rgbRefl
-	for i := range len(nwsReflectivityColors) - 1 {
-		c0 := nwsReflectivityColors[i]
-		c1 := nwsReflectivityColors[i+1]
-		for s := range stepsPerSegment {
-			t := float32(s) / float32(stepsPerSegment)
-			r = append(r, rgbRefl{
-				rgb: [3]byte{
-					byte(math.Lerp(t, float32(c0.r), float32(c1.r)) + 0.5),
-					byte(math.Lerp(t, float32(c0.g), float32(c1.g)) + 0.5),
-					byte(math.Lerp(t, float32(c0.b), float32(c1.b)) + 0.5),
-				},
-				dbz: math.Lerp(t, c0.dbz, c1.dbz),
-			})
-		}
+
+	for i := 0; i < len(radarReflectivity); i += 3 {
+		r = append(r, rgbRefl{
+			rgb: [3]byte{radarReflectivity[i], radarReflectivity[i+1], radarReflectivity[i+2]},
+			// Approximate range of the reflectivity color ramp
+			dbz: math.Lerp(float32(i)/float32(len(radarReflectivity)), -25, 73),
+		})
 	}
-	// Add the final color entry.
-	last := nwsReflectivityColors[len(nwsReflectivityColors)-1]
-	r = append(r, rgbRefl{rgb: [3]byte{last.r, last.g, last.b}, dbz: last.dbz})
 
 	// Build a kd-tree over the RGB points in the color map.
 	var buildTree func(r []rgbRefl, depth int) *kdNode
@@ -227,8 +194,38 @@ func estimateDBZ(root *kdNode, rgb [3]byte) float32 {
 		return closestNode, closestDist
 	}
 
-	n, _ := searchTree(root, nil, 100000, 0)
-	return n.dbz
+	if true {
+		n, _ := searchTree(root, nil, 100000, 0)
+		return n.dbz
+	} else {
+		// Debugging: verify the point found is indeed the closest by
+		// exhaustively checking the distance to all of points in the color
+		// map.
+		n, nd := searchTree(root, nil, 100000, 0)
+
+		closest, closestDist := -1, float32(100000)
+		for i := 0; i < len(radarReflectivity); i += 3 {
+			d := dist(radarReflectivity[i : i+3])
+			if d < closestDist {
+				closestDist = d
+				closest = i
+			}
+		}
+
+		// Note that multiple points in the color map may have the same
+		// distance to the lookup point; thus we only check the distance
+		// here and not the reflectivity (which should be very close but is
+		// not necessarily the same.)
+		if nd != closestDist {
+			fmt.Printf("WAH %d,%d,%d -> %d,%d,%d: dist %f vs %d,%d,%d: dist %f\n",
+				int(rgb[0]), int(rgb[1]), int(rgb[2]),
+				int(n.rgb[0]), int(n.rgb[1]), int(n.rgb[2]), nd,
+				int(radarReflectivity[closest]), int(radarReflectivity[closest+1]), int(radarReflectivity[closest+2]),
+				closestDist)
+		}
+
+		return n.dbz
+	}
 }
 
 // Allow concurrent calls to RadarImageToDBZ
