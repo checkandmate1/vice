@@ -160,6 +160,12 @@ type STARSPane struct {
 	previewAreaInput  string
 	dcbShowAux        bool
 
+	// dcbScroll is the horizontal/vertical scroll offset (in pane-local
+	// pixels) applied to the DCB when the pane is too narrow to show every
+	// button at the fixed button size. Clamped to [0, content - visible]
+	// each frame; mouse wheel over the DCB bar adjusts it.
+	dcbScroll float32
+
 	lastTrackUpdate        sim.Time
 	lastHistoryTrackUpdate sim.Time
 	discardTracks          bool
