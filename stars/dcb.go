@@ -106,19 +106,19 @@ func (sp *STARSPane) dcbBarExtent(ctx *panes.Context) math.Extent2D {
 }
 
 // dcbMaxScroll returns the maximum scroll offset needed to reach the end
-// of the DCB content (buttons past the visible region). Clamping the
-// stored scroll to [0, max] prevents scrolling past useful content.
+// of the DCB content (buttons past the visible region). Uses the actual
+// content size measured by the previous frame's draw so submenus with
+// fewer slots don't allow scrolling past their last button into empty
+// bar area.
 func (sp *STARSPane) dcbMaxScroll(ctx *panes.Context) float32 {
 	ps := sp.currentPrefs()
-	bs := sp.dcbButtonScale(ctx) * dcbButtonSize
-	content := float32(numDCBSlots) * bs
 	var visible float32
 	if ps.DCBPosition == dcbPositionTop || ps.DCBPosition == dcbPositionBottom {
 		visible = ctx.PaneExtent.Width()
 	} else {
 		visible = ctx.PaneExtent.Height()
 	}
-	return max(0, content-visible)
+	return max(0, sp.dcbContentSize-visible)
 }
 
 func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) (paneExtent math.Extent2D) {
@@ -813,6 +813,10 @@ var dcbDrawState struct {
 	// scissors are intersected with this so buttons scrolled past the edge
 	// don't bleed into the radar area.
 	barExtent math.Extent2D
+	// contentMain accumulates the maximum main-axis extent reached by any
+	// drawn button this frame, measured relative to the unscrolled bar
+	// origin. endDrawDCB commits this to sp.dcbContentSize.
+	contentMain float32
 }
 
 func (sp *STARSPane) startDrawDCB(ctx *panes.Context, buttonScale float32, transforms radar.ScopeTransformations,
@@ -824,6 +828,7 @@ func (sp *STARSPane) startDrawDCB(ctx *panes.Context, buttonScale float32, trans
 	dcbDrawState.brightness = ps.Brightness.DCB
 	dcbDrawState.position = ps.DCBPosition
 	dcbDrawState.barExtent = sp.dcbBarExtent(ctx)
+	dcbDrawState.contentMain = 0
 	buttonSize := float32(int(sp.dcbButtonScale(ctx)*dcbButtonSize + 0.5))
 	var drawEndPos [2]float32
 	switch dcbDrawState.position {
@@ -888,6 +893,8 @@ func (sp *STARSPane) endDrawDCB() {
 			dcbDrawState.mouseDownPos = nil
 		}
 	}
+
+	sp.dcbContentSize = dcbDrawState.contentMain
 }
 
 func drawDCBText(text string, td *renderer.TextDrawBuilder, buttonSize [2]float32, color renderer.RGB) {
@@ -1022,6 +1029,21 @@ func (sp *STARSPane) drawDCBButton(ctx *panes.Context, text string, flags dcbFla
 	}
 	dcbDrawState.cb.SetScissorBounds(winScissor,
 		ctx.Platform.FramebufferSize()[1]/ctx.Platform.DisplaySize()[1])
+
+	// Track the furthest main-axis extent reached by any drawn button so
+	// dcbMaxScroll can stop exactly at the last button of the current menu
+	// rather than at a fixed 22-slot assumption.
+	var reached float32
+	switch dcbDrawState.position {
+	case dcbPositionTop, dcbPositionBottom:
+		reached = btnLocal.P1[0] - dcbDrawState.drawStartPos[0]
+	case dcbPositionLeft, dcbPositionRight:
+		reached = dcbDrawState.drawStartPos[1] - btnLocal.P0[1]
+	}
+	if reached > dcbDrawState.contentMain {
+		dcbDrawState.contentMain = reached
+	}
+
 	moveDCBCursor(flags, sz, ctx)
 
 	trid.GenerateCommands(dcbDrawState.cb)

@@ -166,6 +166,11 @@ type STARSPane struct {
 	// each frame; mouse wheel over the DCB bar adjusts it.
 	dcbScroll float32
 
+	// dcbContentSize is the main-axis extent (in pane-local pixels) that
+	// the previous frame's DCB drawing actually used. Lets dcbMaxScroll
+	// stop at the last real button so the user can't scroll into empty bar.
+	dcbContentSize float32
+
 	lastTrackUpdate        sim.Time
 	lastHistoryTrackUpdate sim.Time
 	discardTracks          bool
