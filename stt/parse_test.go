@@ -2,7 +2,100 @@ package stt
 
 import (
 	"testing"
+
+	av "github.com/mmp/vice/aviation"
 )
+
+func TestFrequencyValueParser(t *testing.T) {
+	p := &frequencyValueParser{}
+	tests := []struct {
+		name     string
+		tokens   []Token
+		expected av.Frequency
+		ok       bool
+	}{
+		{
+			name: "two-digit decimal",
+			tokens: []Token{
+				{Text: "123", Type: TokenNumber, Value: 123},
+				{Text: "point", Type: TokenWord, Value: -1},
+				{Text: "45", Type: TokenNumber, Value: 45},
+			},
+			expected: av.NewFrequency(123.45),
+			ok:       true,
+		},
+		{
+			name: "one-digit decimal",
+			tokens: []Token{
+				{Text: "118", Type: TokenNumber, Value: 118},
+				{Text: "point", Type: TokenWord, Value: -1},
+				{Text: "9", Type: TokenNumber, Value: 9},
+			},
+			expected: av.NewFrequency(118.9),
+			ok:       true,
+		},
+		{
+			name: "zero decimal",
+			tokens: []Token{
+				{Text: "120", Type: TokenNumber, Value: 120},
+				{Text: "point", Type: TokenWord, Value: -1},
+				{Text: "0", Type: TokenNumber, Value: 0},
+			},
+			expected: av.NewFrequency(120.0),
+			ok:       true,
+		},
+		{
+			name: "leading-zero decimal preserved",
+			tokens: []Token{
+				{Text: "118", Type: TokenNumber, Value: 118},
+				{Text: "point", Type: TokenWord, Value: -1},
+				{Text: "09", Type: TokenNumber, Value: 9},
+			},
+			expected: av.NewFrequency(118.09),
+			ok:       true,
+		},
+		{
+			name: "whole out of range",
+			tokens: []Token{
+				{Text: "12", Type: TokenNumber, Value: 12},
+				{Text: "point", Type: TokenWord, Value: -1},
+				{Text: "5", Type: TokenNumber, Value: 5},
+			},
+			ok: false,
+		},
+		{
+			name: "missing point",
+			tokens: []Token{
+				{Text: "123", Type: TokenNumber, Value: 123},
+				{Text: "45", Type: TokenNumber, Value: 45},
+				{Text: "foo", Type: TokenWord, Value: -1},
+			},
+			ok: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, consumed, _ := p.parse(tt.tokens, 0, Aircraft{})
+			if tt.ok {
+				if consumed != 3 {
+					t.Fatalf("consumed = %d, want 3", consumed)
+				}
+				got, ok := value.(av.Frequency)
+				if !ok {
+					t.Fatalf("value type = %T, want av.Frequency", value)
+				}
+				if got != tt.expected {
+					t.Fatalf("got %d (%s), want %d (%s)", got, got, tt.expected, tt.expected)
+				}
+			} else {
+				if value != nil || consumed != 0 {
+					t.Fatalf("expected no match, got value=%v consumed=%d", value, consumed)
+				}
+			}
+		})
+	}
+}
 
 func TestCompassDirParser(t *testing.T) {
 	p := &compassDirParser{}

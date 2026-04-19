@@ -15,7 +15,7 @@
   "processor": "GPU: AMD Radeon RX 7600 (8176MB)",
   "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
   "callsign": "SKW3337",
-  "command": "TO",
+  "command": "TO/120500",
   "stt_aircraft": {
     "Alaska 50 98": {
       "Callsign": "ASA5098",

@@ -15,7 +15,7 @@
   "processor": "GPU: NVIDIA GeForce RTX 5080 (15977MB)",
   "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
   "callsign": "LAN711",
-  "command": "TO",
+  "command": "TO/123900",
   "stt_aircraft": {
     "American 68 98 heavy": {
       "Callsign": "AAL6898",

@@ -466,7 +466,7 @@ func (ac *Aircraft) AltitudeOurDiscretion() av.CommandIntent {
 	}
 }
 
-func (ac *Aircraft) ContactTower(lg *log.Logger) (av.CommandIntent, bool) {
+func (ac *Aircraft) ContactTower(lg *log.Logger, freq av.Frequency) (av.CommandIntent, bool) {
 	if ac.GotContactTower {
 		// No response; they're not on our frequency any more.
 		return nil, false
@@ -474,14 +474,14 @@ func (ac *Aircraft) ContactTower(lg *log.Logger) (av.CommandIntent, bool) {
 		// VFR aircraft on flight following can be told to contact tower
 		// without needing an approach assignment.
 		ac.GotContactTower = true
-		return av.ContactTowerIntent{}, true
+		return av.ContactTowerIntent{Frequency: freq}, true
 	} else if ac.Nav.Approach.Assigned == nil {
 		return av.MakeUnableIntent("unable. We haven't been given an approach."), false
 	} else if !ac.Nav.Approach.Cleared {
 		return av.MakeUnableIntent("unable. We haven't been cleared for the approach."), false
 	} else {
 		ac.GotContactTower = true
-		return av.ContactTowerIntent{}, true
+		return av.ContactTowerIntent{Frequency: freq}, true
 	}
 }
 

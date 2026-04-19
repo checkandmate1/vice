@@ -8,6 +8,12 @@ import (
 	"github.com/mmp/vice/util"
 )
 
+// isContactTowerCommand reports whether cmd is a contact-tower command,
+// with or without a trailing frequency suffix ("TO" or "TO/<khz>").
+func isContactTowerCommand(cmd string) bool {
+	return cmd == "TO" || strings.HasPrefix(cmd, "TO/")
+}
+
 // ValidationResult holds the result of command validation.
 type ValidationResult struct {
 	ValidCommands []string // Commands that passed validation
@@ -126,8 +132,8 @@ var validationRules = []validationRule{
 	// E + letters → expect approach
 	{match: func(cmd string) bool { return cmd[0] == 'E' && len(cmd) > 1 },
 		validate: func(cmd string, ac Aircraft) string { return validateExpectApproach(cmd[1:], ac) }},
-	// TO → contact tower
-	{match: func(cmd string) bool { return cmd == "TO" },
+	// TO or TO/FREQ → contact tower (frequency optional)
+	{match: isContactTowerCommand,
 		validate: func(_ string, ac Aircraft) string { return validateContactTower(ac) }},
 	// T → turn/then commands, no validation
 	{match: func(cmd string) bool { return cmd[0] == 'T' },
@@ -414,7 +420,7 @@ func isCommandValidForState(cmd string, state string) bool {
 		if cmd[0] == 'D' && len(cmd) > 1 && IsNumber(cmd[1:]) {
 			return false // Descend
 		}
-		if cmd == "TO" {
+		if isContactTowerCommand(cmd) {
 			return false
 		}
 		if cmd[0] == 'E' || (cmd[0] == 'C' && len(cmd) > 1 && !IsNumber(cmd[1:])) {
@@ -427,7 +433,7 @@ func isCommandValidForState(cmd string, state string) bool {
 		if cmd[0] == 'C' && len(cmd) > 1 && IsNumber(cmd[1:]) {
 			return false // Climb
 		}
-		if cmd == "TO" {
+		if isContactTowerCommand(cmd) {
 			return false
 		}
 
@@ -443,7 +449,7 @@ func isCommandValidForState(cmd string, state string) bool {
 	case "overflight":
 		// Overflights: altitude (either direction), headings, DVS, FC
 		// Not: approach, TO
-		if cmd == "TO" {
+		if isContactTowerCommand(cmd) {
 			return false
 		}
 	}

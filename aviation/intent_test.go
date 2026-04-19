@@ -127,6 +127,47 @@ func TestSpeedUntilFinalDirection(t *testing.T) {
 	}
 }
 
+func TestContactTowerReadback(t *testing.T) {
+	// No frequency — readback is bare "tower" with no digits.
+	for seed := uint64(1); seed <= 20; seed++ {
+		readback := renderIntentForTest(ContactTowerIntent{}, seed)
+		if !strings.Contains(readback, "tower") {
+			t.Fatalf("bare contact-tower readback missing 'tower': %q", readback)
+		}
+		if strings.ContainsAny(readback, "0123456789") {
+			t.Fatalf("bare contact-tower readback unexpectedly contains digits: %q", readback)
+		}
+	}
+
+	// With frequency — across seeds, the readback sometimes includes the
+	// frequency and sometimes does not. When present it must match the
+	// canonical Frequency formatting.
+	freq := NewFrequency(118.9)
+	// Readback uses the FrequencySnippetFormatter's Written form (2 decimal
+	// places), not Frequency.String()'s 3-decimal form.
+	expected := FrequencySnippetFormatter{}.Written(freq)
+	withFreq, withoutFreq := 0, 0
+	for seed := uint64(1); seed <= 60; seed++ {
+		readback := renderIntentForTest(ContactTowerIntent{Frequency: freq}, seed)
+		if !strings.Contains(readback, "tower") {
+			t.Fatalf("contact-tower readback missing 'tower': %q", readback)
+		}
+		if strings.Contains(readback, expected) {
+			withFreq++
+		} else if strings.ContainsAny(readback, "0123456789") {
+			t.Fatalf("contact-tower readback has digits but not the expected freq %q: %q", expected, readback)
+		} else {
+			withoutFreq++
+		}
+	}
+	if withFreq == 0 {
+		t.Fatalf("expected some readbacks to include the frequency; got none in 60 seeds")
+	}
+	if withoutFreq == 0 {
+		t.Fatalf("expected some readbacks to omit the frequency; got none in 60 seeds")
+	}
+}
+
 func TestCompoundSpeedReadbackIncludesQualifiers(t *testing.T) {
 	above := MakeAtOrAboveSpeedRestriction(250)
 	below := MakeAtOrBelowSpeedRestriction(210)

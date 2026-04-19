@@ -858,11 +858,19 @@ func (t TransponderIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 ///////////////////////////////////////////////////////////////////////////
 // Special Intents
 
-// ContactTowerIntent represents contact tower command
-type ContactTowerIntent struct{}
+// ContactTowerIntent represents contact tower command.
+// Frequency is optional (zero means "not given"); when set, the pilot
+// readback sometimes includes the tower frequency.
+type ContactTowerIntent struct {
+	Frequency Frequency
+}
 
 func (c ContactTowerIntent) Render(rt *RadioTransmission, r *rand.Rand) {
-	rt.Add("[contact|over to|] tower")
+	if c.Frequency != 0 {
+		rt.Add("[tower {freq}|over to tower {freq}|contact tower {freq}|tower|over to tower]", c.Frequency)
+	} else {
+		rt.Add("[contact|over to|] tower")
+	}
 }
 
 // ATISIntent represents the pilot's acknowledgment of the ATIS letter.

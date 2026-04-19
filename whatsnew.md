@@ -35,3 +35,4 @@
   - Added support for "landing the parallel" traffic advisories
   - And more...
 - Fixed bug where aircraft on perfectly reasonable headings would ask for a vector to intercept when cleared for an approach
+- Include tower frequencies in "contact tower" readbacks

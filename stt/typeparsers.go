@@ -1003,6 +1003,46 @@ func (p *contactFrequencyParser) parse(tokens []Token, pos int, ac Aircraft) (an
 	return nil, 0, ""
 }
 
+// frequencyValueParser extracts an aviation VHF frequency value
+// from the pattern: NUMBER "point" NUMBER. Returns av.Frequency
+// (integer with ×1000 scaling, matching av.NewFrequency).
+type frequencyValueParser struct{}
+
+func (p *frequencyValueParser) identifier() string   { return "frequency_value" }
+func (p *frequencyValueParser) goType() reflect.Type { return reflect.TypeOf(av.Frequency(0)) }
+
+func (p *frequencyValueParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, string) {
+	if pos+2 >= len(tokens) {
+		return nil, 0, ""
+	}
+
+	whole := tokens[pos]
+	if whole.Type != TokenNumber || whole.Value < 100 || whole.Value > 999 {
+		return nil, 0, ""
+	}
+
+	point := tokens[pos+1]
+	if point.Type != TokenWord || strings.ToLower(point.Text) != "point" {
+		return nil, 0, ""
+	}
+
+	dec := tokens[pos+2]
+	if dec.Type != TokenNumber || dec.Value < 0 || dec.Value > 99 {
+		return nil, 0, ""
+	}
+
+	// Decimal scaling is based on the number of digits spoken, not the
+	// numeric magnitude. "point nine" (text="9") → 0.9 (×100).
+	// "point four five" (text="45") → 0.45 (×10). Tokenize preserves
+	// original digit count in Text (see parseDigitSequence).
+	scale := 100
+	if len(dec.Text) >= 2 {
+		scale = 10
+	}
+	khz := whole.Value*1000 + dec.Value*scale
+	return av.Frequency(khz), 3, ""
+}
+
 // compassDirParser extracts a cardinal/ordinal compass direction.
 // Matches: north, south, east, west, northeast, northwest, southeast, southwest.
 // Returns the short abbreviation (N, S, E, W, NE, NW, SE, SW) as a string.
@@ -1078,6 +1118,8 @@ func getTypeParser(typeID string) typeParser {
 		return &dmeParser{}
 	case "contact_frequency":
 		return &contactFrequencyParser{}
+	case "frequency_value":
+		return &frequencyValueParser{}
 	case "standalone_altitude":
 		return &standaloneAltitudeParser{}
 	case "compass_dir":

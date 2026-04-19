@@ -2,6 +2,8 @@ package stt
 
 import (
 	"fmt"
+
+	av "github.com/mmp/vice/aviation"
 )
 
 // registerAllCommands registers all STT command templates.
@@ -1241,8 +1243,13 @@ func registerAllCommands() {
 
 	// Contact tower patterns - need to handle "contact <facility> tower"
 	registerSTTCommand(
-		"contact tower",
-		func() string { return "TO" },
+		"contact tower [{frequency_value}]",
+		func(freq *av.Frequency) string {
+			if freq == nil {
+				return "TO"
+			}
+			return fmt.Sprintf("TO/%d", int(*freq))
+		},
 		WithName("contact_tower"),
 		WithPriority(15),
 	)
@@ -1251,16 +1258,26 @@ func registerAllCommands() {
 	// Uses {garbled_word} to require a non-command word before "tower",
 	// preventing bare "tower" from matching as noise in transcripts.
 	registerSTTCommand(
-		"{garbled_word} tower",
-		func(_ string) string { return "TO" },
+		"{garbled_word} tower [{frequency_value}]",
+		func(_ string, freq *av.Frequency) string {
+			if freq == nil {
+				return "TO"
+			}
+			return fmt.Sprintf("TO/%d", int(*freq))
+		},
 		WithName("facility_tower"),
 		WithPriority(5),
 	)
 	// Pattern: "contact Kennedy Tower" or "contact Lindbergh Tower"
 	// The {text} parameter consumes one token (the facility name)
 	registerSTTCommand(
-		"contact {text} tower",
-		func(_ string) string { return "TO" },
+		"contact {text} tower [{frequency_value}]",
+		func(_ string, freq *av.Frequency) string {
+			if freq == nil {
+				return "TO"
+			}
+			return fmt.Sprintf("TO/%d", int(*freq))
+		},
 		WithName("contact_facility_tower"),
 		WithPriority(16),
 	)

@@ -15,7 +15,7 @@
   "processor": "GPU: NVIDIA GeForce RTX 5070 (11943MB)",
   "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
   "callsign": "SIA438",
-  "command": "A30 CI1R TO",
+  "command": "A30 CI1R TO/119100",
   "stt_aircraft": {
     "Endeavor 72 42": {
       "Callsign": "EDV7242",

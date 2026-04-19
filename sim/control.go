@@ -2053,13 +2053,13 @@ func (s *Sim) DescendViaSTAR(tcw TCW, callsign av.ADSBCallsign) (av.CommandInten
 		})
 }
 
-func (s *Sim) ContactTower(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+func (s *Sim) ContactTower(tcw TCW, callsign av.ADSBCallsign, freq av.Frequency) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			result, ok := ac.ContactTower(s.lg)
+			result, ok := ac.ContactTower(s.lg, freq)
 			if ok {
 				ac.ControllerFrequency = "_TOWER"
 			}
@@ -3936,7 +3936,7 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			if ac, ok := s.Aircraft[callsign]; ok && ac.Nav.Approach.Cleared {
 				// STT sometimes gets confused and gives FC for "contact tower" instructions, so
 				// we'll just roll with that.
-				return s.ContactTower(tcw, callsign)
+				return s.ContactTower(tcw, callsign, av.Frequency(0))
 			} else {
 				return s.ContactTrackingController(tcw, ACID(callsign))
 			}
@@ -4137,8 +4137,14 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 	case 'T':
 		if strings.HasPrefix(command, "TRAFFIC/") {
 			return s.TrafficAdvisory(tcw, callsign, command)
-		} else if command == "TO" {
-			return s.ContactTower(tcw, callsign)
+		} else if command == "TO" || strings.HasPrefix(command, "TO/") {
+			var freq av.Frequency
+			if strings.HasPrefix(command, "TO/") {
+				if n, err := strconv.Atoi(command[3:]); err == nil {
+					freq = av.Frequency(n)
+				}
+			}
+			return s.ContactTower(tcw, callsign, freq)
 		} else if n := len(command); n > 2 {
 			if deg, err := strconv.Atoi(command[1 : n-1]); err == nil {
 				if command[n-1] == 'L' {
