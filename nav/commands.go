@@ -1061,13 +1061,19 @@ func (nav *Nav) CrossDMEAt(dist float32, ar *av.AltitudeRestriction, sr *av.Spee
 	// 2. Walk backward from the threshold, accumulating track miles, and
 	// place the synthetic waypoint on the first leg that spans `dist`. If
 	// `dist` exceeds the full route length, extrapolate past wp[0] along
-	// the direction from wp[1] back to wp[0].
+	// the direction from wp[1] back to wp[0]. The final waypoint is the
+	// arrival airport (appended after the threshold); skip the
+	// threshold-to-airport leg so distances are measured from the threshold.
+	thresholdIdx := len(routeWps) - 2
+	if thresholdIdx < 1 {
+		return av.MakeUnableIntent("unable")
+	}
 	nmPerLong := nav.FlightState.NmPerLongitude
 	var syntheticLoc math.Point2LL
 	var insertIdx int
 	var cum float32 // cumulative track miles from threshold to routeWps[i+1]
 	placed := false
-	for i := len(routeWps) - 2; i >= 0 && !placed; i-- {
+	for i := thresholdIdx - 1; i >= 0 && !placed; i-- {
 		legLen := math.NMDistance2LLFast(routeWps[i].Location, routeWps[i+1].Location, nmPerLong)
 		if dist <= cum+legLen {
 			t := (dist - cum) / legLen

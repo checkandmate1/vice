@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	av "github.com/mmp/vice/aviation"
+	"github.com/mmp/vice/math"
 )
 
 // TestSTARSpeedRestrictions verifies that STAR speed restrictions are
@@ -158,6 +159,65 @@ func TestAssignedAtOrBelowSpeedDoesNotAccelerateWhenAlreadyCompliant(t *testing.
 	targetSpeed, _ := f.nav.TargetSpeed(targetAltitude, &f.fp, f.weather(f.nav.FlightState.Altitude), nil)
 	if targetSpeed != f.nav.FlightState.IAS {
 		t.Fatalf("target speed = %.0f, want current compliant speed %.0f", targetSpeed, f.nav.FlightState.IAS)
+	}
+}
+
+// TestVisualApproachSpeedUntilFiveMileFinal verifies that "maintain X
+// until 5 mile final" holds the assigned speed until the aircraft is
+// inside 5 NM of the runway threshold on a visual approach. Regression
+// for a bug where the speed restriction was cancelled ~3 NM early
+// because visual-approach routes didn't terminate with the arrival
+// airport (so DistanceToEndOfApproach measured to the _3NM_FINAL
+// waypoint instead of the threshold).
+func TestVisualApproachSpeedUntilFiveMileFinal(t *testing.T) {
+	f := setupClearedVisual(t, "22L")
+
+	// setupClearedVisual lays down [intercept (10nm), _22L_3NM_FINAL (3nm),
+	// threshold, arrival airport]. Simulate the aircraft having already
+	// passed the intercept fix so the remaining route is
+	// [3NM_FINAL, threshold, airport].
+	intercept := f.nav.Waypoints[0].Location
+	final3 := f.nav.Waypoints[1].Location
+	f.nav.Waypoints = f.nav.Waypoints[1:]
+
+	// Position the aircraft 7 NM from the threshold (4 NM before 3NM_FINAL).
+	pos7 := math.Point2LL(math.Lerp2f(4.0/7.0, final3, intercept))
+	f.nav.FlightState.Position = pos7
+
+	if d, err := f.nav.DistanceToEndOfApproach(); err != nil {
+		t.Fatalf("DistanceToEndOfApproach error: %v", err)
+	} else if d < 6.5 || d > 7.5 {
+		t.Fatalf("at 7 NM final: DistanceToEndOfApproach = %.2f, want ~7", d)
+	}
+
+	sr := av.MakeAtSpeedRestriction(210)
+	f.nav.AssignSpeedUntil(&sr, &av.SpeedUntil{MileFinal: 5})
+	if f.nav.Speed.Assigned == nil {
+		t.Fatal("AssignSpeedUntil should store the speed restriction")
+	}
+
+	targetAltitude, _, _ := f.nav.TargetAltitude()
+	spd, _ := f.nav.TargetSpeed(targetAltitude, &f.fp, f.weather(f.nav.FlightState.Altitude), nil)
+	if f.nav.Speed.Assigned == nil {
+		t.Fatal("speed restriction cleared too early at 7 NM from threshold")
+	}
+	if spd < 205 || spd > 215 {
+		t.Errorf("at 7 NM final: target speed = %.0f, want ~210", spd)
+	}
+
+	// Move to 4 NM from threshold (1 NM before 3NM_FINAL); the hardcoded
+	// "inside 5 mile final" cancellation should now fire.
+	pos4 := math.Point2LL(math.Lerp2f(1.0/7.0, final3, intercept))
+	f.nav.FlightState.Position = pos4
+	if d, err := f.nav.DistanceToEndOfApproach(); err != nil {
+		t.Fatalf("DistanceToEndOfApproach error: %v", err)
+	} else if d < 3.5 || d > 4.5 {
+		t.Fatalf("at 4 NM final: DistanceToEndOfApproach = %.2f, want ~4", d)
+	}
+
+	f.nav.TargetSpeed(targetAltitude, &f.fp, f.weather(f.nav.FlightState.Altitude), nil)
+	if f.nav.Speed.Assigned != nil {
+		t.Errorf("speed restriction should be cleared inside 5 NM final, still set to %v", f.nav.Speed.Assigned)
 	}
 }
 

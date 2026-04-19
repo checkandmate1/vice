@@ -1007,6 +1007,12 @@ func (nav *Nav) buildDirectVisualWaypointsFromTrafficRoute(runway string, traffi
 		return nil
 	}
 
+	// trafficRoute is the traffic aircraft's Waypoints, which ends with
+	// the destination airport appended after the threshold; drop the
+	// airport so the threshold is the route's final point and
+	// finalizeDirectVisualWaypoints flags it correctly.
+	trafficRoute = trafficRoute[:len(trafficRoute)-1]
+
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
 	bearingToTraffic := math.Heading2LL(nav.FlightState.Position, trafficPosition, nmPerLong)
@@ -1115,7 +1121,7 @@ func (nav *Nav) clearedDirectVisual(runway string, lahsoRunway string, simTime t
 		nav.Heading.Hold.Cancel = true
 	}
 
-	nav.Waypoints = wi
+	nav.Waypoints = append(wi, nav.FlightState.ArrivalAirport)
 	nav.Heading = NavHeading{}
 	nav.DeferredNavHeading = nil
 

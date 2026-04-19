@@ -687,15 +687,19 @@ func TestVisualApproachWaypoints(t *testing.T) {
 				}
 			}
 
-			// Last waypoint should always be the threshold with Land set.
-			last := wps[len(wps)-1]
-			if last.Fix != "_36_THRESHOLD" {
-				t.Errorf("last waypoint = %q, want _36_THRESHOLD", last.Fix)
+			// The threshold (with Land set) should be second-to-last,
+			// followed by the arrival airport.
+			if got := wps[len(wps)-1].Fix; got != "KTEST" {
+				t.Errorf("last waypoint = %q, want arrival airport KTEST", got)
 			}
-			if !last.Land() {
+			threshold := wps[len(wps)-2]
+			if threshold.Fix != "_36_THRESHOLD" {
+				t.Errorf("penultimate waypoint = %q, want _36_THRESHOLD", threshold.Fix)
+			}
+			if !threshold.Land() {
 				t.Error("threshold waypoint should have Land=true")
 			}
-			if !last.FlyOver() {
+			if !threshold.FlyOver() {
 				t.Error("threshold waypoint should have FlyOver=true")
 			}
 
@@ -846,8 +850,8 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 	}
 
 	wps := n.Waypoints
-	if len(wps) != 3 {
-		t.Fatalf("expected follow traffic, 3nm final, threshold; got %d: %v", len(wps), wpNames(wps))
+	if len(wps) != 4 {
+		t.Fatalf("expected follow traffic, 3nm final, threshold, airport; got %d: %v", len(wps), wpNames(wps))
 	}
 	if wps[0].Fix != "_36_FOLLOW_TRAFFIC" {
 		t.Fatalf("first waypoint = %q, want _36_FOLLOW_TRAFFIC", wps[0].Fix)
@@ -895,7 +899,8 @@ func TestScenarioCVAFollowTrafficUsesTrafficRoute(t *testing.T) {
 			rw36,
 		}},
 	}
-	traffic.Nav.Waypoints = av.WaypointArray{wirko, rw36}
+	rw36.SetLand(true)
+	traffic.Nav.Waypoints = av.WaypointArray{wirko, rw36, traffic.Nav.FlightState.ArrivalAirport}
 	vs.Sim.Aircraft[traffic.ADSBCallsign] = traffic
 
 	vs.AC.TrafficInSight = true
@@ -915,7 +920,7 @@ func TestScenarioCVAFollowTrafficUsesTrafficRoute(t *testing.T) {
 	if d := math.NMDistance2LLFast(vs.AC.Nav.Waypoints[0].Location, trafficPos, 52); d > 0.01 {
 		t.Fatalf("follow-traffic waypoint %.2fnm from traffic position", d)
 	}
-	if got := wpNames(vs.AC.Nav.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "WIRKO", "RW36"}) {
+	if got := wpNames(vs.AC.Nav.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "WIRKO", "RW36", "KJFK"}) {
 		t.Fatalf("route = %v, want traffic position followed by traffic's remaining route", got)
 	}
 }
@@ -944,12 +949,13 @@ func TestVisualApproachFollowingTrafficCopiesRemainingTrafficRoute(t *testing.T)
 			ArrivalAirport:    av.Waypoint{Fix: "KTEST"},
 		},
 	}
-	trafficRoute := av.WaypointArray{final3NM, threshold}
+	threshold.SetLand(true)
+	trafficRoute := av.WaypointArray{final3NM, threshold, n.FlightState.ArrivalAirport}
 	if _, ok := n.ClearedDirectVisualFollowingTrafficRoute("36", trafficPos, trafficRoute, "", time.Time{}); !ok {
 		t.Fatal("expected follow-traffic visual route")
 	}
-	if got := wpNames(n.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "_36_3NM_FINAL", "RW36"}) {
-		t.Fatalf("route = %v, want traffic, 3nm final, threshold", got)
+	if got := wpNames(n.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "_36_3NM_FINAL", "RW36", "KTEST"}) {
+		t.Fatalf("route = %v, want traffic, 3nm final, threshold, airport", got)
 	}
 }
 

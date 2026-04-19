@@ -639,7 +639,7 @@ func setupClearedVisual(t *testing.T, runway string) *FlightTest {
 	threshold.SetFlyOver(true)
 	threshold.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(rwy.Elevation + rwy.ThresholdCrossingHeight)))
 
-	f.nav.Waypoints = []av.Waypoint{intercept, final3, threshold}
+	f.nav.Waypoints = []av.Waypoint{intercept, final3, threshold, f.nav.FlightState.ArrivalAirport}
 
 	f.nav.Approach.Assigned = &av.Approach{
 		Id:        "VIS" + runway,
@@ -726,8 +726,8 @@ func TestCrossDMEAtInsertsWaypoint(t *testing.T) {
 		t.Errorf("expected 3000 altitude restriction on synthetic waypoint")
 	}
 
-	last := f.nav.Waypoints[len(f.nav.Waypoints)-1].Location
-	if d := math.NMDistance2LL(f.nav.Waypoints[idx].Location, last); d < 4.5 || d > 5.5 {
+	threshold := f.nav.Waypoints[len(f.nav.Waypoints)-2].Location
+	if d := math.NMDistance2LL(f.nav.Waypoints[idx].Location, threshold); d < 4.5 || d > 5.5 {
 		t.Errorf("expected synthetic waypoint ~5nm from threshold, got %.2f", d)
 	}
 }
@@ -746,8 +746,8 @@ func TestCrossDMEAtExtrapolates(t *testing.T) {
 	if f.nav.Waypoints[0].Fix != "_22L_15DME" {
 		t.Fatalf("expected _22L_15DME at index 0, got %q", f.nav.Waypoints[0].Fix)
 	}
-	last := f.nav.Waypoints[len(f.nav.Waypoints)-1].Location
-	if d := math.NMDistance2LL(f.nav.Waypoints[0].Location, last); d < 14.5 || d > 15.5 {
+	threshold := f.nav.Waypoints[len(f.nav.Waypoints)-2].Location
+	if d := math.NMDistance2LL(f.nav.Waypoints[0].Location, threshold); d < 14.5 || d > 15.5 {
 		t.Errorf("expected extrapolated waypoint ~15nm from threshold, got %.2f", d)
 	}
 }
@@ -815,13 +815,15 @@ func TestCrossDMEAtShortRouteAfterDeletion(t *testing.T) {
 	}
 
 	// Simulate the aircraft having passed all prior waypoints: route is
-	// reduced to just the synthetic DME waypoint and the threshold.
+	// reduced to just the synthetic DME waypoint, the threshold, and the
+	// arrival airport.
 	dmeIdx := slicesIndex(f.nav.Waypoints, "_22L_5DME")
 	if dmeIdx < 0 {
 		t.Fatalf("expected _22L_5DME in route")
 	}
-	last := len(f.nav.Waypoints) - 1
-	f.nav.Waypoints = []av.Waypoint{f.nav.Waypoints[dmeIdx], f.nav.Waypoints[last]}
+	threshold := len(f.nav.Waypoints) - 2
+	airport := len(f.nav.Waypoints) - 1
+	f.nav.Waypoints = []av.Waypoint{f.nav.Waypoints[dmeIdx], f.nav.Waypoints[threshold], f.nav.Waypoints[airport]}
 
 	// Reissue altitude-only CDME: the deletion pass removes the 5 DME
 	// synthetic (alt was its only restriction), leaving just the threshold.
