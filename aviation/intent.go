@@ -250,6 +250,10 @@ type SpeedIntent struct {
 	AfterFix      string      // speed change conditional on passing this fix
 	Until         *SpeedUntil // what the speed restriction is "until"
 	Mach          bool
+	// UntilFinalDirection is consulted only when Type == SpeedUntilFinal and
+	// Until == nil, so the readback can pick reduce/increase/assign-flavored
+	// phrasing. Expected values: SpeedReduce, SpeedIncrease, SpeedAssign.
+	UntilFinalDirection SpeedType
 }
 
 func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
@@ -271,7 +275,14 @@ func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		if s.Until != nil {
 			s.renderUntil(rt, "")
 		} else {
-			rt.Add("[speed {spd} for now|we'll keep it at {spd} for now]", s.Speed)
+			switch s.UntilFinalDirection {
+			case SpeedReduce:
+				rt.Add("[slow to {spd} for now|reduce to {spd} for now|back to {spd} on the speed]", s.Speed)
+			case SpeedIncrease:
+				rt.Add("[increase to {spd} for now|speed up to {spd} for now|{spd} on the speed]", s.Speed)
+			default:
+				rt.Add("[speed {spd} for now|maintaining {spd} for now]", s.Speed)
+			}
 		}
 	case SpeedReduce:
 		if s.AfterFix != "" {
@@ -303,7 +314,7 @@ func (s SpeedIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		} else if s.AfterFix != "" {
 			rt.Add("[after {fix} maintain {spd} or greater|after {fix} {spd} or greater]", s.AfterFix, s.Speed)
 		} else {
-			rt.Add("[maintain {spd} or greater|{spd} or greater|{spd} or above]", s.Speed)
+			rt.Add("[maintain {spd} or greater|{spd} or greater|{spd} or more]", s.Speed)
 		}
 	case SpeedAtOrBelow:
 		if s.Until != nil {

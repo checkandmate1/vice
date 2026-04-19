@@ -44,7 +44,7 @@ func TestSpeedRestrictionReadbackIncludesQualifier(t *testing.T) {
 		{
 			name:       "bare or greater",
 			intent:     SpeedIntent{Speed: 250, Type: SpeedAtOrAbove},
-			qualifiers: []string{"or greater", "or above"},
+			qualifiers: []string{"or greater", "or more"},
 		},
 		{
 			name:       "bare or less",
@@ -81,6 +81,46 @@ func TestSpeedRestrictionReadbackIncludesQualifier(t *testing.T) {
 				}
 				if test.intent.Until != nil && !strings.Contains(readback, "until") {
 					t.Fatalf("speed readback missing until: %q", readback)
+				}
+			}
+		})
+	}
+}
+
+func TestSpeedUntilFinalDirection(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		intent      SpeedIntent
+		contains    []string // at least one of these must appear
+		notContains []string // none of these may appear
+	}{
+		{
+			name:        "reduce",
+			intent:      SpeedIntent{Speed: 190, Type: SpeedUntilFinal, UntilFinalDirection: SpeedReduce},
+			contains:    []string{"slow", "reduce", "back to"},
+			notContains: []string{"keep it at", "maintain"},
+		},
+		{
+			name:        "increase",
+			intent:      SpeedIntent{Speed: 230, Type: SpeedUntilFinal, UntilFinalDirection: SpeedIncrease},
+			contains:    []string{"increase", "speed up", "on the speed"},
+			notContains: []string{"keep it at"},
+		},
+		{
+			name:        "assign",
+			intent:      SpeedIntent{Speed: 210, Type: SpeedUntilFinal, UntilFinalDirection: SpeedAssign},
+			contains:    []string{"for now"},
+			notContains: []string{"keep it at"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			for seed := uint64(1); seed <= 20; seed++ {
+				readback := renderIntentForTest(test.intent, seed)
+				assertContainsAny(t, readback, test.contains...)
+				for _, bad := range test.notContains {
+					if strings.Contains(readback, bad) {
+						t.Fatalf("readback %q contains forbidden substring %q (seed %d)", readback, bad, seed)
+					}
 				}
 			}
 		})

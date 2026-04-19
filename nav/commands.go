@@ -208,7 +208,13 @@ func (nav *Nav) AssignSpeed(sr *av.SpeedRestriction, afterAltitude bool) av.Comm
 
 	if nav.Approach.Cleared {
 		nav.Speed = NavSpeed{Assigned: sr}
-		return av.SpeedIntent{Speed: speed, Type: av.SpeedUntilFinal}
+		dir := av.SpeedAssign
+		if speed < nav.FlightState.IAS {
+			dir = av.SpeedReduce
+		} else if speed > nav.FlightState.IAS {
+			dir = av.SpeedIncrease
+		}
+		return av.SpeedIntent{Speed: speed, Type: av.SpeedUntilFinal, UntilFinalDirection: dir}
 	} else if afterAltitude && nav.Altitude.Assigned != nil &&
 		*nav.Altitude.Assigned != nav.FlightState.Altitude {
 		alt := *nav.Altitude.Assigned
