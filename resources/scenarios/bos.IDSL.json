@@ -353,7 +353,7 @@
         "I5RC": {
           "full_name": "ILS Runway 15R, then visual approach left traffic to Runway 4L",
           "runway": "4L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "AADMS/iaf SWIGG WOBUR MALDY/a1700 N042.22.59.759,W071.01.51.813/a800+ N042.22.15.910,W071.01.52.280/a400 N042.21.11.461,W071.02.00.327/a200 N042.21.23.244,W071.00.57.019/a100"
           ]

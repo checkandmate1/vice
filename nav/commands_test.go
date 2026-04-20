@@ -644,7 +644,7 @@ func setupClearedVisual(t *testing.T, runway string) *FlightTest {
 	f.nav.Approach.Assigned = &av.Approach{
 		Id:        "VIS" + runway,
 		FullName:  "Visual Approach Runway " + runway,
-		Type:      av.DirectVisualApproach,
+		Type:      av.VisualApproach,
 		Runway:    runway,
 		Threshold: rwy.Threshold,
 	}

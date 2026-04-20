@@ -146,7 +146,7 @@
         "C5R": {
           "full_name": "Rnav 16 Circle Runway 25R",
           "runway": "25R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "CEPDA/a2000 FEMBA/a1600 DOGRE/a800 N029.11.53.246,W081.03.34.865/a540 N029.11.52.312,W081.02.49.024/a540 N029.11.38.565,W081.02.32.078/a250 N029.11.13.619,W081.02.32.984/a100"
           ]

@@ -89,7 +89,7 @@
         "SSV": {
           "full_name": "Smoke Stack Visual Runway 1",
           "runway": "2",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["N020.35.19.784,W156.28.37.218 N020.43.38.948,W156.29.14.351 N020.50.43.631,W156.28.08.708"]
         },
         "R20": {

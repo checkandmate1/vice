@@ -365,7 +365,7 @@
         "I5RC": {
           "full_name": "ILS Runway 15R, then visual approach left traffic to Runway 4L",
           "runway": "4L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "AADMS/iaf SWIGG WOBUR MALDY/a1700 N042.22.59.759,W071.01.51.813/a800+ N042.22.15.910,W071.01.52.280/a400 N042.21.11.461,W071.02.00.327/a200 N042.21.23.244,W071.00.57.019/a100"
           ]
@@ -373,19 +373,19 @@
         "VA4L": {
           "full_name": "Visual Approach Runway 4L",
           "runway": "4L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["AAALL/a4000 LVRON/a3000 MTAPN/a1700 N042.21.38.927,W071.00.46.884/a100"]
         },
         "VA4R": {
           "full_name": "Visual Approach Runway 4R",
           "runway": "4L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["GOSHI/a6000 WINNI/a4000 NABBO/a3000 MILTT/a1700 N042.21.20.552,W071.00.34.552/a100"]
         },
         "VA3R": {
           "full_name": "Visual Approach Runway 33R",
           "runway": "33R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "N042.10.14.204,W070.37.34.559 N042.16.02.663,W070.48.29.179/a3000 N042.18.59.474,W070.54.04.812/a1500 N042.22.05.953,W071.00.06.784/a100"
           ]

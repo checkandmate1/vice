@@ -3534,7 +3534,7 @@
         "VA162": {
           "full_name": "Visual Approach Runway 16",
           "runway": "16",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["VA162/a1800+ N032.58.37.000,W096.50.25.000/a800/delete"]
         },
         "I34": {
@@ -4692,7 +4692,7 @@
         "VT182": {
           "full_name": "Visual Approach Runway 18",
           "runway": "18",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["VT182/a1800+ N033.11.37.000,W096.35.44.000/a800/delete"]
         }
       },
@@ -8661,13 +8661,13 @@
         "VF162": {
           "full_name": "Visual Approach Runway 16",
           "runway": "16",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["VF162/a1800+ N032.20.05.043,W096.39.57.063/a800/delete"]
         },
         "VF342": {
           "full_name": "Visual Approach Runway 34",
           "runway": "34",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["VF342/a1800+ N032.19.29.003,W096.39.43.002/a800/delete"]
         }
       },

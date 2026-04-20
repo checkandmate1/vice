@@ -1928,17 +1928,17 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 			var intent av.CommandIntent
 			var ok bool
 			if traffic != nil {
-				intent, ok = ac.ClearedDirectVisualFollowingTrafficRoute(runway, traffic.Position(), traffic.Nav.Waypoints, lahsoRunway, s.State.SimTime)
+				intent, ok = ac.ClearedVisualFollowingTrafficRoute(runway, traffic.Position(), traffic.Nav.Waypoints, lahsoRunway, s.State.SimTime)
 				if !ok {
 					referenceApproach := s.visualReferenceApproachForFollowTraffic(ac, runway, traffic)
-					intent, ok = ac.ClearedDirectVisualFollowingTraffic(runway, traffic.Position(), referenceApproach, lahsoRunway, s.State.SimTime)
+					intent, ok = ac.ClearedVisualFollowingTraffic(runway, traffic.Position(), referenceApproach, lahsoRunway, s.State.SimTime)
 				}
 			} else {
 				referenceApproach := s.visualReferenceApproach(ac, runway)
-				intent, ok = ac.ClearedDirectVisual(runway, referenceApproach, lahsoRunway, s.State.SimTime)
+				intent, ok = ac.ClearedVisualApproach(runway, referenceApproach, lahsoRunway, s.State.SimTime)
 			}
 			if !ok {
-				if !ac.Nav.SetDirectVisualApproach(runway) {
+				if !ac.Nav.SetVisualApproach(runway) {
 					return av.MakeUnableIntent("unable, we don't know runway " + runway)
 				}
 				s.goAround(ac)

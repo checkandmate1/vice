@@ -680,24 +680,24 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 	}, true
 }
 
-// buildDirectVisualWaypoints returns a route for a visual approach to
+// visualApproachRoute returns a route for a visual approach to
 // the given runway. If a reference approach is available, visual geometry
 // follows its route segments; otherwise it falls back to a synthetic 3nm
 // straight-in final. Returns nil if the runway is not found or if the
 // first waypoint is behind the aircraft (meaning it should go around instead).
-func (nav *Nav) buildDirectVisualWaypoints(runway string, followTraffic *math.Point2LL, referenceApproach *av.Approach) []av.Waypoint {
+func (nav *Nav) visualApproachRoute(runway string, followTraffic *math.Point2LL, referenceApproach *av.Approach) []av.Waypoint {
 	if referenceApproach != nil && len(referenceApproach.Waypoints) > 0 {
-		if wps := nav.buildDirectVisualWaypointsFromApproach(runway, followTraffic, referenceApproach); wps != nil {
+		if wps := nav.visualApproachRouteFromApproach(runway, followTraffic, referenceApproach); wps != nil {
 			return wps
 		}
 	}
-	if synthetic := nav.syntheticDirectVisualApproach(runway); synthetic != nil {
-		return nav.buildDirectVisualWaypointsFromApproach(runway, followTraffic, synthetic)
+	if synthetic := nav.visualApproachFromRunway(runway); synthetic != nil {
+		return nav.visualApproachRouteFromApproach(runway, followTraffic, synthetic)
 	}
 	return nil
 }
 
-func (nav *Nav) syntheticDirectVisualApproach(runway string) *av.Approach {
+func (nav *Nav) visualApproachFromRunway(runway string) *av.Approach {
 	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	if !ok {
 		return nil
@@ -720,7 +720,7 @@ func (nav *Nav) syntheticDirectVisualApproach(runway string) *av.Approach {
 	return &av.Approach{
 		Id:        "VIS" + runway,
 		FullName:  "Visual Approach Runway " + runway,
-		Type:      av.DirectVisualApproach,
+		Type:      av.VisualApproach,
 		Runway:    runway,
 		Threshold: threshold,
 		Waypoints: []av.WaypointArray{{
@@ -885,7 +885,7 @@ func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32
 	return visualApproachPoint{}, false
 }
 
-func (nav *Nav) buildDirectVisualWaypointsFromApproach(runway string, followTraffic *math.Point2LL, referenceApproach *av.Approach) []av.Waypoint {
+func (nav *Nav) visualApproachRouteFromApproach(runway string, followTraffic *math.Point2LL, referenceApproach *av.Approach) []av.Waypoint {
 	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	if !ok {
 		return nil
@@ -998,10 +998,10 @@ func (nav *Nav) buildDirectVisualWaypointsFromApproach(runway string, followTraf
 	if len(wps) == 0 {
 		return nil
 	}
-	return finalizeDirectVisualWaypoints(wps, alt)
+	return finalizeVisualApproachWaypoints(wps, alt)
 }
 
-func (nav *Nav) buildDirectVisualWaypointsFromTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray) []av.Waypoint {
+func (nav *Nav) visualApproachRouteFollowingTraffic(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray) []av.Waypoint {
 	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	if !ok || len(trafficRoute) == 0 {
 		return nil
@@ -1010,7 +1010,7 @@ func (nav *Nav) buildDirectVisualWaypointsFromTrafficRoute(runway string, traffi
 	// trafficRoute is the traffic aircraft's Waypoints, which ends with
 	// the destination airport appended after the threshold; drop the
 	// airport so the threshold is the route's final point and
-	// finalizeDirectVisualWaypoints flags it correctly.
+	// finalizeVisualApproachWaypoints flags it correctly.
 	trafficRoute = trafficRoute[:len(trafficRoute)-1]
 
 	nmPerLong := nav.FlightState.NmPerLongitude
@@ -1031,10 +1031,10 @@ func (nav *Nav) buildDirectVisualWaypointsFromTrafficRoute(runway string, traffi
 
 	wps := av.WaypointArray{join}
 	wps = append(wps, util.DuplicateSlice(trafficRoute)...)
-	return finalizeDirectVisualWaypoints(wps, rwy.Elevation+rwy.ThresholdCrossingHeight)
+	return finalizeVisualApproachWaypoints(wps, rwy.Elevation+rwy.ThresholdCrossingHeight)
 }
 
-func finalizeDirectVisualWaypoints(wps av.WaypointArray, thresholdAltitude int) av.WaypointArray {
+func finalizeVisualApproachWaypoints(wps av.WaypointArray, thresholdAltitude int) av.WaypointArray {
 	last := &wps[len(wps)-1]
 	last.SetOnApproach(true)
 	last.SetLand(true)
@@ -1048,13 +1048,13 @@ func finalizeDirectVisualWaypoints(wps av.WaypointArray, thresholdAltitude int) 
 	return wps
 }
 
-func (nav *Nav) SetDirectVisualApproach(runway string) bool {
-	return nav.setDirectVisualApproach(runway, nil)
+func (nav *Nav) SetVisualApproach(runway string) bool {
+	return nav.setVisualApproach(runway, nil)
 }
 
-// setDirectVisualApproach synthesizes approach metadata for an uncharted
-// visual approach to runway.
-func (nav *Nav) setDirectVisualApproach(runway string, waypoints []av.Waypoint) bool {
+// setVisualApproach populates nav.Approach with metadata for a visual
+// approach to runway, using the given waypoints if provided.
+func (nav *Nav) setVisualApproach(runway string, waypoints []av.Waypoint) bool {
 	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	if !ok {
 		return false
@@ -1067,7 +1067,7 @@ func (nav *Nav) setDirectVisualApproach(runway string, waypoints []av.Waypoint) 
 	nav.Approach.Assigned = &av.Approach{
 		Id:                "VIS" + runway,
 		FullName:          "Visual Approach Runway " + runway,
-		Type:              av.DirectVisualApproach,
+		Type:              av.VisualApproach,
 		Runway:            runway,
 		Threshold:         rwy.Threshold,
 		OppositeThreshold: opp.Threshold,
@@ -1080,41 +1080,41 @@ func (nav *Nav) setDirectVisualApproach(runway string, waypoints []av.Waypoint) 
 	return true
 }
 
-// ClearedDirectVisual sets up the aircraft to fly a visual approach to
+// ClearedVisualApproach sets up the aircraft to fly a visual approach to
 // the runway threshold. If referenceApproach is provided, the route follows
 // that approach's geometry; otherwise it flies a 3nm final aligned with the
 // runway heading to the threshold. Returns (intent, true) on success.
 // Returns (nil, false) if the approach can't be set up (runway unknown
 // or aircraft too close for a stable approach) — the caller should
 // trigger a go-around.
-func (nav *Nav) ClearedDirectVisual(runway string, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
-	wi := nav.buildDirectVisualWaypoints(runway, nil, referenceApproach)
+func (nav *Nav) ClearedVisualApproach(runway string, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
+	wps := nav.visualApproachRoute(runway, nil, referenceApproach)
+	if wps == nil {
+		return nil, false
+	}
+
+	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
+}
+
+func (nav *Nav) ClearedVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
+	wps := nav.visualApproachRoute(runway, &trafficPosition, referenceApproach)
+	if wps == nil {
+		return nil, false
+	}
+
+	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
+}
+
+func (nav *Nav) ClearedVisualFollowingTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
+	wi := nav.visualApproachRouteFollowingTraffic(runway, trafficPosition, trafficRoute)
 	if wi == nil {
 		return nil, false
 	}
 
-	return nav.clearedDirectVisual(runway, lahsoRunway, simTime, wi)
+	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wi)
 }
 
-func (nav *Nav) ClearedDirectVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
-	wi := nav.buildDirectVisualWaypoints(runway, &trafficPosition, referenceApproach)
-	if wi == nil {
-		return nil, false
-	}
-
-	return nav.clearedDirectVisual(runway, lahsoRunway, simTime, wi)
-}
-
-func (nav *Nav) ClearedDirectVisualFollowingTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
-	wi := nav.buildDirectVisualWaypointsFromTrafficRoute(runway, trafficPosition, trafficRoute)
-	if wi == nil {
-		return nil, false
-	}
-
-	return nav.clearedDirectVisual(runway, lahsoRunway, simTime, wi)
-}
-
-func (nav *Nav) clearedDirectVisual(runway string, lahsoRunway string, simTime time.Time, wi []av.Waypoint) (av.CommandIntent, bool) {
+func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, simTime time.Time, wi []av.Waypoint) (av.CommandIntent, bool) {
 	// Cancel hold before clearing nav state.
 	cancelHold := nav.Heading.Hold != nil
 	if nav.Heading.Hold != nil {
@@ -1125,10 +1125,10 @@ func (nav *Nav) clearedDirectVisual(runway string, lahsoRunway string, simTime t
 	nav.Heading = NavHeading{}
 	nav.DeferredNavHeading = nil
 
-	// Synthesize an Approach so downstream consumers (go-around,
+	// Populate nav.Approach so downstream consumers (go-around,
 	// spacing checks, landing bookkeeping, departure scheduling) have
 	// the runway data they need.
-	nav.setDirectVisualApproach(runway, wi)
+	nav.setVisualApproach(runway, wi)
 
 	// Mark as cleared and allow descent.
 	nav.Altitude = NavAltitude{}

@@ -422,16 +422,16 @@ func (ac *Aircraft) ClearedApproach(id string, simTime Time, lg *log.Logger) (av
 	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, false, simTime.NavTime())
 }
 
-func (ac *Aircraft) ClearedDirectVisual(runway string, referenceApproach *av.Approach, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
-	return ac.Nav.ClearedDirectVisual(runway, referenceApproach, lahsoRunway, simTime.Time())
+func (ac *Aircraft) ClearedVisualApproach(runway string, referenceApproach *av.Approach, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
+	return ac.Nav.ClearedVisualApproach(runway, referenceApproach, lahsoRunway, simTime.Time())
 }
 
-func (ac *Aircraft) ClearedDirectVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
-	return ac.Nav.ClearedDirectVisualFollowingTraffic(runway, trafficPosition, referenceApproach, lahsoRunway, simTime.Time())
+func (ac *Aircraft) ClearedVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
+	return ac.Nav.ClearedVisualFollowingTraffic(runway, trafficPosition, referenceApproach, lahsoRunway, simTime.Time())
 }
 
-func (ac *Aircraft) ClearedDirectVisualFollowingTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
-	return ac.Nav.ClearedDirectVisualFollowingTrafficRoute(runway, trafficPosition, trafficRoute, lahsoRunway, simTime.Time())
+func (ac *Aircraft) ClearedVisualFollowingTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
+	return ac.Nav.ClearedVisualFollowingTrafficRoute(runway, trafficPosition, trafficRoute, lahsoRunway, simTime.Time())
 }
 
 func (ac *Aircraft) ClearedStraightInApproach(id string, simTime Time, lg *log.Logger) (av.CommandIntent, bool) {

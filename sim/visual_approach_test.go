@@ -647,7 +647,7 @@ func TestVisualApproachWaypoints(t *testing.T) {
 				n.Heading.Assigned = tt.assigned
 			}
 
-			intent, ok := n.ClearedDirectVisual("36", nil, "", time.Time{})
+			intent, ok := n.ClearedVisualApproach("36", nil, "", time.Time{})
 
 			if tt.wantNil {
 				if ok {
@@ -752,7 +752,7 @@ func TestVisualApproachWaypointsUseReferenceApproachDogleg(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedDirectVisual("36", reference, "", time.Time{}); !ok {
+	if _, ok := n.ClearedVisualApproach("36", reference, "", time.Time{}); !ok {
 		t.Fatal("expected dogleg visual route")
 	}
 
@@ -845,7 +845,7 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedDirectVisualFollowingTraffic("36", trafficPos, nil, "", time.Time{}); !ok {
+	if _, ok := n.ClearedVisualFollowingTraffic("36", trafficPos, nil, "", time.Time{}); !ok {
 		t.Fatal("expected follow-traffic visual route")
 	}
 
@@ -951,7 +951,7 @@ func TestVisualApproachFollowingTrafficCopiesRemainingTrafficRoute(t *testing.T)
 	}
 	threshold.SetLand(true)
 	trafficRoute := av.WaypointArray{final3NM, threshold, n.FlightState.ArrivalAirport}
-	if _, ok := n.ClearedDirectVisualFollowingTrafficRoute("36", trafficPos, trafficRoute, "", time.Time{}); !ok {
+	if _, ok := n.ClearedVisualFollowingTrafficRoute("36", trafficPos, trafficRoute, "", time.Time{}); !ok {
 		t.Fatal("expected follow-traffic visual route")
 	}
 	if got := wpNames(n.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "_36_3NM_FINAL", "RW36", "KTEST"}) {

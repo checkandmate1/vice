@@ -41,25 +41,25 @@
         },
         "V1L": {
           "runway": "11L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "full_name": "Visual Runway 11L",
           "waypoints": ["AMEER/if/a4000+ MORLA/a3000+ SLACK/faf/a1800"]
         },
         "V1R": {
           "runway": "11R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "full_name": "Visual Runway 11R",
           "waypoints": ["WOSIM/if/a3000+ ZUVEK/faf/a1800"]
         },
         "V9R": {
           "runway": "29R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "full_name": "Visual Runway 29R",
           "waypoints": ["ALTTA SANGO/if/a2800+ STORI/faf/a1800"]
         },
         "V9L": {
           "runway": "29L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "full_name": "Visual Runway 29L",
           "waypoints": ["ALTTA IPUJE/if/a2600+ ZUDAB/faf/a1800"]
         }

@@ -106,7 +106,7 @@
         "VR": {
           "full_name": "Visual Runway 20R",
           "runway": "20R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["SAGER/a4000+ SNAKE/a3400+ HUKEM/a2800+ LEMON/a2200+ DYERS/a1040"]
         },
         "D0R": {
@@ -126,7 +126,7 @@
         "V2L": {
           "full_name": "Visual Runway 2L",
           "runway": "2L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["MINOE/a3000 NEWPO/a1600 WUNAD/a560"]
         }
       },

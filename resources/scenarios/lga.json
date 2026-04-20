@@ -15,7 +15,7 @@
         "RVA": {
           "full_name": "River Visual Runway 13",
           "runway": "13",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["VEZEE/a4000 ZTONI LAYDE LBRTY/a3300- RAIOH ZLNGR"]
         },
         "I22": {
@@ -47,7 +47,7 @@
         "PVA": {
           "full_name": "Park Visual Runway 31",
           "runway": "31",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "VARAZ/a4000+ PACHU/a3000+ SHAYY/a2500+/s180 GACAR/a2200+/s165 DRRYL/a1100+ KEYTH/a700+ DCTRK/a400+"
           ]

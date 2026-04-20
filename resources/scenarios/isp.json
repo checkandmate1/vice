@@ -435,7 +435,7 @@
         "V11": {
           "full_name": "Visual Runway 11",
           "runway": "11",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["N041.11.10.481,W073.20.21.542/a2000 N041.10.32.249,W073.13.36.174/a1800"]
         }
       },
@@ -610,13 +610,13 @@
         "V33": {
           "full_name": "Visual Runway 33",
           "runway": "33",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["N040.45.13.719,W072.30.32.986/a2000 N040.47.43.462,W072.34.04.857/a1500"]
         },
         "V15": {
           "full_name": "Visual Runway 15",
           "runway": "15",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["N040.55.37.756,W072.45.26.229/a2000 N040.53.07.998,W072.41.45.734/a1500"]
         }
       },

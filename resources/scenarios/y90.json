@@ -199,7 +199,7 @@
         },
         "RV20": {
           "full_name": "CT River Visual Runway 20",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["CRV/a1500"],
           "runway": "20"
         }
@@ -245,7 +245,7 @@
         },
         "V11": {
           "full_name": "College Visual Runway 11",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "runway": "11",
           "waypoints": ["WV/a2000"]
         }
@@ -347,13 +347,13 @@
         },
         "V15": {
           "full_name": "Cemetary Visual Runway 15",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "runway": "15",
           "waypoints": ["BV/a2000"]
         },
         "V33": {
           "full_name": "Visual Runway 33",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "runway": "33",
           "waypoints": ["_BGE/a2000"]
         }

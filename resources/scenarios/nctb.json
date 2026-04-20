@@ -417,7 +417,7 @@
         },
         "TTR": {
           "runway": "28R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "full_name": "Tipp Toe Visual Runway 28R",
           "waypoints": [
             "EDDYY/a6000 SIDBY/a5000+ CHERA N037.33.59.927,W122.13.07.857/a2000+ N037.34.43.763,W122.15.11.260/a1500+"
@@ -425,7 +425,7 @@
         },
         "TTL": {
           "runway": "28L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "full_name": "Tipp Toe Visual Runway 28L",
           "waypoints": [
             "EDDYY/a6000 SIDBY/a5000+ CHERA N037.33.26.350,W122.13.39.552/a2300+ N037.34.11.367,W122.15.31.063/a1500+"

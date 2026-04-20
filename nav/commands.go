@@ -1013,7 +1013,7 @@ func (nav *Nav) CrossDMEAt(dist float32, ar *av.AltitudeRestriction, sr *av.Spee
 
 	ap := nav.Approach.Assigned
 	if ap == nil || !nav.Approach.Cleared ||
-		(ap.Type != av.DirectVisualApproach && ap.Type != av.ChartedVisualApproach) {
+		(ap.Type != av.VisualApproach && ap.Type != av.ChartedVisualApproach) {
 		return av.MakeUnableIntent("unable, we're not cleared for a visual approach")
 	}
 	runway := ap.Runway
