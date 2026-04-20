@@ -372,6 +372,22 @@ func TestSortedMapKeys(t *testing.T) {
 	}
 }
 
+func TestSortedMapValues(t *testing.T) {
+	m := map[int]string{
+		3: "three",
+		1: "one",
+		2: "two",
+		4: "four",
+	}
+
+	values := slices.Collect(SortedMapValues(m))
+	expected := []string{"one", "two", "three", "four"}
+
+	if !slices.Equal(values, expected) {
+		t.Errorf("SortedMapValues returned %v, expected %v", values, expected)
+	}
+}
+
 func TestMapContains(t *testing.T) {
 	m := map[string]int{
 		"a": 1,
