@@ -625,12 +625,11 @@ func (sp *STARSPane) drawTracks(ctx *panes.Context, transforms radar.ScopeTransf
 	defer renderer.ReturnColoredLinesDrawBuilder(ld)
 	trid := renderer.GetColoredTrianglesDrawBuilder()
 	defer renderer.ReturnColoredTrianglesDrawBuilder(trid)
-	// TODO: square icon if it's squawking a beacon code we're monitoring
 
 	// Update cached command buffers for tracks
 	sp.fusedTrackVertices = getTrackVertices(ctx, sp.getTrackSize(ctx, transforms))
 
-	for _, trk := range sp.visibleTracks {
+	processTrack := func(trk sim.Track) {
 		state := sp.TrackState[trk.ADSBCallsign]
 
 		positionSymbol := ""
@@ -684,6 +683,25 @@ func (sp *STARSPane) drawTracks(ctx *panes.Context, transforms radar.ScopeTransf
 		}
 
 		sp.drawTrack(trk, state, ctx, transforms, positionSymbol, trackBuilder, ld, trid, td)
+	}
+
+	// Draw in three passes so that the user's own tracks end up on top:
+	// unassociated first, then other controllers' tracks, then tracks owned
+	// by the user's TCW last.
+	for _, trk := range sp.visibleTracks {
+		if trk.IsUnassociated() {
+			processTrack(trk)
+		}
+	}
+	for _, trk := range sp.visibleTracks {
+		if trk.IsAssociated() && !ctx.UserOwnsFlightPlan(trk.FlightPlan) {
+			processTrack(trk)
+		}
+	}
+	for _, trk := range sp.visibleTracks {
+		if trk.IsAssociated() && ctx.UserOwnsFlightPlan(trk.FlightPlan) {
+			processTrack(trk)
+		}
 	}
 
 	transforms.LoadWindowViewingMatrices(cb)
