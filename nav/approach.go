@@ -1048,10 +1048,6 @@ func finalizeVisualApproachWaypoints(wps av.WaypointArray, thresholdAltitude int
 	return wps
 }
 
-func (nav *Nav) SetVisualApproach(runway string) bool {
-	return nav.setVisualApproach(runway, nil)
-}
-
 // setVisualApproach populates nav.Approach with metadata for a visual
 // approach to runway, using the given waypoints if provided.
 func (nav *Nav) setVisualApproach(runway string, waypoints []av.Waypoint) bool {
@@ -1080,38 +1076,41 @@ func (nav *Nav) setVisualApproach(runway string, waypoints []av.Waypoint) bool {
 	return true
 }
 
-// ClearedVisualApproach sets up the aircraft to fly a visual approach to
-// the runway threshold. If referenceApproach is provided, the route follows
-// that approach's geometry; otherwise it flies a 3nm final aligned with the
-// runway heading to the threshold. Returns (intent, true) on success.
-// Returns (nil, false) if the approach can't be set up (runway unknown
-// or aircraft too close for a stable approach) — the caller should
-// trigger a go-around.
-func (nav *Nav) ClearedVisualApproach(runway string, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
-	wps := nav.visualApproachRoute(runway, nil, referenceApproach)
+// FollowTraffic describes a leader aircraft to sequence behind on a visual
+// approach. Route (when non-empty) is the leader's own waypoints, used for
+// tight in-trail spacing; Position alone is used as a join-point override
+// on the reference approach.
+type FollowTraffic struct {
+	Position math.Point2LL
+	Route    av.WaypointArray
+}
+
+// ClearedVisualApproach sets up the aircraft to fly a visual approach to the
+// runway threshold. When follow is non-nil and has a Route, it first tries
+// tight in-trail sequencing along the leader's route; if that's not
+// geometrically viable, or follow has only a Position, it falls back to
+// reference-approach geometry (using Position as a join-point override).
+// When referenceApproach is nil or yields no viable route, it synthesizes a
+// straight-in final from runway data. Returns (intent, true) on success, or
+// (nil, false) if no viable route can be built (unknown runway or aircraft
+// too close for a stable approach).
+func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
+	if follow != nil && len(follow.Route) > 0 {
+		if wps := nav.visualApproachRouteFollowingTraffic(runway, follow.Position, follow.Route); wps != nil {
+			return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
+		}
+	}
+
+	var joinPos *math.Point2LL
+	if follow != nil {
+		joinPos = &follow.Position
+	}
+	wps := nav.visualApproachRoute(runway, joinPos, referenceApproach)
 	if wps == nil {
 		return nil, false
 	}
 
 	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
-}
-
-func (nav *Nav) ClearedVisualFollowingTraffic(runway string, trafficPosition math.Point2LL, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
-	wps := nav.visualApproachRoute(runway, &trafficPosition, referenceApproach)
-	if wps == nil {
-		return nil, false
-	}
-
-	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
-}
-
-func (nav *Nav) ClearedVisualFollowingTrafficRoute(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
-	wi := nav.visualApproachRouteFollowingTraffic(runway, trafficPosition, trafficRoute)
-	if wi == nil {
-		return nil, false
-	}
-
-	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wi)
 }
 
 func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, simTime time.Time, wi []av.Waypoint) (av.CommandIntent, bool) {

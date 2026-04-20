@@ -16,6 +16,7 @@ import (
 
 	av "github.com/mmp/vice/aviation"
 	"github.com/mmp/vice/math"
+	"github.com/mmp/vice/nav"
 	"github.com/mmp/vice/util"
 	"github.com/mmp/vice/wx"
 )
@@ -1899,17 +1900,16 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 			if !s.TCWCanCommandAircraft(tcw, ac) {
 				return av.ErrOtherControllerHasTrack
 			}
-			// Resolve runway: fall back to assigned approach runway.
-			if runway == "" {
-				if ac.Nav.Approach.Assigned != nil {
-					runway = ac.Nav.Approach.Assigned.Runway
-				} else {
-					return av.ErrUnknownRunway
-				}
-			}
 			return nil
 		},
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			if runway == "" {
+				return av.MakeUnableIntent("unable, which runway?")
+			}
+			if _, ok := av.LookupRunway(ac.FlightPlan.ArrivalAirport, runway); !ok {
+				return av.MakeUnableIntent("unable, we don't know runway " + runway)
+			}
+
 			// Pilot must have the field or approach-cleared preceding
 			// traffic in sight before accepting a visual approach clearance.
 			traffic := s.recentApproachTrafficInSightForRunway(ac, runway)
@@ -1917,32 +1917,9 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 				return av.MakeUnableIntent("unable, we don't have the field in sight")
 			}
 
-			// Validate runway before attempting the approach so an
-			// invalid runway produces an "unable" rather than a go-around.
-			if _, ok := av.LookupRunway(ac.FlightPlan.ArrivalAirport, runway); !ok {
-				return av.MakeUnableIntent("unable, we don't know runway " + runway)
-			}
-
-			// Clear direct to the runway.
-			// If the aircraft is too close for a stable approach, go around.
-			var intent av.CommandIntent
-			var ok bool
-			if traffic != nil {
-				intent, ok = ac.ClearedVisualFollowingTrafficRoute(runway, traffic.Position(), traffic.Nav.Waypoints, lahsoRunway, s.State.SimTime)
-				if !ok {
-					referenceApproach := s.visualReferenceApproachForFollowTraffic(ac, runway, traffic)
-					intent, ok = ac.ClearedVisualFollowingTraffic(runway, traffic.Position(), referenceApproach, lahsoRunway, s.State.SimTime)
-				}
-			} else {
-				referenceApproach := s.visualReferenceApproach(ac, runway)
-				intent, ok = ac.ClearedVisualApproach(runway, referenceApproach, lahsoRunway, s.State.SimTime)
-			}
+			intent, ok := s.clearForVisualApproach(ac, runway, lahsoRunway, traffic)
 			if !ok {
-				if !ac.Nav.SetVisualApproach(runway) {
-					return av.MakeUnableIntent("unable, we don't know runway " + runway)
-				}
-				s.goAround(ac)
-				return av.MakeUnableIntent("unable, going around")
+				return av.MakeUnableIntent("unable, we don't know runway " + runway)
 			}
 			ac.ApproachTCP = TCP(ac.ControllerFrequency)
 			return intent
@@ -1955,6 +1932,18 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 		s.cancelPendingInitialContact(callsign)
 	}
 	return intent, err
+}
+
+// clearForVisualApproach dispatches the nav-layer clearance for a visual
+// approach. When traffic is non-nil, the nav layer handles tight in-trail
+// sequencing along the leader's route and its geometric fallbacks.
+func (s *Sim) clearForVisualApproach(ac *Aircraft, runway, lahsoRunway string, traffic *Aircraft) (av.CommandIntent, bool) {
+	var follow *nav.FollowTraffic
+	if traffic != nil {
+		follow = &nav.FollowTraffic{Position: traffic.Position(), Route: traffic.Nav.Waypoints}
+	}
+	ref := s.visualReferenceApproach(ac, runway, traffic)
+	return ac.ClearedVisualApproach(runway, follow, ref, lahsoRunway, s.State.SimTime)
 }
 
 func visualReferenceApproachRank(t av.ApproachType) int {
@@ -1972,8 +1961,20 @@ func visualReferenceApproachRank(t av.ApproachType) int {
 	}
 }
 
-func (s *Sim) visualReferenceApproach(ac *Aircraft, runway string) *av.Approach {
+// visualReferenceApproach picks an approach whose geometry can serve as the
+// reference for a visual to runway. When traffic is non-nil, its assigned
+// approach is preferred so the follower shares the leader's geometry.
+func (s *Sim) visualReferenceApproach(ac *Aircraft, runway string, traffic *Aircraft) *av.Approach {
 	runwayBase := av.RunwayID(runway).Base()
+
+	if traffic != nil {
+		if ap := traffic.Nav.Approach.Assigned; ap != nil &&
+			av.RunwayID(ap.Runway).Base() == runwayBase &&
+			len(ap.Waypoints) > 0 {
+			return ap
+		}
+	}
+
 	if ap := ac.Nav.Approach.Assigned; ap != nil &&
 		av.RunwayID(ap.Runway).Base() == runwayBase &&
 		visualReferenceApproachRank(ap.Type) < 100 &&
@@ -1999,18 +2000,6 @@ func (s *Sim) visualReferenceApproach(ac *Aircraft, runway string) *av.Approach 
 		bestRank = rank
 	}
 	return best
-}
-
-func (s *Sim) visualReferenceApproachForFollowTraffic(ac *Aircraft, runway string, traffic *Aircraft) *av.Approach {
-	runwayBase := av.RunwayID(runway).Base()
-	if traffic != nil {
-		if ap := traffic.Nav.Approach.Assigned; ap != nil &&
-			av.RunwayID(ap.Runway).Base() == runwayBase &&
-			len(ap.Waypoints) > 0 {
-			return ap
-		}
-	}
-	return s.visualReferenceApproach(ac, runway)
 }
 
 func (s *Sim) InterceptApproach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {

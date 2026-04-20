@@ -647,7 +647,7 @@ func TestVisualApproachWaypoints(t *testing.T) {
 				n.Heading.Assigned = tt.assigned
 			}
 
-			intent, ok := n.ClearedVisualApproach("36", nil, "", time.Time{})
+			intent, ok := n.ClearedVisualApproach("36", nil, nil, "", time.Time{})
 
 			if tt.wantNil {
 				if ok {
@@ -752,7 +752,7 @@ func TestVisualApproachWaypointsUseReferenceApproachDogleg(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedVisualApproach("36", reference, "", time.Time{}); !ok {
+	if _, ok := n.ClearedVisualApproach("36", nil, reference, "", time.Time{}); !ok {
 		t.Fatal("expected dogleg visual route")
 	}
 
@@ -795,12 +795,12 @@ func TestVisualReferenceApproachSelection(t *testing.T) {
 		},
 	}}}}
 
-	if got := s.visualReferenceApproach(ac, "36"); got != ac.Nav.Approach.Assigned {
+	if got := s.visualReferenceApproach(ac, "36", nil); got != ac.Nav.Approach.Assigned {
 		t.Fatalf("assigned matching approach should win, got %+v", got)
 	}
 
 	ac.Nav.Approach.Assigned = nil
-	if got := s.visualReferenceApproach(ac, "36"); got == nil || got.Type != av.VORApproach {
+	if got := s.visualReferenceApproach(ac, "36", nil); got == nil || got.Type != av.VORApproach {
 		t.Fatalf("fallback approach type = %v, want VOR", got)
 	}
 }
@@ -845,7 +845,7 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedVisualFollowingTraffic("36", trafficPos, nil, "", time.Time{}); !ok {
+	if _, ok := n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos}, nil, "", time.Time{}); !ok {
 		t.Fatal("expected follow-traffic visual route")
 	}
 
@@ -951,7 +951,7 @@ func TestVisualApproachFollowingTrafficCopiesRemainingTrafficRoute(t *testing.T)
 	}
 	threshold.SetLand(true)
 	trafficRoute := av.WaypointArray{final3NM, threshold, n.FlightState.ArrivalAirport}
-	if _, ok := n.ClearedVisualFollowingTrafficRoute("36", trafficPos, trafficRoute, "", time.Time{}); !ok {
+	if _, ok := n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos, Route: trafficRoute}, nil, "", time.Time{}); !ok {
 		t.Fatal("expected follow-traffic visual route")
 	}
 	if got := wpNames(n.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "_36_3NM_FINAL", "RW36", "KTEST"}) {
@@ -1378,7 +1378,7 @@ func TestTransmissionStringsNoDoubleApproach(t *testing.T) {
 
 // === Scenario tests using VisualScenario helper ===
 
-func TestScenarioCVATooCloseGoesAroundOnVisualRunwayWithoutPriorApproach(t *testing.T) {
+func TestScenarioCVATooCloseIsUnable(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	oppositeLoc := math.Point2LL{0, 1.0 / 60}
 	setupTestRunways(t, "KJFK", []av.Runway{
@@ -1387,7 +1387,7 @@ func TestScenarioCVATooCloseGoesAroundOnVisualRunwayWithoutPriorApproach(t *test
 	})
 
 	// North of the runway 36 threshold and heading north: too close/behind
-	// for a stable visual, so CVA should trigger go-around.
+	// for a stable visual, so CVA is refused.
 	vs := NewVisualScenario(t, airportLoc, "36", math.Point2LL{0, 1.0 / 60}, 360)
 	vs.AC.FieldInSight = true
 	vs.AC.Nav.Approach.Assigned = nil
@@ -1400,11 +1400,8 @@ func TestScenarioCVATooCloseGoesAroundOnVisualRunwayWithoutPriorApproach(t *test
 	if _, ok := intent.(av.UnableIntent); !ok {
 		t.Fatalf("expected UnableIntent for too-close CVA, got %T", intent)
 	}
-	if !vs.AC.WentAround {
-		t.Fatal("too-close CVA should trigger go-around")
-	}
-	if len(vs.AC.Nav.Waypoints) == 0 || vs.AC.Nav.Waypoints[0].Location != oppositeLoc {
-		t.Fatalf("go-around should use visual runway 36 opposite threshold, got %v", vs.AC.Nav.Waypoints)
+	if vs.AC.WentAround {
+		t.Fatal("too-close CVA should not auto-trigger go-around")
 	}
 }
 
