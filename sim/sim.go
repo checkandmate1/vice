@@ -1240,10 +1240,6 @@ func (s *Sim) applyWaypointActionEvent(ac *Aircraft, actions av.WaypointActions)
 		}
 	}
 
-	if actions.ClearApproach {
-		ac.ApproachTCP = TCP(ac.ControllerFrequency)
-	}
-
 	if actions.GoAroundContactController != "" {
 		tcp := actions.GoAroundContactController
 		ac.ControllerFrequency = ControlPosition(tcp)

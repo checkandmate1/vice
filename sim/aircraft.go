@@ -93,9 +93,6 @@ type Aircraft struct {
 	ReportDepartureHeading   bool    // true if runway has multiple exit headings
 	ReportDepartureSID       bool    // true if runway has multiple SIDs
 
-	// The controller who gave approach clearance
-	ApproachTCP TCP
-
 	FirstSeen Time
 
 	RequestedFlightFollowing bool
@@ -418,15 +415,15 @@ func (ac *Aircraft) AtFixIntercept(fix string, lg *log.Logger) av.CommandIntent 
 	return ac.Nav.AtFixIntercept(fix, ac.FlightPlan.ArrivalAirport, lg)
 }
 
-func (ac *Aircraft) ClearedApproach(id string, simTime Time, lg *log.Logger) (av.CommandIntent, bool) {
+func (ac *Aircraft) ClearedApproach(id string, simTime Time, lg *log.Logger) av.CommandIntent {
 	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, false, simTime.NavTime())
 }
 
-func (ac *Aircraft) ClearedVisualApproach(runway string, follow *nav.FollowTraffic, referenceApproach *av.Approach, lahsoRunway string, simTime Time) (av.CommandIntent, bool) {
+func (ac *Aircraft) ClearedVisualApproach(runway string, follow *nav.FollowTraffic, referenceApproach *av.Approach, lahsoRunway string, simTime Time) av.CommandIntent {
 	return ac.Nav.ClearedVisualApproach(runway, follow, referenceApproach, lahsoRunway, simTime.Time())
 }
 
-func (ac *Aircraft) ClearedStraightInApproach(id string, simTime Time, lg *log.Logger) (av.CommandIntent, bool) {
+func (ac *Aircraft) ClearedStraightInApproach(id string, simTime Time, lg *log.Logger) av.CommandIntent {
 	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, true, simTime.NavTime())
 }
 

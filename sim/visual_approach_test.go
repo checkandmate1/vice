@@ -647,16 +647,15 @@ func TestVisualApproachWaypoints(t *testing.T) {
 				n.Heading.Assigned = tt.assigned
 			}
 
-			intent, ok := n.ClearedVisualApproach("36", nil, nil, "", time.Time{})
-
+			intent := n.ClearedVisualApproach("36", nil, nil, "", time.Time{})
 			if tt.wantNil {
-				if ok {
-					t.Fatalf("expected nil (go-around), got intent=%v", intent)
+				if _, unable := intent.(av.UnableIntent); !unable {
+					t.Fatalf("expected UnableIntent, got %T: %v", intent, intent)
 				}
 				return
 			}
-			if !ok {
-				t.Fatal("expected waypoints, got nil (go-around)")
+			if _, unable := intent.(av.UnableIntent); unable {
+				t.Fatalf("unexpected UnableIntent: %v", intent)
 			}
 
 			wps := n.Waypoints
@@ -752,9 +751,7 @@ func TestVisualApproachWaypointsUseReferenceApproachDogleg(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedVisualApproach("36", nil, reference, "", time.Time{}); !ok {
-		t.Fatal("expected dogleg visual route")
-	}
+	_ = n.ClearedVisualApproach("36", nil, reference, "", time.Time{})
 
 	if len(n.Waypoints) < 5 {
 		t.Fatalf("expected projection, intermediate dogleg fixes, 3nm final, and threshold; got %v", wpNames(n.Waypoints))
@@ -845,9 +842,7 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 		},
 	}
 
-	if _, ok := n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos}, nil, "", time.Time{}); !ok {
-		t.Fatal("expected follow-traffic visual route")
-	}
+	_ = n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos}, nil, "", time.Time{})
 
 	wps := n.Waypoints
 	if len(wps) != 4 {
@@ -951,9 +946,7 @@ func TestVisualApproachFollowingTrafficCopiesRemainingTrafficRoute(t *testing.T)
 	}
 	threshold.SetLand(true)
 	trafficRoute := av.WaypointArray{final3NM, threshold, n.FlightState.ArrivalAirport}
-	if _, ok := n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos, Route: trafficRoute}, nil, "", time.Time{}); !ok {
-		t.Fatal("expected follow-traffic visual route")
-	}
+	_ = n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos, Route: trafficRoute}, nil, "", time.Time{})
 	if got := wpNames(n.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "_36_3NM_FINAL", "RW36", "KTEST"}) {
 		t.Fatalf("route = %v, want traffic, 3nm final, threshold, airport", got)
 	}

@@ -1871,18 +1871,11 @@ func (s *Sim) ClearedApproach(tcw TCW, callsign av.ADSBCallsign, approach string
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			var intent av.CommandIntent
-			var ok bool
 			if straightIn {
-				intent, ok = ac.ClearedStraightInApproach(approach, s.State.SimTime, s.lg)
+				return ac.ClearedStraightInApproach(approach, s.State.SimTime, s.lg)
 			} else {
-				intent, ok = ac.ClearedApproach(approach, s.State.SimTime, s.lg)
+				return ac.ClearedApproach(approach, s.State.SimTime, s.lg)
 			}
-
-			if ok {
-				ac.ApproachTCP = TCP(ac.ControllerFrequency)
-			}
-			return intent
 		})
 }
 
@@ -1917,12 +1910,7 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 				return av.MakeUnableIntent("unable, we don't have the field in sight")
 			}
 
-			intent, ok := s.clearForVisualApproach(ac, runway, lahsoRunway, traffic)
-			if !ok {
-				return av.MakeUnableIntent("unable, we don't know runway " + runway)
-			}
-			ac.ApproachTCP = TCP(ac.ControllerFrequency)
-			return intent
+			return s.clearForVisualApproach(ac, runway, lahsoRunway, traffic)
 		})
 
 	// Keep parity with dispatchControlledAircraftCommand behavior:
@@ -1937,7 +1925,7 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 // clearForVisualApproach dispatches the nav-layer clearance for a visual
 // approach. When traffic is non-nil, the nav layer handles tight in-trail
 // sequencing along the leader's route and its geometric fallbacks.
-func (s *Sim) clearForVisualApproach(ac *Aircraft, runway, lahsoRunway string, traffic *Aircraft) (av.CommandIntent, bool) {
+func (s *Sim) clearForVisualApproach(ac *Aircraft, runway, lahsoRunway string, traffic *Aircraft) av.CommandIntent {
 	var follow *nav.FollowTraffic
 	if traffic != nil {
 		follow = &nav.FollowTraffic{Position: traffic.Position(), Route: traffic.Nav.Waypoints}

@@ -633,17 +633,17 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	return nil
 }
 
-func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simTime Time) (av.CommandIntent, bool) {
+func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simTime Time) av.CommandIntent {
 	ap := nav.Approach.Assigned
 	if ap == nil {
-		return av.MakeUnableIntent("unable. We haven't been told to expect an approach"), false
+		return av.MakeUnableIntent("unable. We haven't been told to expect an approach")
 	}
 	if id != "" && nav.Approach.AssignedId != id {
-		return av.MakeUnableIntent("unable. We were told to expect the {appr} approach.", ap.FullName), false
+		return av.MakeUnableIntent("unable. We were told to expect the {appr} approach.", ap.FullName)
 	}
 
 	if intent := nav.prepareForApproach(straightIn); intent != nil {
-		return intent, false
+		return intent
 	}
 
 	nav.Approach.Cleared = true
@@ -677,7 +677,7 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 		Approach:   ap.FullName,
 		StraightIn: straightIn,
 		CancelHold: cancelHold,
-	}, true
+	}
 }
 
 // visualApproachRoute returns a route for a visual approach to
@@ -1094,7 +1094,7 @@ type FollowTraffic struct {
 // straight-in final from runway data. Returns (intent, true) on success, or
 // (nil, false) if no viable route can be built (unknown runway or aircraft
 // too close for a stable approach).
-func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) (av.CommandIntent, bool) {
+func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) av.CommandIntent {
 	if follow != nil && len(follow.Route) > 0 {
 		if wps := nav.visualApproachRouteFollowingTraffic(runway, follow.Position, follow.Route); wps != nil {
 			return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
@@ -1107,13 +1107,13 @@ func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, refe
 	}
 	wps := nav.visualApproachRoute(runway, joinPos, referenceApproach)
 	if wps == nil {
-		return nil, false
+		return av.MakeUnableIntent("unable, we don't know runway " + runway)
 	}
 
 	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
 }
 
-func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, simTime time.Time, wi []av.Waypoint) (av.CommandIntent, bool) {
+func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, simTime time.Time, wi []av.Waypoint) av.CommandIntent {
 	// Cancel hold before clearing nav state.
 	cancelHold := nav.Heading.Hold != nil
 	if nav.Heading.Hold != nil {
@@ -1137,5 +1137,5 @@ func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, simTime
 		Approach:    "Visual Approach Runway " + runway,
 		CancelHold:  cancelHold,
 		LAHSORunway: lahsoRunway,
-	}, true
+	}
 }
