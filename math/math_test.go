@@ -264,6 +264,72 @@ func TestSegmentSegmentIntersect(t *testing.T) {
 	}
 }
 
+func TestRaySegmentIntersect(t *testing.T) {
+	type Test struct {
+		name     string
+		org      [2]float32
+		dir      [2]float32
+		p0, p1   [2]float32
+		expected bool
+		point    [2]float32
+		rayT     float32
+		segT     float32
+	}
+
+	tests := []Test{
+		{
+			name:     "ray crosses segment ahead",
+			org:      [2]float32{0, 0},
+			dir:      [2]float32{1, 0},
+			p0:       [2]float32{2, -1},
+			p1:       [2]float32{2, 1},
+			expected: true,
+			point:    [2]float32{2, 0},
+			rayT:     2,
+			segT:     0.5,
+		},
+		{
+			name:     "segment is behind ray origin",
+			org:      [2]float32{0, 0},
+			dir:      [2]float32{1, 0},
+			p0:       [2]float32{-2, -1},
+			p1:       [2]float32{-2, 1},
+			expected: false,
+		},
+		{
+			name:     "line intersection falls outside segment",
+			org:      [2]float32{0, 0},
+			dir:      [2]float32{1, 0},
+			p0:       [2]float32{2, 2},
+			p1:       [2]float32{2, 3},
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			point, rayT, segT, ok := RaySegmentIntersect(test.org, test.dir, test.p0, test.p1)
+			if ok != test.expected {
+				t.Fatalf("expected intersection %v, got %v", test.expected, ok)
+			}
+			if !ok {
+				return
+			}
+
+			const tolerance = 1e-5
+			if Abs(point[0]-test.point[0]) > tolerance || Abs(point[1]-test.point[1]) > tolerance {
+				t.Fatalf("expected point %v, got %v", test.point, point)
+			}
+			if Abs(rayT-test.rayT) > tolerance {
+				t.Fatalf("expected rayT %f, got %f", test.rayT, rayT)
+			}
+			if Abs(segT-test.segT) > tolerance {
+				t.Fatalf("expected segT %f, got %f", test.segT, segT)
+			}
+		})
+	}
+}
+
 func TestSplitSelfIntersectingPolygon(t *testing.T) {
 	approxEqual := func(a, b [2]float32) bool {
 		const eps = 1e-4

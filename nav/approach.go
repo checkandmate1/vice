@@ -185,13 +185,12 @@ func (nav *Nav) findInterceptSegment(ap *av.Approach, wxs wx.Sample) (math.TrueH
 	posNM := math.LL2NM(nav.FlightState.Position, nmPerLong)
 
 	// Build a ray from the aircraft's position along its ground track
-	// (heading + wind), extending far enough to cross any approach segment.
+	// (heading + wind).
 	hdgTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	TAS := nav.TAS(wxs.Temperature()) / 3600
 	flightVec := math.Scale2f(math.SinCos(math.Radians(hdgTrue)), TAS)
 	groundVec := math.Add2f(flightVec, wxs.WindVec())
 	dir := math.Normalize2f(groundVec)
-	rayEnd := math.Add2f(posNM, math.Scale2f(dir, 50)) // 50nm ray
 
 	bestDist := float32(1e9)
 	var bestCourse math.TrueHeading
@@ -205,13 +204,12 @@ func (nav *Nav) findInterceptSegment(ap *av.Approach, wxs wx.Sample) (math.TrueH
 			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
 
 			// Check if the aircraft's heading ray crosses this segment.
-			pt, ok := math.SegmentSegmentIntersect(posNM, rayEnd, p0, p1)
+			_, dist, _, ok := math.RaySegmentIntersect(posNM, dir, p0, p1)
 			if !ok {
 				continue
 			}
 
 			// Use the closest crossing point.
-			dist := math.Distance2f(posNM, pt)
 			if dist < bestDist {
 				bestDist = dist
 				bestCourse = math.Heading2LL(route[i].Location, route[i+1].Location, nmPerLong)
@@ -573,10 +571,9 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 
 	// Work in nm coordinates
 	pac0 := math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude)
-	// Find a second point along its current course (note: ignoring wind)
+	// Find a heading ray along its current course (note: ignoring wind).
 	hdg := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	dir := math.SinCos(math.Radians(hdg))
-	pac1 := math.Add2f(pac0, dir)
 
 	checkSegment := func(i int) *av.Waypoint {
 		if i+1 == len(wp) {
@@ -585,15 +582,10 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 		pl0 := math.LL2NM(wp[i].Location, nav.FlightState.NmPerLongitude)
 		pl1 := math.LL2NM(wp[i+1].Location, nav.FlightState.NmPerLongitude)
 
-		if pi, ok := math.LineLineIntersect(pac0, pac1, pl0, pl1); ok {
-			// We only want intersections along the segment from pl0 to pl1
-			// and not along the infinite line they define, so this is a
-			// hacky check to limit to that.
-			if math.Extent2DFromPoints([][2]float32{pl0, pl1}).Inside(pi) {
-				return &av.Waypoint{
-					Fix:      "intercept",
-					Location: math.NM2LL(pi, nav.FlightState.NmPerLongitude),
-				}
+		if pi, _, _, ok := math.RaySegmentIntersect(pac0, dir, pl0, pl1); ok {
+			return &av.Waypoint{
+				Fix:      "intercept",
+				Location: math.NM2LL(pi, nav.FlightState.NmPerLongitude),
 			}
 		}
 		return nil

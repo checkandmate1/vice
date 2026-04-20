@@ -187,6 +187,40 @@ func SegmentSegmentIntersect(p1, p2, p3, p4 [2]float32) ([2]float32, bool) {
 	return p, b0.Inside(p) && b1.Inside(p)
 }
 
+// RaySegmentIntersect returns the intersection point of the ray org+dir*t with the
+// segment p0+(p1-p0)*u. The returned values include the ray parameter t and the
+// segment parameter u.
+func RaySegmentIntersect(org, dir, p0, p1 [2]float32) ([2]float32, float32, float32, bool) {
+	org64 := [2]float64{float64(org[0]), float64(org[1])}
+	dir64 := [2]float64{float64(dir[0]), float64(dir[1])}
+	p064 := [2]float64{float64(p0[0]), float64(p0[1])}
+	p164 := [2]float64{float64(p1[0]), float64(p1[1])}
+
+	seg64 := [2]float64{p164[0] - p064[0], p164[1] - p064[1]}
+	denom := dir64[0]*seg64[1] - dir64[1]*seg64[0]
+	if gomath.Abs(denom) < 1e-5 {
+		return [2]float32{}, 0, 0, false
+	}
+
+	diff64 := [2]float64{p064[0] - org64[0], p064[1] - org64[1]}
+	rayT64 := (diff64[0]*seg64[1] - diff64[1]*seg64[0]) / denom
+	segT64 := (diff64[0]*dir64[1] - diff64[1]*dir64[0]) / denom
+
+	const epsilon = 1e-4
+	if rayT64 < -epsilon || segT64 < -epsilon || segT64 > 1+epsilon {
+		return [2]float32{}, 0, 0, false
+	}
+
+	rayT := float32(rayT64)
+	segT := float32(segT64)
+	rayT = max(rayT, 0)
+	segT = Clamp(segT, 0, 1)
+	return [2]float32{
+		float32(org64[0] + dir64[0]*float64(rayT)),
+		float32(org64[1] + dir64[1]*float64(rayT)),
+	}, rayT, segT, true
+}
+
 // RayRayMinimumDistance takes two rays p0+d0*t and p1+d1*t and returns the
 // value of t where their distance is minimized.
 func RayRayMinimumDistance(p0, d0, p1, d1 [2]float32) float32 {
