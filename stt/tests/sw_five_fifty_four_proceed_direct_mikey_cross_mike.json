@@ -1,0 +1,523 @@
+{
+  "time": "2026-03-31T12:52:00.235333943Z",
+  "level": "INFO",
+  "msg": "STT command",
+  "callstack": [
+    "manager.go:888:/server.(*SimManager).ReportSTTLog",
+    "value.go:581:reflect.Value.call",
+    "value.go:365:reflect.Value.Call",
+    "server.go:383:net/rpc.(*service).call",
+    "asm_amd64.s:1693:runtime.goexit"
+  ],
+  "transcript": "SW Five Fifty Four proceed direct Mikey cross Mikey at or above six thousand cleared ILS Yankee runway eight approach",
+  "whisper_duration_ms": 488.12,
+  "audio_duration_ms": 9288,
+  "processor": "GPU: Apple M4 Pro, 14 CPU / 20 GPU cores, 48GB",
+  "whisper_model": "ggml-medium.en-jlvatc-q5_0.bin",
+  "callsign": "SWA554",
+  "command": "DMIKEI CMIKEI/A60+ CIZ8",
+  "stt_aircraft": {
+    "SkyWest 38 64": {
+      "Callsign": "SKW3864",
+      "AircraftType": "E75L",
+      "Fixes": {
+        "Hey Joe": "HEYJO",
+        "Orosz": "OROSZ",
+        "Tyler": "TILLR"
+      },
+      "CandidateApproaches": null,
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": null,
+      "AssignedApproach": "",
+      "SID": "OROSZ2",
+      "STAR": "",
+      "Altitude": 3438,
+      "State": "departure",
+      "ControllerFrequency": "1V",
+      "TrackingController": "1V",
+      "AddressingForm": 0,
+      "LAHSORunways": null
+    },
+    "Southwest 81 36": {
+      "Callsign": "SWA8136",
+      "AircraftType": "B737",
+      "Fixes": {
+        "Bob Hope": "KBUR",
+        "Coply": "KOPLE",
+        "Elmer": "ELMRR",
+        "Janny": "JANNY",
+        "Palmdale": "PMD",
+        "Puck": "PUCCK",
+        "Wabt": "WABBT"
+      },
+      "CandidateApproaches": {
+        "I L S runway eight": "IZ8",
+        "V O R runway eight": "VOR8",
+        "r-nav Visual runway one five": "RV5",
+        "r-nav runway eight": "RY8"
+      },
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": {
+        "IY8": {
+          "Buddy": "BUDDE",
+          "Los Angeles": "LAX",
+          "Mikey": "MIKEI",
+          "Santa Monica": "SMO",
+          "Silex": "SILEX",
+          "Toaks": "TOAKS",
+          "Van Nuys": "VNY",
+          "Ventura": "VTU"
+        },
+        "IZ8": {
+          "Buddy": "BUDDE",
+          "Los Angeles": "LAX",
+          "Mikey": "MIKEI",
+          "Santa Monica": "SMO",
+          "Silex": "SILEX",
+          "Toaks": "TOAKS",
+          "Van Nuys": "VNY",
+          "Ventura": "VTU"
+        },
+        "RV5": {
+          "Azkben": "AZKBN",
+          "Bat": "BATTT",
+          "Goblet": "GOBLT",
+          "Matrix": "MATRX",
+          "Twack": "TWACK",
+          "secret": "SCRET"
+        },
+        "RY8": {
+          "Himvi": "HIMVI",
+          "Mikey": "MIKEI",
+          "Nibyi": "NIBYI",
+          "Silex": "SILEX",
+          "Wabt": "WABBT",
+          "Weski": "WESKI",
+          "Yebun": "YEBUN",
+          "Zemep": "ZEMEP"
+        },
+        "RZ8": {
+          "Bubny": "BUBNE",
+          "Mikey": "MIKEI",
+          "Silex": "SILEX",
+          "Toaks": "TOAKS",
+          "Ventura": "VTU"
+        },
+        "VOR8": {
+          "Canog": "CANOG",
+          "Fillmore": "FIM",
+          "Gina": "GINNA",
+          "Los Angeles": "LAX",
+          "Santa Monica": "SMO",
+          "Sauna": "SUANA",
+          "Van Nuys": "VNY",
+          "Ventura": "VTU"
+        }
+      },
+      "AssignedApproach": "",
+      "SID": "",
+      "STAR": "JANNY5",
+      "Altitude": 14000,
+      "State": "arrival",
+      "ControllerFrequency": "1J",
+      "TrackingController": "1J",
+      "AddressingForm": 0,
+      "LAHSORunways": [
+        "8",
+        "26",
+        "15",
+        "33"
+      ]
+    },
+    "Southwest five 54": {
+      "Callsign": "SWA554",
+      "AircraftType": "B38M",
+      "Fixes": {
+        "Bob Hope": "KBUR",
+        "Buddy": "BUDDE",
+        "Los Angeles": "LAX",
+        "Mikey": "MIKEI",
+        "Santa Monica": "SMO",
+        "Silex": "SILEX",
+        "Toaks": "TOAKS",
+        "Van Nuys": "VNY",
+        "Ventura": "VTU"
+      },
+      "CandidateApproaches": {
+        "I L S runway eight": "IZ8",
+        "V O R runway eight": "VOR8",
+        "r-nav Visual runway one five": "RV5",
+        "r-nav runway eight": "RZ8"
+      },
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": {
+        "IY8": {
+          "Buddy": "BUDDE",
+          "Los Angeles": "LAX",
+          "Mikey": "MIKEI",
+          "Santa Monica": "SMO",
+          "Silex": "SILEX",
+          "Toaks": "TOAKS",
+          "Van Nuys": "VNY",
+          "Ventura": "VTU"
+        },
+        "IZ8": {
+          "Buddy": "BUDDE",
+          "Los Angeles": "LAX",
+          "Mikey": "MIKEI",
+          "Santa Monica": "SMO",
+          "Silex": "SILEX",
+          "Toaks": "TOAKS",
+          "Van Nuys": "VNY",
+          "Ventura": "VTU"
+        },
+        "RV5": {
+          "Azkben": "AZKBN",
+          "Bat": "BATTT",
+          "Goblet": "GOBLT",
+          "Matrix": "MATRX",
+          "Twack": "TWACK",
+          "secret": "SCRET"
+        },
+        "RY8": {
+          "Himvi": "HIMVI",
+          "Mikey": "MIKEI",
+          "Nibyi": "NIBYI",
+          "Silex": "SILEX",
+          "Wabt": "WABBT",
+          "Weski": "WESKI",
+          "Yebun": "YEBUN",
+          "Zemep": "ZEMEP"
+        },
+        "RZ8": {
+          "Bubny": "BUBNE",
+          "Mikey": "MIKEI",
+          "Silex": "SILEX",
+          "Toaks": "TOAKS",
+          "Ventura": "VTU"
+        },
+        "VOR8": {
+          "Canog": "CANOG",
+          "Fillmore": "FIM",
+          "Gina": "GINNA",
+          "Los Angeles": "LAX",
+          "Santa Monica": "SMO",
+          "Sauna": "SUANA",
+          "Van Nuys": "VNY",
+          "Ventura": "VTU"
+        }
+      },
+      "AssignedApproach": "ILS Runway 8",
+      "SID": "",
+      "STAR": "JANNY5",
+      "Altitude": 6000,
+      "State": "arrival",
+      "ControllerFrequency": "1J",
+      "TrackingController": "1F",
+      "AddressingForm": 0,
+      "LAHSORunways": [
+        "8",
+        "26",
+        "15",
+        "33"
+      ]
+    },
+    "citation X niner three delta": {
+      "Callsign": "N2293D/T",
+      "AircraftType": "C750",
+      "Fixes": {
+        "Eiffel": "EIFEL",
+        "Janny": "JANNY",
+        "Puck": "PUCCK",
+        "Umber": "UMBER",
+        "Van Nuys": "KVNY"
+      },
+      "CandidateApproaches": {
+        "I L S yankee runway one six right": "IYR",
+        "I L S zulu runway one six right": "IZR"
+      },
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": {
+        "IYR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        },
+        "IZR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        }
+      },
+      "AssignedApproach": "",
+      "SID": "",
+      "STAR": "JANNY5",
+      "Altitude": 10662,
+      "State": "arrival",
+      "ControllerFrequency": "1J",
+      "TrackingController": "1J",
+      "AddressingForm": 1,
+      "LAHSORunways": null
+    },
+    "citation niner three delta": {
+      "Callsign": "N2293D/T",
+      "AircraftType": "C750",
+      "Fixes": {
+        "Eiffel": "EIFEL",
+        "Janny": "JANNY",
+        "Puck": "PUCCK",
+        "Umber": "UMBER",
+        "Van Nuys": "KVNY"
+      },
+      "CandidateApproaches": {
+        "I L S yankee runway one six right": "IYR",
+        "I L S zulu runway one six right": "IZR"
+      },
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": {
+        "IYR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        },
+        "IZR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        }
+      },
+      "AssignedApproach": "",
+      "SID": "",
+      "STAR": "JANNY5",
+      "Altitude": 10662,
+      "State": "arrival",
+      "ControllerFrequency": "1J",
+      "TrackingController": "1J",
+      "AddressingForm": 1,
+      "LAHSORunways": null
+    },
+    "citation ten niner three delta": {
+      "Callsign": "N2293D/T",
+      "AircraftType": "C750",
+      "Fixes": {
+        "Eiffel": "EIFEL",
+        "Janny": "JANNY",
+        "Puck": "PUCCK",
+        "Umber": "UMBER",
+        "Van Nuys": "KVNY"
+      },
+      "CandidateApproaches": {
+        "I L S yankee runway one six right": "IYR",
+        "I L S zulu runway one six right": "IZR"
+      },
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": {
+        "IYR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        },
+        "IZR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        }
+      },
+      "AssignedApproach": "",
+      "SID": "",
+      "STAR": "JANNY5",
+      "Altitude": 10662,
+      "State": "arrival",
+      "ControllerFrequency": "1J",
+      "TrackingController": "1J",
+      "AddressingForm": 1,
+      "LAHSORunways": null
+    },
+    "november seven two two foxtrot echo": {
+      "Callsign": "N722FE",
+      "AircraftType": "",
+      "Fixes": {},
+      "CandidateApproaches": null,
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": null,
+      "AssignedApproach": "",
+      "SID": "",
+      "STAR": "",
+      "Altitude": 10500,
+      "State": "",
+      "ControllerFrequency": "1M",
+      "TrackingController": "",
+      "AddressingForm": 0,
+      "LAHSORunways": null
+    },
+    "november two two niner three delta": {
+      "Callsign": "N2293D",
+      "AircraftType": "C750",
+      "Fixes": {
+        "Eiffel": "EIFEL",
+        "Janny": "JANNY",
+        "Puck": "PUCCK",
+        "Umber": "UMBER",
+        "Van Nuys": "KVNY"
+      },
+      "CandidateApproaches": {
+        "I L S yankee runway one six right": "IYR",
+        "I L S zulu runway one six right": "IZR"
+      },
+      "CandidateVisualApproaches": null,
+      "ApproachFixes": {
+        "IYR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        },
+        "IZR": {
+          "Fillmore": "FIM",
+          "Jinat": "JINAT",
+          "Umber": "UMBER",
+          "Van Nuys": "VNY",
+          "Zidom": "ZIDOM",
+          "furry": "FURRY"
+        }
+      },
+      "AssignedApproach": "",
+      "SID": "",
+      "STAR": "JANNY5",
+      "Altitude": 10662,
+      "State": "arrival",
+      "ControllerFrequency": "1J",
+      "TrackingController": "1J",
+      "AddressingForm": 0,
+      "LAHSORunways": null
+    }
+  },
+  "logs": [
+    "[local-stt] === DecodeTranscript START ===",
+    "[local-stt] input transcript: \"SW Five Fifty Four proceed direct Mikey cross Mikey at or above six thousand cleared ILS Yankee runway eight approach\"",
+    "[local-stt] normalized words: [sw 5 54 proceed direct mikey cross mikey at or above 6 thousand cleared ils yankee runway 8 approach]",
+    "[local-stt] tokens: 17",
+    "[local-stt]   token[0]: Text=\"sw\" Type=0 Value=-1",
+    "[local-stt]   token[1]: Text=\"554\" Type=1 Value=554",
+    "[local-stt]   token[2]: Text=\"proceed\" Type=0 Value=-1",
+    "[local-stt]   token[3]: Text=\"direct\" Type=0 Value=-1",
+    "[local-stt]   token[4]: Text=\"mikey\" Type=0 Value=-1",
+    "[local-stt]   token[5]: Text=\"cross\" Type=0 Value=-1",
+    "[local-stt]   token[6]: Text=\"mikey\" Type=0 Value=-1",
+    "[local-stt]   token[7]: Text=\"at\" Type=0 Value=-1",
+    "[local-stt]   token[8]: Text=\"or\" Type=0 Value=-1",
+    "[local-stt]   token[9]: Text=\"above\" Type=0 Value=-1",
+    "[local-stt]   token[10]: Text=\"60\" Type=2 Value=60",
+    "[local-stt]   token[11]: Text=\"cleared\" Type=0 Value=-1",
+    "[local-stt]   token[12]: Text=\"ils\" Type=0 Value=-1",
+    "[local-stt]   token[13]: Text=\"yankee\" Type=0 Value=-1",
+    "[local-stt]   token[14]: Text=\"runway\" Type=0 Value=-1",
+    "[local-stt]   token[15]: Text=\"8\" Type=1 Value=8",
+    "[local-stt]   token[16]: Text=\"approach\" Type=0 Value=-1",
+    "[local-stt] MatchCallsign: 17 tokens, 8 aircraft",
+    "[local-stt] matchCallsignWithPatterns: 17 tokens, 8 aircraft",
+    "[local-stt]   pattern \"exact_phrase\": no results",
+    "[local-stt]   pattern \"ga_suffix\": no results",
+    "[local-stt]   pattern \"airline_flight\": 1 results",
+    "[local-stt]     result 0: \"Southwest five 54\" (airline=0.583, flight=1.000, skip=0)",
+    "[local-stt]     pattern \"airline_flight\": selected \"Southwest five 54\" (airline=0.58, flight=1.00, skip=0)",
+    "[local-stt]   pattern \"airline_only\": 3 results",
+    "[local-stt]     result 0: \"SkyWest 38 64\" (airline=0.786, flight=0.000, skip=0)",
+    "[local-stt]     result 1: \"Southwest five 54\" (airline=0.583, flight=0.000, skip=0)",
+    "[local-stt]     result 2: \"Southwest 81 36\" (airline=0.583, flight=0.000, skip=0)",
+    "[local-stt]     pattern \"airline_only\": selected \"Southwest five 54\" (airline=0.58, flight=0.00, skip=0)",
+    "[local-stt]     pattern \"airline_only\": scoring rejected \"Southwest five 54\"",
+    "[local-stt]   pattern \"ga_november\": no results",
+    "[local-stt]   pattern \"flight_only\": 1 results",
+    "[local-stt]     result 0: \"Southwest five 54\" (airline=0.500, flight=1.000, skip=0)",
+    "[local-stt]     pattern \"flight_only\": selected \"Southwest five 54\" (airline=0.50, flight=1.00, skip=0)",
+    "[local-stt]   pattern \"airline_flight\" matched: \"SWA554\" (conf=0.92, consumed=2, addressingForm=0, spokenKey=\"Southwest five 54\")",
+    "[local-stt] callsign match: Callsign=\"SWA554\" SpokenKey=\"Southwest five 54\" Conf=0.92 Consumed=2",
+    "[local-stt] aircraft context: State=\"arrival\" Altitude=6000 Fixes=9 Approaches=4 AssignedApproach=\"ILS Runway 8\" LAHSORunways=[8 26 15 33]",
+    "[local-stt]   fix: \"Bob Hope\" -\u003e \"KBUR\"",
+    "[local-stt]   fix: \"Toaks\" -\u003e \"TOAKS\"",
+    "[local-stt]   fix: \"Silex\" -\u003e \"SILEX\"",
+    "[local-stt]   fix: \"Buddy\" -\u003e \"BUDDE\"",
+    "[local-stt]   fix: \"Van Nuys\" -\u003e \"VNY\"",
+    "[local-stt]   fix: \"Ventura\" -\u003e \"VTU\"",
+    "[local-stt]   fix: \"Santa Monica\" -\u003e \"SMO\"",
+    "[local-stt]   fix: \"Los Angeles\" -\u003e \"LAX\"",
+    "[local-stt]   fix: \"Mikey\" -\u003e \"MIKEI\"",
+    "[local-stt]   approach: \"I L S runway eight\" -\u003e \"IZ8\"",
+    "[local-stt]   approach: \"r-nav runway eight\" -\u003e \"RZ8\"",
+    "[local-stt]   approach: \"r-nav Visual runway one five\" -\u003e \"RV5\"",
+    "[local-stt]   approach: \"V O R runway eight\" -\u003e \"VOR8\"",
+    "[local-stt] command tokens after disregard: 15",
+    "[local-stt]   token[0]: Text=\"proceed\" Type=0 Value=-1",
+    "[local-stt]   token[1]: Text=\"direct\" Type=0 Value=-1",
+    "[local-stt]   token[2]: Text=\"mikey\" Type=0 Value=-1",
+    "[local-stt]   token[3]: Text=\"cross\" Type=0 Value=-1",
+    "[local-stt]   token[4]: Text=\"mikey\" Type=0 Value=-1",
+    "[local-stt]   token[5]: Text=\"at\" Type=0 Value=-1",
+    "[local-stt]   token[6]: Text=\"or\" Type=0 Value=-1",
+    "[local-stt]   token[7]: Text=\"above\" Type=0 Value=-1",
+    "[local-stt]   token[8]: Text=\"60\" Type=2 Value=60",
+    "[local-stt]   token[9]: Text=\"cleared\" Type=0 Value=-1",
+    "[local-stt]   token[10]: Text=\"ils\" Type=0 Value=-1",
+    "[local-stt]   token[11]: Text=\"yankee\" Type=0 Value=-1",
+    "[local-stt]   token[12]: Text=\"runway\" Type=0 Value=-1",
+    "[local-stt]   token[13]: Text=\"8\" Type=1 Value=8",
+    "[local-stt]   token[14]: Text=\"approach\" Type=0 Value=-1",
+    "[local-stt] ParseCommands: 15 tokens",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"mikey\" against 9 fixes",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (exact)",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (fuzzy 1.00)",
+    "[local-stt]   matched command: \"DMIKEI\" (conf=1.00, consumed=3, isThen=false)",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"mikey\" against 9 fixes",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (exact)",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (fuzzy 1.00)",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"mikey\" against 9 fixes",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (exact)",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (fuzzy 1.00)",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"mikey\" against 9 fixes",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (exact)",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (fuzzy 1.00)",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"mikey\" against 9 fixes",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (exact)",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (fuzzy 1.00)",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"mikey\" against 9 fixes",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (exact)",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (fuzzy 1.00)",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"mikey\" against 9 fixes",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (exact)",
+    "[local-stt]   extractFix: matched \"mikey\" -\u003e \"MIKEI\" (fuzzy 1.00)",
+    "[local-stt]   matched command: \"CMIKEI/A60+\" (conf=1.00, consumed=6, isThen=false)",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"ils\" against 9 fixes",
+    "[local-stt]   extractFix: no match found for \"ils\"",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"yankee\" against 9 fixes",
+    "[local-stt]   extractFix: no match found for \"yankee\"",
+    "[local-stt]   extractFix: trying to match tokens[0]=\"runway\" against 9 fixes",
+    "[local-stt]   extractFix: no match found for \"runway\"",
+    "[local-stt]   matched command: \"CIZ8\" (conf=1.00, consumed=5, isThen=false)",
+    "[local-stt]   no match at token[14]=\"approach\", skipping",
+    "[local-stt] ParseCommands: result=[DMIKEI CMIKEI/A60+ CIZ8] (avgConf=1.00)",
+    "[local-stt] parsed commands: [DMIKEI CMIKEI/A60+ CIZ8] (conf=1.00)",
+    "[local-stt] validated commands: [DMIKEI CMIKEI/A60+ CIZ8] (conf=1.00)",
+    "[local-stt] === DecodeTranscript END: \"SWA554 DMIKEI CMIKEI/A60+ CIZ8\" (conf=0.92, time=4.422209ms) ==="
+  ]
+}
