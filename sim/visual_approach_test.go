@@ -29,6 +29,24 @@ type VisualScenario struct {
 	tcw      TCW
 }
 
+// testApproachWaypoints builds a minimal straight-in reference route for the
+// given runway: a 25nm extended-final waypoint back along the runway
+// reciprocal, then the threshold. The runway must already be registered via
+// setupTestRunway.
+func testApproachWaypoints(airport, runway string, airportLoc math.Point2LL, nmPerLong float32) []av.WaypointArray {
+	rwy, ok := av.LookupRunway(airport, runway)
+	if !ok {
+		return []av.WaypointArray{{{Fix: "RW" + runway, Location: airportLoc}}}
+	}
+	rwyTrue := math.MagneticToTrue(rwy.Heading, 0)
+	reciprocal := math.TrueHeading(math.NormalizeHeading(float32(rwyTrue) + 180))
+	extendedFinal := math.Offset2LL(airportLoc, reciprocal, 25, nmPerLong)
+	return []av.WaypointArray{{
+		{Fix: "FAF" + runway, Location: extendedFinal},
+		{Fix: "RW" + runway, Location: airportLoc},
+	}}
+}
+
 // NewVisualScenario creates a scenario with an airport at the given location,
 // VMC METAR, and a single aircraft positioned at acPos heading in the given
 // direction. The aircraft has an ILS approach assigned for the given runway.
@@ -85,8 +103,8 @@ func NewVisualScenario(t *testing.T, airportLoc math.Point2LL, runway string, ac
 				"KJFK": {
 					Location: airportLoc,
 					Approaches: map[string]*av.Approach{
-						"V" + runway: {Type: av.ChartedVisualApproach, Runway: runway},
-						"I" + runway: {Type: av.ILSApproach, Runway: runway},
+						"V" + runway: {Type: av.ChartedVisualApproach, Runway: runway, Waypoints: testApproachWaypoints("KJFK", runway, airportLoc, 52)},
+						"I" + runway: {Type: av.ILSApproach, Runway: runway, Waypoints: testApproachWaypoints("KJFK", runway, airportLoc, 52)},
 					},
 				},
 			},
@@ -261,7 +279,7 @@ func makeVisualTestSim(airportLoc math.Point2LL, runway string) *Sim {
 				"KJFK": {
 					Location: airportLoc,
 					Approaches: map[string]*av.Approach{
-						"V13L": {Type: av.ChartedVisualApproach, Runway: runway},
+						"V13L": {Type: av.ChartedVisualApproach, Runway: runway, Waypoints: testApproachWaypoints("KJFK", runway, airportLoc, 52)},
 					},
 				},
 			},
@@ -574,6 +592,16 @@ func TestVisualApproachWaypoints(t *testing.T) {
 
 	nmPerLong := float32(52) // ~40°N
 
+	reference := &av.Approach{
+		Type:      av.ILSApproach,
+		Runway:    "36",
+		Threshold: rwy.Threshold,
+		Waypoints: []av.WaypointArray{{
+			{Fix: "FAF36", Location: math.Point2LL{0, -25.0 / 60}},
+			{Fix: "_36_THRESHOLD", Location: rwy.Threshold},
+		}},
+	}
+
 	tests := []struct {
 		name         string
 		pos          math.Point2LL
@@ -647,7 +675,7 @@ func TestVisualApproachWaypoints(t *testing.T) {
 				n.Heading.Assigned = tt.assigned
 			}
 
-			intent := n.ClearedVisualApproach("36", nil, nil, "", time.Time{})
+			intent := n.ClearedVisualApproach("36", nil, []*av.Approach{reference}, "", nav.Time{})
 			if tt.wantNil {
 				if _, unable := intent.(av.UnableIntent); !unable {
 					t.Fatalf("expected UnableIntent, got %T: %v", intent, intent)
@@ -751,7 +779,7 @@ func TestVisualApproachWaypointsUseReferenceApproachDogleg(t *testing.T) {
 		},
 	}
 
-	_ = n.ClearedVisualApproach("36", nil, reference, "", time.Time{})
+	_ = n.ClearedVisualApproach("36", nil, []*av.Approach{reference}, "", nav.Time{})
 
 	if len(n.Waypoints) < 5 {
 		t.Fatalf("expected projection, intermediate dogleg fixes, 3nm final, and threshold; got %v", wpNames(n.Waypoints))
@@ -792,12 +820,12 @@ func TestVisualReferenceApproachSelection(t *testing.T) {
 		},
 	}}}}
 
-	if got := s.visualReferenceApproach(ac, "36", nil); got != ac.Nav.Approach.Assigned {
+	if got := s.visualReferenceApproaches(ac, "36", nil); len(got) != 1 || got[0] != ac.Nav.Approach.Assigned {
 		t.Fatalf("assigned matching approach should win, got %+v", got)
 	}
 
 	ac.Nav.Approach.Assigned = nil
-	if got := s.visualReferenceApproach(ac, "36", nil); got == nil || got.Type != av.VORApproach {
+	if got := s.visualReferenceApproaches(ac, "36", nil); len(got) != 1 || got[0].Type != av.VORApproach {
 		t.Fatalf("fallback approach type = %v, want VOR", got)
 	}
 }
@@ -842,7 +870,16 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 		},
 	}
 
-	_ = n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos}, nil, "", time.Time{})
+	reference := &av.Approach{
+		Type:      av.ILSApproach,
+		Runway:    "36",
+		Threshold: math.Point2LL{0, 0},
+		Waypoints: []av.WaypointArray{{
+			{Fix: "FAF36", Location: math.Point2LL{0, -25.0 / 60}},
+			{Fix: "RW36", Location: math.Point2LL{0, 0}},
+		}},
+	}
+	_ = n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos}, []*av.Approach{reference}, "", nav.Time{})
 
 	wps := n.Waypoints
 	if len(wps) != 4 {
@@ -946,9 +983,41 @@ func TestVisualApproachFollowingTrafficCopiesRemainingTrafficRoute(t *testing.T)
 	}
 	threshold.SetLand(true)
 	trafficRoute := av.WaypointArray{final3NM, threshold, n.FlightState.ArrivalAirport}
-	_ = n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos, Route: trafficRoute}, nil, "", time.Time{})
+	_ = n.ClearedVisualApproach("36", &nav.FollowTraffic{Position: trafficPos, Route: trafficRoute}, nil, "", nav.Time{})
 	if got := wpNames(n.Waypoints); !slices.Equal(got, []string{"_36_FOLLOW_TRAFFIC", "_36_3NM_FINAL", "RW36", "KTEST"}) {
 		t.Fatalf("route = %v, want traffic, 3nm final, threshold, airport", got)
+	}
+}
+
+func TestVisualApproachFollowingTrafficRejectsNearThresholdLeader(t *testing.T) {
+	airportLoc := math.Point2LL{0, 0}
+	setupTestRunway(t, "KTEST", av.Runway{
+		Id:                      "36",
+		Heading:                 360,
+		Threshold:               airportLoc,
+		Elevation:               100,
+		ThresholdCrossingHeight: 50,
+	})
+
+	nmPerLong := float32(52)
+	trafficPos := math.NM2LL([2]float32{0, -0.4}, nmPerLong)
+	threshold := av.Waypoint{Fix: "RW36", Location: airportLoc}
+
+	n := nav.Nav{
+		FlightState: nav.FlightState{
+			Position:          math.NM2LL([2]float32{3, -8}, nmPerLong),
+			Heading:           360,
+			NmPerLongitude:    nmPerLong,
+			MagneticVariation: 0,
+			ArrivalAirport:    av.Waypoint{Fix: "KTEST"},
+		},
+	}
+
+	intent := n.ClearedVisualApproach("36",
+		&nav.FollowTraffic{Position: trafficPos, Route: av.WaypointArray{threshold, n.FlightState.ArrivalAirport}},
+		nil, "", nav.Time{})
+	if _, ok := intent.(av.UnableIntent); !ok {
+		t.Fatalf("expected UnableIntent when leader is inside 0.5nm of threshold, got %T", intent)
 	}
 }
 

@@ -1930,64 +1930,45 @@ func (s *Sim) clearForVisualApproach(ac *Aircraft, runway, lahsoRunway string, t
 	if traffic != nil {
 		follow = &nav.FollowTraffic{Position: traffic.Position(), Route: traffic.Nav.Waypoints}
 	}
-	ref := s.visualReferenceApproach(ac, runway, traffic)
-	return ac.ClearedVisualApproach(runway, follow, ref, lahsoRunway, s.State.SimTime)
+	refs := s.visualReferenceApproaches(ac, runway, traffic)
+	return ac.ClearedVisualApproach(runway, follow, refs, lahsoRunway, s.State.SimTime)
 }
 
-func visualReferenceApproachRank(t av.ApproachType) int {
-	switch t {
-	case av.ILSApproach:
-		return 0
-	case av.LocalizerApproach:
-		return 1
-	case av.VORApproach:
-		return 2
-	case av.RNAVApproach:
-		return 3
-	default:
-		return 100
-	}
-}
-
-// visualReferenceApproach picks an approach whose geometry can serve as the
-// reference for a visual to runway. When traffic is non-nil, its assigned
-// approach is preferred so the follower shares the leader's geometry.
-func (s *Sim) visualReferenceApproach(ac *Aircraft, runway string, traffic *Aircraft) *av.Approach {
+// visualReferenceApproaches picks one or more approaches whose geometry can serve as the reference
+// for a visual to runway. When traffic is non-nil, its assigned approach is preferred so the
+// follower shares the leader's geometry.
+func (s *Sim) visualReferenceApproaches(ac *Aircraft, runway string, traffic *Aircraft) []*av.Approach {
 	runwayBase := av.RunwayID(runway).Base()
 
 	if traffic != nil {
 		if ap := traffic.Nav.Approach.Assigned; ap != nil &&
 			av.RunwayID(ap.Runway).Base() == runwayBase &&
 			len(ap.Waypoints) > 0 {
-			return ap
+			return []*av.Approach{ap}
 		}
 	}
 
 	if ap := ac.Nav.Approach.Assigned; ap != nil &&
 		av.RunwayID(ap.Runway).Base() == runwayBase &&
-		visualReferenceApproachRank(ap.Type) < 100 &&
 		len(ap.Waypoints) > 0 {
-		return ap
+		return []*av.Approach{ap}
 	}
 
 	airport := s.State.Airports[ac.FlightPlan.ArrivalAirport]
-	if airport == nil {
-		return nil
-	}
 
-	var best *av.Approach
-	bestRank := 100
-	for _, id := range slices.Sorted(maps.Keys(airport.Approaches)) {
-		ap := airport.Approaches[id]
-		rank := visualReferenceApproachRank(ap.Type)
-		if rank >= bestRank || rank >= 100 || len(ap.Waypoints) == 0 ||
-			av.RunwayID(ap.Runway).Base() != runwayBase {
-			continue
+	prioritizedTypes := []av.ApproachType{av.VisualApproach, av.ILSApproach, av.LocalizerApproach,
+		av.VORApproach, av.RNAVApproach, av.ChartedVisualApproach}
+	for _, ty := range prioritizedTypes {
+		matches := slices.Collect(util.FilterSeq(util.SortedMapValues(airport.Approaches),
+			func(ap *av.Approach) bool {
+				return ap.Type == ty && av.RunwayID(ap.Runway).Base() == runwayBase
+			}))
+		if len(matches) > 0 {
+			return matches
 		}
-		best = ap
-		bestRank = rank
 	}
-	return best
+	// This should not happen...
+	return nil
 }
 
 func (s *Sim) InterceptApproach(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {

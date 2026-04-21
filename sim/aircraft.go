@@ -419,8 +419,8 @@ func (ac *Aircraft) ClearedApproach(id string, simTime Time, lg *log.Logger) av.
 	return ac.Nav.ClearedApproach(ac.FlightPlan.ArrivalAirport, id, false, simTime.NavTime())
 }
 
-func (ac *Aircraft) ClearedVisualApproach(runway string, follow *nav.FollowTraffic, referenceApproach *av.Approach, lahsoRunway string, simTime Time) av.CommandIntent {
-	return ac.Nav.ClearedVisualApproach(runway, follow, referenceApproach, lahsoRunway, simTime.Time())
+func (ac *Aircraft) ClearedVisualApproach(runway string, follow *nav.FollowTraffic, refs []*av.Approach, lahsoRunway string, simTime Time) av.CommandIntent {
+	return ac.Nav.ClearedVisualApproach(runway, follow, refs, lahsoRunway, simTime.NavTime())
 }
 
 func (ac *Aircraft) ClearedStraightInApproach(id string, simTime Time, lg *log.Logger) av.CommandIntent {

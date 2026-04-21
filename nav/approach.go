@@ -672,57 +672,7 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 	}
 }
 
-// visualApproachRoute returns a route for a visual approach to
-// the given runway. If a reference approach is available, visual geometry
-// follows its route segments; otherwise it falls back to a synthetic 3nm
-// straight-in final. Returns nil if the runway is not found or if the
-// first waypoint is behind the aircraft (meaning it should go around instead).
-func (nav *Nav) visualApproachRoute(runway string, followTraffic *math.Point2LL, referenceApproach *av.Approach) []av.Waypoint {
-	if referenceApproach != nil && len(referenceApproach.Waypoints) > 0 {
-		if wps := nav.visualApproachRouteFromApproach(runway, followTraffic, referenceApproach); wps != nil {
-			return wps
-		}
-	}
-	if synthetic := nav.visualApproachFromRunway(runway); synthetic != nil {
-		return nav.visualApproachRouteFromApproach(runway, followTraffic, synthetic)
-	}
-	return nil
-}
-
-func (nav *Nav) visualApproachFromRunway(runway string) *av.Approach {
-	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
-	if !ok {
-		return nil
-	}
-
-	nmPerLong := nav.FlightState.NmPerLongitude
-	rwyTrue := math.MagneticToTrue(rwy.Heading, nav.FlightState.MagneticVariation)
-	threshold := math.Offset2LL(rwy.Threshold, rwyTrue, rwy.DisplacedThresholdDistance, nmPerLong)
-	reciprocal := math.TrueHeading(math.NormalizeHeading(float32(rwyTrue) + 180))
-	extendedFinal := math.Offset2LL(threshold, reciprocal, 25, nmPerLong)
-
-	thresholdWp := av.Waypoint{
-		Fix:      "_" + runway + "_THRESHOLD",
-		Location: threshold,
-	}
-	thresholdWp.SetLand(true)
-	thresholdWp.SetFlyOver(true)
-	thresholdWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(rwy.Elevation + rwy.ThresholdCrossingHeight)))
-
-	return &av.Approach{
-		Id:        "VIS" + runway,
-		FullName:  "Visual Approach Runway " + runway,
-		Type:      av.VisualApproach,
-		Runway:    runway,
-		Threshold: threshold,
-		Waypoints: []av.WaypointArray{{
-			{Fix: "_" + runway + "_EXTENDED_FINAL", Location: extendedFinal},
-			thresholdWp,
-		}},
-	}
-}
-
-type visualApproachPoint struct {
+type visualApproachRoute struct {
 	route               []av.Waypoint
 	segment             int
 	segmentFraction     float32
@@ -733,11 +683,11 @@ type visualApproachPoint struct {
 	finalPoint          bool
 }
 
-func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position math.Point2LL) (visualApproachPoint, bool) {
+func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position math.Point2LL) (visualApproachRoute, bool) {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	posNM := math.LL2NM(position, nmPerLong)
 
-	best := visualApproachPoint{lateralDistance: 1e9}
+	best := visualApproachRoute{lateralDistance: 1e9}
 	found := false
 
 	for _, route := range routes {
@@ -745,7 +695,7 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 			continue
 		}
 		tailDistance := visualRouteTailDistances(route, nmPerLong)
-		for i := 0; i < len(route)-1; i++ {
+		for i := range len(route) - 1 {
 			p0 := math.LL2NM(route[i].Location, nmPerLong)
 			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
 			seg := math.Sub2f(p1, p0)
@@ -761,7 +711,7 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 
 			if !found || lateral < best.lateralDistance ||
 				(lateral == best.lateralDistance && distToThreshold < best.distanceToThreshold) {
-				best = visualApproachPoint{
+				best = visualApproachRoute{
 					route:               route,
 					segment:             i,
 					segmentFraction:     t,
@@ -777,21 +727,20 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 	return best, found
 }
 
-func (nav *Nav) intersectApproachRoutes(routes []av.WaypointArray, heading math.MagneticHeading) (visualApproachPoint, bool) {
+func (nav *Nav) collectHeadingInterceptCandidates(routes []av.WaypointArray, heading math.MagneticHeading) []visualApproachRoute {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
 	acNM := math.LL2NM(nav.FlightState.Position, nmPerLong)
 	headingDir := math.HeadingVector(math.MagneticToTrue(heading, magVar))
 
-	best := visualApproachPoint{interceptDistance: 1e9}
-	found := false
+	var candidates []visualApproachRoute
 
 	for _, route := range routes {
 		if len(route) < 2 {
 			continue
 		}
 		tailDistance := visualRouteTailDistances(route, nmPerLong)
-		for i := 0; i < len(route)-1; i++ {
+		for i := range len(route) - 1 {
 			p0 := math.LL2NM(route[i].Location, nmPerLong)
 			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
 			seg := math.Sub2f(p1, p0)
@@ -799,44 +748,28 @@ func (nav *Nav) intersectApproachRoutes(routes []av.WaypointArray, heading math.
 			if segLen2 == 0 {
 				continue
 			}
-			intersect, ok := math.LineLineIntersect(acNM, math.Add2f(acNM, headingDir), p0, p1)
+			intersect, rayT, segT, ok := math.RaySegmentIntersect(acNM, headingDir, p0, p1)
 			if !ok {
 				continue
 			}
-
-			alongHeading := math.Dot(math.Sub2f(intersect, acNM), headingDir)
-			if alongHeading <= 0.1 || !visualPointOnSegment(intersect, p0, p1) {
+			if rayT <= 0.1 {
 				continue
 			}
 
 			distToThreshold := math.Distance2f(intersect, p1) + tailDistance[i+1]
-			if !found || alongHeading < best.interceptDistance {
-				best = visualApproachPoint{
-					route:               route,
-					segment:             i,
-					segmentFraction:     math.Dot(math.Sub2f(intersect, p0), seg) / segLen2,
-					location:            math.NM2LL(intersect, nmPerLong),
-					distanceToThreshold: distToThreshold,
-					interceptDistance:   alongHeading,
-					lateralDistance:     0,
-				}
-				found = true
-			}
+			candidates = append(candidates, visualApproachRoute{
+				route:               route,
+				segment:             i,
+				segmentFraction:     segT,
+				location:            math.NM2LL(intersect, nmPerLong),
+				distanceToThreshold: distToThreshold,
+				interceptDistance:   rayT,
+				lateralDistance:     0,
+			})
 		}
 	}
 
-	return best, found
-}
-
-func visualPointOnSegment(p, p0, p1 [2]float32) bool {
-	seg := math.Sub2f(p1, p0)
-	segLen2 := math.Dot(seg, seg)
-	if segLen2 == 0 {
-		return false
-	}
-	t := math.Dot(math.Sub2f(p, p0), seg) / segLen2
-	const epsilon = 1e-4
-	return t >= -epsilon && t <= 1+epsilon
+	return candidates
 }
 
 func visualRouteTailDistances(route []av.Waypoint, nmPerLong float32) []float32 {
@@ -847,9 +780,9 @@ func visualRouteTailDistances(route []av.Waypoint, nmPerLong float32) []float32 
 	return dist
 }
 
-func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32, nmPerLong float32) (visualApproachPoint, bool) {
+func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32, nmPerLong float32) (visualApproachRoute, bool) {
 	if len(route) < 2 {
-		return visualApproachPoint{}, false
+		return visualApproachRoute{}, false
 	}
 
 	dist := float32(0)
@@ -863,7 +796,7 @@ func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32
 		if dist+segLen >= distanceToThreshold {
 			t := (distanceToThreshold - dist) / segLen
 			locNM := math.Lerp2f(t, p1, p0)
-			return visualApproachPoint{
+			return visualApproachRoute{
 				route:               route,
 				segment:             i - 1,
 				location:            math.NM2LL(locNM, nmPerLong),
@@ -874,72 +807,147 @@ func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32
 		dist += segLen
 	}
 
-	return visualApproachPoint{}, false
+	return visualApproachRoute{}, false
 }
 
-func (nav *Nav) visualApproachRouteFromApproach(runway string, followTraffic *math.Point2LL, referenceApproach *av.Approach) []av.Waypoint {
-	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
-	if !ok {
-		return nil
-	}
-
+// selectVisualApproachRoute picks the best join point and route across the supplied reference
+// approaches: in front of the aircraft, easiest to turn onto, soonest to reach.
+func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, references []*av.Approach) *visualApproachRoute {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
-
-	joinPoint := visualApproachPoint{}
-	if followTraffic != nil {
-		trafficPoint, ok := nav.projectOntoApproachRoutes(referenceApproach.Waypoints, *followTraffic)
-		if !ok || trafficPoint.distanceToThreshold <= 0.5 {
-			return nil
-		}
-		joinPoint = trafficPoint
-
-		bearingToJoin := math.Heading2LL(nav.FlightState.Position, *followTraffic, nmPerLong)
-		if math.HeadingDifference(bearingToJoin, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 120 {
-			return nil
-		}
-	} else {
-		heading := nav.FlightState.Heading
-		if assignedHeading, ok := nav.AssignedHeading(); ok {
-			heading = assignedHeading
-		}
-
-		intercept, hasIntercept := nav.intersectApproachRoutes(referenceApproach.Waypoints, heading)
-		if hasIntercept && intercept.distanceToThreshold > 3 && intercept.distanceToThreshold <= 8 {
-			joinPoint = intercept
-		} else {
-			projection, ok := nav.projectOntoApproachRoutes(referenceApproach.Waypoints, nav.FlightState.Position)
-			if !ok || projection.distanceToThreshold <= 0.5 {
-				return nil
-			}
-			headingDir := math.HeadingVector(math.MagneticToTrue(heading, magVar))
-			thresholdDir := math.Normalize2f(math.Sub2f(
-				math.LL2NM(referenceApproach.Threshold, nmPerLong),
-				math.LL2NM(nav.FlightState.Position, nmPerLong)))
-			if (hasIntercept && intercept.distanceToThreshold >= 0 && intercept.distanceToThreshold <= 3) ||
-				math.Dot(headingDir, thresholdDir) >= 0 {
-				// Join at the route-equivalent 3nm point if the aircraft
-				// is already pointed generally toward the field or would
-				// intercept inside the stabilized final segment.
-				if finalPoint, ok := visualRoutePointAtDistance(projection.route, 3, nmPerLong); ok {
-					joinPoint = finalPoint
-				} else {
-					joinPoint = projection
-				}
-			} else {
-				bearingToProjection := math.Heading2LL(nav.FlightState.Position, projection.location, nmPerLong)
-				if math.HeadingDifference(bearingToProjection, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
-					return nil
-				}
-				joinPoint = projection
-			}
-		}
+	joinHeading := nav.FlightState.Heading
+	if assignedHeading, ok := nav.AssignedHeading(); ok {
+		joinHeading = assignedHeading
 	}
 
-	if len(joinPoint.route) < 2 {
+	if followTraffic != nil {
+		var best visualApproachRoute
+		var bestRef *av.Approach
+		for _, ref := range references {
+			tp, ok := nav.projectOntoApproachRoutes(ref.Waypoints, *followTraffic)
+			if !ok {
+				continue
+			}
+			if bestRef == nil || tp.lateralDistance < best.lateralDistance {
+				best = tp
+				bestRef = ref
+			}
+		}
+		if bestRef == nil || best.distanceToThreshold <= 0.5 {
+			return nil
+		}
+		bearingToJoin := math.Heading2LL(nav.FlightState.Position, *followTraffic, nmPerLong)
+		if math.HeadingDifference(bearingToJoin, math.MagneticToTrue(joinHeading, magVar)) > 120 {
+			return nil
+		}
+		return &best
+	}
+
+	// Intercept along heading: pick the candidate that requires the gentlest
+	// turn (tier), breaking ties by smallest interceptDistance (soonest).
+	type intCand struct {
+		point visualApproachRoute
+		tier  int
+	}
+	var intercepts []intCand
+	for _, ref := range references {
+		for _, ip := range nav.collectHeadingInterceptCandidates(ref.Waypoints, joinHeading) {
+			if ip.distanceToThreshold <= 3 || ip.distanceToThreshold > 8 {
+				continue
+			}
+			segHdgTrue := math.Heading2LL(ip.route[ip.segment].Location, ip.route[ip.segment+1].Location, nmPerLong)
+			segHdg := math.TrueToMagnetic(segHdgTrue, magVar)
+			turnAngle := math.HeadingDifference(joinHeading, segHdg)
+			if turnAngle > 90 {
+				continue
+			}
+			var tier int
+			switch {
+			case turnAngle <= 30:
+				tier = 1
+			case turnAngle <= 60:
+				tier = 2
+			default:
+				tier = 3
+			}
+			intercepts = append(intercepts, intCand{point: ip, tier: tier})
+		}
+	}
+	if len(intercepts) > 0 {
+		best := intercepts[0]
+		for _, c := range intercepts[1:] {
+			if c.tier < best.tier ||
+				(c.tier == best.tier && c.point.interceptDistance < best.point.interceptDistance) {
+				best = c
+			}
+		}
+		return &best.point
+	}
+
+	// Projection fallback: pick the reference whose route is closest laterally to the aircraft.
+	type projCand struct {
+		proj visualApproachRoute
+		ref  *av.Approach
+	}
+	var projections []projCand
+	for _, ref := range references {
+		proj, ok := nav.projectOntoApproachRoutes(ref.Waypoints, nav.FlightState.Position)
+		if !ok || proj.distanceToThreshold <= 0.5 {
+			continue
+		}
+		projections = append(projections, projCand{proj: proj, ref: ref})
+	}
+	if len(projections) == 0 {
+		return nil
+	}
+	bestProj := projections[0]
+	for _, c := range projections[1:] {
+		if c.proj.lateralDistance < bestProj.proj.lateralDistance {
+			bestProj = c
+		}
+	}
+	projection := bestProj.proj
+
+	// Re-check intercept on the chosen reference for the "would intercept
+	// inside the stabilized final segment" branch.
+	hasNearIntercept := slices.ContainsFunc(
+		nav.collectHeadingInterceptCandidates(bestProj.ref.Waypoints, joinHeading),
+		func(ip visualApproachRoute) bool {
+			return ip.distanceToThreshold <= 3
+		})
+
+	headingDir := math.HeadingVector(math.MagneticToTrue(joinHeading, magVar))
+	threshold := projection.route[len(projection.route)-1].Location
+	thresholdDir := math.Normalize2f(math.Sub2f(
+		math.LL2NM(threshold, nmPerLong),
+		math.LL2NM(nav.FlightState.Position, nmPerLong)))
+
+	if hasNearIntercept || math.Dot(headingDir, thresholdDir) >= 0 {
+		// Join at the route-equivalent 3nm point if the aircraft
+		// is already pointed generally toward the field or would
+		// intercept inside the stabilized final segment.
+		if finalPoint, ok := visualRoutePointAtDistance(projection.route, 3, nmPerLong); ok {
+			return &finalPoint
+		}
+		return &projection
+	}
+
+	bearingToProjection := math.Heading2LL(nav.FlightState.Position, projection.location, nmPerLong)
+	if math.HeadingDifference(bearingToProjection, math.MagneticToTrue(joinHeading, magVar)) > 90 {
+		return nil
+	}
+	return &projection
+}
+
+func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *math.Point2LL, references []*av.Approach) []av.Waypoint {
+	nmPerLong := nav.FlightState.NmPerLongitude
+
+	joinPoint := nav.selectVisualApproachRoute(followTraffic, references)
+	if joinPoint == nil || len(joinPoint.route) < 2 {
 		return nil
 	}
 
+	rwy, _ := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	finalPoint, hasFinalPoint := visualRoutePointAtDistance(joinPoint.route, 3, nmPerLong)
 	alt := rwy.Elevation + rwy.ThresholdCrossingHeight
 	final3nmAlt := float32(rwy.Elevation) + 900
@@ -990,25 +998,38 @@ func (nav *Nav) visualApproachRouteFromApproach(runway string, followTraffic *ma
 	if len(wps) == 0 {
 		return nil
 	}
-	return finalizeVisualApproachWaypoints(wps, alt)
+
+	// A few things at the last waypoint
+	last := &wps[len(wps)-1]
+	last.SetOnApproach(true)
+	last.SetLand(true)
+	last.SetFlyOver(true)
+	if last.AltitudeRestriction() == nil {
+		last.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(alt)))
+	}
+	for i := range wps {
+		wps[i].SetOnApproach(true)
+	}
+	return wps
 }
 
 func (nav *Nav) visualApproachRouteFollowingTraffic(runway string, trafficPosition math.Point2LL, trafficRoute av.WaypointArray) []av.Waypoint {
-	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
-	if !ok || len(trafficRoute) == 0 {
+	if len(trafficRoute) == 0 {
 		return nil
 	}
 
 	// trafficRoute is the traffic aircraft's Waypoints, which ends with
 	// the destination airport appended after the threshold; drop the
-	// airport so the threshold is the route's final point and
-	// finalizeVisualApproachWaypoints flags it correctly.
+	// airport so the threshold is the route's final point.
 	trafficRoute = trafficRoute[:len(trafficRoute)-1]
+	if len(trafficRoute) == 0 {
+		return nil
+	}
 
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
 	bearingToTraffic := math.Heading2LL(nav.FlightState.Position, trafficPosition, nmPerLong)
-	if math.HeadingDifference(bearingToTraffic, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 120 {
+	if math.HeadingDifference(bearingToTraffic, math.MagneticToTrue(nav.FlightState.Heading, magVar)) > 90 {
 		return nil
 	}
 	if math.NMDistance2LLFast(trafficPosition, trafficRoute[len(trafficRoute)-1].Location, nmPerLong) <= 0.5 {
@@ -1021,75 +1042,25 @@ func (nav *Nav) visualApproachRouteFollowingTraffic(runway string, trafficPositi
 	}
 	join.SetOnApproach(true)
 
-	wps := av.WaypointArray{join}
-	wps = append(wps, util.DuplicateSlice(trafficRoute)...)
-	return finalizeVisualApproachWaypoints(wps, rwy.Elevation+rwy.ThresholdCrossingHeight)
+	return append([]av.Waypoint{join}, trafficRoute...)
 }
 
-func finalizeVisualApproachWaypoints(wps av.WaypointArray, thresholdAltitude int) av.WaypointArray {
-	last := &wps[len(wps)-1]
-	last.SetOnApproach(true)
-	last.SetLand(true)
-	last.SetFlyOver(true)
-	if last.AltitudeRestriction() == nil {
-		last.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(thresholdAltitude)))
-	}
-	for i := range wps {
-		wps[i].SetOnApproach(true)
-	}
-	return wps
-}
-
-// setVisualApproach populates nav.Approach with metadata for a visual
-// approach to runway, using the given waypoints if provided.
-func (nav *Nav) setVisualApproach(runway string, waypoints []av.Waypoint) bool {
-	rwy, ok := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
-	if !ok {
-		return false
-	}
-	opp, ok := av.LookupOppositeRunway(nav.FlightState.ArrivalAirport.Fix, runway)
-	if !ok {
-		opp.Threshold = rwy.Threshold
-	}
-
-	nav.Approach.Assigned = &av.Approach{
-		Id:                "VIS" + runway,
-		FullName:          "Visual Approach Runway " + runway,
-		Type:              av.VisualApproach,
-		Runway:            runway,
-		Threshold:         rwy.Threshold,
-		OppositeThreshold: opp.Threshold,
-	}
-	if len(waypoints) > 0 {
-		nav.Approach.Assigned.Waypoints = []av.WaypointArray{util.DuplicateSlice(waypoints)}
-	}
-	nav.Approach.AssignedId = "VIS" + runway
-	nav.Approach.Cleared = true
-	return true
-}
-
-// FollowTraffic describes a leader aircraft to sequence behind on a visual
-// approach. Route (when non-empty) is the leader's own waypoints, used for
-// tight in-trail spacing; Position alone is used as a join-point override
-// on the reference approach.
+// FollowTraffic describes a leader aircraft to sequence behind on a visual approach. Route (when
+// non-empty) is the leader's own waypoints, used for tight in-trail spacing; Position alone is used
+// as a join-point override on the reference approach.
 type FollowTraffic struct {
 	Position math.Point2LL
 	Route    av.WaypointArray
 }
 
-// ClearedVisualApproach sets up the aircraft to fly a visual approach to the
-// runway threshold. When follow is non-nil and has a Route, it first tries
-// tight in-trail sequencing along the leader's route; if that's not
-// geometrically viable, or follow has only a Position, it falls back to
-// reference-approach geometry (using Position as a join-point override).
-// When referenceApproach is nil or yields no viable route, it synthesizes a
-// straight-in final from runway data. Returns (intent, true) on success, or
-// (nil, false) if no viable route can be built (unknown runway or aircraft
-// too close for a stable approach).
-func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, referenceApproach *av.Approach, lahsoRunway string, simTime time.Time) av.CommandIntent {
+// ClearedVisualApproach sets up the aircraft to fly a visual approach to the runway threshold. When
+// follow is non-nil and has a Route, it first tries tight in-trail sequencing along the leader's
+// route; if that's not geometrically viable, or follow has only a Position, it falls back to
+// reference-approach geometry using Position as a join-point override.
+func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, refs []*av.Approach, lahsoRunway string, _ Time) av.CommandIntent {
 	if follow != nil && len(follow.Route) > 0 {
 		if wps := nav.visualApproachRouteFollowingTraffic(runway, follow.Position, follow.Route); wps != nil {
-			return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
+			return nav.clearedVisualApproach(runway, lahsoRunway, wps)
 		}
 	}
 
@@ -1097,33 +1068,47 @@ func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, refe
 	if follow != nil {
 		joinPos = &follow.Position
 	}
-	wps := nav.visualApproachRoute(runway, joinPos, referenceApproach)
+	wps := nav.visualApproachRouteFromReferences(runway, joinPos, refs)
 	if wps == nil {
 		return av.MakeUnableIntent("unable, we don't know runway " + runway)
 	}
 
-	return nav.clearedVisualApproach(runway, lahsoRunway, simTime, wps)
+	return nav.clearedVisualApproach(runway, lahsoRunway, wps)
 }
 
-func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, simTime time.Time, wi []av.Waypoint) av.CommandIntent {
+func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, wps []av.Waypoint) av.CommandIntent {
 	// Cancel hold before clearing nav state.
 	cancelHold := nav.Heading.Hold != nil
 	if nav.Heading.Hold != nil {
 		nav.Heading.Hold.Cancel = true
 	}
 
-	nav.Waypoints = append(wi, nav.FlightState.ArrivalAirport)
+	nav.Waypoints = append(wps, nav.FlightState.ArrivalAirport)
+
+	rwy, _ := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
+	opp, ok := av.LookupOppositeRunway(nav.FlightState.ArrivalAirport.Fix, runway)
+	if !ok {
+		opp.Threshold = rwy.Threshold
+	}
+
+	// Visual approaches are different in that their route is only finally set once they are cleared
+	// for the approach.
+	nav.Approach.Assigned = &av.Approach{
+		Id:                "VIS" + runway,
+		FullName:          "Visual Approach Runway " + runway,
+		Type:              av.VisualApproach,
+		Runway:            runway,
+		Threshold:         rwy.Threshold,
+		OppositeThreshold: opp.Threshold,
+		Waypoints:         []av.WaypointArray{util.DuplicateSlice(wps)},
+	}
+	nav.Approach.AssignedId = nav.Approach.Assigned.Id
+
 	nav.Heading = NavHeading{}
 	nav.DeferredNavHeading = nil
-
-	// Populate nav.Approach so downstream consumers (go-around,
-	// spacing checks, landing bookkeeping, departure scheduling) have
-	// the runway data they need.
-	nav.setVisualApproach(runway, wi)
-
-	// Mark as cleared and allow descent.
 	nav.Altitude = NavAltitude{}
 	nav.Speed = NavSpeed{}
+	nav.Approach.Cleared = true
 
 	return av.ClearedApproachIntent{
 		Approach:    "Visual Approach Runway " + runway,

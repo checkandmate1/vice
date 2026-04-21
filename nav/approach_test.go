@@ -12,6 +12,86 @@ import (
 	"github.com/mmp/vice/math"
 )
 
+func TestSelectVisualApproachRouteUsesLaterViableIntercept(t *testing.T) {
+	nmPerLong := float32(60)
+	n := Nav{
+		FlightState: FlightState{
+			Position:          math.NM2LL([2]float32{1, -1}, nmPerLong),
+			Heading:           225,
+			NmPerLongitude:    nmPerLong,
+			MagneticVariation: 0,
+		},
+	}
+
+	ref := &av.Approach{
+		Type:      av.RNAVApproach,
+		Runway:    "36",
+		Threshold: math.NM2LL([2]float32{0, 0}, nmPerLong),
+		Waypoints: []av.WaypointArray{{
+			{Fix: "BASE0", Location: math.NM2LL([2]float32{1, -4}, nmPerLong)},
+			{Fix: "BASE1", Location: math.NM2LL([2]float32{-2, -4}, nmPerLong)},
+			{Fix: "DOGLEG0", Location: math.NM2LL([2]float32{-2, -2}, nmPerLong)},
+			{Fix: "DOGLEG1", Location: math.NM2LL([2]float32{0, -2}, nmPerLong)},
+			{Fix: "RW36", Location: math.NM2LL([2]float32{0, 0}, nmPerLong)},
+		}},
+	}
+
+	join := n.selectVisualApproachRoute(nil, []*av.Approach{ref})
+	if join == nil {
+		t.Fatal("expected visual join candidate")
+	}
+
+	got := math.LL2NM(join.location, nmPerLong)
+	want := [2]float32{-2, -4}
+	if math.Distance2f(got, want) > 0.05 {
+		t.Fatalf("join = %.2f, %.2f; want later viable intercept near %.2f, %.2f",
+			got[0], got[1], want[0], want[1])
+	}
+	if join.segment != 0 {
+		t.Fatalf("segment = %d, want 0 for the base segment", join.segment)
+	}
+}
+
+func TestPrepareForChartedVisualSkipsBehindSegmentIntercept(t *testing.T) {
+	nmPerLong := float32(60)
+	n := Nav{
+		FlightState: FlightState{
+			Position:       math.NM2LL([2]float32{0, 0}, nmPerLong),
+			Heading:        90,
+			NmPerLongitude: nmPerLong,
+			ArrivalAirport: av.Waypoint{Fix: "KTEST"},
+		},
+		Approach: NavApproach{
+			Assigned: &av.Approach{
+				Type:   av.ChartedVisualApproach,
+				Runway: "09",
+				Waypoints: []av.WaypointArray{{
+					{Fix: "A", Location: math.NM2LL([2]float32{-1, -1}, nmPerLong)},
+					{Fix: "B", Location: math.NM2LL([2]float32{-1, 1}, nmPerLong)},
+					{Fix: "C", Location: math.NM2LL([2]float32{1, 1}, nmPerLong)},
+					{Fix: "D", Location: math.NM2LL([2]float32{1, -1}, nmPerLong)},
+				}},
+			},
+		},
+	}
+
+	intent := n.prepareForChartedVisual()
+	if _, unable := intent.(av.UnableIntent); unable {
+		t.Fatalf("unexpected unable intent: %v", intent)
+	}
+	if len(n.Waypoints) < 2 {
+		t.Fatalf("waypoints = %v", n.Waypoints)
+	}
+	if n.Waypoints[0].Fix != "intercept" {
+		t.Fatalf("first waypoint = %q, want intercept", n.Waypoints[0].Fix)
+	}
+
+	intercept := math.LL2NM(n.Waypoints[0].Location, nmPerLong)
+	if math.Abs(intercept[0]-1) > 0.05 || math.Abs(intercept[1]) > 0.05 {
+		t.Fatalf("intercept = %.2f, %.2f; want near 1.00, 0.00", intercept[0], intercept[1])
+	}
+}
+
 // TestDirectToApproachFixNoDescentWithoutClearance verifies that going
 // direct to a fix on the approach does NOT cause descent unless the
 // approach has been cleared (regression test for 36b2bd31).
