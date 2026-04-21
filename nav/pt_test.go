@@ -112,9 +112,8 @@ func makePTFlight(t *testing.T, routeStr string, alt, speed float32) *FlightTest
 
 	// Set up approach state: assigned and cleared.
 	n.Approach = NavApproach{
-		Assigned:   ap,
-		AssignedId: "TEST",
-		Cleared:    true,
+		Assigned: ap,
+		Cleared:  true,
 	}
 
 	fp := av.FlightPlan{

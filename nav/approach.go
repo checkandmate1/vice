@@ -279,7 +279,7 @@ func (nav *Nav) ExpectApproach(airport *av.Airport, id string, runwayWaypoints m
 		return av.MakeUnableIntent("unable. We don't know the {appr} approach.", id)
 	}
 
-	if id == nav.Approach.AssignedId && nav.Approach.Assigned != nil {
+	if nav.Approach.Assigned != nil && nav.Approach.Assigned.Id == id {
 		nav.Approach.StandbyApproach = true
 		return av.ApproachIntent{
 			Type:         av.ApproachExpect,
@@ -289,7 +289,6 @@ func (nav *Nav) ExpectApproach(airport *av.Airport, id string, runwayWaypoints m
 	}
 
 	nav.Approach.Assigned = ap
-	nav.Approach.AssignedId = id
 	nav.Approach.ATPAVolume = airport.ATPAVolumes[ap.Runway]
 
 	if waypoints := runwayWaypoints[ap.Runway]; len(waypoints) > 0 {
@@ -369,7 +368,7 @@ func (nav *Nav) ExpectApproach(airport *av.Airport, id string, runwayWaypoints m
 }
 
 func (nav *Nav) InterceptApproach(airport string, lg *log.Logger) av.CommandIntent {
-	if nav.Approach.AssignedId == "" {
+	if nav.Approach.Assigned == nil {
 		return av.MakeUnableIntent("unable. you never told us to expect an approach")
 	}
 
@@ -398,15 +397,11 @@ func (nav *Nav) InterceptApproach(airport string, lg *log.Logger) av.CommandInte
 }
 
 func (nav *Nav) AtFixCleared(fix, id string, straightIn bool) av.CommandIntent {
-	if nav.Approach.AssignedId == "" {
-		return av.MakeUnableIntent("unable. you never told us to expect an approach")
-	}
-
 	ap := nav.Approach.Assigned
 	if ap == nil {
 		return av.MakeUnableIntent("unable. We were never told to expect an approach")
 	}
-	if id != "" && nav.Approach.AssignedId != id {
+	if id != "" && ap.Id != id {
 		return av.MakeUnableIntent("unable. We were told to expect the {appr} approach.", ap.FullName)
 	}
 
@@ -438,10 +433,6 @@ func (nav *Nav) AtFixCleared(fix, id string, straightIn bool) av.CommandIntent {
 }
 
 func (nav *Nav) AtFixIntercept(fix, airport string, lg *log.Logger) av.CommandIntent {
-	if nav.Approach.AssignedId == "" {
-		return av.MakeUnableIntent("unable. you never told us to expect an approach")
-	}
-
 	ap := nav.Approach.Assigned
 	if ap == nil {
 		return av.MakeUnableIntent("unable. We were never told to expect an approach")
@@ -463,7 +454,7 @@ func (nav *Nav) AtFixIntercept(fix, airport string, lg *log.Logger) av.CommandIn
 }
 
 func (nav *Nav) prepareForApproach(straightIn bool) av.CommandIntent {
-	if nav.Approach.AssignedId == "" {
+	if nav.Approach.Assigned == nil {
 		return av.MakeUnableIntent("unable. you never told us to expect an approach")
 	}
 
@@ -630,7 +621,7 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 	if ap == nil {
 		return av.MakeUnableIntent("unable. We haven't been told to expect an approach")
 	}
-	if id != "" && nav.Approach.AssignedId != id {
+	if id != "" && ap.Id != id {
 		return av.MakeUnableIntent("unable. We were told to expect the {appr} approach.", ap.FullName)
 	}
 
@@ -1102,7 +1093,6 @@ func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, wps []a
 		OppositeThreshold: opp.Threshold,
 		Waypoints:         []av.WaypointArray{util.DuplicateSlice(wps)},
 	}
-	nav.Approach.AssignedId = nav.Approach.Assigned.Id
 
 	nav.Heading = NavHeading{}
 	nav.DeferredNavHeading = nil

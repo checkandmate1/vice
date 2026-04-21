@@ -2297,12 +2297,12 @@ func (ac *Aircraft) canRequestVisualApproach() bool {
 	if ac.IsDeparture() || ac.FieldInSight || ac.RequestedVisual || ac.ControllerFrequency == "" {
 		return false
 	}
-	if ac.Nav.Approach.AssignedId == "" || ac.Nav.Approach.Cleared {
+	if ac.Nav.Approach.Assigned == nil || ac.Nav.Approach.Cleared {
 		return false
 	}
 	appr := ac.Nav.Approach.Assigned
 	// Already on a visual — nothing to request.
-	return appr != nil && appr.Type != av.ChartedVisualApproach
+	return appr.Type != av.ChartedVisualApproach
 }
 
 type visualEligibilityReason int
@@ -3886,8 +3886,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			return s.ExpectApproach(tcw, callsign, approach, lahsoRunway)
 		} else if command == "E" {
 			// Bare "E" re-issues expect for the already-assigned approach
-			if ac, ok := s.Aircraft[callsign]; ok && ac.Nav.Approach.AssignedId != "" {
-				return s.ExpectApproach(tcw, callsign, ac.Nav.Approach.AssignedId, "")
+			if ac, ok := s.Aircraft[callsign]; ok && ac.Nav.Approach.Assigned != nil {
+				return s.ExpectApproach(tcw, callsign, ac.Nav.Approach.Assigned.Id, "")
 			}
 			return av.MakeUnableIntent("unable. We haven't been told to expect an approach"), nil
 		} else {

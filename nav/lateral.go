@@ -399,8 +399,8 @@ func (nav *Nav) updateWaypoints(callsign string, wxs wx.Sample, fp *av.FlightPla
 		}
 
 		if wp.ClearApproach() {
-			if fp != nil {
-				_ = nav.ClearedApproach(fp.ArrivalAirport, nav.Approach.AssignedId, false, simTime)
+			if fp != nil && nav.Approach.Assigned != nil {
+				_ = nav.ClearedApproach(fp.ArrivalAirport, nav.Approach.Assigned.Id, false, simTime)
 			}
 		}
 
