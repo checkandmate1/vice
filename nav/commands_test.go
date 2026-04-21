@@ -648,7 +648,6 @@ func setupClearedVisual(t *testing.T, runway string) *FlightTest {
 		Runway:    runway,
 		Threshold: rwy.Threshold,
 	}
-	f.nav.Approach.AssignedId = "VIS" + runway
 	f.nav.Approach.Cleared = true
 
 	return f
@@ -681,7 +680,6 @@ func TestCrossDMEAtRequiresVisualApproach(t *testing.T) {
 		Type:   av.VORApproach,
 		Runway: "22L",
 	}
-	f.nav.Approach.AssignedId = "V22L"
 	f.nav.Approach.Cleared = true
 	AssertUnable(t, f.nav.CrossDMEAt(10, &ar, nil))
 }

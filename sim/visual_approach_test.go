@@ -76,8 +76,8 @@ func NewVisualScenario(t *testing.T, airportLoc math.Point2LL, runway string, ac
 				ArrivalAirportElevation: 13,
 			},
 			Approach: nav.NavApproach{
-				AssignedId: "I" + runway,
 				Assigned: &av.Approach{
+					Id:     "I" + runway,
 					Type:   av.ILSApproach,
 					Runway: runway,
 				},
@@ -254,8 +254,8 @@ func makeVisualTestAircraftAlt(pos math.Point2LL, heading math.MagneticHeading, 
 				MagneticVariation: 0,
 			},
 			Approach: nav.NavApproach{
-				AssignedId: "I13L",
 				Assigned: &av.Approach{
+					Id:     "I13L",
 					Type:   av.ILSApproach,
 					Runway: "13L",
 				},
@@ -481,7 +481,6 @@ func TestCanRequestVisualApproach(t *testing.T) {
 			name: "No approach assigned",
 			ac: func() *Aircraft {
 				ac := makeVisualTestAircraft(math.Point2LL{}, 180)
-				ac.Nav.Approach.AssignedId = ""
 				ac.Nav.Approach.Assigned = nil
 				return ac
 			}(),
@@ -667,8 +666,7 @@ func TestVisualApproachWaypoints(t *testing.T) {
 					ArrivalAirport:    av.Waypoint{Fix: "KTEST"},
 				},
 				Approach: nav.NavApproach{
-					AssignedId: "V36",
-					Assigned:   &av.Approach{Type: av.ChartedVisualApproach, Runway: "36"},
+					Assigned: &av.Approach{Id: "V36", Type: av.ChartedVisualApproach, Runway: "36"},
 				},
 			}
 			if tt.assigned != nil {
@@ -865,8 +863,7 @@ func TestVisualApproachFollowingTrafficTurnsBase(t *testing.T) {
 			ArrivalAirport:    av.Waypoint{Fix: "KTEST"},
 		},
 		Approach: nav.NavApproach{
-			AssignedId: "V36",
-			Assigned:   &av.Approach{Type: av.ChartedVisualApproach, Runway: "36"},
+			Assigned: &av.Approach{Id: "V36", Type: av.ChartedVisualApproach, Runway: "36"},
 		},
 	}
 
@@ -1453,7 +1450,6 @@ func TestScenarioCVATooCloseIsUnable(t *testing.T) {
 	vs := NewVisualScenario(t, airportLoc, "36", math.Point2LL{0, 1.0 / 60}, 360)
 	vs.AC.FieldInSight = true
 	vs.AC.Nav.Approach.Assigned = nil
-	vs.AC.Nav.Approach.AssignedId = ""
 
 	intent, err := vs.ClearedVisual("36")
 	if err != nil {
