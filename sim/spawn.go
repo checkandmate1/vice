@@ -629,3 +629,16 @@ func getAircraftTime(now Time, r *rand.Rand) Time {
 
 	return t
 }
+
+type DepartureRunway struct {
+	Airport     string      `json:"airport"`
+	Runway      av.RunwayID `json:"runway"`
+	Category    string      `json:"category,omitempty"`
+	DefaultRate int         `json:"rate"`
+}
+
+type ArrivalRunway struct {
+	Airport  string             `json:"airport"`
+	Runway   av.RunwayID        `json:"runway"`
+	GoAround *GoAroundProcedure `json:"go_around,omitempty"`
+}
