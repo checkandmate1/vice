@@ -5,7 +5,6 @@
 package sim
 
 import (
-	"cmp"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -133,83 +132,6 @@ type Sim struct {
 type LastSTTCommand struct {
 	Callsign    av.ADSBCallsign
 	NavSnapshot nav.NavSnapshot
-}
-
-type AircraftDisplayState struct {
-	Spew        string // for debugging
-	FlightState string // for display when paused
-}
-
-type Track struct {
-	av.RadarTrack
-
-	FlightPlan          *NASFlightPlan
-	ControllerFrequency ControlPosition
-
-	// Sort of hacky to carry these along here but it's convenient...
-	DepartureAirport          string
-	DepartureAirportElevation float32
-	DepartureAirportLocation  math.Point2LL
-	ArrivalAirport            string
-	ArrivalAirportElevation   float32
-	ArrivalAirportLocation    math.Point2LL
-	FiledRoute                string
-	FiledAltitude             int
-	OnExtendedCenterline      bool
-	OnApproach                bool
-	ClearedForApproach        bool
-	Approach                  string   // Full name of assigned approach, if any
-	Fixes                     []string // Relevant fix names for STT
-	SID                       string
-	STAR                      string
-	ATPAVolume                *av.ATPAVolume
-	MVAsApply                 bool
-	HoldForRelease            bool
-	MissingFlightPlan         bool
-	Route                     []math.Point2LL
-	IsTentative               bool   // first 5 seconds after first contact
-	CWTCategory               string // True CWT from aircraft performance DB, not from NAS flight plan
-	RequestedFlightFollowing  bool   // VFR aircraft that has requested flight following
-}
-
-type DepartureRunway struct {
-	Airport     string      `json:"airport"`
-	Runway      av.RunwayID `json:"runway"`
-	Category    string      `json:"category,omitempty"`
-	DefaultRate int         `json:"rate"`
-}
-
-// GoAroundProcedure defines go-around parameters for a specific arrival runway.
-type GoAroundProcedure struct {
-	Heading           int      `json:"heading"` // degrees 1-360; 0 (or unset) means runway heading
-	IsRunwayHeading   bool     // true when heading was 0 (runway heading) before resolution
-	Altitude          int      `json:"altitude"`           // feet, e.g., 2000, 3000
-	HandoffController TCP      `json:"handoff_controller"` // TCP (e.g., "1D")
-	HoldDepartures    []string `json:"hold_departures"`    // runways to hold, empty = no holds
-}
-
-type ArrivalRunway struct {
-	Airport  string             `json:"airport"`
-	Runway   av.RunwayID        `json:"runway"`
-	GoAround *GoAroundProcedure `json:"go_around,omitempty"`
-}
-
-type Handoff struct {
-	AutoAcceptTime    Time
-	ReceivingFacility string // only for auto accept
-}
-
-type PointOut struct {
-	FromController ControlPosition
-	ToController   ControlPosition
-	AcceptTime     Time
-}
-
-type PilotSpeech struct {
-	Callsign av.ADSBCallsign
-	Type     av.RadioTransmissionType
-	Text     string
-	SimTime  Time // Virtual simulation time when transmission was made
 }
 
 // NewSimConfiguration collects all of the information required to create a new Sim
@@ -619,426 +541,6 @@ func (s *Sim) SetSimRate(tcw TCW, rate float32) error {
 
 	s.lg.Infof("sim rate set to %f", s.State.SimRate)
 	return nil
-}
-
-func (s *Sim) GlobalMessage(tcw TCW, message string) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	s.eventStream.Post(Event{
-		Type:           GlobalMessageEvent,
-		WrittenText:    message,
-		FromController: s.State.PrimaryPositionForTCW(tcw),
-	})
-}
-
-func (s *Sim) CreateRestrictionArea(ra av.RestrictionArea) (int, error) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	ra.UpdateTriangles()
-
-	// Find the smallest unused key in 1-MaxRestrictionAreas (user range)
-	for key := 1; key <= av.MaxRestrictionAreas; key++ {
-		if _, exists := s.State.RestrictionAreas[key]; !exists {
-			s.State.RestrictionAreas[key] = ra
-			return key, nil
-		}
-	}
-
-	return 0, ErrTooManyRestrictionAreas
-}
-
-func (s *Sim) UpdateRestrictionArea(idx int, ra av.RestrictionArea) error {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	if idx < 1 || idx > av.MaxRestrictionAreas {
-		return ErrInvalidRestrictionAreaIndex
-	}
-	if _, exists := s.State.RestrictionAreas[idx]; !exists {
-		return ErrInvalidRestrictionAreaIndex
-	}
-
-	// Update the triangulation just in case it's been moved.
-	ra.UpdateTriangles()
-
-	s.State.RestrictionAreas[idx] = ra
-	return nil
-}
-
-func (s *Sim) DeleteRestrictionArea(idx int) error {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	if idx < 1 || idx > av.MaxRestrictionAreas {
-		return ErrInvalidRestrictionAreaIndex
-	}
-	if _, exists := s.State.RestrictionAreas[idx]; !exists {
-		return ErrInvalidRestrictionAreaIndex
-	}
-
-	delete(s.State.RestrictionAreas, idx)
-	return nil
-}
-
-type ATPAConfigOp int
-
-const (
-	ATPAEnable ATPAConfigOp = iota
-	ATPADisable
-	ATPAEnableVolume
-	ATPADisableVolume
-	ATPAEnableReduced25
-	ATPADisableReduced25
-)
-
-func (s *Sim) ConfigureATPA(op ATPAConfigOp, volumeId string) (string, error) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	if len(s.State.ATPAVolumeState) == 0 { // no volumes adapted
-		return "", ErrATPADisabled
-	}
-
-	// 8.38 Enable/disable ATPA system-wide
-	if op == ATPAEnable {
-		if s.State.ATPAEnabled {
-			return "NO CHANGE", nil
-		}
-
-		s.State.ATPAEnabled = true
-		// Reset all volume states to defaults
-		for _, airportState := range s.State.ATPAVolumeState {
-			for _, volState := range airportState {
-				volState.Disabled = false
-				volState.Reduced25Disabled = false
-			}
-		}
-		return "ATPA ENABLED", nil
-	} else if op == ATPADisable {
-		if !s.State.ATPAEnabled {
-			return "NO CHANGE", nil
-		}
-		s.State.ATPAEnabled = false
-		return "ATPA INHIBITED", nil
-	}
-
-	// All other ops need ATPA enabled and a valid volume.
-	if !s.State.ATPAEnabled {
-		return "", ErrATPADisabled
-	}
-
-	airport := s.State.FindAirportForATPAVolume(volumeId)
-	if airport == "" {
-		return "", ErrInvalidVolumeId
-	}
-	vol := s.State.Airports[airport].ATPAVolumes[volumeId]
-	volState := s.State.ATPAVolumeState[airport][volumeId]
-
-	// 8.39: Enable/disable ATPA approach volume
-	if op == ATPAEnableVolume {
-		if !volState.Disabled {
-			return "NO CHANGE", nil
-		}
-		volState.Disabled = false
-		volState.Reduced25Disabled = false
-		return volumeId + " ENABLED", nil
-	} else if op == ATPADisableVolume {
-		if volState.Disabled {
-			return "NO CHANGE", nil
-		}
-		volState.Disabled = true
-		return volumeId + " INHIBITED", nil
-	}
-
-	// 8.40: Enable/disable 2.5nm reduced separation for volume
-	if !vol.Enable25nmApproach {
-		return "", ErrVolumeNot25nm
-	}
-	if volState.Disabled {
-		return "", ErrVolumeDisabled
-	}
-
-	if op == ATPAEnableReduced25 {
-		if !volState.Reduced25Disabled {
-			return "NO CHANGE", nil
-		}
-		volState.Reduced25Disabled = false
-		return volumeId + " 2.5 ENABLED", nil
-	} else if op == ATPADisableReduced25 {
-		if volState.Reduced25Disabled {
-			return "NO CHANGE", nil
-		}
-		volState.Reduced25Disabled = true
-		return volumeId + " 2.5 INHIBITED", nil
-	}
-
-	// Should not get here...
-	return "", nil
-}
-
-type FDAMConfigOp int
-
-const (
-	FDAMToggleSystem FDAMConfigOp = iota
-	FDAMEnableSystem
-	FDAMInhibitSystem
-	FDAMToggleRegion
-	FDAMEnableRegion
-	FDAMInhibitRegion
-	FDAMQueryStatus
-)
-
-func (s *Sim) ConfigureFDAM(op FDAMConfigOp, regionId string) (string, error) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	if len(s.State.FacilityAdaptation.Filters.FDAM) == 0 {
-		return "", ErrFDAMNoRegions
-	}
-
-	switch op {
-	case FDAMToggleSystem:
-		s.FDAMSystemInhibited = !s.FDAMSystemInhibited
-		return util.Select(s.FDAMSystemInhibited, "FLIGHT-DATA AUTO-MOD PROC OFF", "FLIGHT-DATA AUTO-MOD PROC ON"), nil
-	case FDAMEnableSystem:
-		s.FDAMSystemInhibited = false
-		return "FLIGHT-DATA AUTO-MOD PROC ON", nil
-	case FDAMInhibitSystem:
-		s.FDAMSystemInhibited = true
-		return "FLIGHT-DATA AUTO-MOD PROC OFF", nil
-	}
-
-	if s.FDAMSystemInhibited {
-		return "", ErrFDAMProcessingOff
-	}
-
-	if op == FDAMQueryStatus {
-		return s.fdamStatusString(), nil
-	}
-
-	if !s.State.FacilityAdaptation.Filters.FDAM.HaveId(regionId) {
-		return "", ErrFDAMIllegalArea
-	}
-
-	if s.DisabledFDAMRegions == nil {
-		s.DisabledFDAMRegions = make(map[string]struct{})
-	}
-
-	switch op {
-	case FDAMToggleRegion:
-		if _, ok := s.DisabledFDAMRegions[regionId]; ok {
-			delete(s.DisabledFDAMRegions, regionId)
-			return "REGION " + regionId + " ON", nil
-		}
-		s.DisabledFDAMRegions[regionId] = struct{}{}
-		return "REGION " + regionId + " OFF", nil
-	case FDAMEnableRegion:
-		delete(s.DisabledFDAMRegions, regionId)
-		return "REGION " + regionId + " ON", nil
-	case FDAMInhibitRegion:
-		s.DisabledFDAMRegions[regionId] = struct{}{}
-		return "REGION " + regionId + " OFF", nil
-	}
-	return "", nil
-}
-
-func (s *Sim) fdamStatusString() string {
-	var enabled, disabled []string
-	for _, f := range s.State.FacilityAdaptation.Filters.FDAM {
-		if _, ok := s.DisabledFDAMRegions[f.Id]; ok {
-			disabled = append(disabled, f.Id)
-		} else {
-			enabled = append(enabled, f.Id)
-		}
-	}
-
-	var output string
-	appendRegions := func(regions []string, header string) {
-		if len(regions) == 0 {
-			return
-		}
-		if output != "" {
-			output += "\n"
-		}
-		output += header + "\n"
-		slices.Sort(regions)
-		for i, id := range regions {
-			if i > 0 && i%5 == 0 {
-				output += "\n"
-			} else if i > 0 {
-				output += " "
-			}
-			output += id
-		}
-	}
-	appendRegions(enabled, "ENAB FLIGHT-DATA AUTO-MOD FLTRS")
-	appendRegions(disabled, "DISAB FLIGHT-DATA AUTO-MOD FLTRS")
-	return output
-}
-
-func (s *Sim) PostEvent(e Event) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	s.eventStream.Post(e)
-}
-
-func (s *Sim) UpdateATISGIText(_ TCW, line int, auxiliary bool, atis *string, text *string) error {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	// Main and auxiliary commands use different line domains even though they
-	// update the same shared arrays.
-	if auxiliary {
-		if line <= 0 || line >= len(s.State.ATIS) {
-			return ErrIllegalLine
-		}
-	} else if line != 0 {
-		return ErrIllegalLine
-	}
-	if atis != nil {
-		// nil means "leave ATIS unchanged"; empty string means "clear ATIS".
-		switch len(*atis) {
-		case 0:
-			s.State.ATIS[line] = ""
-		case 1:
-			if ch := (*atis)[0]; ch < 'A' || ch > 'Z' {
-				return ErrIllegalATIS
-			}
-			s.State.ATIS[line] = *atis
-		default:
-			return ErrIllegalATIS
-		}
-	}
-	if text != nil {
-		s.State.GIText[line] = *text
-	}
-
-	return nil
-}
-
-// GetUserState returns a deep copy of the simulation state for a client.
-// Server-only fields (like Airport.Departures) are pruned to reduce bandwidth.
-func (s *Sim) GetUserState() *UserState {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	state := UserState{
-		CommonState:  *s.State,
-		DerivedState: makeDerivedState(s),
-	}
-
-	// Make a deep copy so that any state changes after the lock is released aren't included.
-	state = deep.MustCopy(state)
-
-	// Prune server-only fields not needed by clients.
-	for _, ap := range state.Airports {
-		ap.Departures = nil
-	}
-
-	return &state
-}
-
-// GetControllerVideoMaps returns the video map configuration for the given TCW.
-// Priority: controller-specific config > area-level config > facility-level.
-func (s *Sim) GetControllerVideoMaps(tcw TCW) (videoMaps, defaultMaps []string, beaconCodes []av.Squawk) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	fa := &s.State.FacilityAdaptation
-
-	tcp := s.State.PrimaryPositionForTCW(tcw)
-
-	// First check controller-specific config.
-	if config, ok := fa.Controllers[tcp]; ok && len(config.VideoMapNames) > 0 {
-		return config.VideoMapNames, config.DefaultMaps, config.MonitoredBeaconCodeBlocks
-	}
-
-	// Fall back to area-level config.
-	if ctrl, ok := s.ControlPositions[tcp]; ok && ctrl.Area != "" {
-		if ac, ok := fa.Areas[ctrl.Area]; ok && len(ac.VideoMapNames) > 0 {
-			dm := s.State.ScenarioDefaultVideoMaps
-			if len(dm) == 0 {
-				dm = ac.DefaultMaps
-			}
-			return ac.VideoMapNames, dm, ac.MonitoredBeaconCodeBlocks
-		}
-	}
-
-	return nil, s.State.ScenarioDefaultVideoMaps, fa.MonitoredBeaconCodeBlocks
-}
-
-// GetControllerVideoMapFile returns the effective video map file for
-// the given TCW by resolving controller > area > facility priority.
-func (s *Sim) GetControllerVideoMapFile(tcw TCW) string {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	fa := &s.State.FacilityAdaptation
-	tcp := s.State.PrimaryPositionForTCW(tcw)
-
-	// Check controller-specific video_map_file first.
-	if config, ok := fa.Controllers[tcp]; ok && config.VideoMapFile != "" {
-		return config.VideoMapFile
-	}
-
-	if ctrl, ok := s.ControlPositions[tcp]; ok {
-		return fa.VideoMapFileForArea(ctrl.Area)
-	}
-	return fa.VideoMapFile
-}
-
-// GetDepartureController returns the TCP responsible for a departure given the
-// airport, runway, and SID. Checks in order: airport/SID, airport/runway, airport only.
-func (s *Sim) GetDepartureController(airport, runway, sid string) TCP {
-	if sid != "" {
-		if tcp, ok := s.DepartureAssignments[airport+"/"+sid]; ok {
-			return tcp
-		}
-	}
-	if runway != "" {
-		if tcp, ok := s.DepartureAssignments[airport+"/"+runway]; ok {
-			return tcp
-		}
-	}
-	if tcp, ok := s.DepartureAssignments[airport]; ok {
-		return tcp
-	}
-	return ""
-}
-
-// ScenarioRootPosition returns the root position from the scenario's default consolidation.
-func (s *Sim) ScenarioRootPosition() TCP {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	return s.scenarioRootPosition()
-}
-
-func (s *Sim) scenarioRootPosition() TCP {
-	if root, err := s.ScenarioDefaultConsolidation.RootPosition(); err != nil {
-		return ""
-	} else {
-		return root
-	}
-}
-
-// AllScenarioPositions returns all positions defined in the scenario's default consolidation.
-func (s *Sim) AllScenarioPositions() []TCP {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	return s.ScenarioDefaultConsolidation.AllPositions()
-}
-
-// GetTrafficCounts returns the current IFR and VFR traffic counts.
-func (s *Sim) GetTrafficCounts() (ifr, vfr int) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	return s.TotalIFR, s.TotalVFR
 }
 
 // prepareRadioTransmissions adds callsign/controller prefixes to radio transmissions.
@@ -1676,10 +1178,8 @@ func (s *Sim) updateState() {
 
 		s.processFutureEvents()
 
-		// Handle emergencies
 		s.updateEmergencies()
 
-		// Check for spacing violations on final approach
 		s.checkFinalApproachSpacing()
 
 		s.updatePatternPhases()
@@ -1711,469 +1211,6 @@ func (s *Sim) updateState() {
 			}
 		}
 	}
-}
-
-// processInterfacilityVFR handles auto-association of interfacility VFR
-// plans (5.5.13). When an unassociated LocalEnroute VFR plan shares an
-// ACID with an associated track, it means the interfacility VFR command
-// created a NAS VFR plan for that track. After a delay simulating ARTCC
-// processing, the VFR plan auto-associates with the track, replacing the
-// old local plan and transferring the NAS beacon code.
-func (s *Sim) processInterfacilityVFR(now Time) {
-	for i := len(s.STARSComputer.FlightPlans) - 1; i >= 0; i-- {
-		vfrFP := s.STARSComputer.FlightPlans[i]
-		if vfrFP.PlanType != LocalEnroute || vfrFP.Rules != av.FlightRulesVFR {
-			continue
-		}
-		if vfrFP.CoordinationTime.IsZero() || now.Sub(vfrFP.CoordinationTime) < 4*time.Second {
-			continue
-		}
-
-		// Find the associated track with matching ACID.
-		for _, ac := range s.Aircraft {
-			if !ac.IsAssociated() || ac.NASFlightPlan.ACID != vfrFP.ACID {
-				continue
-			}
-
-			// Clean up old local plan: return its local squawk to the pool.
-			oldFP := ac.NASFlightPlan
-			s.LocalCodePool.Return(oldFP.AssignedSquawk)
-			s.STARSComputer.returnListIndex(oldFP.ListIndex)
-			if s.CIDAllocator != nil && oldFP.CID != "" {
-				s.CIDAllocator.Release(oldFP.CID)
-			}
-			if oldFP.StripOwner != "" {
-				s.freeStripCID(oldFP.StripCID)
-			}
-
-			// Remove VFR plan from unassociated list and associate with track.
-			s.STARSComputer.FlightPlans = slices.Delete(s.STARSComputer.FlightPlans, i, i+1)
-			ac.AssociateFlightPlan(vfrFP)
-
-			s.eventStream.Post(Event{
-				Type: FlightPlanAssociatedEvent,
-				ACID: vfrFP.ACID,
-			})
-			break
-		}
-	}
-}
-
-func (s *Sim) RequestFlightFollowing() error {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	return s.requestRandomFlightFollowing()
-}
-
-func (s *Sim) TriggerEmergency(name string) {
-	s.mu.Lock(s.lg)
-	defer s.mu.Unlock(s.lg)
-
-	// Find the specified emergency type by name
-	if idx := slices.IndexFunc(s.State.Emergencies, func(em Emergency) bool { return em.Name == name }); idx == -1 {
-		s.lg.Error("triggerEmergency: emergency not found", "name", name)
-	} else {
-		s.triggerEmergency(idx)
-	}
-}
-
-func (s *Sim) requestRandomFlightFollowing() error {
-	candidates := make(map[*Aircraft]TCP)
-
-	for _, ac := range s.Aircraft {
-		if ac.IsAssociated() || ac.FlightPlan.Rules != av.FlightRulesVFR || ac.RequestedFlightFollowing || !ac.IsAirborne() {
-			continue
-		}
-		if ac.Altitude() < ac.DepartureAirportElevation()+500 &&
-			math.NMDistance2LL(ac.Position(), ac.DepartureAirportLocation()) < 1 {
-			// Barely off the ground at the departure airport.
-			continue
-		}
-		if math.NMDistance2LL(ac.Position(), ac.ArrivalAirportLocation()) < 15 {
-			// It's landing soon, so never mind.
-			continue
-		}
-		if ac.WillDoAirwork() {
-			// Aircraft doing airwork won't call in for flight following.
-			continue
-		}
-		if ac.TouchAndGosRemaining > 0 {
-			continue
-		}
-
-		for tcpStr, cc := range s.State.FacilityAdaptation.Controllers {
-			tcp := s.State.ResolveController(TCP(tcpStr))
-			if s.isVirtualController(tcp) {
-				continue
-			}
-			for _, vol := range cc.FlightFollowingAirspace {
-				if vol.Inside(ac.Position(), int(ac.Altitude())) {
-					candidates[ac] = tcp // first come, first served
-					break
-				}
-			}
-		}
-	}
-
-	if len(candidates) == 0 {
-		return ErrNoVFRAircraftForFlightFollowing
-	}
-
-	ac, ok := rand.SampleSeq(s.Rand, maps.Keys(candidates))
-	if !ok {
-		return ErrNoVFRAircraftForFlightFollowing
-	}
-
-	s.requestFlightFollowing(ac, candidates[ac])
-
-	return nil
-}
-
-func (s *Sim) possiblyRequestFlightFollowing() {
-	if s.prespawn || s.State.SimTime.Before(s.NextVFFRequest) {
-		return
-	}
-
-	// Attempt to find an aircraft and make a request
-	if err := s.requestRandomFlightFollowing(); err != nil {
-		// No candidates; back off a bit before trying again
-		s.NextVFFRequest = s.State.SimTime.Add(15 * time.Second)
-	} else {
-		s.NextVFFRequest = s.State.SimTime.Add(randomWait(float32(s.State.LaunchConfig.VFFRequestRate), false, s.Rand))
-	}
-}
-
-func (s *Sim) requestFlightFollowing(ac *Aircraft, tcp TCP) {
-	ac.RequestedFlightFollowing = true
-	ac.ControllerFrequency = ControlPosition(tcp)
-
-	// About 90% of the time, make an abbreviated request and wait for "go ahead"
-	if s.Rand.Float32() < 0.9 {
-		ac.WaitingForGoAhead = true
-		s.enqueuePilotTransmission(ac.ADSBCallsign, tcp, PendingTransmissionFlightFollowingReq)
-	} else {
-		// Full flight following request
-		s.enqueuePilotTransmission(ac.ADSBCallsign, tcp, PendingTransmissionFlightFollowingFull)
-	}
-}
-
-// generateFlightFollowingMessage creates the full flight following request message.
-// This is called on-demand to use current aircraft state.
-func (s *Sim) generateFlightFollowingMessage(ac *Aircraft) *av.RadioTransmission {
-	closestReportingPoint := func(ac *Aircraft) (string, string, float32, bool) {
-		var closest *av.VFRReportingPoint
-		dist := float32(1000000)
-		var center math.Point2LL
-		for _, rp := range s.VFRReportingPoints {
-			d := math.NMDistance2LL(ac.Position(), rp.Location)
-			if d != 0 && d < dist {
-				dist = d
-				center = rp.Location
-				closest = &rp
-			}
-		}
-
-		if closest != nil {
-			// Possibly override with the departure airport, if we're still
-			// close to it.  Note that we don't automatically consider the
-			// departure airport as a candidate as it may be well outside
-			// the TRACON.
-			if d := math.NMDistance2LL(ac.Position(), ac.DepartureAirportLocation()); d < dist {
-				hdg := math.Heading2LL(ac.DepartureAirportLocation(), ac.Position(), s.State.NmPerLongitude)
-				return ac.FlightPlan.DepartureAirport, math.Compass(hdg), d, true
-			} else {
-				hdg := math.Heading2LL(center, ac.Position(), s.State.NmPerLongitude)
-				return closest.Description, math.Compass(hdg), dist, false
-			}
-		}
-		return "", "", 0, false
-	}
-
-	rt := av.MakeContactTransmission("[we're a|] {actype}", ac.FlightPlan.AircraftType)
-
-	rpdesc, rpdir, dist, isap := closestReportingPoint(ac)
-	if math.NMDistance2LL(ac.Position(), ac.DepartureAirportLocation()) < 2 {
-		rt.Add("departing {airport}", ac.FlightPlan.DepartureAirport)
-	} else if dist < 1 {
-		if isap {
-			rt.Add("overhead {airport}", rpdesc)
-		} else {
-			rt.Add("overhead " + rpdesc)
-		}
-	} else {
-		nm := int(dist + 0.5)
-		var loc string
-		if nm == 1 {
-			loc = "one mile " + rpdir
-		} else {
-			loc = strconv.Itoa(int(dist+0.5)) + " miles " + rpdir
-		}
-		if isap {
-			rt.Add(loc+" of {airport}", rpdesc)
-		} else {
-			rt.Add(loc + " of " + rpdesc)
-		}
-	}
-
-	var alt *av.RadioTransmission
-	// Get the aircraft's target altitude from the navigation system
-	targetAlt, _, _ := ac.Nav.TargetAltitude()
-	currentAlt := ac.Altitude()
-
-	// Check if we're in a climb or descent (more than 100 feet difference)
-	if currentAlt < targetAlt {
-		// Report current altitude and target altitude when climbing or descending
-		alt = av.MakeContactTransmission("[at|] {alt} for {alt}", currentAlt, targetAlt)
-	} else {
-		// Just report current altitude if we're level
-		alt = av.MakeContactTransmission("at {alt}", currentAlt)
-	}
-	earlyAlt := s.Rand.Bool()
-	if earlyAlt {
-		rt.Merge(alt)
-	}
-
-	if s.Rand.Bool() {
-		// Heading only sometimes
-		rt.Add(math.Compass(ac.Heading()) + "bound")
-	}
-
-	rt.Add("[looking for flight-following|request flight-following|request radar advisories|request advisories] to {airport}",
-		ac.FlightPlan.ArrivalAirport)
-
-	if !earlyAlt {
-		rt.Merge(alt)
-	}
-
-	rt.Type = av.RadioTransmissionContact
-	return rt
-}
-
-func (s *Sim) contactDeparture(ac *Aircraft, fp *NASFlightPlan) {
-	tcp := fp.InboundHandoffController
-	s.lg.Debug("contacting departure controller", slog.String("tcp", string(tcp)))
-
-	// Mark as already contacted so we only send one contact message
-	ac.DepartureContactAltitude = -1
-
-	// Queue the contact (may be delayed due to radio activity)
-	s.enqueueDepartureContact(ac, tcp)
-}
-
-func (s *Sim) isRadarVisible(ac *Aircraft) bool {
-	filters := s.State.FacilityAdaptation.Filters
-	return !filters.SurfaceTracking.Inside(ac.Position(), int(ac.Altitude()))
-}
-
-func (s *Sim) goAround(ac *Aircraft) {
-	// Capture approach info before anything clears it.
-	approach := ac.Nav.Approach.Assigned
-	if approach == nil {
-		s.lg.Warn("goAround called without assigned approach",
-			slog.String("callsign", string(ac.ADSBCallsign)))
-		return
-	}
-	airport := ac.FlightPlan.ArrivalAirport
-	runway := approach.Runway
-
-	proc := s.getGoAroundProcedureForAircraft(ac)
-	if proc.HandoffController == "" {
-		proc.HandoffController = s.getGoAroundController(ac)
-	}
-
-	ac.WentAround = true
-	ac.GotContactTower = false
-	ac.SpacingGoAroundDeclined = false
-	ac.GoAroundOnRunwayHeading = proc.IsRunwayHeading
-
-	altitude := float32(proc.Altitude)
-
-	// Waypoint at the opposite threshold recording who to contact when it's reached.
-	wp := av.Waypoint{
-		Location:       approach.OppositeThreshold,
-		Flags:          av.WaypointFlagFlyOver | av.WaypointFlagHasAltRestriction,
-		Heading:        int16(proc.Heading),
-		AltRestriction: av.MakeAtAltitudeRestriction(altitude),
-		Extra: &av.WaypointExtra{
-			GoAroundContactController: proc.HandoffController,
-		},
-	}
-
-	ac.Nav.GoAroundWithProcedure(altitude, wp)
-
-	holdRunways := append([]string{runway}, proc.HoldDepartures...)
-	s.holdDeparturesForGoAround(airport, holdRunways, proc.HandoffController)
-}
-
-// getGoAroundController returns the TCP that should handle a go-around for the given aircraft.
-// Lookup priority: go_around_assignments for airport/runway, airport, then departure_assignments for airport.
-func (s *Sim) getGoAroundController(ac *Aircraft) TCP {
-	airport := ac.FlightPlan.ArrivalAirport
-	runway := ""
-	if ac.Nav.Approach.Assigned != nil {
-		runway = ac.Nav.Approach.Assigned.Runway
-	}
-
-	// Check go_around_assignments for specific runway
-	if runway != "" {
-		if tcp, ok := s.GoAroundAssignments[airport+"/"+runway]; ok {
-			return tcp
-		}
-	}
-
-	// Check go_around_assignments for airport
-	if tcp, ok := s.GoAroundAssignments[airport]; ok {
-		return tcp
-	}
-
-	// Fall back to departure_assignments for airport
-	if tcp, ok := s.DepartureAssignments[airport]; ok {
-		return tcp
-	}
-
-	// We shouldn't get here but just in case--current controller
-	return TCP(ac.ControllerFrequency)
-}
-
-// holdDeparturesForGoAround sets GoAroundHoldUntil on the specified runways and
-// posts a status message to the go-around controller.
-func (s *Sim) holdDeparturesForGoAround(airport string, holdRunways []string, goAroundTCP TCP) {
-	if len(holdRunways) == 0 {
-		return
-	}
-
-	depState, ok := s.DepartureState[airport]
-	if !ok {
-		return
-	}
-
-	holdUntil := s.State.SimTime.Add(time.Minute)
-
-	// Set the hold state on matching runways
-	for rwy, state := range depState {
-		rwyBase := rwy.Base()
-		for _, holdRwy := range holdRunways {
-			if rwyBase == av.RunwayID(holdRwy).Base() {
-				state.GoAroundHoldUntil = holdUntil
-				s.lg.Info("holding departures on runway due to go-around",
-					slog.String("airport", airport), slog.String("runway", rwyBase))
-			}
-		}
-	}
-
-	s.eventStream.Post(Event{
-		Type:         StatusMessageEvent,
-		ToController: ControlPosition(goAroundTCP),
-		WrittenText:  fmt.Sprintf("%s DEPARTURES HELD FOR 1 MINUTE", airport),
-	})
-}
-
-// getGoAroundProcedureForAircraft returns the go-around procedure defined for the
-// aircraft's arrival airport/runway, if one exists in the scenario's arrival_runways.
-func (s *Sim) getGoAroundProcedureForAircraft(ac *Aircraft) *GoAroundProcedure {
-	airport := ac.FlightPlan.ArrivalAirport
-	runway := ac.Nav.Approach.Assigned.Runway
-
-	// Find matching arrival runway with a go-around procedure
-	for _, ar := range s.State.ArrivalRunways {
-		if ar.Airport == airport && ar.Runway.Base() == runway && ar.GoAround != nil {
-			return ar.GoAround
-		}
-	}
-
-	approach := ac.Nav.Approach.Assigned
-	return &GoAroundProcedure{
-		Heading:           int(math.TrueToMagnetic(approach.RunwayHeading(s.State.NmPerLongitude), s.State.MagneticVariation) + 0.5),
-		IsRunwayHeading:   true,
-		Altitude:          1000 * int((ac.Nav.FlightState.ArrivalAirportElevation+2500)/1000),
-		HandoffController: s.getGoAroundController(ac),
-	}
-}
-
-// checkFinalApproachSpacing checks for spacing violations between IFR aircraft
-// on the same final approach and triggers go-arounds when separation is insufficient.
-func (s *Sim) checkFinalApproachSpacing() {
-	if !s.State.LaunchConfig.EnableTowerGoArounds {
-		return
-	}
-
-	type runwayKey struct{ airport, runway string }
-	aircraftByRunway := make(map[runwayKey][]*Aircraft)
-
-	// Group IFR aircraft with assigned approaches by airport+runway
-	for _, ac := range s.Aircraft {
-		// Only tower sends aircraft around; don't include ones that have already been sent around
-		// since presumably we'll have vertical separation soon if not already.
-		if ac.Nav.Approach.Assigned != nil && ac.GotContactTower && !ac.SentAroundForSpacing {
-			key := runwayKey{ac.FlightPlan.ArrivalAirport, ac.Nav.Approach.Assigned.Runway}
-			aircraftByRunway[key] = append(aircraftByRunway[key], ac)
-		}
-	}
-
-	for _, aircraft := range aircraftByRunway {
-		// Sort by distance to threshold (closest first)
-		threshold := aircraft[0].Nav.Approach.Assigned.Threshold
-		slices.SortFunc(aircraft, func(a, b *Aircraft) int {
-			return cmp.Compare(math.NMDistance2LL(a.Position(), threshold),
-				math.NMDistance2LL(b.Position(), threshold))
-		})
-
-		// Check each adjacent pair
-		for i := 1; i < len(aircraft); i++ {
-			front, trailing := aircraft[i-1], aircraft[i]
-
-			// Get required separation
-			vol := trailing.ATPAVolume()
-			eligible25nm := vol != nil && vol.Enable25nmApproach &&
-				s.State.IsATPAVolume25nmEnabled(vol.Id) &&
-				trailing.OnExtendedCenterline(0.2) && front.OnExtendedCenterline(0.2)
-			reqSep := av.CWTApproachSeparation(front.CWT(), trailing.CWT(), eligible25nm)
-
-			actualSep := math.NMDistance2LL(front.Position(), trailing.Position())
-
-			majorBust := actualSep < reqSep*0.8
-			minorBust := actualSep < reqSep*0.9
-
-			// >20% violation: always go around
-			// >10% but <=20% violation: 50% chance (one-time roll); skip check if already declined
-			issueGoAround := majorBust || (minorBust && !trailing.SpacingGoAroundDeclined && s.Rand.Float32() < 0.5)
-			if issueGoAround {
-				s.goAroundForSpacing(trailing)
-			} else if minorBust {
-				trailing.SpacingGoAroundDeclined = true
-			}
-		}
-	}
-}
-
-// goAroundForSpacing initiates a tower-commanded go-around for spacing violations.
-func (s *Sim) goAroundForSpacing(ac *Aircraft) {
-	ac.SentAroundForSpacing = true
-	s.goAround(ac)
-}
-
-// postReadbackTransmission posts a radio event for a pilot responding to a command.
-// DestinationTCW is the specific TCW that issued the command.
-// Use this for readbacks, where the response must go to the issuing controller
-// regardless of any consolidation changes.
-func (s *Sim) postReadbackTransmission(from av.ADSBCallsign, tr av.RadioTransmission, tcw TCW) {
-	tr.Validate(s.lg)
-
-	if ac, ok := s.Aircraft[from]; ok {
-		ac.LastRadioTransmission = s.State.SimTime
-	}
-
-	tcp := s.State.PrimaryPositionForTCW(tcw)
-	s.eventStream.Post(Event{
-		Type:                  RadioTransmissionEvent,
-		ADSBCallsign:          from,
-		ToController:          tcp,
-		DestinationTCW:        tcw,
-		WrittenText:           tr.Written(s.Rand),
-		SpokenText:            tr.Spoken(s.Rand),
-		RadioTransmissionType: tr.Type,
-	})
 }
 
 func (s *Sim) CallsignForACID(acid ACID) (av.ADSBCallsign, bool) {
@@ -2430,4 +1467,375 @@ func (s *Sim) AnnotateFlightStrip(tcw TCW, acid ACID, annotations [9]string) err
 
 	fp.StripAnnotations = annotations
 	return nil
+}
+
+func (s *Sim) GlobalMessage(tcw TCW, message string) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	s.eventStream.Post(Event{
+		Type:           GlobalMessageEvent,
+		WrittenText:    message,
+		FromController: s.State.PrimaryPositionForTCW(tcw),
+	})
+}
+
+func (s *Sim) CreateRestrictionArea(ra av.RestrictionArea) (int, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	ra.UpdateTriangles()
+
+	// Find the smallest unused key in 1-MaxRestrictionAreas (user range)
+	for key := 1; key <= av.MaxRestrictionAreas; key++ {
+		if _, exists := s.State.RestrictionAreas[key]; !exists {
+			s.State.RestrictionAreas[key] = ra
+			return key, nil
+		}
+	}
+
+	return 0, ErrTooManyRestrictionAreas
+}
+
+func (s *Sim) UpdateRestrictionArea(idx int, ra av.RestrictionArea) error {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	if idx < 1 || idx > av.MaxRestrictionAreas {
+		return ErrInvalidRestrictionAreaIndex
+	}
+	if _, exists := s.State.RestrictionAreas[idx]; !exists {
+		return ErrInvalidRestrictionAreaIndex
+	}
+
+	// Update the triangulation just in case it's been moved.
+	ra.UpdateTriangles()
+
+	s.State.RestrictionAreas[idx] = ra
+	return nil
+}
+
+func (s *Sim) DeleteRestrictionArea(idx int) error {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	if idx < 1 || idx > av.MaxRestrictionAreas {
+		return ErrInvalidRestrictionAreaIndex
+	}
+	if _, exists := s.State.RestrictionAreas[idx]; !exists {
+		return ErrInvalidRestrictionAreaIndex
+	}
+
+	delete(s.State.RestrictionAreas, idx)
+	return nil
+}
+
+type ATPAConfigOp int
+
+const (
+	ATPAEnable ATPAConfigOp = iota
+	ATPADisable
+	ATPAEnableVolume
+	ATPADisableVolume
+	ATPAEnableReduced25
+	ATPADisableReduced25
+)
+
+func (s *Sim) ConfigureATPA(op ATPAConfigOp, volumeId string) (string, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	if len(s.State.ATPAVolumeState) == 0 { // no volumes adapted
+		return "", ErrATPADisabled
+	}
+
+	// 8.38 Enable/disable ATPA system-wide
+	if op == ATPAEnable {
+		if s.State.ATPAEnabled {
+			return "NO CHANGE", nil
+		}
+
+		s.State.ATPAEnabled = true
+		// Reset all volume states to defaults
+		for _, airportState := range s.State.ATPAVolumeState {
+			for _, volState := range airportState {
+				volState.Disabled = false
+				volState.Reduced25Disabled = false
+			}
+		}
+		return "ATPA ENABLED", nil
+	} else if op == ATPADisable {
+		if !s.State.ATPAEnabled {
+			return "NO CHANGE", nil
+		}
+		s.State.ATPAEnabled = false
+		return "ATPA INHIBITED", nil
+	}
+
+	// All other ops need ATPA enabled and a valid volume.
+	if !s.State.ATPAEnabled {
+		return "", ErrATPADisabled
+	}
+
+	airport := s.State.FindAirportForATPAVolume(volumeId)
+	if airport == "" {
+		return "", ErrInvalidVolumeId
+	}
+	vol := s.State.Airports[airport].ATPAVolumes[volumeId]
+	volState := s.State.ATPAVolumeState[airport][volumeId]
+
+	// 8.39: Enable/disable ATPA approach volume
+	if op == ATPAEnableVolume {
+		if !volState.Disabled {
+			return "NO CHANGE", nil
+		}
+		volState.Disabled = false
+		volState.Reduced25Disabled = false
+		return volumeId + " ENABLED", nil
+	} else if op == ATPADisableVolume {
+		if volState.Disabled {
+			return "NO CHANGE", nil
+		}
+		volState.Disabled = true
+		return volumeId + " INHIBITED", nil
+	}
+
+	// 8.40: Enable/disable 2.5nm reduced separation for volume
+	if !vol.Enable25nmApproach {
+		return "", ErrVolumeNot25nm
+	}
+	if volState.Disabled {
+		return "", ErrVolumeDisabled
+	}
+
+	if op == ATPAEnableReduced25 {
+		if !volState.Reduced25Disabled {
+			return "NO CHANGE", nil
+		}
+		volState.Reduced25Disabled = false
+		return volumeId + " 2.5 ENABLED", nil
+	} else if op == ATPADisableReduced25 {
+		if volState.Reduced25Disabled {
+			return "NO CHANGE", nil
+		}
+		volState.Reduced25Disabled = true
+		return volumeId + " 2.5 INHIBITED", nil
+	}
+
+	// Should not get here...
+	return "", nil
+}
+
+type FDAMConfigOp int
+
+const (
+	FDAMToggleSystem FDAMConfigOp = iota
+	FDAMEnableSystem
+	FDAMInhibitSystem
+	FDAMToggleRegion
+	FDAMEnableRegion
+	FDAMInhibitRegion
+	FDAMQueryStatus
+)
+
+func (s *Sim) ConfigureFDAM(op FDAMConfigOp, regionId string) (string, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	if len(s.State.FacilityAdaptation.Filters.FDAM) == 0 {
+		return "", ErrFDAMNoRegions
+	}
+
+	switch op {
+	case FDAMToggleSystem:
+		s.FDAMSystemInhibited = !s.FDAMSystemInhibited
+		return util.Select(s.FDAMSystemInhibited, "FLIGHT-DATA AUTO-MOD PROC OFF", "FLIGHT-DATA AUTO-MOD PROC ON"), nil
+	case FDAMEnableSystem:
+		s.FDAMSystemInhibited = false
+		return "FLIGHT-DATA AUTO-MOD PROC ON", nil
+	case FDAMInhibitSystem:
+		s.FDAMSystemInhibited = true
+		return "FLIGHT-DATA AUTO-MOD PROC OFF", nil
+	}
+
+	if s.FDAMSystemInhibited {
+		return "", ErrFDAMProcessingOff
+	}
+
+	if op == FDAMQueryStatus {
+		return s.fdamStatusString(), nil
+	}
+
+	if !s.State.FacilityAdaptation.Filters.FDAM.HaveId(regionId) {
+		return "", ErrFDAMIllegalArea
+	}
+
+	if s.DisabledFDAMRegions == nil {
+		s.DisabledFDAMRegions = make(map[string]struct{})
+	}
+
+	switch op {
+	case FDAMToggleRegion:
+		if _, ok := s.DisabledFDAMRegions[regionId]; ok {
+			delete(s.DisabledFDAMRegions, regionId)
+			return "REGION " + regionId + " ON", nil
+		}
+		s.DisabledFDAMRegions[regionId] = struct{}{}
+		return "REGION " + regionId + " OFF", nil
+	case FDAMEnableRegion:
+		delete(s.DisabledFDAMRegions, regionId)
+		return "REGION " + regionId + " ON", nil
+	case FDAMInhibitRegion:
+		s.DisabledFDAMRegions[regionId] = struct{}{}
+		return "REGION " + regionId + " OFF", nil
+	}
+	return "", nil
+}
+
+func (s *Sim) fdamStatusString() string {
+	var enabled, disabled []string
+	for _, f := range s.State.FacilityAdaptation.Filters.FDAM {
+		if _, ok := s.DisabledFDAMRegions[f.Id]; ok {
+			disabled = append(disabled, f.Id)
+		} else {
+			enabled = append(enabled, f.Id)
+		}
+	}
+
+	var output string
+	appendRegions := func(regions []string, header string) {
+		if len(regions) == 0 {
+			return
+		}
+		if output != "" {
+			output += "\n"
+		}
+		output += header + "\n"
+		slices.Sort(regions)
+		for i, id := range regions {
+			if i > 0 && i%5 == 0 {
+				output += "\n"
+			} else if i > 0 {
+				output += " "
+			}
+			output += id
+		}
+	}
+	appendRegions(enabled, "ENAB FLIGHT-DATA AUTO-MOD FLTRS")
+	appendRegions(disabled, "DISAB FLIGHT-DATA AUTO-MOD FLTRS")
+	return output
+}
+
+func (s *Sim) PostEvent(e Event) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	s.eventStream.Post(e)
+}
+
+func (s *Sim) UpdateATISGIText(_ TCW, line int, auxiliary bool, atis *string, text *string) error {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	// Main and auxiliary commands use different line domains even though they
+	// update the same shared arrays.
+	if auxiliary {
+		if line <= 0 || line >= len(s.State.ATIS) {
+			return ErrIllegalLine
+		}
+	} else if line != 0 {
+		return ErrIllegalLine
+	}
+	if atis != nil {
+		// nil means "leave ATIS unchanged"; empty string means "clear ATIS".
+		switch len(*atis) {
+		case 0:
+			s.State.ATIS[line] = ""
+		case 1:
+			if ch := (*atis)[0]; ch < 'A' || ch > 'Z' {
+				return ErrIllegalATIS
+			}
+			s.State.ATIS[line] = *atis
+		default:
+			return ErrIllegalATIS
+		}
+	}
+	if text != nil {
+		s.State.GIText[line] = *text
+	}
+
+	return nil
+}
+
+// GetUserState returns a deep copy of the simulation state for a client.
+// Server-only fields (like Airport.Departures) are pruned to reduce bandwidth.
+func (s *Sim) GetUserState() *UserState {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	state := UserState{
+		CommonState:  *s.State,
+		DerivedState: makeDerivedState(s),
+	}
+
+	// Make a deep copy so that any state changes after the lock is released aren't included.
+	state = deep.MustCopy(state)
+
+	// Prune server-only fields not needed by clients.
+	for _, ap := range state.Airports {
+		ap.Departures = nil
+	}
+
+	return &state
+}
+
+// GetDepartureController returns the TCP responsible for a departure given the
+// airport, runway, and SID. Checks in order: airport/SID, airport/runway, airport only.
+func (s *Sim) GetDepartureController(airport, runway, sid string) TCP {
+	if sid != "" {
+		if tcp, ok := s.DepartureAssignments[airport+"/"+sid]; ok {
+			return tcp
+		}
+	}
+	if runway != "" {
+		if tcp, ok := s.DepartureAssignments[airport+"/"+runway]; ok {
+			return tcp
+		}
+	}
+	if tcp, ok := s.DepartureAssignments[airport]; ok {
+		return tcp
+	}
+	return ""
+}
+
+// ScenarioRootPosition returns the root position from the scenario's default consolidation.
+func (s *Sim) ScenarioRootPosition() TCP {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.scenarioRootPosition()
+}
+
+func (s *Sim) scenarioRootPosition() TCP {
+	if root, err := s.ScenarioDefaultConsolidation.RootPosition(); err != nil {
+		return ""
+	} else {
+		return root
+	}
+}
+
+// AllScenarioPositions returns all positions defined in the scenario's default consolidation.
+func (s *Sim) AllScenarioPositions() []TCP {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.ScenarioDefaultConsolidation.AllPositions()
+}
+
+// GetTrafficCounts returns the current IFR and VFR traffic counts.
+func (s *Sim) GetTrafficCounts() (ifr, vfr int) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.TotalIFR, s.TotalVFR
 }

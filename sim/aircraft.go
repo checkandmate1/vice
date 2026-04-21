@@ -952,3 +952,8 @@ func (va *VoiceAssigner) GetVoice(callsign av.ADSBCallsign, r *rand.Rand) string
 
 	return getVoice("default")
 }
+
+type AircraftDisplayState struct {
+	Spew        string // for debugging
+	FlightState string // for display when paused
+}
