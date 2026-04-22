@@ -469,30 +469,13 @@ func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, command string)
 }
 
 // handleTrafficAdvisory determines the pilot response to a traffic advisory based on:
-// 1. Weather conditions (IMC -> "we're in IMC")
-// 2. Presence of traffic (if no traffic in area -> "looking")
-// 3. Random chance based on proximity (closer/higher -> more likely "traffic in sight")
+//  1. Weather conditions at the nearest reporting station (IMC -> "we're in IMC")
+//  2. Presence of traffic (if no traffic in area -> "looking")
+//  3. Pilot see-probability derived from METAR effective visual range, with a
+//     relative-altitude boost/penalty (above against sky, below against ground)
 func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, trafficAltFeet float32) av.CommandIntent {
-	// Check weather conditions - find closest airport's METAR
-	isIMC := false
-	if len(s.State.METAR) > 0 {
-		var closestMETAR wx.METAR
-		closestDist := float32(999999)
-		for _, metar := range s.State.METAR {
-			if ap, ok := s.State.Airports[metar.ICAO]; ok {
-				dist := math.NMDistance2LL(ac.Position(), ap.Location)
-				if dist < closestDist {
-					closestDist = dist
-					closestMETAR = metar
-				}
-			}
-		}
-		if closestMETAR.ICAO != "" && !closestMETAR.IsVMC() {
-			isIMC = true
-		}
-	}
-
-	if isIMC {
+	nearestMETAR, nearestElev := s.nearestMETAR(ac.Position())
+	if nearestMETAR.ICAO != "" && !nearestMETAR.IsVMC() {
 		ac.OfferedVisualSeparation = false
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseIMC}
 	}
@@ -536,27 +519,22 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 	}
 
-	// Traffic found - determine probability of seeing it based on:
-	// 1. Distance (closer = more likely to see)
-	// 2. Relative altitude (higher than us = easier to see against sky, lower = harder against ground)
+	// Base probability from METAR-derived effective visual range at the pilot's AGL.
+	altAGL := max(ac.Altitude()-nearestElev, 0)
+	seeProb := pilotSeeProb(nearestMETAR.EffectiveVisualRange(altAGL), float32(miles))
 
-	// Closer traffic is easier to see; keep everything within 3 miles near-certain.
-	seeProb := float32(1.0) - float32(max(miles-3, 0))*0.04
-
-	// Altitude factor: traffic above is easier to see
-	acAlt := ac.Altitude()
-	if trafficAltFeet > acAlt+500 {
-		// Traffic is significantly higher - easier to see against sky
-		seeProb *= 1.3
-	} else if trafficAltFeet < acAlt-500 {
-		// Traffic is significantly lower - harder to see against ground
-		seeProb *= 0.7
+	// Only apply altitude modulation + floor clamp if the target is within
+	// effective visual range; otherwise the pilot simply can't see it.
+	if seeProb > 0 {
+		// Traffic above is easier to see against sky; below, harder against ground.
+		if trafficAltFeet > ac.Altitude()+500 {
+			seeProb *= 1.3
+		} else if trafficAltFeet < ac.Altitude()-500 {
+			seeProb *= 0.7
+		}
+		seeProb = max(0.2, min(0.95, seeProb))
 	}
 
-	// Cap probability between 0.2 and 0.95
-	seeProb = max(0.2, min(0.95, seeProb))
-
-	// Roll the dice
 	if s.Rand.Float32() < seeProb {
 		ac.TrafficInSight = true
 		ac.TrafficInSightCallsign = trafficFound
@@ -572,38 +550,35 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 
 	// "Looking" - schedule possible delayed traffic-in-sight call
 	ac.TrafficLookingCallsign = trafficFound
-	ac.TrafficLookingUntil = s.State.SimTime.Add(time.Duration(10+s.Rand.Intn(10)) * time.Second)
+	ac.TrafficLookingUntil = s.pilotLookDeadline()
 	ac.OfferedVisualSeparation = false
 	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 }
 
-// checkDelayedTrafficInSight checks if an aircraft that said "looking" should now report traffic in sight.
-func (s *Sim) checkDelayedTrafficInSight(ac *Aircraft) {
-	if ac.TrafficLookingUntil.IsZero() {
-		return
+// nearestMETAR returns the METAR and airport elevation for the reporting
+// station closest to pos. Returns a zero METAR if no stations are available.
+func (s *Sim) nearestMETAR(pos math.Point2LL) (wx.METAR, float32) {
+	var nearest wx.METAR
+	var elev float32
+	closestDist := float32(999999)
+	for _, metar := range s.State.METAR {
+		ap, ok := s.State.Airports[metar.ICAO]
+		if !ok {
+			continue
+		}
+		dist := math.NMDistance2LL(pos, ap.Location)
+		if dist >= closestDist {
+			continue
+		}
+		closestDist = dist
+		nearest = metar
+		if faa, ok := av.DB.Airports[metar.ICAO]; ok {
+			elev = float32(faa.Elevation)
+		} else {
+			elev = 0
+		}
 	}
-
-	if s.State.SimTime.After(ac.TrafficLookingUntil) {
-		ac.TrafficLookingCallsign = ""
-		ac.TrafficLookingUntil = Time{}
-		return
-	}
-
-	if ac.ControllerFrequency == "" {
-		return
-	}
-
-	if s.Rand.Float32() >= 0.1 {
-		return
-	}
-
-	ac.TrafficInSight = true
-	ac.TrafficInSightCallsign = ac.TrafficLookingCallsign
-	ac.TrafficInSightTime = s.State.SimTime
-	ac.TrafficLookingCallsign = ""
-	ac.TrafficLookingUntil = Time{}
-
-	s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionTrafficInSight)
+	return nearest, elev
 }
 
 // MaintainVisualSeparation handles "maintain visual separation from the traffic" command.

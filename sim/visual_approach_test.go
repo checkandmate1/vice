@@ -1115,17 +1115,18 @@ func TestAirportAdvisoryLowVisibility(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
 	sim := makeVisualTestSim(airportLoc, "13L")
-	sim.State.METAR["KJFK"] = wx.METAR{Raw: "KJFK 5SM BKN050"} // 5SM visibility
+	sim.State.METAR["KJFK"] = wx.METAR{Raw: "KJFK 5SM BKN050"} // 5SM visibility, no obscuration phenomena
 
-	// Aircraft at 8nm, beyond 5SM visibility → should be "looking".
+	// Aircraft at 8nm, beyond 5SM visibility → "looking" with out-of-range reason
+	// (reduced surface vis alone without an obscuration phenomenon is "too far", not "obscured").
 	ac := makeVisualTestAircraft(math.Point2LL{0, 8.0 / 60}, 180)
 	intent := sim.handleAirportAdvisory(ac, 12, 8)
 	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
 		t.Fatalf("expected LookForFieldIntent, got %T", intent)
 	}
-	if fi != av.LookForFieldLookingObscured {
-		t.Errorf("expected LookForFieldLookingObscured for aircraft beyond visibility range, got %v", fi)
+	if fi != av.LookForFieldLooking {
+		t.Errorf("expected LookForFieldLooking for aircraft beyond visibility range, got %v", fi)
 	}
 }
 
@@ -1151,8 +1152,8 @@ func TestEffectiveVisualRangeObscurationPenalty(t *testing.T) {
 	clear := wx.METAR{Raw: "KJFK 10SM BKN050"}
 	haze := wx.METAR{Raw: "KJFK 10SM HZ BKN050"}
 
-	clearRange := effectiveVisualRange(clear, 0)
-	hazeRange := effectiveVisualRange(haze, 0)
+	clearRange := clear.EffectiveVisualRange(0)
+	hazeRange := haze.EffectiveVisualRange(0)
 	if hazeRange >= clearRange {
 		t.Fatalf("obscured range = %.2f, clear range = %.2f; expected obscuration penalty", hazeRange, clearRange)
 	}
