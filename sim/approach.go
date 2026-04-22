@@ -24,7 +24,7 @@ func (s *Sim) AirportInSightInquiry(tcw TCW, callsign av.ADSBCallsign) (av.Comma
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			if ac.FieldInSight || ac.RequestedVisual || ac.Nav.Approach.Cleared {
+			if ac.FieldInSight || ac.RequestedVisualApproach || ac.Nav.Approach.Cleared {
 				return av.LookForFieldFound
 			}
 			return s.handleAirportAdvisory(ac, 0, 0)
@@ -42,7 +42,7 @@ func (s *Sim) AirportAdvisory(tcw TCW, callsign av.ADSBCallsign, oclock, miles i
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
 			// If the pilot already has the field in sight — or is already
 			// cleared for an approach — just confirm.
-			if ac.FieldInSight || ac.RequestedVisual || ac.Nav.Approach.Cleared {
+			if ac.FieldInSight || ac.RequestedVisualApproach || ac.Nav.Approach.Cleared {
 				return av.LookForFieldFound
 			}
 
@@ -232,7 +232,7 @@ func (s *Sim) ClearedVisualApproach(tcw TCW, callsign av.ADSBCallsign, runway st
 			// Pilot must have the field or approach-cleared preceding
 			// traffic in sight before accepting a visual approach clearance.
 			traffic := s.recentApproachTrafficInSightForRunway(ac, runway)
-			if !ac.FieldInSight && !ac.RequestedVisual && traffic == nil {
+			if !ac.FieldInSight && !ac.RequestedVisualApproach && traffic == nil {
 				return av.MakeUnableIntent("unable, we don't have the field in sight")
 			}
 
@@ -400,7 +400,7 @@ func (s *Sim) processFutureTrafficInSight() {
 // arrival on frequency, assigned a non-visual approach that hasn't been
 // cleared yet, and must not have already made the request.
 func (ac *Aircraft) canRequestVisualApproach() bool {
-	if ac.IsDeparture() || ac.FieldInSight || ac.RequestedVisual || ac.ControllerFrequency == "" {
+	if ac.IsDeparture() || ac.FieldInSight || ac.RequestedVisualApproach || ac.ControllerFrequency == "" {
 		return false
 	}
 	if ac.Nav.Approach.Assigned == nil || ac.Nav.Approach.Cleared {
@@ -536,26 +536,26 @@ func (s *Sim) checkSpontaneousVisualRequest(ac *Aircraft) {
 		return
 	}
 
-	if ac.VisualRequestDistance > 0 {
+	if ac.VisualApproachRequestDistance > 0 {
 		ap, ok := s.State.Airports[ac.FlightPlan.ArrivalAirport]
 		if !ok {
 			return
 		}
 		dist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
-		if dist > ac.VisualRequestDistance {
+		if dist > ac.VisualApproachRequestDistance {
 			return
 		}
 		if s.checkVisualEligibility(ac).FieldInSight {
 			ac.FieldInSight = true
-			ac.RequestedVisual = true
-			s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionRequestVisual)
+			ac.RequestedVisualApproach = true
+			s.enqueuePilotTransmission(ac.ADSBCallsign, ac.ControllerFrequency, PendingTransmissionRequestVisual)
 		}
-		ac.VisualRequestDistance = 0
+		ac.VisualApproachRequestDistance = 0
 		return
 	}
 
-	if ac.WantsVisual && s.checkVisualEligibility(ac).FieldInSight {
+	if ac.WantsVisualApproach && s.checkVisualEligibility(ac).FieldInSight {
 		ac.FieldInSight = true
-		s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionFieldInSight)
+		s.enqueuePilotTransmission(ac.ADSBCallsign, ac.ControllerFrequency, PendingTransmissionFieldInSight)
 	}
 }
