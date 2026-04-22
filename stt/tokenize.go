@@ -161,20 +161,29 @@ func parseFlightLevel(words []string) (int, int) {
 		return 0, 0
 	}
 
-	// Try to parse digit sequence
 	fl := 0
 	consumed := 0
 	for consumed < len(words) && consumed < 3 {
-		if IsDigit(words[consumed]) {
-			fl = fl*10 + ParseDigit(words[consumed])
+		w := words[consumed]
+		if IsDigit(w) {
+			fl = fl*10 + ParseDigit(w)
 			consumed++
-		} else if IsNumber(words[consumed]) {
-			// e.g., "350" as a single word
-			n, _ := strconv.Atoi(words[consumed])
-			return n, 1
-		} else {
-			break
+			continue
 		}
+		if IsNumber(w) {
+			n, _ := strconv.Atoi(w)
+			if consumed == 0 {
+				// Single-word number like "350"
+				return n, 1
+			}
+			// Combine accumulated hundreds with tens, e.g., "one ninety"
+			// ("1" "90") -> 190, "three fifty" ("3" "50") -> 350.
+			if n < 100 {
+				fl = fl*100 + n
+				consumed++
+			}
+		}
+		break
 	}
 
 	return fl, consumed

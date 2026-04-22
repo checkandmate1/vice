@@ -115,6 +115,28 @@ func TestBasicAltitudeCommands(t *testing.T) {
 			},
 			expected: "AAL17 D90",
 		},
+		{
+			name:       "cross fix at flight level",
+			transcript: "United 452 cross IZEKO at flight level one nine zero",
+			aircraft: map[string]Aircraft{
+				"United 452": {
+					Callsign: "UAL452", Altitude: 28000, State: "overflight",
+					Fixes: map[string]string{"Izeko": "IZEKO"},
+				},
+			},
+			expected: "UAL452 CIZEKO/A190",
+		},
+		{
+			name:       "cross fix at flight level one ninety",
+			transcript: "United 452 cross IZEKO at flight level one ninety",
+			aircraft: map[string]Aircraft{
+				"United 452": {
+					Callsign: "UAL452", Altitude: 28000, State: "overflight",
+					Fixes: map[string]string{"Izeko": "IZEKO"},
+				},
+			},
+			expected: "UAL452 CIZEKO/A190",
+		},
 	}
 
 	provider := NewTranscriber(nil)
