@@ -123,17 +123,16 @@ type Aircraft struct {
 	// (either via AP command response or spontaneous report).
 	FieldInSight bool
 
-	// RequestedVisual is set when the pilot has spontaneously requested
+	// RequestedVisualApproach is set when the pilot has spontaneously requested
 	// the visual approach (field in sight). Prevents repeated requests.
-	RequestedVisual bool
-	// WantsVisual is decided at aircraft creation: whether this pilot
-	// spontaneously reports field in sight when eligible.
-	WantsVisual bool
-	// VisualRequestDistance, if non-zero, is the distance (NM) from the
-	// arrival airport at which the pilot will perform a single visibility
-	// check and request the visual approach if the field is in sight. Set
-	// to zero after the check (requested or given up) to prevent retries.
-	VisualRequestDistance float32
+	RequestedVisualApproach bool
+	// WantsVisualApproach is decided at aircraft creation: whether this pilot spontaneously reports
+	// field in sight when eligible.
+	WantsVisualApproach bool
+	// VisualApproachRequestDistance, if non-zero, is the distance (NM) from the arrival airport at
+	// which the pilot will perform a single visibility check and request the visual approach if the
+	// field is in sight. Set to zero after the check (requested or given up) to prevent retries.
+	VisualApproachRequestDistance float32
 
 	TouchAndGosRemaining int // >0 means pattern aircraft; decremented each lap
 }

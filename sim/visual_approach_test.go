@@ -451,7 +451,7 @@ func TestCanRequestVisualApproach(t *testing.T) {
 			name: "Already requested visual",
 			ac: func() *Aircraft {
 				ac := makeVisualTestAircraft(math.Point2LL{}, 180)
-				ac.RequestedVisual = true
+				ac.RequestedVisualApproach = true
 				return ac
 			}(),
 			want: false,
@@ -1316,8 +1316,8 @@ func TestCVARequiresFieldInSight(t *testing.T) {
 			wantAllow: true,
 		},
 		{
-			name:      "RequestedVisual set → allowed",
-			setup:     func(ac *Aircraft) { ac.RequestedVisual = true },
+			name:      "RequestedVisualApproach set → allowed",
+			setup:     func(ac *Aircraft) { ac.RequestedVisualApproach = true },
 			wantAllow: true,
 		},
 	}
@@ -1328,7 +1328,7 @@ func TestCVARequiresFieldInSight(t *testing.T) {
 			tt.setup(ac)
 
 			// Mirror the gate check in ClearedVisualApproach.
-			allowed := ac.FieldInSight || ac.RequestedVisual
+			allowed := ac.FieldInSight || ac.RequestedVisualApproach
 			if allowed != tt.wantAllow {
 				t.Errorf("CVA gate: allowed=%v, want %v", allowed, tt.wantAllow)
 			}
@@ -1663,7 +1663,7 @@ func TestScenarioSpontaneousFieldInSight(t *testing.T) {
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc, Elevation: 13})
 
 	vs := NewVisualScenario(t, airportLoc, "13L", math.Point2LL{0, 5.0 / 60}, 180)
-	vs.AC.WantsVisual = true
+	vs.AC.WantsVisualApproach = true
 
 	vs.CheckSpontaneousVisual()
 
@@ -1681,18 +1681,18 @@ func TestScenarioSpontaneousVisualRequest(t *testing.T) {
 
 	// Aircraft starts 5nm north — well inside the request distance.
 	vs := NewVisualScenario(t, airportLoc, "13L", math.Point2LL{0, 5.0 / 60}, 180)
-	vs.AC.VisualRequestDistance = 10
+	vs.AC.VisualApproachRequestDistance = 10
 
 	vs.CheckSpontaneousVisual()
 
 	if !vs.AC.FieldInSight {
 		t.Error("expected FieldInSight")
 	}
-	if !vs.AC.RequestedVisual {
-		t.Error("expected RequestedVisual when within VisualRequestDistance")
+	if !vs.AC.RequestedVisualApproach {
+		t.Error("expected RequestedVisualApproach when within VisualApproachRequestDistance")
 	}
-	if vs.AC.VisualRequestDistance != 0 {
-		t.Error("expected VisualRequestDistance cleared after check")
+	if vs.AC.VisualApproachRequestDistance != 0 {
+		t.Error("expected VisualApproachRequestDistance cleared after check")
 	}
 	if !vs.HasPendingTransmission(PendingTransmissionRequestVisual) {
 		t.Error("expected PendingTransmissionRequestVisual to be enqueued")
@@ -1706,15 +1706,15 @@ func TestScenarioVisualRequestGivesUpIfFieldNotVisible(t *testing.T) {
 	// Aircraft within request distance but with the airport obscured.
 	vs := NewVisualScenario(t, airportLoc, "13L", math.Point2LL{0, 5.0 / 60}, 180)
 	vs.SetMETAR("KJFK 1SM FG OVC003") // IMC + obscuration
-	vs.AC.VisualRequestDistance = 10
+	vs.AC.VisualApproachRequestDistance = 10
 
 	vs.CheckSpontaneousVisual()
 
-	if vs.AC.RequestedVisual {
+	if vs.AC.RequestedVisualApproach {
 		t.Error("should not request visual when field not visible")
 	}
-	if vs.AC.VisualRequestDistance != 0 {
-		t.Error("VisualRequestDistance should be cleared after the one-shot check")
+	if vs.AC.VisualApproachRequestDistance != 0 {
+		t.Error("VisualApproachRequestDistance should be cleared after the one-shot check")
 	}
 }
 

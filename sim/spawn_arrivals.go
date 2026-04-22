@@ -157,9 +157,9 @@ func (s *Sim) createArrivalNoLock(group string, arrivalAirport string) (*Aircraf
 	// field in sight (~10%) and, among those, whether they will also
 	// request the visual approach (~10%). VisualRequestDistance, when
 	// set, gates the request to the first tick inside 7–15 NM.
-	ac.WantsVisual = s.Rand.Float32() < visualFieldProb
-	if ac.WantsVisual && s.Rand.Float32() < visualRequestProb {
-		ac.VisualRequestDistance = 7 + s.Rand.Float32()*8
+	ac.WantsVisualApproach = s.Rand.Float32() < visualFieldProb
+	if ac.WantsVisualApproach && s.Rand.Float32() < visualRequestProb {
+		ac.VisualApproachRequestDistance = 7 + s.Rand.Float32()*8
 	}
 
 	if err := s.assignSquawk(ac, &nasFp); err != nil {
