@@ -7,8 +7,6 @@ package sim
 import (
 	gomath "math"
 	"slices"
-	"strconv"
-	"strings"
 	"time"
 
 	av "github.com/mmp/vice/aviation"
@@ -38,25 +36,9 @@ func (s *Sim) AirportInSightInquiry(tcw TCW, callsign av.ADSBCallsign) (av.Comma
 // AirportAdvisory handles the AP/{oclock}/{miles} command. The controller tells the
 // pilot where to look for the airport: "airport, {oclock} o'clock, {miles} miles".
 // The pilot responds with "field in sight", "looking", or an IMC indication.
-func (s *Sim) AirportAdvisory(tcw TCW, callsign av.ADSBCallsign, command string) (av.CommandIntent, error) {
+func (s *Sim) AirportAdvisory(tcw TCW, callsign av.ADSBCallsign, oclock, miles int) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
-
-	// Parse command: AP/oclock/miles
-	parts := strings.Split(command, "/")
-	if len(parts) != 3 {
-		return nil, ErrInvalidCommandSyntax
-	}
-
-	oclock, err := strconv.Atoi(parts[1])
-	if err != nil || oclock < 1 || oclock > 12 {
-		return nil, ErrInvalidCommandSyntax
-	}
-
-	miles, err := strconv.Atoi(parts[2])
-	if err != nil || miles < 1 || miles > 50 {
-		return nil, ErrInvalidCommandSyntax
-	}
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
@@ -380,7 +362,6 @@ type visualEligibilityReason int
 
 const (
 	visualEligibilityOK visualEligibilityReason = iota
-	visualEligibilityNoAirport
 	visualEligibilityIMC
 	visualEligibilityOutOfRange
 	visualEligibilityObscured
@@ -405,9 +386,6 @@ type VisualEligibility struct {
 func (s *Sim) checkVisualEligibility(ac *Aircraft) VisualEligibility {
 	arrivalAirport := ac.FlightPlan.ArrivalAirport
 	ap := s.State.Airports[arrivalAirport]
-	if ap == nil {
-		return VisualEligibility{Reason: visualEligibilityNoAirport}
-	}
 
 	// Must be VMC at the arrival airport.
 	metar, ok := s.State.METAR[arrivalAirport]
@@ -518,10 +496,7 @@ func effectiveVisualRange(metar wx.METAR, altitudeAGL float32) float32 {
 		visNM *= float32(h / (H * (1 - gomath.Exp(-h/H))))
 	}
 
-	if visNM > visualMaxDistance {
-		return visualMaxDistance
-	}
-	return visNM
+	return min(visNM, visualMaxDistance)
 }
 
 func visualWeatherObscuresField(metar wx.METAR, dist float32) bool {
