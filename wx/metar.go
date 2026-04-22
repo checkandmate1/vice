@@ -26,6 +26,11 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
+const (
+	maxVisualRangeNM  = float32(25)   // absolute cap on field-in-sight range
+	hazeScaleHeightFt = float32(2500) // aerosol extinction e-folding height
+)
+
 // This is as much of the METAR as we need at runtime.
 type METAR struct {
 	ICAO        string `json:"icaoId"`
@@ -159,6 +164,46 @@ func (m METAR) Ceiling() (int, error) {
 	}
 	// No ceiling means unlimited (typically reported as 12000')
 	return 12000, nil
+}
+
+// EffectiveVisualRange returns the maximum distance (in nautical miles) at
+// which an observer at altitudeAGL can identify a ground-level target, based
+// on the METAR's surface visibility.
+//
+// METAR visibility is a ground-level measurement. Aerosol concentration (and
+// thus the extinction coefficient σ) decays exponentially with altitude:
+// σ(z) = σ₀ × exp(-z/H), where H is the haze scale height (~2500 ft in the
+// boundary layer). Integrating σ along the slant path from the aircraft at
+// altitude h to the ground (Beer-Lambert law), and using Koschmieder to
+// convert METAR visibility to σ₀ (σ₀ = 3.912/V_surface), gives:
+//
+//	effectiveRange = surfaceVisibility × h / (H × (1 - exp(-h/H)))
+//
+// As h→0 this reduces to surfaceVisibility (L'Hôpital). At altitude the
+// observer looks through proportionally less of the dense haze layer, so
+// effective range increases. The result is capped at maxVisualRangeNM. A
+// 15% penalty is applied when the METAR reports obscuration phenomena.
+func (m METAR) EffectiveVisualRange(altitudeAGL float32) float32 {
+	vis, err := m.Visibility()
+	if err != nil {
+		return maxVisualRangeNM
+	}
+	// In automated U.S. METARs, 10SM means "10 or more"; model it as 15SM.
+	if vis >= 10 {
+		vis = 15
+	}
+	visNM := vis * math.StatuteMilesToNauticalMiles
+	if m.HasObscuration() {
+		visNM *= 0.85
+	}
+
+	// Apply the slant-path extinction integral.
+	if altitudeAGL > 1 {
+		tau := 1 - math.FastExp(-altitudeAGL/hazeScaleHeightFt)
+		visNM *= altitudeAGL / (hazeScaleHeightFt * tau)
+	}
+
+	return min(visNM, maxVisualRangeNM)
 }
 
 // HasObscuration returns true if the METAR reports visibility-reducing weather
