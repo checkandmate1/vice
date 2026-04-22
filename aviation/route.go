@@ -1023,7 +1023,7 @@ func RandomizeRoute(w []Waypoint, r *rand.Rand, randomizeAltitudeRange bool, per
 	// relatively high at the next one, though the random choices still
 	// vary a bit.
 	jitter := func(v float32) float32 {
-		v += -0.1 + 0.2*r.Float32()
+		v += r.Float32Range(-0.1, 0.1)
 		if v < 0 {
 			v = -v
 		} else if v > 1 {

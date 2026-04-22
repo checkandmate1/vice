@@ -280,14 +280,14 @@ func getSoulsOnBoard(ac *Aircraft, rng *rand.Rand) int {
 	if perf, ok := av.DB.AircraftPerformance[acType]; ok && perf.Capacity.Passengers > 0 {
 		maxPax := perf.Capacity.Passengers
 		// Use 70-95% of capacity for a typical load; ignore crew (relatively negligible)
-		load := 0.7 + rng.Float32()*0.25
+		load := rng.Float32Range(0.7, 0.95)
 		return int(float32(maxPax) * load)
 	}
 
 	// Fall back to CWT category average
 	if perf, ok := av.DB.AircraftPerformance[acType]; ok {
 		if avgPax, ok := cwtAveragePassengers[perf.Category.CWT]; ok {
-			load := 0.7 + rng.Float32()*0.25
+			load := rng.Float32Range(0.7, 0.95)
 			return int(float32(avgPax) * load)
 		}
 	}
@@ -327,12 +327,12 @@ func getFuelRemaining(ac *Aircraft, rng *rand.Rand) int {
 
 		twoHoursFuel := int(2 * percentBurnPerHour * float32(maxFuel))
 		// Add some variance ±10%
-		variance := 1 + 0.2*(rng.Float32()-0.1)
+		variance := rng.Float32Range(0.9, 1.1)
 		return int(float32(twoHoursFuel) * variance)
 	} else {
 		// Departures: estimate based on distance to destination
 		// For now, use 60-90% of max fuel as a reasonable range for departures
-		ratio := 0.6 + rng.Float32()*0.3
+		ratio := rng.Float32Range(0.6, 0.9)
 		return int(float32(maxFuel) * ratio)
 	}
 }

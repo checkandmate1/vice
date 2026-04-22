@@ -512,13 +512,13 @@ func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, 
 	var delay float32
 	if approachCleared {
 		// Minimal delay if the aircraft has been cleared for an approach.
-		delay = 1 + nav.Rand.Float32()
+		delay = nav.Rand.Float32Range(1, 2)
 	} else if nav.Heading.Assigned != nil && nav.DeferredNavHeading == nil {
 		// Already flying a heading; minimal delay.
-		delay = 1 + nav.Rand.Float32()
+		delay = nav.Rand.Float32Range(1, 2)
 	} else {
 		// LNAV -> heading mode
-		delay = 2 + 2*nav.Rand.Float32()
+		delay = nav.Rand.Float32Range(2, 4)
 	}
 
 	d := time.Duration(delay * float32(time.Second))
@@ -549,14 +549,14 @@ func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTi
 	var delay float32
 	if len(wps) > 0 && nav.ExpectedDirectFix == wps[0].Fix {
 		// Pilot was told to expect this fix; shorter delay
-		delay = 2 + 2*nav.Rand.Float32()
+		delay = nav.Rand.Float32Range(2, 4)
 		nav.ExpectedDirectFix = ""
 	} else if nav.Heading.Assigned == nil && nav.DeferredNavHeading == nil {
 		// Already in LNAV mode; have less of a delay
-		delay = 4 + 3*nav.Rand.Float32()
+		delay = nav.Rand.Float32Range(4, 7)
 	} else {
 		// heading->LNAV--longer delay
-		delay = 8 + 5*nav.Rand.Float32()
+		delay = nav.Rand.Float32Range(8, 13)
 	}
 
 	d := time.Duration(delay * float32(time.Second))
@@ -576,7 +576,7 @@ func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTi
 }
 
 func (nav *Nav) EnqueueOnCourse(simTime Time) {
-	delay := 8 + 5*nav.Rand.Float32()
+	delay := nav.Rand.Float32Range(8, 13)
 	nav.DeferredNavHeading = &DeferredNavHeading{
 		Time: simTime.Add(time.Duration(delay * float32(time.Second))),
 	}

@@ -84,9 +84,9 @@ func addRadioEffect(pcm []int16, sampleRate int, seed uint32, scale float32) {
 	// Tighter lowpass for classic muffled airband quality
 	lpCutoff := float32(2300 + params.Intn(250)) // 2300–2550 Hz
 
-	staticGain := float32(0.10) + params.Float32()*0.10 // 0.10–0.20
-	engineGain := float32(0.025) + params.Float32()*0.05
-	clipDrive := float32(1.45) + params.Float32()*0.6 // stronger distortion on speech
+	staticGain := params.Float32Range(0.10, 0.20)
+	engineGain := params.Float32Range(0.025, 0.075)
+	clipDrive := params.Float32Range(1.45, 2.05) // stronger distortion on speech
 
 	staticGain *= scale
 	engineGain *= scale
@@ -145,8 +145,8 @@ func addRadioEffect(pcm []int16, sampleRate int, seed uint32, scale float32) {
 		}
 
 		// Noise (filtered to same band)
-		static := noiseHp.process(noiseLp2.process(noiseLp1.process(noiseRng.Float32()*2 - 1)))
-		engine := engineLp.process(noiseRng.Float32()*2 - 1)
+		static := noiseHp.process(noiseLp2.process(noiseLp1.process(noiseRng.Float32Range(-1, 1))))
+		engine := engineLp.process(noiseRng.Float32Range(-1, 1))
 		noise := static*staticGain + engine*engineGain
 
 		// Squelch envelope

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	av "github.com/mmp/vice/aviation"
-	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/nav"
 	"github.com/mmp/vice/rand"
 
@@ -585,7 +584,7 @@ func randomWait(rate float32, pushActive bool, r *rand.Rand) time.Duration {
 	}
 
 	avgSeconds := 3600 / rate
-	seconds := math.Lerp(r.Float32(), .85*avgSeconds, 1.15*avgSeconds)
+	seconds := r.Float32Range(.85*avgSeconds, 1.15*avgSeconds)
 	return time.Duration(seconds * float32(time.Second))
 }
 
@@ -595,7 +594,7 @@ func randomInitialWait(rate float32, r *rand.Rand) time.Duration {
 		return 365 * 24 * time.Hour
 	}
 
-	seconds := r.Float32() * 3600 / rate
+	seconds := r.Float32Range(0, 3600/rate)
 	return time.Duration(seconds * float32(time.Second))
 }
 

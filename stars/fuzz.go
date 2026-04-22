@@ -740,7 +740,7 @@ func (g *floatMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Gene
 	if max <= 0 {
 		max = 100
 	}
-	val := r.Float32() * max
+	val := r.Float32Range(0, max)
 	return GeneratorResult{Text: fmt.Sprintf("%.1f", val)}
 }
 
@@ -933,8 +933,8 @@ func (g *raLocationMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext)
 	}
 
 	// Random offset within ±1 degree
-	latOffset := (r.Float32()*2 - 1) // -1 to +1
-	longOffset := (r.Float32()*2 - 1)
+	latOffset := r.Float32Range(-1, 1)
+	longOffset := r.Float32Range(-1, 1)
 
 	lat := ctr.Latitude() + latOffset
 	long := ctr.Longitude() + longOffset
