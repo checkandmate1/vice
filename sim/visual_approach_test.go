@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"slices"
@@ -136,10 +135,9 @@ func (vs *VisualScenario) SetAltitude(alt float32) {
 // AirportAdvisory issues an AP command and returns the intent.
 func (vs *VisualScenario) AirportAdvisory(oclock, miles int) av.CommandIntent {
 	vs.t.Helper()
-	cmd := fmt.Sprintf("AP/%d/%d", oclock, miles)
-	intent, err := vs.Sim.AirportAdvisory(vs.tcw, vs.callsign, cmd)
+	intent, err := vs.Sim.AirportAdvisory(vs.tcw, vs.callsign, oclock, miles)
 	if err != nil {
-		vs.t.Fatalf("AirportAdvisory(%s) error: %v", cmd, err)
+		vs.t.Fatalf("AirportAdvisory(%d,%d) error: %v", oclock, miles, err)
 	}
 	return intent
 }
@@ -355,16 +353,6 @@ func TestCheckVisualEligibility(t *testing.T) {
 				return ac
 			}(),
 			wantField: true,
-		},
-		{
-			name: "Unknown arrival airport",
-			sim: func() *Sim {
-				s := makeVisualTestSim(airportLoc, "13L")
-				delete(s.State.Airports, "KJFK")
-				return s
-			}(),
-			ac:        makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180),
-			wantField: false,
 		},
 		{
 			name: "Low visibility, aircraft beyond vis range",

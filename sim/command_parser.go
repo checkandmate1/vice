@@ -447,8 +447,22 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			return nil, nil
 		} else if command == "AP" {
 			return s.AirportInSightInquiry(tcw, callsign)
-		} else if strings.HasPrefix(command, "AP/") {
-			return s.AirportAdvisory(tcw, callsign, command)
+		} else if remainder, ok := strings.CutPrefix(command, "AP/"); ok {
+			clockstr, milesstr, ok := strings.Cut(remainder, "/")
+			if !ok {
+				return nil, ErrInvalidCommandSyntax
+			}
+
+			oclock, err := strconv.Atoi(clockstr)
+			if err != nil || oclock < 1 || oclock > 12 {
+				return nil, ErrInvalidCommandSyntax
+			}
+			miles, err := strconv.Atoi(milesstr)
+			if err != nil || miles < 1 || miles > 50 {
+				return nil, ErrInvalidCommandSyntax
+			}
+
+			return s.AirportAdvisory(tcw, callsign, oclock, miles)
 		} else if strings.HasPrefix(command, "ATIS/") {
 			return s.ATISCommand(tcw, callsign, command[5:])
 		} else {
