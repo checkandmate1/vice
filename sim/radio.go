@@ -5,7 +5,6 @@
 package sim
 
 import (
-	"log/slog"
 	"slices"
 	"time"
 
@@ -57,10 +56,10 @@ const (
 	PendingTransmissionRequestVectors                                          // Pilot requesting vectors (overshot localizer)
 )
 
-// PendingFrequencyChange represents a pilot switching to a new frequency.
+// FutureFrequencyChange represents a pilot switching to a new frequency.
 // Once the Time passes, the aircraft's ControllerFrequency is set and
 // the entry is removed.
-type PendingFrequencyChange struct {
+type FutureFrequencyChange struct {
 	ADSBCallsign av.ADSBCallsign
 	TCP          TCP
 	Time         Time
@@ -100,27 +99,27 @@ func (s *Sim) addPendingContact(pc PendingContact) {
 	s.PendingContacts[pc.TCP] = append(s.PendingContacts[pc.TCP], pc)
 }
 
-// cancelPendingFrequencyChange removes any pending frequency change for
+// cancelFutureFrequencyChange removes any pending frequency change for
 // the given aircraft. Called when the aircraft's frequency is being managed
 // directly (e.g., controller contact, radar services terminated) to prevent
 // a stale queued switch from overwriting the new state.
-func (s *Sim) cancelPendingFrequencyChange(callsign av.ADSBCallsign) {
-	s.PendingFrequencyChanges = slices.DeleteFunc(s.PendingFrequencyChanges,
-		func(pfc PendingFrequencyChange) bool {
-			return pfc.ADSBCallsign == callsign
+func (s *Sim) cancelFutureFrequencyChange(callsign av.ADSBCallsign) {
+	s.FutureFrequencyChanges = slices.DeleteFunc(s.FutureFrequencyChanges,
+		func(ffc FutureFrequencyChange) bool {
+			return ffc.ADSBCallsign == callsign
 		})
 }
 
-// processPendingFrequencySwitches sets ControllerFrequency for aircraft whose
+// processFutureFrequencyChanges sets ControllerFrequency for aircraft whose
 // frequency-switch time has passed, then removes those entries.
-func (s *Sim) processPendingFrequencySwitches() {
+func (s *Sim) processFutureFrequencyChanges() {
 	now := s.State.SimTime
 	var switched []*Aircraft
-	s.PendingFrequencyChanges = util.FilterSliceInPlace(s.PendingFrequencyChanges,
-		func(pfc PendingFrequencyChange) bool {
-			if now.After(pfc.Time) {
-				if ac, ok := s.Aircraft[pfc.ADSBCallsign]; ok {
-					ac.ControllerFrequency = pfc.TCP
+	s.FutureFrequencyChanges = util.FilterSliceInPlace(s.FutureFrequencyChanges,
+		func(ffc FutureFrequencyChange) bool {
+			if now.After(ffc.Time) {
+				if ac, ok := s.Aircraft[ffc.ADSBCallsign]; ok {
+					ac.ControllerFrequency = ffc.TCP
 					switched = append(switched, ac)
 				}
 				return false
@@ -196,8 +195,8 @@ func (s *Sim) enqueueControllerContact(ac *Aircraft, tcp TCP, fromPos ControlPos
 	// Aircraft will switch frequency (2-4 sec), then listen before transmitting (3-6 sec).
 	switchDelay := time.Duration(2+s.Rand.Intn(3)) * time.Second
 	listenDelay := time.Duration(3+s.Rand.Intn(4)) * time.Second
-	s.PendingFrequencyChanges = append(s.PendingFrequencyChanges,
-		PendingFrequencyChange{ADSBCallsign: ac.ADSBCallsign, TCP: tcp, Time: s.State.SimTime.Add(switchDelay)})
+	s.FutureFrequencyChanges = append(s.FutureFrequencyChanges,
+		FutureFrequencyChange{ADSBCallsign: ac.ADSBCallsign, TCP: tcp, Time: s.State.SimTime.Add(switchDelay)})
 
 	s.addPendingContact(PendingContact{
 		ADSBCallsign:    ac.ADSBCallsign,
@@ -546,17 +545,6 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 	return spokenText, writtenText
 }
 
-type FutureOnCourse struct {
-	ADSBCallsign av.ADSBCallsign
-	Time         Time
-}
-
-func (s *Sim) enqueueDepartOnCourse(callsign av.ADSBCallsign) {
-	wait := time.Duration(10+s.Rand.Intn(15)) * time.Second
-	s.FutureOnCourse = append(s.FutureOnCourse,
-		FutureOnCourse{ADSBCallsign: callsign, Time: s.State.SimTime.Add(wait)})
-}
-
 type FutureChangeSquawk struct {
 	ADSBCallsign av.ADSBCallsign
 	Code         av.Squawk
@@ -570,25 +558,7 @@ func (s *Sim) enqueueTransponderChange(callsign av.ADSBCallsign, code av.Squawk,
 		FutureChangeSquawk{ADSBCallsign: callsign, Code: code, Mode: mode, Time: s.State.SimTime.Add(wait)})
 }
 
-func (s *Sim) processFutureEvents() {
-	s.FutureOnCourse = util.FilterSliceInPlace(s.FutureOnCourse,
-		func(oc FutureOnCourse) bool {
-			if s.State.SimTime.After(oc.Time) {
-				if ac, ok := s.Aircraft[oc.ADSBCallsign]; ok {
-					s.lg.Info("departing on course", slog.String("adsb_callsign", string(ac.ADSBCallsign)),
-						slog.Int("final_altitude", ac.FlightPlan.Altitude))
-					// Clear temporary altitude
-					if ac.NASFlightPlan != nil {
-						ac.NASFlightPlan.InterimAlt = 0
-						ac.NASFlightPlan.InterimType = 0
-					}
-					ac.DepartOnCourse(s.State.SimTime, s.lg)
-				}
-				return false
-			}
-			return true
-		})
-
+func (s *Sim) processFutureChangeSquawk() {
 	s.FutureSquawkChanges = util.FilterSliceInPlace(s.FutureSquawkChanges,
 		func(fcs FutureChangeSquawk) bool {
 			if s.State.SimTime.After(fcs.Time) {

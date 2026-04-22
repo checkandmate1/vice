@@ -117,16 +117,11 @@ type Aircraft struct {
 	TrafficInSight          bool            // True if aircraft has reported traffic in sight
 	TrafficInSightCallsign  av.ADSBCallsign // Traffic the aircraft has reported in sight
 	TrafficInSightTime      Time            // When traffic was reported in sight
-	TrafficLookingCallsign  av.ADSBCallsign // Traffic the aircraft is looking for
-	TrafficLookingUntil     Time            // If non-zero, aircraft may report traffic in sight before this time
 	OfferedVisualSeparation bool            // True if the pilot volunteered to maintain visual separation
 
 	// FieldInSight is set when the pilot has confirmed the airport is in sight
 	// (either via AP command response or spontaneous report).
 	FieldInSight bool
-	// FieldLookingUntil is non-zero when the pilot said "looking" in response
-	// to an AP command and may report "field in sight" before this time.
-	FieldLookingUntil Time
 
 	// RequestedVisual is set when the pilot has spontaneously requested
 	// the visual approach (field in sight). Prevents repeated requests.
@@ -134,13 +129,11 @@ type Aircraft struct {
 	// WantsVisual is decided at aircraft creation: whether this pilot
 	// spontaneously reports field in sight when eligible.
 	WantsVisual bool
-	// WantsVisualRequest is decided at aircraft creation: whether this
-	// pilot spontaneously requests the visual approach (implies field in sight).
-	WantsVisualRequest bool
-	// VisualRequestTime is when the pilot will key the mic to report the
-	// field in sight, set once the field first comes into view (adds a short
-	// random delay to simulate identification and reaction time).
-	VisualRequestTime Time
+	// VisualRequestDistance, if non-zero, is the distance (NM) from the
+	// arrival airport at which the pilot will perform a single visibility
+	// check and request the visual approach if the field is in sight. Set
+	// to zero after the check (requested or given up) to prevent retries.
+	VisualRequestDistance float32
 
 	TouchAndGosRemaining int // >0 means pattern aircraft; decremented each lap
 }

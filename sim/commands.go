@@ -474,6 +474,11 @@ func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, command string)
 //  3. Pilot see-probability derived from METAR effective visual range, with a
 //     relative-altitude boost/penalty (above against sky, below against ground)
 func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, trafficAltFeet float32) av.CommandIntent {
+	// A fresh TRAFFIC call supersedes any earlier "looking" event still
+	// queued for this aircraft (possibly for a different target); the
+	// enqueue helper will re-add one if the pilot ends up looking.
+	s.cancelFutureTrafficInSight(ac.ADSBCallsign)
+
 	nearestMETAR, nearestElev := s.nearestMETAR(ac.Position())
 	if nearestMETAR.ICAO != "" && !nearestMETAR.IsVMC() {
 		ac.OfferedVisualSeparation = false
@@ -513,8 +518,6 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 
 	if trafficFound == "" {
 		// No traffic found - respond "looking"
-		ac.TrafficLookingCallsign = ""
-		ac.TrafficLookingUntil = Time{}
 		ac.OfferedVisualSeparation = false
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 	}
@@ -539,8 +542,6 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 		ac.TrafficInSight = true
 		ac.TrafficInSightCallsign = trafficFound
 		ac.TrafficInSightTime = s.State.SimTime
-		ac.TrafficLookingCallsign = ""
-		ac.TrafficLookingUntil = Time{}
 		ac.OfferedVisualSeparation = s.Rand.Float32() < 0.3
 		return av.TrafficAdvisoryIntent{
 			Response:               av.TrafficResponseTrafficSeen,
@@ -549,8 +550,7 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	}
 
 	// "Looking" - schedule possible delayed traffic-in-sight call
-	ac.TrafficLookingCallsign = trafficFound
-	ac.TrafficLookingUntil = s.pilotLookDeadline()
+	s.enqueueFutureTrafficInSight(ac.ADSBCallsign, trafficFound)
 	ac.OfferedVisualSeparation = false
 	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 }
@@ -649,7 +649,7 @@ func (s *Sim) RadarServicesTerminated(tcw TCW, callsign av.ADSBCallsign) (av.Com
 			s.enqueueTransponderChange(ac.ADSBCallsign, 0o1200, ac.Mode)
 
 			// Leave our frequency
-			s.cancelPendingFrequencyChange(ac.ADSBCallsign)
+			s.cancelFutureFrequencyChange(ac.ADSBCallsign)
 			ac.ControllerFrequency = ""
 
 			return av.ContactIntent{
