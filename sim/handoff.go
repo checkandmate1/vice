@@ -229,7 +229,7 @@ func (s *Sim) contactController(fromTCP TCP, sfp *NASFlightPlan, ac *Aircraft, t
 
 	// Cancel any in-progress frequency switch and take away the
 	// current controller's ability to issue control commands.
-	s.cancelPendingFrequencyChange(ac.ADSBCallsign)
+	s.cancelFutureFrequencyChange(ac.ADSBCallsign)
 	ac.ControllerFrequency = ""
 
 	// A human explicitly directing the pilot supersedes any virtual

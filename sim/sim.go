@@ -79,12 +79,14 @@ type Sim struct {
 	DisabledFDAMRegions         map[string]struct{} // keyed by region ID
 	EnforceUniqueCallsignSuffix bool
 
-	PendingContacts         map[TCP][]PendingContact
-	PendingFrequencyChanges []PendingFrequencyChange
-	DeferredContacts        map[av.ADSBCallsign]map[ControlPosition]TCP
-	FutureOnCourse          []FutureOnCourse
-	FutureSquawkChanges     []FutureChangeSquawk
-	FutureEmergencyUpdates  []FutureEmergencyUpdate
+	PendingContacts        map[TCP][]PendingContact
+	FutureFrequencyChanges []FutureFrequencyChange
+	DeferredContacts       map[av.ADSBCallsign]map[ControlPosition]TCP
+	FutureOnCourse         []FutureOnCourse
+	FutureSquawkChanges    []FutureChangeSquawk
+	FutureEmergencyUpdates []FutureEmergencyUpdate
+	FutureFieldInSights    []FutureFieldInSight
+	FutureTrafficInSights  []FutureTrafficInSight
 
 	NextEmergencyTime Time
 
@@ -748,7 +750,7 @@ func (s *Sim) applyWaypointActionEvent(ac *Aircraft, actions av.WaypointActions)
 
 		// Clear stale pending contacts and frequency changes from before
 		// the go-around so the go-around transmission takes priority.
-		s.cancelPendingFrequencyChange(ac.ADSBCallsign)
+		s.cancelFutureFrequencyChange(ac.ADSBCallsign)
 		for t := range s.PendingContacts {
 			s.PendingContacts[t] = slices.DeleteFunc(s.PendingContacts[t], func(pc PendingContact) bool {
 				return pc.ADSBCallsign == ac.ADSBCallsign &&
@@ -1161,22 +1163,20 @@ func (s *Sim) updateState() {
 				s.deleteAircraft(ac)
 			}
 
-			// Check for delayed "traffic in sight" call
-			s.checkDelayedTrafficInSight(ac)
-
-			// Check for delayed "field in sight" call (after AP "looking" response)
-			s.checkDelayedFieldInSight(ac)
-
-			// Check for spontaneous "field in sight" call
+			// Enqueue a spontaneous "field in sight" transmission if the pilot
+			// wants to report and the field is currently visible.
 			s.checkSpontaneousVisualRequest(ac)
 		}
 
 		s.possiblyRequestFlightFollowing()
 
-		s.processPendingFrequencySwitches()
+		s.processFutureFrequencyChanges()
 		s.processVirtualControllerContacts()
 
-		s.processFutureEvents()
+		s.processFutureOnCourse()
+		s.processFutureChangeSquawk()
+		s.processFutureFieldInSight()
+		s.processFutureTrafficInSight()
 
 		s.updateEmergencies()
 
@@ -1838,4 +1838,37 @@ func (s *Sim) GetTrafficCounts() (ifr, vfr int) {
 	defer s.mu.Unlock(s.lg)
 
 	return s.TotalIFR, s.TotalVFR
+}
+
+// FutureOnCourse represents a departure that will be instructed to proceed
+// on its filed route at a future time after the initial climbout delay.
+type FutureOnCourse struct {
+	ADSBCallsign av.ADSBCallsign
+	Time         Time
+}
+
+func (s *Sim) enqueueDepartOnCourse(callsign av.ADSBCallsign) {
+	wait := time.Duration(10+s.Rand.Intn(15)) * time.Second
+	s.FutureOnCourse = append(s.FutureOnCourse,
+		FutureOnCourse{ADSBCallsign: callsign, Time: s.State.SimTime.Add(wait)})
+}
+
+func (s *Sim) processFutureOnCourse() {
+	s.FutureOnCourse = util.FilterSliceInPlace(s.FutureOnCourse,
+		func(oc FutureOnCourse) bool {
+			if s.State.SimTime.After(oc.Time) {
+				if ac, ok := s.Aircraft[oc.ADSBCallsign]; ok {
+					s.lg.Info("departing on course", slog.String("adsb_callsign", string(ac.ADSBCallsign)),
+						slog.Int("final_altitude", ac.FlightPlan.Altitude))
+					// Clear temporary altitude
+					if ac.NASFlightPlan != nil {
+						ac.NASFlightPlan.InterimAlt = 0
+						ac.NASFlightPlan.InterimType = 0
+					}
+					ac.DepartOnCourse(s.State.SimTime, s.lg)
+				}
+				return false
+			}
+			return true
+		})
 }
