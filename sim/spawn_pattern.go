@@ -524,8 +524,8 @@ func (s *Sim) generateOrbitWaypoints(airport string) []av.Waypoint {
 
 	// Randomize the center: 2.5–3.5nm right of the runway, shifted
 	// ±0.5nm along the runway heading.
-	lateralDist := 2.5 + s.Rand.Float32()
-	alongDist := s.Rand.Float32() - 0.5
+	lateralDist := s.Rand.Float32Range(2.5, 3.5)
+	alongDist := s.Rand.Float32Range(-0.5, 0.5)
 	center := math.Offset2LL(rwy.Threshold, rightHdg, lateralDist, s.State.NmPerLongitude)
 	center = math.Offset2LL(center, depHdg, alongDist, s.State.NmPerLongitude)
 

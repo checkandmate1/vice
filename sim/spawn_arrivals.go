@@ -159,7 +159,7 @@ func (s *Sim) createArrivalNoLock(group string, arrivalAirport string) (*Aircraf
 	// set, gates the request to the first tick inside 7–15 NM.
 	ac.WantsVisualApproach = s.Rand.Float32() < visualFieldProb
 	if ac.WantsVisualApproach && s.Rand.Float32() < visualRequestProb {
-		ac.VisualApproachRequestDistance = 7 + s.Rand.Float32()*8
+		ac.VisualApproachRequestDistance = s.Rand.Float32Range(7, 15)
 	}
 
 	if err := s.assignSquawk(ac, &nasFp); err != nil {
@@ -317,7 +317,7 @@ func (s *Sim) maybeSetGoAround(ac *Aircraft, goAroundRate float32) {
 	if !slices.ContainsFunc(ac.Nav.Waypoints, func(wp av.Waypoint) bool { return wp.HumanHandoff() }) {
 		return
 	}
-	d := 0.1 + 0.6*s.Rand.Float32()
+	d := s.Rand.Float32Range(0.1, 0.7)
 	ac.GoAroundDistance = &d
 }
 

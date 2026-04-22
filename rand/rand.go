@@ -93,6 +93,11 @@ func (r *Rand) Float32() float32 {
 	return float32(r.Random()) / (1<<32 - 1)
 }
 
+func (r *Rand) Float32Range(low, high float32) float32 {
+	t := r.Float32()
+	return (1-t)*low + t*high
+}
+
 func (r *Rand) Uint32() uint32 {
 	return r.Random()
 }
