@@ -272,7 +272,7 @@ func getSoulsOnBoard(ac *Aircraft, rng *rand.Rand) int {
 		"GEC", // Lufthansa Cargo
 	}
 	if len(ac.ADSBCallsign) > 3 && slices.Contains(cargoCarriers, string(ac.ADSBCallsign[:3])) {
-		return 2 + rng.Intn(3) // 2-4 souls
+		return rng.IntRange(2, 4) // 2-4 souls
 	}
 
 	// Check if we have specific data for this aircraft type from the database

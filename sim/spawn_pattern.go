@@ -213,7 +213,7 @@ func (s *Sim) spawnPatternAircraft() {
 		ac.InitializeFlightPlan(av.FlightRulesVFR, acType, name, name)
 		ac.FlightPlan.Altitude = faaAP.Elevation + 1000 // pattern altitude (TPA)
 
-		touchAndGos := 2 + s.Rand.Intn(4)         // 2-5 total laps
+		touchAndGos := s.Rand.IntRange(2, 5)      // 2-5 total laps
 		ac.TouchAndGosRemaining = touchAndGos - 1 // first lap is in progress, remaining are after
 
 		wps := generatePatternLap(rwy, opp, faaAP.Elevation, s.State.NmPerLongitude, s.State.MagneticVariation)
