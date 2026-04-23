@@ -833,6 +833,10 @@ func makeWhisperPrompt(state SimState) string {
 		"caution wake turbulence", "maintain visual separation", "landing the parallel",
 	}
 
+	// ERAM sessions reference far-field fixes in enroute clearances, so
+	// allow a larger per-aircraft contribution than in STARS.
+	maxFixesPerAircraft := util.Select(av.DB.IsARTCC(state.Facility), 5, 3)
+
 	// Add telephony and approaches for user-controlled tracks.
 	// Collect fixes separately using map to dedupe.
 	assignedApproaches := make(map[string]struct{})
@@ -862,9 +866,8 @@ func makeWhisperPrompt(state SimState) string {
 			if trk.Approach != "" {
 				assignedApproaches[trk.Approach] = struct{}{}
 			}
-			// Add up to 3 upcoming fixes from this aircraft's route
 			for i, fix := range trk.Fixes {
-				if i >= 3 {
+				if i >= maxFixesPerAircraft {
 					break
 				}
 				fixes[fix] = struct{}{}

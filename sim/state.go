@@ -180,7 +180,7 @@ func makeDerivedState(s *Sim) DerivedState {
 			OnApproach:                ac.OnApproach(false), /* don't check altitude */
 			ClearedForApproach:        ac.Nav.Approach.Cleared,
 			Approach:                  approach,
-			Fixes:                     ac.GetSTTFixes(),
+			Fixes:                     ac.GetSTTFixes(av.DB.IsARTCC(s.State.Facility)),
 			SID:                       ac.SID,
 			STAR:                      ac.STAR,
 			MVAsApply:                 ac.MVAsApply(),
