@@ -646,7 +646,7 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 
 	// Minimal delay for heading changes given an approach clearance.
 	if dh := nav.DeferredNavHeading; dh != nil {
-		dh.Time = simTime.Add(time.Duration(nav.Rand.Float32Range(1, 3) * float32(time.Second)))
+		dh.Time = simTime.Add(nav.Rand.DurationRange(1*time.Second, 3*time.Second))
 	}
 
 	nav.flyProcedureTurnIfNecessary()

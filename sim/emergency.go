@@ -466,7 +466,7 @@ func (s *Sim) runEmergencyStage(ac *Aircraft) {
 	es.CurrentStage++
 	if es.CurrentStage < len(es.Emergency.Stages) {
 		dur := stage.DurationMinutes
-		delay := time.Duration(dur[0]+s.Rand.Intn(dur[1]-dur[0]+1)) * time.Minute
+		delay := s.Rand.DurationRange(time.Duration(dur[0])*time.Minute, time.Duration(dur[1])*time.Minute)
 
 		es.NextUpdateTime = s.State.SimTime.Add(delay)
 		s.enqueueEmergencyUpdate(ac.ADSBCallsign, es.NextUpdateTime)

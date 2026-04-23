@@ -193,8 +193,8 @@ func (s *Sim) processVirtualControllerContacts() {
 // determine whether this is the first contact in a TRACON facility (for ATIS reporting).
 func (s *Sim) enqueueControllerContact(ac *Aircraft, tcp TCP, fromPos ControlPosition) {
 	// Aircraft will switch frequency (2-4 sec), then listen before transmitting (3-6 sec).
-	switchDelay := time.Duration(2+s.Rand.Intn(3)) * time.Second
-	listenDelay := time.Duration(3+s.Rand.Intn(4)) * time.Second
+	switchDelay := s.Rand.DurationRange(2*time.Second, 5*time.Second)
+	listenDelay := s.Rand.DurationRange(3*time.Second, 7*time.Second)
 	s.FutureFrequencyChanges = append(s.FutureFrequencyChanges,
 		FutureFrequencyChange{ADSBCallsign: ac.ADSBCallsign, TCP: tcp, Time: s.State.SimTime.Add(switchDelay)})
 
@@ -553,7 +553,7 @@ type FutureChangeSquawk struct {
 }
 
 func (s *Sim) enqueueTransponderChange(callsign av.ADSBCallsign, code av.Squawk, mode av.TransponderMode) {
-	wait := time.Duration(5+s.Rand.Intn(5)) * time.Second
+	wait := s.Rand.DurationRange(5*time.Second, 10*time.Second)
 	s.FutureSquawkChanges = append(s.FutureSquawkChanges,
 		FutureChangeSquawk{ADSBCallsign: callsign, Code: code, Mode: mode, Time: s.State.SimTime.Add(wait)})
 }

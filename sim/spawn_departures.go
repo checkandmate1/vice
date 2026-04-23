@@ -116,7 +116,7 @@ func (s *Sim) processGateDepartures(depState *RunwayLaunchState, now Time) {
 
 		ac := s.Aircraft[dep.ADSBCallsign]
 		if ac.HoldForRelease {
-			depState.Gate[i].RequestReleaseTime = now.Add(time.Duration(60+s.Rand.Intn(60)) * time.Second)
+			depState.Gate[i].RequestReleaseTime = now.Add(s.Rand.DurationRange(60*time.Second, 120*time.Second))
 			s.STARSComputer.AddHeldDeparture(ac)
 			depState.Held = append(depState.Held, depState.Gate[i])
 			depState.Gate = append(depState.Gate[:i], depState.Gate[i+1:]...)
@@ -143,7 +143,7 @@ func (s *Sim) processHeldDepartures(depState *RunwayLaunchState, now Time) {
 				ac.ReleaseTime = now
 			}
 			depState.Held[i].ReleaseRequested = true
-			depState.Held[i].ReleaseDelay = time.Duration(20+s.Rand.Intn(100)) * time.Second
+			depState.Held[i].ReleaseDelay = s.Rand.DurationRange(20*time.Second, 120*time.Second)
 		}
 	}
 

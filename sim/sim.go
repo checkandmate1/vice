@@ -1843,7 +1843,7 @@ type FutureOnCourse struct {
 }
 
 func (s *Sim) enqueueDepartOnCourse(callsign av.ADSBCallsign) {
-	wait := time.Duration(10+s.Rand.Intn(15)) * time.Second
+	wait := s.Rand.DurationRange(10*time.Second, 25*time.Second)
 	s.FutureOnCourse = append(s.FutureOnCourse,
 		FutureOnCourse{ADSBCallsign: callsign, Time: s.State.SimTime.Add(wait)})
 }
