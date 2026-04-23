@@ -491,8 +491,8 @@ func (s *Sim) setInitialSpawnTimes(now Time) {
 
 	if s.State.LaunchConfig.ArrivalPushes {
 		// Figure out when the next arrival push will start
-		m := 1 + s.Rand.Intn(s.State.LaunchConfig.ArrivalPushFrequencyMinutes)
-		s.NextPushStart = now.Add(time.Duration(m) * time.Minute)
+		freq := time.Duration(s.State.LaunchConfig.ArrivalPushFrequencyMinutes) * time.Minute
+		s.NextPushStart = now.Add(s.Rand.DurationRange(1*time.Minute, freq+1*time.Minute))
 	}
 
 	for group, rates := range s.State.LaunchConfig.InboundFlowRates {

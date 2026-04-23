@@ -2299,7 +2299,7 @@ func (c *NewSimConfiguration) updateStartTimeForRunways() {
 			})
 			if idx+1 < len(apMETAR) {
 				validDuration := apMETAR[idx+1].Time.Sub(sampledMETAR.Time)
-				startTime = startTime.Add(time.Duration(float64(validDuration) * float64(rand.Make().Float32())))
+				startTime = startTime.Add(rand.Make().DurationRange(0, validDuration))
 			}
 			c.StartTime = startTime
 

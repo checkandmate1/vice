@@ -148,9 +148,8 @@ func (s *Sim) handoffTrack(fp *NASFlightPlan, toTCP TCP) {
 	// Add them to the auto-accept map even if the target controller is
 	// currently signed in; this way, if they sign off in the interim, we
 	// still end up accepting it automatically.
-	acceptDelay := 4 + s.Rand.Intn(10)
 	s.Handoffs[fp.ACID] = Handoff{
-		AutoAcceptTime: s.State.SimTime.Add(time.Duration(acceptDelay) * time.Second),
+		AutoAcceptTime: s.State.SimTime.Add(s.Rand.DurationRange(4*time.Second, 14*time.Second)),
 	}
 	// If both controllers are virtual, send the departure on course (mainly so it climbs to cruise)
 	resolvedFrom := s.State.ResolveController(fp.TrackingController)
@@ -459,11 +458,10 @@ func (s *Sim) pointOut(acid ACID, from *av.Controller, to *av.Controller) {
 		ACID:           acid,
 	})
 
-	acceptDelay := 4 + s.Rand.Intn(10)
 	s.PointOuts[acid] = PointOut{
 		FromController: TCP(from.PositionId()),
 		ToController:   TCP(to.PositionId()),
-		AcceptTime:     s.State.SimTime.Add(time.Duration(acceptDelay) * time.Second),
+		AcceptTime:     s.State.SimTime.Add(s.Rand.DurationRange(4*time.Second, 14*time.Second)),
 	}
 }
 

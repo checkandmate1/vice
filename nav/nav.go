@@ -509,19 +509,18 @@ func (nav *Nav) DepartureHeading() (int, DepartureHeadingState) {
 // from the pilot-reaction delay (floored at zero) to offset latency already
 // spent receiving the voice transmission.
 func (nav *Nav) EnqueueHeading(hdg math.MagneticHeading, turn av.TurnDirection, approachCleared bool, simTime Time, delayReduction time.Duration) {
-	var delay float32
+	var d time.Duration
 	if approachCleared {
 		// Minimal delay if the aircraft has been cleared for an approach.
-		delay = nav.Rand.Float32Range(1, 2)
+		d = nav.Rand.DurationRange(1*time.Second, 2*time.Second)
 	} else if nav.Heading.Assigned != nil && nav.DeferredNavHeading == nil {
 		// Already flying a heading; minimal delay.
-		delay = nav.Rand.Float32Range(1, 2)
+		d = nav.Rand.DurationRange(1*time.Second, 2*time.Second)
 	} else {
 		// LNAV -> heading mode
-		delay = nav.Rand.Float32Range(2, 4)
+		d = nav.Rand.DurationRange(2*time.Second, 4*time.Second)
 	}
 
-	d := time.Duration(delay * float32(time.Second))
 	if d > delayReduction {
 		d -= delayReduction
 	} else {
@@ -546,20 +545,19 @@ func (nav *Nav) AssignedWaypoints() []av.Waypoint {
 }
 
 func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTime Time, delayReduction time.Duration) {
-	var delay float32
+	var d time.Duration
 	if len(wps) > 0 && nav.ExpectedDirectFix == wps[0].Fix {
 		// Pilot was told to expect this fix; shorter delay
-		delay = nav.Rand.Float32Range(2, 4)
+		d = nav.Rand.DurationRange(2*time.Second, 4*time.Second)
 		nav.ExpectedDirectFix = ""
 	} else if nav.Heading.Assigned == nil && nav.DeferredNavHeading == nil {
 		// Already in LNAV mode; have less of a delay
-		delay = nav.Rand.Float32Range(4, 7)
+		d = nav.Rand.DurationRange(4*time.Second, 7*time.Second)
 	} else {
 		// heading->LNAV--longer delay
-		delay = nav.Rand.Float32Range(8, 13)
+		d = nav.Rand.DurationRange(8*time.Second, 13*time.Second)
 	}
 
-	d := time.Duration(delay * float32(time.Second))
 	if d > delayReduction {
 		d -= delayReduction
 	} else {
@@ -576,9 +574,8 @@ func (nav *Nav) EnqueueDirectFix(wps []av.Waypoint, turn av.TurnDirection, simTi
 }
 
 func (nav *Nav) EnqueueOnCourse(simTime Time) {
-	delay := nav.Rand.Float32Range(8, 13)
 	nav.DeferredNavHeading = &DeferredNavHeading{
-		Time: simTime.Add(time.Duration(delay * float32(time.Second))),
+		Time: simTime.Add(nav.Rand.DurationRange(8*time.Second, 13*time.Second)),
 	}
 }
 

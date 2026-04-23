@@ -104,8 +104,7 @@ func (s *Sim) samplePilotLookFireTime() (Time, bool) {
 	if s.Rand.Float32() < pilotNoReportProb {
 		return Time{}, false
 	}
-	d := pilotLookDurationMin + s.Rand.Intn(pilotLookDurationMax-pilotLookDurationMin)
-	return s.State.SimTime.Add(time.Duration(d) * time.Second), true
+	return s.State.SimTime.Add(s.Rand.DurationRange(pilotLookDurationMin, pilotLookDurationMax)), true
 }
 
 func (s *Sim) enqueueFutureFieldInSight(callsign av.ADSBCallsign) {
@@ -505,8 +504,8 @@ const (
 	visualMaxBearingOff  = float32(120)  // degrees off nose; forward visibility arc
 	visualFieldProb      = float32(0.10) // fraction of pilots who spontaneously report field in sight
 	visualRequestProb    = float32(0.10) // fraction of field-in-sight pilots who also request the visual
-	pilotLookDurationMin = 10            // seconds; min "looking" window
-	pilotLookDurationMax = 20            // seconds; max "looking" window (exclusive upper bound)
+	pilotLookDurationMin = 10 * time.Second
+	pilotLookDurationMax = 20 * time.Second
 	pilotNoReportProb    = float32(0.12) // probability a "looking" pilot never speaks up this window
 )
 

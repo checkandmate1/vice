@@ -238,7 +238,7 @@ func (ac *Aircraft) PilotMixUp() av.CommandIntent {
 }
 
 func (ac *Aircraft) Ident(now Time) av.CommandIntent {
-	ac.IdentStartTime = now.Add(time.Duration(2+ac.Nav.Rand.Intn(3)) * time.Second) // delay the start a bit
+	ac.IdentStartTime = now.Add(ac.Nav.Rand.DurationRange(2*time.Second, 5*time.Second)) // delay the start a bit
 	ac.IdentEndTime = ac.IdentStartTime.Add(10 * time.Second)
 	return av.TransponderIntent{Ident: true}
 }

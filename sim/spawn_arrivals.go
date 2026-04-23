@@ -30,8 +30,8 @@ func (s *Sim) spawnArrivalsAndOverflights() {
 	}
 	if !s.PushEnd.IsZero() && now.After(s.PushEnd) {
 		// end push
-		m := -2 + s.Rand.Intn(4) + s.State.LaunchConfig.ArrivalPushFrequencyMinutes
-		s.NextPushStart = now.Add(time.Duration(m) * time.Minute)
+		center := time.Duration(s.State.LaunchConfig.ArrivalPushFrequencyMinutes) * time.Minute
+		s.NextPushStart = now.Add(center + s.Rand.DurationRange(-2*time.Minute, 2*time.Minute))
 		s.lg.Debug("arrival push ending", slog.Time("next_start", s.NextPushStart.Time()))
 		s.PushEnd = Time{}
 	}

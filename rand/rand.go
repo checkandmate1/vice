@@ -51,6 +51,10 @@ func (p *PCG32) Random() uint32 {
 	return (xorShifted >> rot) | (xorShifted << ((-rot) & 31))
 }
 
+func (p *PCG32) Random64() uint64 {
+	return uint64(p.Random())<<32 | uint64(p.Random())
+}
+
 func (p *PCG32) Bounded(bound uint32) uint32 {
 	if bound == 0 {
 		return 0
@@ -58,6 +62,19 @@ func (p *PCG32) Bounded(bound uint32) uint32 {
 	threshold := -bound % bound
 	for {
 		r := p.Random()
+		if r >= threshold {
+			return r % bound
+		}
+	}
+}
+
+func (p *PCG32) Bounded64(bound uint64) uint64 {
+	if bound == 0 {
+		return 0
+	}
+	threshold := -bound % bound
+	for {
+		r := p.Random64()
 		if r >= threshold {
 			return r % bound
 		}
@@ -96,6 +113,10 @@ func (r *Rand) Float32() float32 {
 func (r *Rand) Float32Range(low, high float32) float32 {
 	t := r.Float32()
 	return (1-t)*low + t*high
+}
+
+func (r *Rand) DurationRange(low, high time.Duration) time.Duration {
+	return low + time.Duration(r.Bounded64(uint64(high-low)))
 }
 
 func (r *Rand) Uint32() uint32 {
