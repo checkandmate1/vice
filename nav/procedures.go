@@ -633,7 +633,7 @@ func (aw *NavAirwork) Update(nav *Nav) bool {
 		if aw.NextMoveCounter == 0 {
 			// We just finished. Clean up and Continue straight and level for a bit.
 			aw.Dive = false
-			aw.NextMoveCounter = 5 + nav.Rand.Intn(25)
+			aw.NextMoveCounter = nav.Rand.IntRange(5, 30)
 		} else if aw.NextMoveCounter == 1 {
 			// Pick a new thing.
 			aw.ToCenter = false

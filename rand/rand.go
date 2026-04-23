@@ -102,6 +102,11 @@ func (r *Rand) Intn(n int) int {
 	return int(r.Bounded(uint32(n)))
 }
 
+// IntRange returns a uniformly-sampled value in [low, high].
+func (r *Rand) IntRange(low, high int) int {
+	return low + r.Intn(high-low+1)
+}
+
 func (r *Rand) Int31n(n int32) int32 {
 	return int32(r.Bounded(uint32(n)))
 }

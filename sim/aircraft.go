@@ -777,7 +777,7 @@ func PlausibleFinalAltitude(fp av.FlightPlan, perf av.AircraftPerformance, nmPer
 	}
 
 	// Randomize the altitude a bit
-	alt = (alt - delta + r.Intn(2*delta+1))
+	alt = r.IntRange(alt-delta, alt+delta)
 
 	// Round ceiling down to odd 1000s.
 	ceiling := int(perf.Ceiling) / 1000

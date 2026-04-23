@@ -80,9 +80,9 @@ func addRadioEffect(pcm []int16, sampleRate int, seed uint32, scale float32) {
 	params.Seed(uint64(seed))
 
 	// Much higher highpass to kill bass and make it tinny/thin
-	hpCutoff := float32(340 + params.Intn(60)) // 340–400 Hz
+	hpCutoff := float32(params.IntRange(340, 400))
 	// Tighter lowpass for classic muffled airband quality
-	lpCutoff := float32(2300 + params.Intn(250)) // 2300–2550 Hz
+	lpCutoff := float32(params.IntRange(2300, 2550))
 
 	staticGain := params.Float32Range(0.10, 0.20)
 	engineGain := params.Float32Range(0.025, 0.075)
