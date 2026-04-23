@@ -221,6 +221,46 @@ func RaySegmentIntersect(org, dir, p0, p1 [2]float32) ([2]float32, float32, floa
 	}, rayT, segT, true
 }
 
+// RayRouteIntersection describes a single point where a ray crosses a
+// polyline segment. Index is the segment index in the polyline (the segment
+// runs from route[Index] to route[Index+1]); SegT is the 0..1 parameter along
+// that segment. Callers that need the nautical-mile distance from the ray
+// origin compute it from (origin, Location) via NMDistance2LL.
+type RayRouteIntersection struct {
+	Index    int
+	SegT     float32
+	Location Point2LL
+}
+
+// IntersectRayWithRoute returns all segments of the polyline route that the
+// ray from origin along the given true heading crosses, in route order.
+// Internally converts to a local NM frame anchored at origin so the caller
+// does not need to supply nmPerLongitude.
+func IntersectRayWithRoute(origin Point2LL, heading TrueHeading, route []Point2LL) []RayRouteIntersection {
+	if len(route) < 2 {
+		return nil
+	}
+	nmPerLong := NMPerLongitudeAt(origin)
+	originNM := LL2NM(origin, nmPerLong)
+	dir := HeadingVector(heading)
+
+	var hits []RayRouteIntersection
+	for i := range len(route) - 1 {
+		p0 := LL2NM(route[i], nmPerLong)
+		p1 := LL2NM(route[i+1], nmPerLong)
+		pi, _, segT, ok := RaySegmentIntersect(originNM, dir, p0, p1)
+		if !ok {
+			continue
+		}
+		hits = append(hits, RayRouteIntersection{
+			Index:    i,
+			SegT:     segT,
+			Location: NM2LL(pi, nmPerLong),
+		})
+	}
+	return hits
+}
+
 // RayRayMinimumDistance takes two rays p0+d0*t and p1+d1*t and returns the
 // value of t where their distance is minimized.
 func RayRayMinimumDistance(p0, d0, p1, d1 [2]float32) float32 {

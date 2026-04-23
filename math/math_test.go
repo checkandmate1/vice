@@ -330,6 +330,66 @@ func TestRaySegmentIntersect(t *testing.T) {
 	}
 }
 
+func TestIntersectRayWithRoute(t *testing.T) {
+	// Anchor at the equator so nmPerLongitude is ~60 (same scale as latitude).
+	// A 0.01° step is ~0.6nm; these tests don't care about exact distances,
+	// only counts and segment indices.
+	route := []Point2LL{
+		{-0.10, 0},
+		{0.10, 0},
+		{0.10, 0.20},
+	}
+
+	t.Run("straight route crossed once", func(t *testing.T) {
+		// Ray from just above the first segment, heading south (180°), crosses segment 0.
+		hits := IntersectRayWithRoute(Point2LL{0, 0.05}, 180, route)
+		if len(hits) != 1 {
+			t.Fatalf("expected 1 hit, got %d", len(hits))
+		}
+		if hits[0].Index != 0 {
+			t.Errorf("expected segment 0, got %d", hits[0].Index)
+		}
+		if Abs(hits[0].SegT-0.5) > 1e-3 {
+			t.Errorf("expected segT ~0.5, got %f", hits[0].SegT)
+		}
+	})
+
+	t.Run("ray misses route", func(t *testing.T) {
+		// Ray going north from far west — doesn't cross any segment.
+		hits := IntersectRayWithRoute(Point2LL{-0.50, -0.10}, 0, route)
+		if len(hits) != 0 {
+			t.Errorf("expected 0 hits, got %d", len(hits))
+		}
+	})
+
+	t.Run("ray crosses two segments (L-shape)", func(t *testing.T) {
+		// Ray from southwest heading northeast should cross both segment 0 (horizontal)
+		// and segment 1 (vertical).
+		hits := IntersectRayWithRoute(Point2LL{-0.05, -0.05}, 45, route)
+		if len(hits) != 2 {
+			t.Fatalf("expected 2 hits, got %d", len(hits))
+		}
+		if hits[0].Index != 0 || hits[1].Index != 1 {
+			t.Errorf("expected hits on segments 0 and 1, got %d and %d", hits[0].Index, hits[1].Index)
+		}
+	})
+
+	t.Run("origin on segment endpoint", func(t *testing.T) {
+		// Ray originating at a segment endpoint heading along the segment.
+		hits := IntersectRayWithRoute(Point2LL{-0.10, 0}, 90, route)
+		if len(hits) == 0 {
+			t.Fatal("expected at least one hit")
+		}
+	})
+
+	t.Run("too-short route returns nil", func(t *testing.T) {
+		hits := IntersectRayWithRoute(Point2LL{0, 0}, 90, []Point2LL{{0, 0}})
+		if hits != nil {
+			t.Errorf("expected nil, got %v", hits)
+		}
+	})
+}
+
 func TestSplitSelfIntersectingPolygon(t *testing.T) {
 	approxEqual := func(a, b [2]float32) bool {
 		const eps = 1e-4
