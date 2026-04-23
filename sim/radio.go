@@ -54,6 +54,7 @@ const (
 	PendingTransmissionFieldNegativeContact                                    // "Negative contact" after looking timer expires
 	PendingTransmissionRequestVisual                                           // Spontaneous "field in sight, requesting visual"
 	PendingTransmissionRequestVectors                                          // Pilot requesting vectors (overshot localizer)
+	PendingTransmissionRequestAltitude                                         // Pilot requesting altitude after being vectored off STAR
 )
 
 // FutureFrequencyChange represents a pilot switching to a new frequency.
@@ -460,6 +461,10 @@ func (s *Sim) GenerateContactTransmission(pc *PendingContact) (spokenText, writt
 
 	case PendingTransmissionRequestVectors:
 		rt = av.MakeContactTransmission("[we're going to overshoot the localizer, request vectors|we're gonna be unable to intercept, request new heading|we're going to miss the localizer, request vectors]")
+		rt.Type = av.RadioTransmissionUnexpected
+
+	case PendingTransmissionRequestAltitude:
+		rt = av.MakeContactTransmission("[what altitude should we maintain|what altitude do you want us at]")
 		rt.Type = av.RadioTransmissionUnexpected
 
 	case PendingTransmissionEmergency:

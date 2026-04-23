@@ -487,6 +487,7 @@ func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, s
 				// Don't take a direct pointer to nav.FlightState.Altitude!
 				alt := nav.FlightState.Altitude
 				nav.Altitude.Cleared = &alt
+				nav.Approach.RequestAltitude = true
 			}
 		}
 	}

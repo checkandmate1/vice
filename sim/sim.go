@@ -981,6 +981,11 @@ func (s *Sim) updateState() {
 				s.enqueuePilotTransmission(callsign, TCP(ac.ControllerFrequency), PendingTransmissionRequestVectors)
 			}
 
+			if ac.Nav.Approach.RequestAltitude && ac.IsAssociated() {
+				ac.Nav.Approach.RequestAltitude = false
+				s.enqueuePilotTransmission(callsign, TCP(ac.ControllerFrequency), PendingTransmissionRequestAltitude)
+			}
+
 			if ac.FirstSeen.IsZero() && s.isRadarVisible(ac) {
 				ac.FirstSeen = s.State.SimTime
 			}
