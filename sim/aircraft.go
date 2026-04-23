@@ -153,10 +153,17 @@ func (ac *Aircraft) GetRadarTrack(now Time) av.RadarTrack {
 }
 
 // GetSTTFixes returns the raw fix names relevant for STT context.
-// This includes assigned waypoints within 75nm and approach waypoints if applicable.
-func (ac *Aircraft) GetSTTFixes() []string {
+// For STARS (terminal) sessions, assigned waypoints within 75nm are included with no count
+// limit. For ERAM (enroute) sessions, up to 5 assigned waypoints within 300nm are included.
+// Approach waypoints are included unconditionally when applicable.
+func (ac *Aircraft) GetSTTFixes(isERAM bool) []string {
 	var fixes []string
 	p := ac.Nav.FlightState.Position
+
+	maxDistNM, maxCount := float32(75), 0
+	if isERAM {
+		maxDistNM, maxCount = 300, 5
+	}
 
 	isValidFix := func(fix string) bool {
 		return len(fix) >= 3 && len(fix) <= 5 && fix[0] != '_'
@@ -171,12 +178,17 @@ func (ac *Aircraft) GetSTTFixes() []string {
 		fixes = append(fixes, ac.FlightPlan.DepartureAirport)
 	}
 
+	routeFixes := 0
 	for _, wp := range ac.Nav.AssignedWaypoints() {
-		if math.NMDistance2LL(p, wp.Location) > 75 && len(fixes) > 0 {
+		if math.NMDistance2LL(p, wp.Location) > maxDistNM && len(fixes) > 0 {
 			break
 		}
 		if isValidFix(wp.Fix) {
 			fixes = append(fixes, wp.Fix)
+			routeFixes++
+			if maxCount > 0 && routeFixes >= maxCount {
+				break
+			}
 		}
 	}
 
