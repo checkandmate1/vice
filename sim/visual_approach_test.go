@@ -577,7 +577,10 @@ func TestVisualApproachWaypoints(t *testing.T) {
 	}
 	setupTestRunway(t, "KTEST", rwy)
 
-	nmPerLong := float32(52) // ~40°N
+	// Test positions sit near lat=0, so nmPerLong must match
+	// math.NMPerLongitudeAt(pos) ≈ 60 for the ray/route helpers to project
+	// coordinates consistently with the rest of the nav pipeline.
+	nmPerLong := float32(60)
 
 	reference := &av.Approach{
 		Type:      av.ILSApproach,

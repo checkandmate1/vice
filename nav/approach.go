@@ -181,46 +181,23 @@ func (nav *Nav) ApproachHeading(callsign string, wxs wx.Sample, simTime Time) (h
 // defining the line, the remaining waypoints from the intercept point
 // forward, and whether a valid segment was found.
 func (nav *Nav) findInterceptSegment(ap *av.Approach, wxs wx.Sample) (math.TrueHeading, [2]math.Point2LL, []av.Waypoint, bool) {
-	nmPerLong := nav.FlightState.NmPerLongitude
-	posNM := math.LL2NM(nav.FlightState.Position, nmPerLong)
-
-	// Build a ray from the aircraft's position along its ground track
-	// (heading + wind).
+	// Ground-track heading = heading + wind.
 	hdgTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
 	TAS := nav.TAS(wxs.Temperature()) / 3600
 	flightVec := math.Scale2f(math.SinCos(math.Radians(hdgTrue)), TAS)
 	groundVec := math.Add2f(flightVec, wxs.WindVec())
-	dir := math.Normalize2f(groundVec)
+	groundTrack := math.VectorHeading(groundVec)
 
-	bestDist := float32(1e9)
-	var bestCourse math.TrueHeading
-	var bestLine [2]math.Point2LL
-	var bestWaypoints []av.Waypoint
-	found := false
-
-	for _, route := range ap.Waypoints {
-		for i := 0; i < len(route)-1; i++ {
-			p0 := math.LL2NM(route[i].Location, nmPerLong)
-			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
-
-			// Check if the aircraft's heading ray crosses this segment.
-			_, dist, _, ok := math.RaySegmentIntersect(posNM, dir, p0, p1)
-			if !ok {
-				continue
-			}
-
-			// Use the closest crossing point.
-			if dist < bestDist {
-				bestDist = dist
-				bestCourse = math.Heading2LL(route[i].Location, route[i+1].Location, nmPerLong)
-				bestLine = [2]math.Point2LL{route[i].Location, route[i+1].Location}
-				bestWaypoints = route[i+1:]
-				found = true
-			}
-		}
+	hit, ok := av.ClosestRayRouteIntersection(nav.FlightState.Position, groundTrack, ap.Waypoints)
+	if !ok {
+		return 0, [2]math.Point2LL{}, nil, false
 	}
 
-	return bestCourse, bestLine, bestWaypoints, found
+	route := ap.Waypoints[hit.RouteIndex]
+	nmPerLong := nav.FlightState.NmPerLongitude
+	course := math.Heading2LL(route[hit.Index].Location, route[hit.Index+1].Location, nmPerLong)
+	line := [2]math.Point2LL{route[hit.Index].Location, route[hit.Index+1].Location}
+	return course, line, route[hit.Index+1:], true
 }
 
 // approachRecoveryFeasible returns true if the aircraft's current position
@@ -532,76 +509,22 @@ func (nav *Nav) prepareForApproach(straightIn bool) av.CommandIntent {
 func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 	// Airport PostDeserialize() checks that there is just a single set of
 	// waypoints for charted visual approaches.
-	wp := nav.Approach.Assigned.Waypoints[0]
-
-	// First try to find the first (if any) waypoint along the approach
-	// that is within 15 degrees of the aircraft's current heading.
-	intercept := -1
-	acftTrue := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
-	for i := range wp {
-		h := math.Heading2LL(nav.FlightState.Position, wp[i].Location,
-			nav.FlightState.NmPerLongitude)
-
-		if math.HeadingDifference(h, acftTrue) < 30 {
-			intercept = i
-			break
-		}
-	}
-
-	// Also check for intercepting a segment of the approach. There are two
-	// cases:
-	// 1. If we found a waypoint intercept above, then we are only
-	//    interested in the segment from that waypoint to the subsequent
-	//    one; we will take that if we find it (so the aircraft can stay
-	//    on its present heading) but will not take a later one (so that it
-	//    gets on the approach sooner rather than later.)
-	// 2. If no waypoint intercept is found, we will take the first
-	//    intercept with an approach segment. This case should be unusual
-	//    but may come into play when an aircraft is very close to the
-	//    approach route and no waypoints are close to its current course.
-
-	// Work in nm coordinates
-	pac0 := math.LL2NM(nav.FlightState.Position, nav.FlightState.NmPerLongitude)
-	// Find a heading ray along its current course (note: ignoring wind).
+	route := nav.Approach.Assigned.Waypoints[0]
+	pos := nav.FlightState.Position
 	hdg := math.MagneticToTrue(nav.FlightState.Heading, nav.FlightState.MagneticVariation)
-	dir := math.SinCos(math.Radians(hdg))
 
-	checkSegment := func(i int) *av.Waypoint {
-		if i+1 == len(wp) {
-			return nil
-		}
-		pl0 := math.LL2NM(wp[i].Location, nav.FlightState.NmPerLongitude)
-		pl1 := math.LL2NM(wp[i+1].Location, nav.FlightState.NmPerLongitude)
-
-		if pi, _, _, ok := math.RaySegmentIntersect(pac0, dir, pl0, pl1); ok {
-			return &av.Waypoint{
-				Fix:      "intercept",
-				Location: math.NM2LL(pi, nav.FlightState.NmPerLongitude),
-			}
-		}
-		return nil
-	}
-
-	// wi will store the route the aircraft will fly if it is going to join
-	// the approach.
 	var wi []av.Waypoint
-
-	if intercept == -1 { // check all of the segments
-		for i := range wp {
-			if w := checkSegment(i); w != nil {
-				// Take the first one that works
-				wi = append([]av.Waypoint{*w}, wp[i+1:]...)
+	if hit, ok := av.ClosestRayRouteIntersection(pos, hdg, []av.WaypointArray{route}); ok {
+		wi = append([]av.Waypoint{{Fix: "intercept", Location: hit.Location}}, route[hit.Index+1:]...)
+	} else {
+		// No segment intercept. Fall back to the first waypoint whose bearing
+		// is within 30° of the aircraft's heading — lets a pilot already
+		// pointed at a chart waypoint join there directly.
+		for i := range route {
+			if math.HeadingDifference(math.Heading2LL(pos, route[i].Location, nav.FlightState.NmPerLongitude), hdg) < 30 {
+				wi = route[i:]
 				break
 			}
-		}
-	} else {
-		// Just check the segment after the waypoint we're considering
-		if w := checkSegment(intercept); w != nil {
-			wi = append([]av.Waypoint{*w}, wp[intercept+1:]...)
-		} else {
-			// No problem if it doesn't intersect that segment; just start
-			// the route from that waypoint.
-			wi = wp[intercept:]
 		}
 	}
 
@@ -609,7 +532,6 @@ func (nav *Nav) prepareForChartedVisual() av.CommandIntent {
 		return av.MakeUnableIntent("unable. We are not on course to intercept the approach")
 	}
 
-	// Update the route and go direct to the intercept point.
 	nav.Waypoints = append(wi, nav.FlightState.ArrivalAirport)
 	nav.Heading = NavHeading{}
 	nav.DeferredNavHeading = nil
@@ -629,8 +551,7 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 		return intent
 	}
 
-	nav.Approach.Cleared = true
-	nav.Approach.StandbyApproach = false
+	cancelHold := nav.applyClearedApproachState()
 	if nav.Approach.PassedApproachFix {
 		// We've already passed an approach fix, so allow it to start descending.
 		nav.clearAltitudeForApproach()
@@ -641,8 +562,6 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 		// No procedure turn needed if we were vectored to intercept.
 		nav.Approach.NoPT = true
 	}
-	// Cleared approach also cancels speed restrictions.
-	nav.Speed = NavSpeed{}
 
 	// Minimal delay for heading changes given an approach clearance.
 	if dh := nav.DeferredNavHeading; dh != nil {
@@ -651,16 +570,26 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 
 	nav.flyProcedureTurnIfNecessary()
 
-	cancelHold := nav.Heading.Hold != nil
-	if nav.Heading.Hold != nil {
-		nav.Heading.Hold.Cancel = true
-	}
-
 	return av.ClearedApproachIntent{
 		Approach:   ap.FullName,
 		StraightIn: straightIn,
 		CancelHold: cancelHold,
 	}
+}
+
+// applyClearedApproachState performs the nav-state reset common to every
+// approach clearance: cancel any hold, clear speed restrictions, mark the
+// approach as cleared and no longer standby. Returns true iff the aircraft
+// was in a hold that is now being cancelled.
+func (nav *Nav) applyClearedApproachState() (cancelHold bool) {
+	cancelHold = nav.Heading.Hold != nil
+	if nav.Heading.Hold != nil {
+		nav.Heading.Hold.Cancel = true
+	}
+	nav.Approach.Cleared = true
+	nav.Approach.StandbyApproach = false
+	nav.Speed = NavSpeed{}
+	return
 }
 
 type visualApproachRoute struct {
@@ -721,43 +650,31 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 func (nav *Nav) collectHeadingInterceptCandidates(routes []av.WaypointArray, heading math.MagneticHeading) []visualApproachRoute {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
-	acNM := math.LL2NM(nav.FlightState.Position, nmPerLong)
-	headingDir := math.HeadingVector(math.MagneticToTrue(heading, magVar))
+	origin := nav.FlightState.Position
+	tHdg := math.MagneticToTrue(heading, magVar)
 
 	var candidates []visualApproachRoute
 
-	for _, route := range routes {
-		if len(route) < 2 {
+	for _, hit := range av.IntersectRayWithRoutes(origin, tHdg, routes) {
+		// Skip hits very close to the aircraft (robust-geometry guard for
+		// when the aircraft happens to sit right on a segment).
+		rayDist := math.NMDistance2LL(origin, hit.Location)
+		if rayDist <= 0.1 {
 			continue
 		}
-		tailDistance := visualRouteTailDistances(route, nmPerLong)
-		for i := range len(route) - 1 {
-			p0 := math.LL2NM(route[i].Location, nmPerLong)
-			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
-			seg := math.Sub2f(p1, p0)
-			segLen2 := math.Dot(seg, seg)
-			if segLen2 == 0 {
-				continue
-			}
-			intersect, rayT, segT, ok := math.RaySegmentIntersect(acNM, headingDir, p0, p1)
-			if !ok {
-				continue
-			}
-			if rayT <= 0.1 {
-				continue
-			}
 
-			distToThreshold := math.Distance2f(intersect, p1) + tailDistance[i+1]
-			candidates = append(candidates, visualApproachRoute{
-				route:               route,
-				segment:             i,
-				segmentFraction:     segT,
-				location:            math.NM2LL(intersect, nmPerLong),
-				distanceToThreshold: distToThreshold,
-				interceptDistance:   rayT,
-				lateralDistance:     0,
-			})
-		}
+		route := routes[hit.RouteIndex]
+		tail := visualRouteTailDistances(route, nmPerLong)
+		distToThreshold := math.NMDistance2LLFast(hit.Location, route[hit.Index+1].Location, nmPerLong) + tail[hit.Index+1]
+
+		candidates = append(candidates, visualApproachRoute{
+			route:               route,
+			segment:             hit.Index,
+			segmentFraction:     hit.SegT,
+			location:            hit.Location,
+			distanceToThreshold: distToThreshold,
+			interceptDistance:   rayDist,
+		})
 	}
 
 	return candidates
@@ -1068,11 +985,7 @@ func (nav *Nav) ClearedVisualApproach(runway string, follow *FollowTraffic, refs
 }
 
 func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, wps []av.Waypoint) av.CommandIntent {
-	// Cancel hold before clearing nav state.
-	cancelHold := nav.Heading.Hold != nil
-	if nav.Heading.Hold != nil {
-		nav.Heading.Hold.Cancel = true
-	}
+	cancelHold := nav.applyClearedApproachState()
 
 	nav.Waypoints = append(wps, nav.FlightState.ArrivalAirport)
 
@@ -1094,11 +1007,11 @@ func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, wps []a
 		Waypoints:         []av.WaypointArray{util.DuplicateSlice(wps)},
 	}
 
+	// Visual-approach clearance installs a full precomputed route, so clear
+	// any lingering heading or altitude nav state beyond the shared reset.
 	nav.Heading = NavHeading{}
 	nav.DeferredNavHeading = nil
 	nav.Altitude = NavAltitude{}
-	nav.Speed = NavSpeed{}
-	nav.Approach.Cleared = true
 
 	return av.ClearedApproachIntent{
 		Approach:    "Visual Approach Runway " + runway,
