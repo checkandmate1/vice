@@ -2758,3 +2758,44 @@ func (rg RouteGenerator) Waypoint(name string, dx, dy float32) Waypoint {
 		Location: math.NM2LL(p, rg.nmPerLongitude),
 	}
 }
+
+// RouteRayIntersection extends math.RayRouteIntersection with the index of
+// the WaypointArray the hit falls on.
+type RouteRayIntersection struct {
+	math.RayRouteIntersection
+	RouteIndex int
+}
+
+// IntersectRayWithRoutes runs math.IntersectRayWithRoute on each entry in
+// routes and returns all hits. Callers apply their own scoring (closest,
+// earliest, turn-angle tiers, etc.).
+func IntersectRayWithRoutes(origin math.Point2LL, heading math.TrueHeading, routes []WaypointArray) []RouteRayIntersection {
+	var hits []RouteRayIntersection
+	for ri, route := range routes {
+		pts := make([]math.Point2LL, len(route))
+		for i, wp := range route {
+			pts[i] = wp.Location
+		}
+		for _, h := range math.IntersectRayWithRoute(origin, heading, pts) {
+			hits = append(hits, RouteRayIntersection{RayRouteIntersection: h, RouteIndex: ri})
+		}
+	}
+	return hits
+}
+
+// ClosestRayRouteIntersection returns the hit with the smallest distance
+// from origin across all supplied routes.
+func ClosestRayRouteIntersection(origin math.Point2LL, heading math.TrueHeading, routes []WaypointArray) (RouteRayIntersection, bool) {
+	var best RouteRayIntersection
+	found := false
+	bestDist := float32(0)
+	for _, h := range IntersectRayWithRoutes(origin, heading, routes) {
+		d := math.NMDistance2LL(origin, h.Location)
+		if !found || d < bestDist {
+			best = h
+			bestDist = d
+			found = true
+		}
+	}
+	return best, found
+}
