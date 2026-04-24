@@ -19573,6 +19573,17 @@
       "fleets": {
         "default": [["C208", 30]]
       }
+    },
+    {
+      "icao": "YANKE",
+      "name": "United States Air Force",
+      "callsign": {
+        "name": "YANKEE",
+        "callsignFormats": ["##"]
+      },
+      "fleets": {
+        "default": [["C130", 5]]
+      }
     }
   ]
 }
