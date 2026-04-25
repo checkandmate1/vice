@@ -965,6 +965,7 @@ func (s *Sim) updateState() {
 
 			updateResult := ac.Update(s.wxModel, s.State.SimTime, s.bravoAirspace, nil /* s.lg*/)
 			passedWaypoint := updateResult.PassedWaypoint
+			s.refreshSeenTraffic(ac)
 
 			if ac.Nav.Approach.RequestApproachClearance && ac.IsAssociated() {
 				ac.Nav.Approach.RequestApproachClearance = false

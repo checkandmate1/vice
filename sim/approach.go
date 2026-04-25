@@ -321,21 +321,33 @@ func (s *Sim) hasRecentApproachTrafficInSight(ac *Aircraft) bool {
 }
 
 func (s *Sim) recentApproachTrafficInSightForRunway(ac *Aircraft, runway string) *Aircraft {
-	traffic := s.recentApproachTrafficInSight(ac)
-	if traffic == nil || traffic.Nav.Approach.Assigned == nil || traffic.Nav.Approach.Assigned.Runway != runway {
-		return nil
+	for i := len(ac.SeenTraffic) - 1; i >= 0; i-- {
+		seen := &ac.SeenTraffic[i]
+		if s.State.SimTime.Sub(seen.SightedTime) > approachTrafficSightingMaxAge {
+			continue
+		}
+		traffic, ok := s.Aircraft[seen.Callsign]
+		if !ok || !traffic.Nav.Approach.Cleared || traffic.Nav.Approach.Assigned == nil {
+			continue
+		}
+		if traffic.Nav.Approach.Assigned.Runway == runway {
+			return traffic
+		}
 	}
-	return traffic
+	return nil
 }
 
 func (s *Sim) recentApproachTrafficInSight(ac *Aircraft) *Aircraft {
-	if !ac.TrafficInSight || s.State.SimTime.Sub(ac.TrafficInSightTime) > 30*time.Second {
-		return nil
-	}
+	for i := len(ac.SeenTraffic) - 1; i >= 0; i-- {
+		seen := &ac.SeenTraffic[i]
+		if s.State.SimTime.Sub(seen.SightedTime) > approachTrafficSightingMaxAge {
+			continue
+		}
 
-	traffic, ok := s.Aircraft[ac.TrafficInSightCallsign]
-	if ok && traffic.Nav.Approach.Cleared {
-		return traffic
+		traffic, ok := s.Aircraft[seen.Callsign]
+		if ok && traffic.Nav.Approach.Cleared {
+			return traffic
+		}
 	}
 	return nil
 }
@@ -386,12 +398,48 @@ func (s *Sim) processFutureTrafficInSight() {
 			if !ok || ac.ControllerFrequency == "" {
 				return false
 			}
-			ac.TrafficInSight = true
-			ac.TrafficInSightCallsign = f.TrafficCallsign
-			ac.TrafficInSightTime = s.State.SimTime
+			sighting := ac.RecordSighting(f.TrafficCallsign, s.State.SimTime)
+			sighting.OfferedToMaintainSeparation = false
+			if ac.UnseenTrafficCall != nil && ac.UnseenTrafficCall.Callsign == f.TrafficCallsign {
+				ac.clearUnseenTrafficCall()
+			}
 			s.enqueuePilotTransmission(ac.ADSBCallsign, TCP(ac.ControllerFrequency), PendingTransmissionTrafficInSight)
 			return false
 		})
+}
+
+func (s *Sim) refreshSeenTraffic(ac *Aircraft) {
+	now := s.State.SimTime
+	ac.SeenTraffic = util.FilterSliceInPlace(ac.SeenTraffic,
+		func(seen SeenAircraft) bool {
+			if seen.MaintainingVisualSeparation {
+				return s.trafficStillVisible(ac, &seen)
+			}
+			return now.Sub(seen.SightedTime) <= trafficSightingMaxAge
+		})
+}
+
+func (s *Sim) trafficStillVisible(ac *Aircraft, seen *SeenAircraft) bool {
+	traffic, ok := s.Aircraft[seen.Callsign]
+	if !ok {
+		return false
+	}
+
+	bearingToTraffic := math.TrueToMagnetic(
+		math.Heading2LL(ac.Position(), traffic.Position(), ac.NmPerLongitude()),
+		ac.MagneticVariation())
+	if math.HeadingDifference(ac.Heading(), bearingToTraffic) > visualMaxBearingOff {
+		return false
+	}
+
+	nearestMETAR, nearestElev := s.nearestMETAR(ac.Position())
+	if nearestMETAR.ICAO != "" && !nearestMETAR.IsVMC() {
+		return false
+	}
+
+	altAGL := max(ac.Altitude()-nearestElev, 0)
+	dist := math.NMDistance2LLFast(ac.Position(), traffic.Position(), ac.NmPerLongitude())
+	return pilotSeeProb(nearestMETAR.EffectiveVisualRange(altAGL), dist) > 0
 }
 
 // canRequestVisualApproach reports whether an aircraft is eligible to

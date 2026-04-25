@@ -462,10 +462,17 @@ func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, command string)
 		func(tcw TCW, ac *Aircraft) error { return nil },
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
 			if otherMaintainsVisual {
+				s.startTrafficAdvisory(ac)
 				return av.TrafficAdvisoryIntent{Response: av.TrafficResponseAcknowledged}
 			}
 			return s.handleTrafficAdvisory(ac, oclock, miles, trafficAltFeet)
 		})
+}
+
+func (s *Sim) startTrafficAdvisory(ac *Aircraft) {
+	s.cancelFutureTrafficInSight(ac.ADSBCallsign)
+	ac.clearUnseenTrafficCall()
+	ac.clearOfferedToMaintainSeparation()
 }
 
 // handleTrafficAdvisory determines the pilot response to a traffic advisory based on:
@@ -474,14 +481,12 @@ func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, command string)
 //  3. Pilot see-probability derived from METAR effective visual range, with a
 //     relative-altitude boost/penalty (above against sky, below against ground)
 func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, trafficAltFeet float32) av.CommandIntent {
-	// A fresh TRAFFIC call supersedes any earlier "looking" event still
-	// queued for this aircraft (possibly for a different target); the
-	// enqueue helper will re-add one if the pilot ends up looking.
-	s.cancelFutureTrafficInSight(ac.ADSBCallsign)
+	// A fresh TRAFFIC call supersedes any earlier unresolved advisory or
+	// volunteered separation offer.
+	s.startTrafficAdvisory(ac)
 
 	nearestMETAR, nearestElev := s.nearestMETAR(ac.Position())
 	if nearestMETAR.ICAO != "" && !nearestMETAR.IsVMC() {
-		ac.OfferedVisualSeparation = false
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseIMC}
 	}
 
@@ -518,8 +523,12 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 
 	if trafficFound == "" {
 		// No traffic found - respond "looking"
-		ac.OfferedVisualSeparation = false
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
+	}
+
+	ac.UnseenTrafficCall = &UnseenTrafficCall{
+		Callsign:   trafficFound,
+		CalledTime: s.State.SimTime,
 	}
 
 	// Base probability from METAR-derived effective visual range at the pilot's AGL.
@@ -539,19 +548,17 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	}
 
 	if s.Rand.Float32() < seeProb {
-		ac.TrafficInSight = true
-		ac.TrafficInSightCallsign = trafficFound
-		ac.TrafficInSightTime = s.State.SimTime
-		ac.OfferedVisualSeparation = s.Rand.Float32() < 0.3
+		sighting := ac.RecordSighting(trafficFound, s.State.SimTime)
+		ac.clearUnseenTrafficCall()
+		sighting.OfferedToMaintainSeparation = s.Rand.Float32() < 0.3
 		return av.TrafficAdvisoryIntent{
 			Response:               av.TrafficResponseTrafficSeen,
-			WillMaintainSeparation: ac.OfferedVisualSeparation,
+			WillMaintainSeparation: sighting.OfferedToMaintainSeparation,
 		}
 	}
 
 	// "Looking" - schedule possible delayed traffic-in-sight call
 	s.enqueueFutureTrafficInSight(ac.ADSBCallsign, trafficFound)
-	ac.OfferedVisualSeparation = false
 	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 }
 
@@ -590,9 +597,10 @@ func (s *Sim) MaintainVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.Co
 	return s.dispatchAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) error { return nil },
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			// Check if aircraft has traffic in sight (within last 60 seconds)
-			if ac.TrafficInSight && s.State.SimTime.Sub(ac.TrafficInSightTime) < 60*time.Second {
-				ac.OfferedVisualSeparation = false
+			if sighting := ac.RecentSighting(s.State.SimTime, trafficSightingMaxAge); sighting != nil {
+				ac.clearOfferedToMaintainSeparation()
+				sighting.MaintainingVisualSeparation = true
+				ac.clearUnseenTrafficCall()
 				return av.VisualSeparationIntent{}
 			}
 			// If they don't have traffic in sight, they can't maintain visual separation
@@ -621,10 +629,17 @@ func (s *Sim) ApproveVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.Com
 	return s.dispatchAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) error { return nil },
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			if ac.OfferedVisualSeparation &&
-				ac.TrafficInSight &&
-				s.State.SimTime.Sub(ac.TrafficInSightTime) < 60*time.Second {
-				ac.OfferedVisualSeparation = false
+			for i := len(ac.SeenTraffic) - 1; i >= 0; i-- {
+				sighting := &ac.SeenTraffic[i]
+				if s.State.SimTime.Sub(sighting.SightedTime) > trafficSightingMaxAge {
+					continue
+				}
+				if !sighting.OfferedToMaintainSeparation {
+					continue
+				}
+				ac.clearOfferedToMaintainSeparation()
+				sighting.MaintainingVisualSeparation = true
+				break
 			}
 			return nil
 		})

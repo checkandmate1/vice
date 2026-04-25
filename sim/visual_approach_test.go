@@ -191,6 +191,17 @@ func (vs *VisualScenario) ClearPendingTransmissions() {
 	vs.Sim.PendingContacts = make(map[TCP][]PendingContact)
 }
 
+func requireSeenTraffic(t *testing.T, ac *Aircraft, callsign av.ADSBCallsign) *SeenAircraft {
+	t.Helper()
+	for i := range ac.SeenTraffic {
+		if ac.SeenTraffic[i].Callsign == callsign {
+			return &ac.SeenTraffic[i]
+		}
+	}
+	t.Fatalf("missing sighting for %s", callsign)
+	return nil
+}
+
 // ExpectFieldInSight asserts the intent is LookForFieldFound.
 func (vs *VisualScenario) ExpectFieldInSight(intent av.CommandIntent) {
 	vs.t.Helper()
@@ -923,9 +934,7 @@ func TestScenarioCVAFollowTrafficUsesTrafficRoute(t *testing.T) {
 	traffic.Nav.Waypoints = av.WaypointArray{wirko, rw36, traffic.Nav.FlightState.ArrivalAirport}
 	vs.Sim.Aircraft[traffic.ADSBCallsign] = traffic
 
-	vs.AC.TrafficInSight = true
-	vs.AC.TrafficInSightCallsign = traffic.ADSBCallsign
-	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
+	vs.AC.RecordSighting(traffic.ADSBCallsign, vs.Sim.State.SimTime)
 
 	intent, err := vs.ClearedVisual("36")
 	if err != nil {
@@ -1194,14 +1203,21 @@ func TestFutureTrafficInSightFiresAtDeadline(t *testing.T) {
 
 	ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180)
 	sim.Aircraft = map[av.ADSBCallsign]*Aircraft{ac.ADSBCallsign: ac}
+	ac.UnseenTrafficCall = &UnseenTrafficCall{
+		Callsign:   "DAL456",
+		CalledTime: sim.State.SimTime.Add(-15 * time.Second),
+	}
 	sim.FutureTrafficInSights = []FutureTrafficInSight{
 		{ac.ADSBCallsign, "DAL456", sim.State.SimTime.Add(-time.Second)},
 	}
 
 	sim.processFutureTrafficInSight()
 
-	if !ac.TrafficInSight || ac.TrafficInSightCallsign != "DAL456" {
-		t.Fatalf("expected traffic in sight set to DAL456, got %v/%q", ac.TrafficInSight, ac.TrafficInSightCallsign)
+	if sighting := requireSeenTraffic(t, ac, "DAL456"); sighting.OfferedToMaintainSeparation {
+		t.Fatal("delayed traffic-in-sight report should not volunteer separation")
+	}
+	if ac.UnseenTrafficCall != nil {
+		t.Fatal("future traffic-in-sight report should clear the matching unseen traffic call")
 	}
 	if len(sim.FutureTrafficInSights) != 0 {
 		t.Fatal("fired event should be removed from queue")
@@ -1238,10 +1254,8 @@ func TestFutureTrafficInSightSupersededByNewAdvisory(t *testing.T) {
 func TestApprovedAcceptsVolunteeredVisualSeparationWithoutReadback(t *testing.T) {
 	vs := NewVisualScenario(t, math.Point2LL{0, 0}, "13L", math.Point2LL{0, 5.0 / 60}, 180)
 
-	vs.AC.TrafficInSight = true
-	vs.AC.TrafficInSightCallsign = "DAL456"
-	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
-	vs.AC.OfferedVisualSeparation = true
+	sighting := vs.AC.RecordSighting("DAL456", vs.Sim.State.SimTime)
+	sighting.OfferedToMaintainSeparation = true
 
 	result := vs.Sim.RunAircraftControlCommands(vs.tcw, vs.callsign, "APPROVED", 0)
 	if result.Error != nil {
@@ -1250,25 +1264,31 @@ func TestApprovedAcceptsVolunteeredVisualSeparationWithoutReadback(t *testing.T)
 	if result.ReadbackSpokenText != "" {
 		t.Fatalf("APPROVED should not produce a pilot readback, got %q", result.ReadbackSpokenText)
 	}
-	if vs.AC.OfferedVisualSeparation {
+	sighting = requireSeenTraffic(t, vs.AC, "DAL456")
+	if sighting.OfferedToMaintainSeparation {
 		t.Fatal("APPROVED should clear the pending volunteered visual separation")
+	}
+	if !sighting.MaintainingVisualSeparation {
+		t.Fatal("APPROVED should promote the sighting to maintaining visual separation")
 	}
 }
 
 func TestMaintainVisualSeparationMarksAircraftState(t *testing.T) {
 	vs := NewVisualScenario(t, math.Point2LL{0, 0}, "13L", math.Point2LL{0, 5.0 / 60}, 180)
 
-	vs.AC.TrafficInSight = true
-	vs.AC.TrafficInSightCallsign = "DAL456"
-	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
-	vs.AC.OfferedVisualSeparation = true
+	sighting := vs.AC.RecordSighting("DAL456", vs.Sim.State.SimTime)
+	sighting.OfferedToMaintainSeparation = true
 
 	_, err := vs.Sim.MaintainVisualSeparation(vs.tcw, vs.callsign)
 	if err != nil {
 		t.Fatalf("VISSEP returned error: %v", err)
 	}
-	if vs.AC.OfferedVisualSeparation {
+	sighting = requireSeenTraffic(t, vs.AC, "DAL456")
+	if sighting.OfferedToMaintainSeparation {
 		t.Fatal("VISSEP should clear the pending volunteered visual separation")
+	}
+	if !sighting.MaintainingVisualSeparation {
+		t.Fatal("VISSEP should mark the sighting as maintaining visual separation")
 	}
 }
 
@@ -1282,15 +1302,13 @@ func TestCVAFollowTrafficRequiresRecentApproachClearedTraffic(t *testing.T) {
 	traffic.Nav.Approach.Cleared = true
 	vs.Sim.Aircraft[traffic.ADSBCallsign] = traffic
 
-	vs.AC.TrafficInSight = true
-	vs.AC.TrafficInSightCallsign = traffic.ADSBCallsign
-	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime.Add(-31 * time.Second)
+	sighting := vs.AC.RecordSighting(traffic.ADSBCallsign, vs.Sim.State.SimTime.Add(-31*time.Second))
 
 	if vs.Sim.hasRecentApproachTrafficInSight(vs.AC) {
 		t.Fatal("stale traffic report should not allow follow-traffic visual")
 	}
 
-	vs.AC.TrafficInSightTime = vs.Sim.State.SimTime
+	sighting.SightedTime = vs.Sim.State.SimTime
 	traffic.Nav.Approach.Cleared = false
 	if vs.Sim.hasRecentApproachTrafficInSight(vs.AC) {
 		t.Fatal("traffic that is not approach-cleared should not allow follow-traffic visual")
@@ -1299,6 +1317,96 @@ func TestCVAFollowTrafficRequiresRecentApproachClearedTraffic(t *testing.T) {
 	traffic.Nav.Approach.Cleared = true
 	if !vs.Sim.hasRecentApproachTrafficInSight(vs.AC) {
 		t.Fatal("recent approach-cleared traffic should allow follow-traffic visual")
+	}
+}
+
+func TestTrafficAdvisoryClearsOfferedStateButKeepsSightingHistory(t *testing.T) {
+	vs := NewVisualScenario(t, math.Point2LL{0, 0}, "13L", math.Point2LL{0, 5.0 / 60}, 180)
+
+	sighting := vs.AC.RecordSighting("DAL456", vs.Sim.State.SimTime.Add(-20*time.Second))
+	sighting.OfferedToMaintainSeparation = true
+	vs.AC.UnseenTrafficCall = &UnseenTrafficCall{
+		Callsign:   "DAL456",
+		CalledTime: vs.Sim.State.SimTime.Add(-15 * time.Second),
+	}
+	vs.Sim.FutureTrafficInSights = []FutureTrafficInSight{
+		{vs.callsign, "DAL456", vs.Sim.State.SimTime.Add(10 * time.Second)},
+	}
+
+	intent := vs.Sim.handleTrafficAdvisory(vs.AC, 12, 5, vs.AC.Altitude())
+	ti, ok := intent.(av.TrafficAdvisoryIntent)
+	if !ok {
+		t.Fatalf("expected TrafficAdvisoryIntent, got %T", intent)
+	}
+	if ti.Response != av.TrafficResponseLooking {
+		t.Fatalf("expected looking response, got %v", ti.Response)
+	}
+	if len(vs.AC.SeenTraffic) != 1 {
+		t.Fatalf("expected prior sighting history to be preserved, got %d entries", len(vs.AC.SeenTraffic))
+	}
+	sighting = requireSeenTraffic(t, vs.AC, "DAL456")
+	if sighting.OfferedToMaintainSeparation {
+		t.Fatal("new traffic advisory should clear stale offered-to-maintain state")
+	}
+	if vs.AC.UnseenTrafficCall != nil {
+		t.Fatal("no-traffic advisory response should clear the unresolved unseen traffic call")
+	}
+	if len(vs.Sim.FutureTrafficInSights) != 0 {
+		t.Fatal("new traffic advisory should cancel stale delayed traffic-in-sight events")
+	}
+}
+
+func TestRecentApproachTrafficInSightForRunwaySkipsNewerWrongRunway(t *testing.T) {
+	vs := NewVisualScenario(t, math.Point2LL{0, 0}, "13L", math.Point2LL{0, 5.0 / 60}, 180)
+
+	matching := makeVisualTestAircraft(math.Point2LL{0, 4.0 / 60}, 180)
+	matching.ADSBCallsign = "DAL456"
+	matching.Nav.Approach.Cleared = true
+	matching.Nav.Approach.Assigned.Runway = "13L"
+	vs.Sim.Aircraft[matching.ADSBCallsign] = matching
+
+	wrongRunway := makeVisualTestAircraft(math.Point2LL{0, 3.5 / 60}, 180)
+	wrongRunway.ADSBCallsign = "UAL789"
+	wrongRunway.Nav.Approach.Cleared = true
+	wrongRunway.Nav.Approach.Assigned.Runway = "22"
+	vs.Sim.Aircraft[wrongRunway.ADSBCallsign] = wrongRunway
+
+	vs.AC.SeenTraffic = []SeenAircraft{
+		{Callsign: matching.ADSBCallsign, SightedTime: vs.Sim.State.SimTime.Add(-20 * time.Second)},
+		{Callsign: wrongRunway.ADSBCallsign, SightedTime: vs.Sim.State.SimTime.Add(-5 * time.Second)},
+	}
+
+	traffic := vs.Sim.recentApproachTrafficInSightForRunway(vs.AC, "13L")
+	if traffic == nil {
+		t.Fatal("expected to find older matching-runway traffic")
+	}
+	if traffic.ADSBCallsign != matching.ADSBCallsign {
+		t.Fatalf("got %s, want %s", traffic.ADSBCallsign, matching.ADSBCallsign)
+	}
+}
+
+func TestMaintainingVisualSeparationPersistsUntilTrafficNoLongerVisible(t *testing.T) {
+	vs := NewVisualScenario(t, math.Point2LL{0, 0}, "13L", math.Point2LL{0, 5.0 / 60}, 180)
+
+	traffic := makeVisualTestAircraft(math.Point2LL{0, 4.0 / 60}, 180)
+	traffic.ADSBCallsign = "DAL456"
+	vs.Sim.Aircraft[traffic.ADSBCallsign] = traffic
+
+	vs.AC.SeenTraffic = []SeenAircraft{{
+		Callsign:                    traffic.ADSBCallsign,
+		SightedTime:                 vs.Sim.State.SimTime.Add(-2 * time.Minute),
+		MaintainingVisualSeparation: true,
+	}}
+
+	vs.Sim.refreshSeenTraffic(vs.AC)
+	if len(vs.AC.SeenTraffic) != 1 {
+		t.Fatal("maintaining visual separation should persist while the traffic remains visible")
+	}
+
+	traffic.Nav.FlightState.Position = math.Point2LL{0, 6.0 / 60}
+	vs.Sim.refreshSeenTraffic(vs.AC)
+	if len(vs.AC.SeenTraffic) != 0 {
+		t.Fatal("maintaining visual separation should clear once the traffic is no longer visible")
 	}
 }
 
