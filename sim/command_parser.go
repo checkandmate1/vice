@@ -667,8 +667,8 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 			return s.ExpectApproach(tcw, callsign, approach, lahsoRunway)
 		} else if command == "E" {
 			// Bare "E" re-issues expect for the already-assigned approach
-			if ac, ok := s.Aircraft[callsign]; ok && ac.Nav.Approach.Assigned != nil {
-				return s.ExpectApproach(tcw, callsign, ac.Nav.Approach.Assigned.Id, "")
+			if ac, ok := s.Aircraft[callsign]; ok && ac.Nav.Approach.AssignedId != "" {
+				return s.ExpectApproach(tcw, callsign, ac.Nav.Approach.AssignedId, "")
 			}
 			return av.MakeUnableIntent("unable. We haven't been told to expect an approach"), nil
 		} else {

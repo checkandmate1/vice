@@ -450,12 +450,12 @@ func (ac *Aircraft) canRequestVisualApproach() bool {
 	if ac.IsDeparture() || ac.FieldInSight || ac.RequestedVisualApproach || ac.ControllerFrequency == "" {
 		return false
 	}
-	if ac.Nav.Approach.Assigned == nil || ac.Nav.Approach.Cleared {
+	if ac.Nav.Approach.AssignedId == "" || ac.Nav.Approach.Cleared {
 		return false
 	}
 	appr := ac.Nav.Approach.Assigned
 	// Already on a visual — nothing to request.
-	return appr.Type != av.ChartedVisualApproach
+	return appr != nil && appr.Type != av.ChartedVisualApproach
 }
 
 type visualEligibilityReason int

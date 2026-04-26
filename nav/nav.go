@@ -216,6 +216,7 @@ type NavHeading struct {
 
 type NavApproach struct {
 	Assigned                    *av.Approach
+	AssignedId                  string
 	ATPAVolume                  *av.ATPAVolume
 	Cleared                     bool
 	StandbyApproach             bool // suppress repeated approach clearance requests

@@ -1017,13 +1017,9 @@ func (s *Sim) updateState() {
 
 						// Log updated route and waypoint state after commands
 						nav.LogRoute(string(callsign), s.State.SimTime.NavTime(), ac.Nav.Waypoints)
-						approachId := ""
-						if appr := ac.Nav.Approach.Assigned; appr != nil {
-							approachId = appr.Id
-						}
 						nav.NavLog(string(callsign), s.State.SimTime.NavTime(), nav.NavLogCommand,
 							"aircraft=%s post-cmd nwaypoints=%d approach_cleared=%v approach_id=%s",
-							callsign, len(ac.Nav.Waypoints), ac.Nav.Approach.Cleared, approachId)
+							callsign, len(ac.Nav.Waypoints), ac.Nav.Approach.Cleared, ac.Nav.Approach.AssignedId)
 
 						s.mu.Lock(s.lg)
 					}

@@ -292,7 +292,6 @@ func TestRunOneControlCommandAtFixClearedStraightInApproach(t *testing.T) {
 	lg := log.New(true, "error", t.TempDir())
 
 	appr := &av.Approach{
-		Id:       "RG24",
 		FullName: "RNAV Runway 24",
 		Waypoints: []av.WaypointArray{
 			{
@@ -319,7 +318,8 @@ func TestRunOneControlCommandAtFixClearedStraightInApproach(t *testing.T) {
 						{Fix: "MATTY"},
 					},
 					Approach: nav.NavApproach{
-						Assigned: appr,
+						Assigned:   appr,
+						AssignedId: "RG24",
 					},
 				},
 			},
