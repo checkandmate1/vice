@@ -238,6 +238,17 @@ func (a *AirlineSpecifier) Check(e *util.ErrorLogger) {
 		}
 	}
 
+	if a.Callsign != "" {
+		if a.Fleet != "" {
+			e.ErrorString("cannot specify \"fleet\" with a specific callsign")
+			return
+		}
+		if len(a.AircraftTypes) == 0 {
+			e.ErrorString("must specify \"types\" when a specific callsign is given")
+			return
+		}
+	}
+
 	var al Airline
 	if a.ICAO != "" {
 		var ok bool
