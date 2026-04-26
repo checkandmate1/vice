@@ -1802,7 +1802,7 @@
     }
   },
   "inbound_flows": {
-    "BLFRG2": {
+    "BLFRG3": {
       "arrivals": [
         {
           "airlines": {
@@ -1849,7 +1849,7 @@
           "cruise_altitude": 24000,
           "initial_speed": 290,
           "speed_restriction": 250,
-          "star": "BLFRG2",
+          "star": "BLFRG3",
           "initial_controller": "C46",
           "runway_waypoints": {
             "KTPA": {
@@ -1867,7 +1867,7 @@
         }
       ]
     },
-    "DADES1": {
+    "DADES2": {
       "arrivals": [
         {
           "airlines": {
@@ -1930,7 +1930,7 @@
           "cruise_altitude": 33000,
           "initial_speed": 290,
           "speed_restriction": 250,
-          "star": "DADES1",
+          "star": "DADES2",
           "initial_controller": "J30",
           "runway_waypoints": {
             "KTPA": {
@@ -1948,7 +1948,7 @@
         }
       ]
     },
-    "MAATY4": {
+    "MAATY5": {
       "arrivals": [
         {
           "airlines": {
@@ -2022,7 +2022,7 @@
           "cruise_altitude": 33000,
           "initial_speed": 280,
           "speed_restriction": 250,
-          "star": "MAATY4",
+          "star": "MAATY5",
           "initial_controller": "J30",
           "runway_waypoints": {
             "KTPA": {
@@ -2040,7 +2040,7 @@
         }
       ]
     },
-    "RAYZZ2": {
+    "RAYZZ3": {
       "arrivals": [
         {
           "airlines": {
@@ -2103,7 +2103,7 @@
           "cruise_altitude": 33000,
           "initial_speed": 280,
           "speed_restriction": 250,
-          "star": "RAYZZ2",
+          "star": "RAYZZ3",
           "initial_controller": "C46",
           "runway_waypoints": {
             "KTPA": {
@@ -2129,7 +2129,7 @@
         }
       ]
     },
-    "BANGZ1": {
+    "BANGZ3": {
       "arrivals": [
         {
           "airlines": {
@@ -2170,7 +2170,7 @@
           "initial_speed": 280,
           "speed_restriction": 250,
           "initial_controller": "J30",
-          "star": "BANGZ1",
+          "star": "BANGZ3",
           "runway_waypoints": {
             "KSRQ": {
               "32": "BANGZ KIDLE ALROE MAHAR FIVDO MURDO/flyover/a3000/h228",
@@ -2185,7 +2185,7 @@
         }
       ]
     },
-    "LUBBR3": {
+    "LUBBR4": {
       "arrivals": [
         {
           "airlines": {
@@ -2242,7 +2242,7 @@
           "initial_altitude": 12000,
           "initial_controller": "J30",
           "initial_speed": 280,
-          "star": "LUBBR3",
+          "star": "LUBBR4",
           "runway_waypoints": {
             "KSRQ": {
               "32": "ZEBON RUNNE BREKR WUDDY LYFIE MURDO/flyover/a3000/h228",
@@ -2254,7 +2254,7 @@
         }
       ]
     },
-    "MAATY4.SO.Finals": {
+    "MAATY5.SO.Finals": {
       "arrivals": [
         {
           "airlines": {
@@ -2310,13 +2310,13 @@
           "initial_altitude": 15000,
           "initial_speed": 280,
           "speed_restriction": 250,
-          "star": "MAATY4",
+          "star": "MAATY5",
           "initial_controller": "1W",
           "waypoints": "N028.39.12.145,W083.09.01.653 AAHOY MAATY/a8000-11000/s250 ROOKR N028.16.33.843,W082.47.31.034/ho SCLOP/a5000/s230/h097"
         }
       ]
     },
-    "DADES1.SO.Finals": {
+    "DADES2.SO.Finals": {
       "arrivals": [
         {
           "airlines": {
@@ -2364,13 +2364,13 @@
           "initial_altitude": 13000,
           "initial_speed": 250,
           "speed_restriction": 250,
-          "star": "DADES1",
+          "star": "DADES2",
           "initial_controller": "1E",
           "waypoints": "OLENE/a13000 MARVI KOKOH DADES/ho LZARD JKBAL/a6000/s230/h277"
         }
       ]
     },
-    "BLFRG2.SO.Finals": {
+    "BLFRG3.SO.Finals": {
       "arrivals": [
         {
           "airlines": {
@@ -2398,13 +2398,13 @@
           "initial_altitude": 11000,
           "initial_speed": 290,
           "speed_restriction": 250,
-          "star": "BLFRG2",
+          "star": "BLFRG3",
           "initial_controller": "1G",
           "waypoints": "DSIDE JSTRM N027.50.20.107,W082.25.06.802/ho GUZDA LISAF/a4000/s210/h005"
         }
       ]
     },
-    "MAATY4.NO.Finals": {
+    "MAATY5.NO.Finals": {
       "arrivals": [
         {
           "airlines": {
@@ -2460,13 +2460,13 @@
           "initial_altitude": 10000,
           "initial_speed": 280,
           "speed_restriction": 250,
-          "star": "MAATY4",
+          "star": "MAATY5",
           "initial_controller": "1W",
           "waypoints": "N028.10.49.333,W082.48.34.205 BLOUT/ho CBASS TOOTH/a5000/s210 BUGGO FELOM/a5000/s210/h187"
         }
       ]
     },
-    "DADES1.NO.Finals": {
+    "DADES2.NO.Finals": {
       "arrivals": [
         {
           "airlines": {
@@ -2514,13 +2514,13 @@
           "initial_altitude": 10000,
           "initial_speed": 250,
           "speed_restriction": 250,
-          "star": "DADES1",
+          "star": "DADES2",
           "initial_controller": "1E",
           "waypoints": "LZARD LISAF N028.05.30.509,W082.24.48.812/ho GUZDA BORST/a5000/s210 JSTRM/a5000/s210/h186"
         }
       ]
     },
-    "BLFRG2.NO.Finals": {
+    "BLFRG3.NO.Finals": {
       "arrivals": [
         {
           "airlines": {
@@ -2548,7 +2548,7 @@
           "initial_altitude": 11000,
           "initial_speed": 290,
           "speed_restriction": 250,
-          "star": "BLFRG2",
+          "star": "BLFRG3",
           "initial_controller": "1G",
           "waypoints": "DSIDE N027.33.30.642,W082.16.37.970/ho N027.39.18.407,W082.22.58.152/a4000 JSTRM CRUUZ/h276"
         }
@@ -2593,29 +2593,29 @@
         }
       ],
       "inbound_rates": {
-        "BLFRG2": {
+        "BLFRG3": {
           "KTPA": 5,
           "KPIE": 2
         },
-        "DADES1": {
+        "DADES2": {
           "KTPA": 5,
           "KPIE": 0
         },
-        "MAATY4": {
+        "MAATY5": {
           "KTPA": 5,
           "KLAL": 0
         },
-        "RAYZZ2": {
+        "RAYZZ3": {
           "KTPA": 5,
           "KSRQ": 1,
           "KPIE": 1,
           "KLAL": 0
         },
-        "BANGZ1": {
+        "BANGZ3": {
           "KSRQ": 2,
           "KPIE": 1
         },
-        "LUBBR3": {
+        "LUBBR4": {
           "KSRQ": 2
         }
       },
@@ -2676,13 +2676,13 @@
         }
       ],
       "inbound_rates": {
-        "BLFRG2.NO.Finals": {
+        "BLFRG3.NO.Finals": {
           "KTPA": 6
         },
-        "DADES1.NO.Finals": {
+        "DADES2.NO.Finals": {
           "KTPA": 12
         },
-        "MAATY4.NO.Finals": {
+        "MAATY5.NO.Finals": {
           "KTPA": 12
         }
       },
@@ -2725,29 +2725,29 @@
         }
       ],
       "inbound_rates": {
-        "BLFRG2": {
+        "BLFRG3": {
           "KTPA": 5,
           "KPIE": 2
         },
-        "DADES1": {
+        "DADES2": {
           "KTPA": 5,
           "KPIE": 0
         },
-        "MAATY4": {
+        "MAATY5": {
           "KTPA": 5,
           "KLAL": 0
         },
-        "RAYZZ2": {
+        "RAYZZ3": {
           "KTPA": 5,
           "KSRQ": 1,
           "KPIE": 1,
           "KLAL": 0
         },
-        "BANGZ1": {
+        "BANGZ3": {
           "KSRQ": 2,
           "KPIE": 1
         },
-        "LUBBR3": {
+        "LUBBR4": {
           "KSRQ": 2
         }
       },
@@ -2808,13 +2808,13 @@
         }
       ],
       "inbound_rates": {
-        "BLFRG2.SO.Finals": {
+        "BLFRG3.SO.Finals": {
           "KTPA": 6
         },
-        "DADES1.SO.Finals": {
+        "DADES2.SO.Finals": {
           "KTPA": 12
         },
-        "MAATY4.SO.Finals": {
+        "MAATY5.SO.Finals": {
           "KTPA": 12
         }
       },
