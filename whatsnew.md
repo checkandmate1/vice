@@ -40,3 +40,5 @@
 - Scenario updates: Y90 (Ryan G), TPA (Nelson Tieku)
 - Aircraft now ask for an altitude if vectored off an arrival without being assigned one (Michael Knight)
 - Visual approach bugfixes
+- Flight model
+  - Fixed bugs with localizer intercept and approach clearance

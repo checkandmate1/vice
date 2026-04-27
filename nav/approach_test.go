@@ -467,6 +467,53 @@ func TestLocalizerOvershootRecovery(t *testing.T) {
 	f.Run()
 }
 
+func TestReissuedApproachClearanceDuringLocalizerCapture(t *testing.T) {
+	apg := LookupApproachGeometry(t, "KJFK", "I22L")
+	pos := apg.ThresholdOffset(10, -0.5)
+
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  3000,
+		InitialSpeed:     180,
+		InitialHeading:   200,
+	})
+
+	f.ExpectApproach("I22L")
+	f.ClearedApproach("I22L")
+
+	reissued := false
+	for tick := 1; tick <= 300; tick++ {
+		f.AfterTicks(tick, func(f *FlightTest) {
+			if !reissued && f.nav.Approach.InterceptState == TurningToJoin {
+				state := f.nav.Approach.InterceptState
+				f.ClearedApproach("I22L")
+				if f.nav.Approach.InterceptState != state {
+					t.Fatalf("reissued clearance changed intercept state from %d to %d",
+						state, f.nav.Approach.InterceptState)
+				}
+				reissued = true
+			}
+			if f.nav.Approach.RequestVectors {
+				t.Fatalf("tick %d: RequestVectors unexpectedly set", tick)
+			}
+		})
+	}
+
+	f.AtFix("ZALPO", func(f *FlightTest) {
+		if !reissued {
+			t.Fatal("approach clearance was never reissued during capture")
+		}
+		if f.nav.Approach.InterceptState != OnApproachCourse {
+			t.Errorf("expected OnApproachCourse by ZALPO, got %d", f.nav.Approach.InterceptState)
+		}
+	})
+
+	f.Run()
+}
+
 // TestLocalizerOvershootNearFAF verifies that an aircraft that overshoots
 // the localizer too close to the FAF (within 2nm along the approach course)
 // cannot recover and requests vectors instead.

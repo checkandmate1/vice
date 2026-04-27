@@ -279,9 +279,13 @@ func (nav *Nav) ExpectApproach(airport *av.Airport, id string, runwayWaypoints m
 		}
 	}
 
-	nav.Approach.Assigned = ap
-	nav.Approach.AssignedId = id
-	nav.Approach.ATPAVolume = airport.ATPAVolumes[ap.Runway]
+	requestAltitude := nav.Approach.RequestAltitude
+	nav.Approach = NavApproach{
+		Assigned:        ap,
+		AssignedId:      id,
+		ATPAVolume:      airport.ATPAVolumes[ap.Runway],
+		RequestAltitude: requestAltitude,
+	}
 
 	if waypoints := runwayWaypoints[ap.Runway]; len(waypoints) > 0 {
 		if len(nav.Waypoints) == 0 {
@@ -568,6 +572,18 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 	}
 	if id != "" && nav.Approach.AssignedId != id {
 		return av.MakeUnableIntent("unable. We were told to expect the {appr} approach.", ap.FullName)
+	}
+
+	if nav.Approach.Cleared {
+		cancelHold := nav.applyClearedApproachState()
+		if straightIn {
+			nav.Approach.NoPT = true
+		}
+		return av.ClearedApproachIntent{
+			Approach:   ap.FullName,
+			StraightIn: straightIn,
+			CancelHold: cancelHold,
+		}
 	}
 
 	if intent := nav.prepareForApproach(straightIn); intent != nil {
