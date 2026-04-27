@@ -633,7 +633,7 @@ func (aw *NavAirwork) Update(nav *Nav) bool {
 		if aw.NextMoveCounter == 0 {
 			// We just finished. Clean up and Continue straight and level for a bit.
 			aw.Dive = false
-			aw.NextMoveCounter = 5 + nav.Rand.Intn(25)
+			aw.NextMoveCounter = nav.Rand.IntRange(5, 30)
 		} else if aw.NextMoveCounter == 1 {
 			// Pick a new thing.
 			aw.ToCenter = false
@@ -643,20 +643,20 @@ func (aw *NavAirwork) Update(nav *Nav) bool {
 			} else if nav.FlightState.Altitude > aw.AltRange[0]+2000 && nav.Rand.Float32() < .2 {
 				// Dive.
 				aw.Dive = true
-				aw.Altitude = aw.AltRange[0] + 200*nav.Rand.Float32()
+				aw.Altitude = nav.Rand.Float32Range(aw.AltRange[0], aw.AltRange[0]+200)
 			} else if nav.FlightState.Altitude+1000 < aw.AltRange[1] && nav.Rand.Float32() < .2 {
 				// Climbing turn
-				aw.Altitude = aw.AltRange[1] - 500*nav.Rand.Float32()
-				aw.Heading = math.MagneticHeading(360 * nav.Rand.Float32())
+				aw.Altitude = nav.Rand.Float32Range(aw.AltRange[1]-500, aw.AltRange[1])
+				aw.Heading = math.MagneticHeading(nav.Rand.Float32Range(0, 360))
 				aw.TurnDirection = util.Select(nav.Rand.Float32() < .5, av.TurnLeft, av.TurnRight)
 			} else if nav.FlightState.Altitude < aw.AltRange[0]+1000 && nav.Rand.Float32() < .2 {
 				// Descending turn
-				aw.Altitude = aw.AltRange[0] + 500*nav.Rand.Float32()
-				aw.Heading = math.MagneticHeading(360 * nav.Rand.Float32())
+				aw.Altitude = nav.Rand.Float32Range(aw.AltRange[0], aw.AltRange[0]+500)
+				aw.Heading = math.MagneticHeading(nav.Rand.Float32Range(0, 360))
 				aw.TurnDirection = util.Select(nav.Rand.Float32() < .5, av.TurnLeft, av.TurnRight)
 			} else if nav.Rand.Float32() < .2 {
 				// Slow turn
-				aw.Heading = math.MagneticHeading(360 * nav.Rand.Float32())
+				aw.Heading = math.MagneticHeading(nav.Rand.Float32Range(0, 360))
 				aw.IAS = math.Lerp(.1, nav.Perf.Speed.Min, av.TASToIAS(nav.Perf.Speed.CruiseTAS, nav.FlightState.Altitude))
 				aw.TurnDirection = util.Select(nav.Rand.Float32() < .5, av.TurnLeft, av.TurnRight)
 			} else if nav.Rand.Float32() < .2 {

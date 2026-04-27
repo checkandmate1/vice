@@ -207,7 +207,7 @@ func audioCallback(user unsafe.Pointer, ptr *C.uint8, size C.int) {
 			// Audio ducking: reduce to 25% volume
 			sample = sample / 4
 			// Add loud static noise
-			sample += -4000 + r.Intn(8000)
+			sample += r.IntRange(-4000, 4000)
 		}
 		accum[as] = sample
 		as++

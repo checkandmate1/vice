@@ -54,7 +54,7 @@ func TestCommandValidation(t *testing.T) {
 
 	t.Run("ClearedApproachWithoutExpect", func(t *testing.T) {
 		f := makeNav(t)
-		intent, _ := f.nav.ClearedApproach(f.fp.ArrivalAirport, "I22L", false, f.simTime)
+		intent := f.nav.ClearedApproach(f.fp.ArrivalAirport, "I22L", false, f.simTime)
 		AssertUnable(t, intent)
 	})
 
@@ -644,7 +644,7 @@ func setupClearedVisual(t *testing.T, runway string) *FlightTest {
 	f.nav.Approach.Assigned = &av.Approach{
 		Id:        "VIS" + runway,
 		FullName:  "Visual Approach Runway " + runway,
-		Type:      av.DirectVisualApproach,
+		Type:      av.VisualApproach,
 		Runway:    runway,
 		Threshold: rwy.Threshold,
 	}

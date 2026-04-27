@@ -29,7 +29,7 @@
         "V33": {
           "full_name": "Visual Approach Runway 33",
           "runway": "33",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["GUILT/iaf/a10000 N039.06.26.924,W106.45.53.640/faf"]
         }
       },

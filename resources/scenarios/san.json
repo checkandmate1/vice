@@ -272,7 +272,7 @@
         "V26R": {
           "full_name": "Visual Runway 26R",
           "runway": "26R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "N032.38.18.120,W116.45.01.840/a5000+ N032.36.19.151,W116.48.10.722/a4200+ N032.33.47.856,W116.52.10.801/a3000"
           ]

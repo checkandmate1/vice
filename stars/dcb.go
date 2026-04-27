@@ -21,7 +21,15 @@ import (
 )
 
 const dcbButtonSize = 84
-const numDCBSlots = 22
+
+const (
+	regularDCBSlots        = 22
+	mainDCBColumns         = 19
+	mapsMainDCBColumns     = 5
+	mainDCBMapColumns      = 3
+	mapsSubmenuControlCols = 1
+	mapsSubmenuMapColumns  = 16
+)
 
 type dcbFlags int
 
@@ -119,6 +127,40 @@ func (sp *STARSPane) dcbMaxScroll(ctx *panes.Context) float32 {
 		visible = ctx.PaneExtent.Height()
 	}
 	return max(0, sp.dcbContentSize-visible)
+}
+
+func (sp *STARSPane) dcbSlots() int {
+	return max(regularDCBSlots, mapsMainDCBColumns+sp.mapsSubmenuColumns())
+}
+
+func (sp *STARSPane) mapsSubmenuColumns() int {
+	return mapsSubmenuControlCols + mapsSubmenuMapColumns + sp.mapsSubmenuCategoryColumns()
+}
+
+func (sp *STARSPane) mapsSubmenuCategoryColumns() int {
+	_, ncat := sp.videoMapCategories()
+	return 1 + ncat/2
+}
+
+func (sp *STARSPane) videoMapCategories() ([VideoMapNumCategories]bool, int) {
+	var haveCategory [VideoMapNumCategories]bool
+	for _, vm := range sp.allVideoMaps {
+		if vm.Category != VideoMapNoCategory {
+			haveCategory[vm.Category] = true
+		}
+	}
+
+	ncat := 0
+	for _, present := range haveCategory {
+		if present {
+			ncat++
+		}
+	}
+	return haveCategory, ncat
+}
+
+func videoMapButtonIndex(base, columns, i int) int {
+	return base + util.Select(i&1 == 0, i/2, columns+i/2)
 }
 
 func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransformations, cb *renderer.CommandBuffer) (paneExtent math.Extent2D) {
@@ -275,11 +317,7 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 			sp.setCommandMode(ctx, CommandModeMaps)
 		}
 		for i := range 6 {
-			// Maps are given left->right, top->down, but we draw the
-			// buttons top->down, left->right, so the indexing is a little
-			// funny.
-			idx := util.Select(i&1 == 0, i/2, 3+i/2)
-			drawVideoMapButton(idx, disableMain)
+			drawVideoMapButton(videoMapButtonIndex(0, mainDCBMapColumns, i), disableMain)
 		}
 		haveWeather := sp.weatherRadar.HaveWeather()
 		for i := range ps.DisplayWeatherLevel {
@@ -349,7 +387,7 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 	}
 
 	if sp.commandMode == CommandModeMaps {
-		rewindDCBCursor(14, buttonScale)
+		rewindDCBCursor(mainDCBColumns-mapsMainDCBColumns, buttonScale)
 		dcbStartCaptureMouseRegion()
 
 		if sp.selectButton(ctx, "DONE", buttonHalfVertical, buttonScale) {
@@ -360,32 +398,10 @@ func (sp *STARSPane) drawDCB(ctx *panes.Context, transforms radar.ScopeTransform
 		}
 
 		// Figure out how many map category buttons we need
-		var haveCategory [VideoMapNumCategories]bool
-		for _, vm := range sp.allVideoMaps {
-			if vm.Category != VideoMapNoCategory {
-				haveCategory[vm.Category] = true
-			}
-		}
-		ncat := 0
-		for _, b := range haveCategory {
-			if b {
-				ncat++
-			}
-		}
+		haveCategory, ncat := sp.videoMapCategories()
 
-		// On the right side, we need at least one column for CURRENT and
-		// then there's one slot above that; we then take as many full
-		// columns as necessary for the categories we have.
-		catCols := 1 + (ncat)/2
-
-		// Draw buttons with the space left.
-		for i := range 32 - 2*catCols {
-			// Indexing is tricky both because we are skipping the first 6
-			// maps, which are shown in the main DCB, but also because we
-			// draw top->down, left->right while the maps are specified
-			// left->right, top->down...
-			idx := util.Select(i&1 == 0, 6+i/2, 22+i/2)
-			drawVideoMapButton(idx, false)
+		for i := range 2 * mapsSubmenuMapColumns {
+			drawVideoMapButton(videoMapButtonIndex(6, mapsSubmenuMapColumns, i), false)
 		}
 
 		mapLabels := [VideoMapNumCategories]string{

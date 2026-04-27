@@ -579,7 +579,7 @@
         "PVL": {
           "full_name": "Parkway Visual Runway 13 Left",
           "runway": "13L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "N040.28.17.250,W074.00.28.729 N040.35.46.632,W073.54.23.543/a1500+ CRI N040.39.00.280,W073.51.11.310 N040.40.04.344,W073.49.33.147 N040.39.38.608,W073.47.49.161"
           ]
@@ -599,7 +599,7 @@
         "PVR": {
           "full_name": "Parkway Visual Runway 13 Right",
           "runway": "13R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "N040.28.17.250,W074.00.28.729 N040.35.46.632,W073.54.23.543/a1500+ CRI N040.39.00.280,W073.51.11.310"
           ]
@@ -616,7 +616,7 @@
         "BVA": {
           "full_name": "Belmont Visual Runway 22 Left",
           "runway": "22L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "N040.48.24.798,W073.22.52.247 N040.47.44.094,W073.25.04.879 N040.48.28.905,W073.31.48.599 N040.46.55.988,W073.32.51.771/a3000+ ZALPO/a1600"
           ]

@@ -768,13 +768,13 @@ const (
 	ILSApproach
 	RNAVApproach
 	ChartedVisualApproach
-	DirectVisualApproach
+	VisualApproach
 	LocalizerApproach
 	VORApproach
 )
 
 func (at ApproachType) String() string {
-	return []string{"Unknown", "ILS", "RNAV", "Charted Visual", "Direct Visual", "Localizer", "VOR"}[at]
+	return []string{"Unknown", "ILS", "RNAV", "Charted Visual", "Visual", "Localizer", "VOR"}[at]
 }
 
 func (at ApproachType) MarshalJSON() ([]byte, error) {
@@ -786,9 +786,9 @@ func (at ApproachType) MarshalJSON() ([]byte, error) {
 	case RNAVApproach:
 		return []byte(`"RNAV"`), nil
 	case ChartedVisualApproach:
+		return []byte(`"ChartedVisual"`), nil
+	case VisualApproach:
 		return []byte(`"Visual"`), nil
-	case DirectVisualApproach:
-		return []byte(`"DirectVisual"`), nil
 	case LocalizerApproach:
 		return []byte(`"Localizer"`), nil
 	case VORApproach:
@@ -812,12 +812,12 @@ func (at *ApproachType) UnmarshalJSON(b []byte) error {
 		*at = RNAVApproach
 		return nil
 
-	case `"Visual"`:
+	case `"ChartedVisual"`:
 		*at = ChartedVisualApproach
 		return nil
 
-	case `"DirectVisual"`:
-		*at = DirectVisualApproach
+	case `"Visual"`:
+		*at = VisualApproach
 		return nil
 
 	case `"Localizer"`:

@@ -30,8 +30,8 @@ func (s *Sim) spawnArrivalsAndOverflights() {
 	}
 	if !s.PushEnd.IsZero() && now.After(s.PushEnd) {
 		// end push
-		m := -2 + s.Rand.Intn(4) + s.State.LaunchConfig.ArrivalPushFrequencyMinutes
-		s.NextPushStart = now.Add(time.Duration(m) * time.Minute)
+		center := time.Duration(s.State.LaunchConfig.ArrivalPushFrequencyMinutes) * time.Minute
+		s.NextPushStart = now.Add(center + s.Rand.DurationRange(-2*time.Minute, 2*time.Minute))
 		s.lg.Debug("arrival push ending", slog.Time("next_start", s.NextPushStart.Time()))
 		s.PushEnd = Time{}
 	}
@@ -154,9 +154,13 @@ func (s *Sim) createArrivalNoLock(group string, arrivalAirport string) (*Aircraf
 	s.maybeSetGoAround(ac, s.State.LaunchConfig.GoAroundRate)
 
 	// Decide at creation whether this pilot will spontaneously report
-	// field in sight (~10%) and/or request the visual (~10% of those).
-	ac.WantsVisual = s.Rand.Float32() < visualFieldProb
-	ac.WantsVisualRequest = ac.WantsVisual && s.Rand.Float32() < visualRequestProb
+	// field in sight (~10%) and, among those, whether they will also
+	// request the visual approach (~10%). VisualRequestDistance, when
+	// set, gates the request to the first tick inside 7–15 NM.
+	ac.WantsVisualApproach = s.Rand.Float32() < visualFieldProb
+	if ac.WantsVisualApproach && s.Rand.Float32() < visualRequestProb {
+		ac.VisualApproachRequestDistance = s.Rand.Float32Range(7, 15)
+	}
 
 	if err := s.assignSquawk(ac, &nasFp); err != nil {
 		return nil, err
@@ -313,7 +317,7 @@ func (s *Sim) maybeSetGoAround(ac *Aircraft, goAroundRate float32) {
 	if !slices.ContainsFunc(ac.Nav.Waypoints, func(wp av.Waypoint) bool { return wp.HumanHandoff() }) {
 		return
 	}
-	d := 0.1 + 0.6*s.Rand.Float32()
+	d := s.Rand.Float32Range(0.1, 0.7)
 	ac.GoAroundDistance = &d
 }
 

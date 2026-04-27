@@ -31,7 +31,7 @@
         "S29": {
           "full_name": "Stadium Visual Runway 29",
           "runway": "29",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["TEB/a3000 GIMEE/a2500 HILOK/a1500-2000 SLIMR/a1500-2000 COPKO/a700 CHUMR/a500"]
         }
       },
@@ -2635,7 +2635,7 @@
         "PVA": {
           "full_name": "Park Visual Runway 31",
           "runway": "31",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": [
             "VARAZ/a4000+ PACHU/a3000+ SHAYY/a2500+/s180 GACAR/a2200+/s165 DRRYL/a1100+ KEYTH/a700+ DCTRK/a400+"
           ]

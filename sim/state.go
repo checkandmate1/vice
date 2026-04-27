@@ -180,7 +180,7 @@ func makeDerivedState(s *Sim) DerivedState {
 			OnApproach:                ac.OnApproach(false), /* don't check altitude */
 			ClearedForApproach:        ac.Nav.Approach.Cleared,
 			Approach:                  approach,
-			Fixes:                     ac.GetSTTFixes(),
+			Fixes:                     ac.GetSTTFixes(av.DB.IsARTCC(s.State.Facility)),
 			SID:                       ac.SID,
 			STAR:                      ac.STAR,
 			MVAsApply:                 ac.MVAsApply(),
@@ -507,4 +507,36 @@ func (ss *CommonState) IsATPAVolume25nmEnabled(volumeId string) bool {
 		}
 	}
 	return false
+}
+
+type Track struct {
+	av.RadarTrack
+
+	FlightPlan          *NASFlightPlan
+	ControllerFrequency ControlPosition
+
+	// Sort of hacky to carry these along here but it's convenient...
+	DepartureAirport          string
+	DepartureAirportElevation float32
+	DepartureAirportLocation  math.Point2LL
+	ArrivalAirport            string
+	ArrivalAirportElevation   float32
+	ArrivalAirportLocation    math.Point2LL
+	FiledRoute                string
+	FiledAltitude             int
+	OnExtendedCenterline      bool
+	OnApproach                bool
+	ClearedForApproach        bool
+	Approach                  string   // Full name of assigned approach, if any
+	Fixes                     []string // Relevant fix names for STT
+	SID                       string
+	STAR                      string
+	ATPAVolume                *av.ATPAVolume
+	MVAsApply                 bool
+	HoldForRelease            bool
+	MissingFlightPlan         bool
+	Route                     []math.Point2LL
+	IsTentative               bool   // first 5 seconds after first contact
+	CWTCategory               string // True CWT from aircraft performance DB, not from NAS flight plan
+	RequestedFlightFollowing  bool   // VFR aircraft that has requested flight following
 }

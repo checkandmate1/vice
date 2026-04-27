@@ -69,12 +69,12 @@
     "configurations": {
       "FIN": {
         "inbound_assignments": {
-          "BLFRG2.NO.Finals": "1F",
-          "DADES1.NO.Finals": "1F",
-          "MAATY4.NO.Finals": "1F",
-          "BLFRG2.SO.Finals": "1F",
-          "DADES1.SO.Finals": "1F",
-          "MAATY4.SO.Finals": "1F"
+          "BLFRG3.NO.Finals": "1F",
+          "DADES2.NO.Finals": "1F",
+          "MAATY5.NO.Finals": "1F",
+          "BLFRG3.SO.Finals": "1F",
+          "DADES2.SO.Finals": "1F",
+          "MAATY5.SO.Finals": "1F"
         },
         "default_consolidation": {
           "1F": []
@@ -82,12 +82,12 @@
       },
       "NOP": {
         "inbound_assignments": {
-          "BANGZ1": "1W",
-          "BLFRG2": "1G",
-          "DADES1": "1E",
-          "LUBBR3": "1E",
-          "MAATY4": "1W",
-          "RAYZZ2": "1W"
+          "BANGZ3": "1W",
+          "BLFRG3": "1G",
+          "DADES2": "1E",
+          "LUBBR4": "1E",
+          "MAATY5": "1W",
+          "RAYZZ3": "1W"
         },
         "departure_assignments": {
           "KPIE": "1P",
@@ -102,12 +102,12 @@
       },
       "SOP": {
         "inbound_assignments": {
-          "BANGZ1": "1W",
-          "BLFRG2": "1G",
-          "DADES1": "1E",
-          "LUBBR3": "1E",
-          "MAATY4": "1W",
-          "RAYZZ2": "1W"
+          "BANGZ3": "1W",
+          "BLFRG3": "1G",
+          "DADES2": "1E",
+          "LUBBR4": "1E",
+          "MAATY5": "1W",
+          "RAYZZ3": "1W"
         },
         "departure_assignments": {
           "KPIE": "1P",

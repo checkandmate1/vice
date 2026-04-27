@@ -102,7 +102,7 @@
         "RVR": {
           "full_name": "River Visual Runway 9 Right",
           "runway": "9R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["DQO/a4000+ _rvrd5/a4000 _rvrd9/a3000 _rvrd14/a1500 N039.51.29.273,W075.17.17.274"]
         },
         "G35": {

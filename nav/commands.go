@@ -99,8 +99,7 @@ func (nav *Nav) setAssignedAltitude(alt float32) {
 
 func (nav *Nav) enqueueAssignedAltitude(alt float32, simTime Time, delayReduction time.Duration) {
 	active := nav.activeAssignedAltitude()
-	delay := 2 + 2*nav.Rand.Float32()
-	d := time.Duration(delay * float32(time.Second))
+	d := nav.Rand.DurationRange(2*time.Second, 4*time.Second)
 	if d > delayReduction {
 		d -= delayReduction
 	} else {
@@ -117,11 +116,10 @@ func (nav *Nav) enqueueAltitudeAfterSpeed(simTime Time) {
 	alt := *nav.Altitude.AfterSpeed
 	rate := nav.Altitude.RateAfterSpeed
 	active := nav.activeAssignedAltitude()
-	delay := 2 + 2*nav.Rand.Float32()
 	nav.Altitude = NavAltitude{
 		Assigned:       &alt,
 		ActiveAssigned: active,
-		ActivateAt:     simTime.Add(time.Duration(delay * float32(time.Second))),
+		ActivateAt:     simTime.Add(nav.Rand.DurationRange(2*time.Second, 4*time.Second)),
 		Rate:           rate,
 	}
 }
@@ -489,6 +487,7 @@ func (nav *Nav) assignHeading(hdg math.MagneticHeading, turn av.TurnDirection, s
 				// Don't take a direct pointer to nav.FlightState.Altitude!
 				alt := nav.FlightState.Altitude
 				nav.Altitude.Cleared = &alt
+				nav.Approach.RequestAltitude = true
 			}
 		}
 	}
@@ -1013,7 +1012,7 @@ func (nav *Nav) CrossDMEAt(dist float32, ar *av.AltitudeRestriction, sr *av.Spee
 
 	ap := nav.Approach.Assigned
 	if ap == nil || !nav.Approach.Cleared ||
-		(ap.Type != av.DirectVisualApproach && ap.Type != av.ChartedVisualApproach) {
+		(ap.Type != av.VisualApproach && ap.Type != av.ChartedVisualApproach) {
 		return av.MakeUnableIntent("unable, we're not cleared for a visual approach")
 	}
 	runway := ap.Runway

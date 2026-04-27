@@ -116,7 +116,7 @@ func (s *Sim) processGateDepartures(depState *RunwayLaunchState, now Time) {
 
 		ac := s.Aircraft[dep.ADSBCallsign]
 		if ac.HoldForRelease {
-			depState.Gate[i].RequestReleaseTime = now.Add(time.Duration(60+s.Rand.Intn(60)) * time.Second)
+			depState.Gate[i].RequestReleaseTime = now.Add(s.Rand.DurationRange(60*time.Second, 120*time.Second))
 			s.STARSComputer.AddHeldDeparture(ac)
 			depState.Held = append(depState.Held, depState.Gate[i])
 			depState.Gate = append(depState.Gate[:i], depState.Gate[i+1:]...)
@@ -143,7 +143,7 @@ func (s *Sim) processHeldDepartures(depState *RunwayLaunchState, now Time) {
 				ac.ReleaseTime = now
 			}
 			depState.Held[i].ReleaseRequested = true
-			depState.Held[i].ReleaseDelay = time.Duration(20+s.Rand.Intn(100)) * time.Second
+			depState.Held[i].ReleaseDelay = s.Rand.DurationRange(20*time.Second, 120*time.Second)
 		}
 	}
 
@@ -757,11 +757,11 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 
 	mid := math.Mid2f(depap.Location, arrap.Location)
 	if arrive == depart {
-		dist := float32(10 + s.Rand.Intn(20))
+		dist := float32(s.Rand.IntRange(10, 30))
 		// Bias heading to within ±90° of the departure runway heading so
 		// the aircraft flies away from the airport before sightseeing,
 		// rather than immediately looping back over the field.
-		hdg := rwy.Heading + math.MagneticHeading(-90+s.Rand.Intn(181))
+		hdg := rwy.Heading + math.MagneticHeading(s.Rand.IntRange(-90, 90))
 		v := [2]float32{dist * math.Sin(math.Radians(hdg)), dist * math.Cos(math.Radians(hdg))}
 		dnm := math.LL2NM(depap.Location, s.State.NmPerLongitude)
 		midnm := math.Add2f(dnm, v)
@@ -854,8 +854,8 @@ func (s *Sim) createUncontrolledVFRDeparture(depart, arrive, fleet string, route
 			if airwork && i == nsteps/2 {
 				w := &wps[len(wps)-1]
 				extra := w.InitExtra()
-				extra.AirworkRadius = int8(4 + s.Rand.Intn(4))
-				extra.AirworkMinutes = int8(5 + s.Rand.Intn(15))
+				extra.AirworkRadius = int8(s.Rand.IntRange(4, 8))
+				extra.AirworkMinutes = int8(s.Rand.IntRange(5, 20))
 				w.AltRestriction.Range[0] -= 500
 				w.AltRestriction.Range[1] = min(w.AltRestriction.Range[1]+2000, maxVFRAltitude)
 			}

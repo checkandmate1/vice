@@ -110,25 +110,25 @@
         "CV0L": {
           "full_name": "Columbia Visual Runway 10L",
           "runway": "10L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["CNFLU/a2500 N045.37.12.270,W122.41.05.579"]
         },
         "CV0R": {
           "full_name": "Columbia Visual Runway 10R",
           "runway": "10R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["CNFLU/a2500 N045.37.35.575,W122.40.37.619"]
         },
         "MV8L": {
           "full_name": "Mill Visual Runway 28L",
           "runway": "28L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["PAAPR/a3000 ANTNA N045.33.45.631,W122.32.16.752"]
         },
         "MV8R": {
           "full_name": "Mill Visual Runway 28R",
           "runway": "28R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["PAAPR/a3000 ANTNA N045.34.01.699,W122.31.28.137"]
         }
       },

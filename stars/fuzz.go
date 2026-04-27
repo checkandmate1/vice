@@ -329,7 +329,7 @@ func (fc *FuzzController) mutate(text string) string {
 		return text[:fc.r.Intn(len(text))]
 	case 4: // Append garbage
 		var sb string
-		for range 1 + fc.r.Intn(5) {
+		for range fc.r.IntRange(1, 5) {
 			sb += string(fc.randomChar())
 		}
 		return text + sb
@@ -718,7 +718,7 @@ func (g *fixMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Genera
 		return GeneratorResult{Text: fixes[r.Intn(len(fixes))]}
 	}
 	// No real fixes available - generate placeholder text
-	return GeneratorResult{Text: randomField(r, 3+r.Intn(3))}
+	return GeneratorResult{Text: randomField(r, r.IntRange(3, 5))}
 }
 
 // timeMatchGenerator generates 4-digit times.
@@ -740,7 +740,7 @@ func (g *floatMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Gene
 	if max <= 0 {
 		max = 100
 	}
-	val := r.Float32() * max
+	val := r.Float32Range(0, max)
 	return GeneratorResult{Text: fmt.Sprintf("%.1f", val)}
 }
 
@@ -759,7 +759,7 @@ func (g *fieldMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Gene
 	if maxLen <= 0 {
 		maxLen = 8
 	}
-	length := minLen + r.Intn(maxLen-minLen+1)
+	length := r.IntRange(minLen, maxLen)
 	return GeneratorResult{Text: randomField(r, length)}
 }
 
@@ -775,7 +775,7 @@ func (g *allTextMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Ge
 		return GeneratorResult{Text: generateAircraftCommand(r, ctx)}
 	}
 	// Otherwise generate random text
-	return GeneratorResult{Text: randomField(r, 1+r.Intn(10))}
+	return GeneratorResult{Text: randomField(r, r.IntRange(1, 10))}
 }
 
 // fpSpecMatchGenerator generates flight plan specifier components.
@@ -797,16 +797,16 @@ func (g *fpSpecMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) Gen
 	case "FP_PLUS_SP2":
 		return GeneratorResult{Text: "+" + randomScratchpad(r)}
 	case "FP_ALT_A", "FP_ALT_P", "FP_ALT_R":
-		alt := 10 + r.Intn(400) // 1000 to 40000 feet in hundreds
+		alt := r.IntRange(10, 400) // 1000 to 40000 feet in hundreds
 		return GeneratorResult{Text: fmt.Sprintf("%03d", alt)}
 	case "FP_TRI_ALT_A":
-		alt := 10 + r.Intn(400)
+		alt := r.IntRange(10, 400)
 		return GeneratorResult{Text: STARSTriangleCharacter + fmt.Sprintf("%03d", alt)}
 	case "FP_PLUS_ALT_A":
-		alt := 10 + r.Intn(400)
+		alt := r.IntRange(10, 400)
 		return GeneratorResult{Text: "+" + fmt.Sprintf("%03d", alt)}
 	case "FP_PLUS2_ALT_R":
-		alt := 10 + r.Intn(400)
+		alt := r.IntRange(10, 400)
 		return GeneratorResult{Text: "++" + fmt.Sprintf("%03d", alt)}
 	case "FP_TCP":
 		return GeneratorResult{Text: fmt.Sprintf("%d%c", 1+r.Intn(9), 'A'+rune(r.Intn(26)))}
@@ -893,7 +893,7 @@ type raTextMatchGenerator struct {
 }
 
 func (g *raTextMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) GeneratorResult {
-	text := randomField(r, 3+r.Intn(10))
+	text := randomField(r, r.IntRange(3, 12))
 
 	// Optionally add modifiers. △ (blink) is always valid; + (shade) and *N (color)
 	// are only valid for closed shapes (circles/polygons).
@@ -933,8 +933,8 @@ func (g *raLocationMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext)
 	}
 
 	// Random offset within ±1 degree
-	latOffset := (r.Float32()*2 - 1) // -1 to +1
-	longOffset := (r.Float32()*2 - 1)
+	latOffset := r.Float32Range(-1, 1)
+	longOffset := r.Float32Range(-1, 1)
 
 	lat := ctr.Latitude() + latOffset
 	long := ctr.Longitude() + longOffset
@@ -970,7 +970,7 @@ type raIndexMatchGenerator struct {
 
 func (g *raIndexMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) GeneratorResult {
 	// Generate index 1-99
-	return GeneratorResult{Text: fmt.Sprintf("%d", 1+r.Intn(99))}
+	return GeneratorResult{Text: fmt.Sprintf("%d", r.IntRange(1, 99))}
 }
 
 // qlRegionMatchGenerator generates quicklook region IDs.
@@ -978,7 +978,7 @@ type qlRegionMatchGenerator struct{}
 
 func (g *qlRegionMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) GeneratorResult {
 	// Generate 1-3 character region ID
-	length := 1 + r.Intn(3)
+	length := r.IntRange(1, 3)
 	return GeneratorResult{Text: randomField(r, length)}
 }
 
@@ -987,7 +987,7 @@ type fdamRegionMatchGenerator struct{}
 
 func (g *fdamRegionMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) GeneratorResult {
 	// Generate 1-5 character region ID
-	length := 1 + r.Intn(5)
+	length := r.IntRange(1, 5)
 	return GeneratorResult{Text: randomField(r, length)}
 }
 
@@ -996,7 +996,7 @@ type qlPositionsMatchGenerator struct{}
 
 func (g *qlPositionsMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) GeneratorResult {
 	// Generate 1-3 position specs
-	count := 1 + r.Intn(3)
+	count := r.IntRange(1, 3)
 	var parts []string
 	for range count {
 		if r.Float32() < 0.5 {
@@ -1027,7 +1027,7 @@ type crdaRegionMatchGenerator struct{}
 
 func (g *crdaRegionMatchGenerator) Generate(r *rand.Rand, ctx *GeneratorContext) GeneratorResult {
 	// Generate runway-style names for now; region names can be arbitrary.
-	num := 1 + r.Intn(36)
+	num := r.IntRange(1, 36)
 	suffixes := []string{"", "L", "R", "C"}
 	return GeneratorResult{Text: fmt.Sprintf("%02d%s", num, suffixes[r.Intn(len(suffixes))])}
 }
@@ -1079,7 +1079,7 @@ func collectFixes(tracks []sim.Track) []string {
 
 func randomACID(r *rand.Rand) string {
 	// Generate 3-7 character ACID starting with letter
-	length := 3 + r.Intn(5)
+	length := r.IntRange(3, 7)
 	var sb strings.Builder
 	sb.WriteByte('A' + byte(r.Intn(26)))
 	for i := 1; i < length; i++ {
@@ -1094,7 +1094,7 @@ func randomACID(r *rand.Rand) string {
 
 func randomScratchpad(r *rand.Rand) string {
 	// Generate 2-3 character scratchpad
-	length := 2 + r.Intn(2)
+	length := r.IntRange(2, 3)
 	var sb strings.Builder
 	for range length {
 		if r.Float32() < 0.7 {
@@ -1132,7 +1132,7 @@ func getRandomFix(r *rand.Rand, ctx *GeneratorContext) string {
 
 func generateAircraftCommand(r *rand.Rand, ctx *GeneratorContext) string {
 	// Generate 1-3 commands
-	count := 1 + r.Intn(3)
+	count := r.IntRange(1, 3)
 	var cmds []string
 	for range count {
 		cmds = append(cmds, generateOneAircraftCommand(r, ctx))
@@ -1149,15 +1149,15 @@ func generateOneAircraftCommand(r *rand.Rand, ctx *GeneratorContext) string {
 	cmdTypes := []weightedCmd{
 		// Altitude
 		{2, func(r *rand.Rand, ctx *GeneratorContext) string { return "A" }}, // discretion
-		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("A%d", 20+r.Intn(400)) }},
-		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("C%d", 20+r.Intn(400)) }},
-		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("D%d", 20+r.Intn(400)) }},
+		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("A%d", r.IntRange(20, 410)) }},
+		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("C%d", r.IntRange(20, 410)) }},
+		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("D%d", r.IntRange(20, 410)) }},
 
 		// Heading
 		{2, func(r *rand.Rand, ctx *GeneratorContext) string { return "H" }}, // present heading
-		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("H%03d", 1+r.Intn(360)) }},
-		{2, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("L%03d", 1+r.Intn(360)) }},
-		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("R%03d", 1+r.Intn(360)) }},
+		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("H%03d", r.IntRange(1, 360)) }},
+		{2, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("L%03d", r.IntRange(1, 360)) }},
+		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("R%03d", r.IntRange(1, 360)) }},
 		{2, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("T%dL", 5+r.Intn(36)*5) }},
 		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("T%dR", 5+r.Intn(36)*5) }},
 
@@ -1165,7 +1165,7 @@ func generateOneAircraftCommand(r *rand.Rand, ctx *GeneratorContext) string {
 		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return "S" }}, // cancel
 		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return "SMIN" }},
 		{3, func(r *rand.Rand, ctx *GeneratorContext) string { return "SMAX" }},
-		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("S%d", 150+r.Intn(200)) }},
+		{6, func(r *rand.Rand, ctx *GeneratorContext) string { return fmt.Sprintf("S%d", r.IntRange(150, 350)) }},
 
 		// Direct fix
 		{10, func(r *rand.Rand, ctx *GeneratorContext) string {
@@ -1180,14 +1180,14 @@ func generateOneAircraftCommand(r *rand.Rand, ctx *GeneratorContext) string {
 			if len(fixes) > 0 {
 				return "D" + fixes[r.Intn(len(fixes))]
 			}
-			return fmt.Sprintf("H%03d", 1+r.Intn(360))
+			return fmt.Sprintf("H%03d", r.IntRange(1, 360))
 		}},
 
 		// Expect approach
 		{8, func(r *rand.Rand, ctx *GeneratorContext) string {
 			appr := getValidApproach(r, ctx)
 			if appr == "" {
-				return fmt.Sprintf("A%d", 20+r.Intn(200))
+				return fmt.Sprintf("A%d", r.IntRange(20, 220))
 			}
 			return "E" + appr
 		}},
@@ -1196,14 +1196,14 @@ func generateOneAircraftCommand(r *rand.Rand, ctx *GeneratorContext) string {
 		{2, func(r *rand.Rand, ctx *GeneratorContext) string { // straight-in
 			appr := getValidApproach(r, ctx)
 			if appr == "" {
-				return fmt.Sprintf("C%d", 20+r.Intn(200))
+				return fmt.Sprintf("C%d", r.IntRange(20, 220))
 			}
 			return "CSI" + appr
 		}},
 		{6, func(r *rand.Rand, ctx *GeneratorContext) string { // normal
 			appr := getValidApproach(r, ctx)
 			if appr == "" {
-				return fmt.Sprintf("C%d", 20+r.Intn(200))
+				return fmt.Sprintf("C%d", r.IntRange(20, 220))
 			}
 			return "C" + appr
 		}},

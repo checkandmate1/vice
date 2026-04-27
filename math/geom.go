@@ -187,6 +187,80 @@ func SegmentSegmentIntersect(p1, p2, p3, p4 [2]float32) ([2]float32, bool) {
 	return p, b0.Inside(p) && b1.Inside(p)
 }
 
+// RaySegmentIntersect returns the intersection point of the ray org+dir*t with the
+// segment p0+(p1-p0)*u. The returned values include the ray parameter t and the
+// segment parameter u.
+func RaySegmentIntersect(org, dir, p0, p1 [2]float32) ([2]float32, float32, float32, bool) {
+	org64 := [2]float64{float64(org[0]), float64(org[1])}
+	dir64 := [2]float64{float64(dir[0]), float64(dir[1])}
+	p064 := [2]float64{float64(p0[0]), float64(p0[1])}
+	p164 := [2]float64{float64(p1[0]), float64(p1[1])}
+
+	seg64 := [2]float64{p164[0] - p064[0], p164[1] - p064[1]}
+	denom := dir64[0]*seg64[1] - dir64[1]*seg64[0]
+	if gomath.Abs(denom) < 1e-5 {
+		return [2]float32{}, 0, 0, false
+	}
+
+	diff64 := [2]float64{p064[0] - org64[0], p064[1] - org64[1]}
+	rayT64 := (diff64[0]*seg64[1] - diff64[1]*seg64[0]) / denom
+	segT64 := (diff64[0]*dir64[1] - diff64[1]*dir64[0]) / denom
+
+	const epsilon = 1e-4
+	if rayT64 < -epsilon || segT64 < -epsilon || segT64 > 1+epsilon {
+		return [2]float32{}, 0, 0, false
+	}
+
+	rayT := float32(rayT64)
+	segT := float32(segT64)
+	rayT = max(rayT, 0)
+	segT = Clamp(segT, 0, 1)
+	return [2]float32{
+		float32(org64[0] + dir64[0]*float64(rayT)),
+		float32(org64[1] + dir64[1]*float64(rayT)),
+	}, rayT, segT, true
+}
+
+// RayRouteIntersection describes a single point where a ray crosses a
+// polyline segment. Index is the segment index in the polyline (the segment
+// runs from route[Index] to route[Index+1]); SegT is the 0..1 parameter along
+// that segment. Callers that need the nautical-mile distance from the ray
+// origin compute it from (origin, Location) via NMDistance2LL.
+type RayRouteIntersection struct {
+	Index    int
+	SegT     float32
+	Location Point2LL
+}
+
+// IntersectRayWithRoute returns all segments of the polyline route that the
+// ray from origin along the given true heading crosses, in route order.
+// Internally converts to a local NM frame anchored at origin so the caller
+// does not need to supply nmPerLongitude.
+func IntersectRayWithRoute(origin Point2LL, heading TrueHeading, route []Point2LL) []RayRouteIntersection {
+	if len(route) < 2 {
+		return nil
+	}
+	nmPerLong := NMPerLongitudeAt(origin)
+	originNM := LL2NM(origin, nmPerLong)
+	dir := HeadingVector(heading)
+
+	var hits []RayRouteIntersection
+	for i := range len(route) - 1 {
+		p0 := LL2NM(route[i], nmPerLong)
+		p1 := LL2NM(route[i+1], nmPerLong)
+		pi, _, segT, ok := RaySegmentIntersect(originNM, dir, p0, p1)
+		if !ok {
+			continue
+		}
+		hits = append(hits, RayRouteIntersection{
+			Index:    i,
+			SegT:     segT,
+			Location: NM2LL(pi, nmPerLong),
+		})
+	}
+	return hits
+}
+
 // RayRayMinimumDistance takes two rays p0+d0*t and p1+d1*t and returns the
 // value of t where their distance is minimized.
 func RayRayMinimumDistance(p0, d0, p1, d1 [2]float32) float32 {

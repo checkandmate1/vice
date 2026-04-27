@@ -234,49 +234,49 @@
         "VL1": {
           "full_name": "Visual Runway 12L",
           "runway": "12L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["CCJAY/iaf UBTYA/a6000+ ALGIN/a5000+/if HAMML/a4000+/if WASHY/a3000+/faf AASUN/a1420+"]
         },
         "VR1": {
           "full_name": "Visual Runway 12R",
           "runway": "12R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["PAETN/iaf UTHNK/a6000+ WAYZA/a5000+ ZESTY/a4000+/if KINNS/a3000+/faf WABBS/a1420+"]
         },
         "VL3": {
           "full_name": "Visual Runway 30L",
           "runway": "30L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["HASTI/a7000+/iaf PINKE/a6000+ PIGZI/a5000+ AABEZ/a4000+/if NARCO/a3000+/faf EAGAN/a1520+"]
         },
         "VR3": {
           "full_name": "Visual Runway 30R",
           "runway": "30R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["GROVZ/iaf WULAM/a6000+ BONNA/a5000+ SAMMZ/a4000+/if JACKO/a3000+/faf CIJOT/a1540+"]
         },
         "V17": {
           "full_name": "Visual Runway 17",
           "runway": "17",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["ARJAE/a4000+/if CHETZ/a2800+/faf BOBEE/a2100+"]
         },
         "V35": {
           "full_name": "Visual Runway 35",
           "runway": "35",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["JAMEZ/a7000+/iaf OBERR/a6000+ SSTAR/a5000+ ROZEE/a4000+/if LORAH/a3000+/faf HUCUM/a1620+"]
         },
         "V04": {
           "full_name": "Visual Runway 4",
           "runway": "4",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["KETAM/a4000+/if IGEPY/a2300+/faf"]
         },
         "V22": {
           "full_name": "Visual Runway 22",
           "runway": "22",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["FATES/a4000+/if JALUN/a2600+/faf"]
         }
       },
@@ -3637,31 +3637,31 @@
         "V10R": {
           "full_name": "Visual Runway 10R",
           "runway": "10R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["ZAMUD/a2700+/if STUBR/a2600+/faf JIXUN/a1440+"]
         },
         "V10L": {
           "full_name": "Visual Runway 10L",
           "runway": "10L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["SIGCO/a2800+/if YODUC/a2100+/faf"]
         },
         "V28L": {
           "full_name": "Visual Runway 28L",
           "runway": "28L",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["HERBO/a2500+/if ELOIT/a2100+/faf"]
         },
         "V28R": {
           "full_name": "Visual Runway 28R",
           "runway": "28R",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["VEYNY/a2600+/if FATAR/a2100+/faf"]
         },
         "V36": {
           "full_name": "Visual Runway 36",
           "runway": "36",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["OCEWA/a3000+/if IJEYU/a2500+/faf JESVA/a1500+"]
         }
       },
@@ -3707,13 +3707,13 @@
         "V14": {
           "full_name": "Visual Runway 14",
           "runway": "14",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["TEPAW/a3000+/if MRANN/a2900+/faf"]
         },
         "V32": {
           "full_name": "Visual Runway 32",
           "runway": "32",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["FOMRU/a3000+/if RULDE/a2500+/faf HOVIN/a1460+"]
         }
       },
@@ -3759,19 +3759,19 @@
         "V09": {
           "full_name": "Visual Runway 9",
           "runway": "9",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["HUFFR/a3000+/if CIRAP/a2700+/faf"]
         },
         "V18": {
           "full_name": "Visual Runway 18",
           "runway": "18",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["RUNRR/a2600+/if DOZXU/a2100+/faf"]
         },
         "V27": {
           "full_name": "Visual Runway 27",
           "runway": "27",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["JUDAL/a3100+/if BOKYA/a2600+/faf KOGGE/a1780+"]
         }
       },
@@ -3810,13 +3810,13 @@
         "V14": {
           "full_name": "Visual Runway 14",
           "runway": "14",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["OYNOP/a3000+/if ZUNBE/a2500+/faf"]
         },
         "V32": {
           "full_name": "Visual Runway 32",
           "runway": "32",
-          "type": "Visual",
+          "type": "ChartedVisual",
           "waypoints": ["EPADE/a3500+/if CATLE/a3000+ ZUSGA/a2500+/faf"]
         }
       },

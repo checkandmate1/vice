@@ -10,7 +10,6 @@ import (
 	"time"
 
 	av "github.com/mmp/vice/aviation"
-	"github.com/mmp/vice/math"
 	"github.com/mmp/vice/nav"
 	"github.com/mmp/vice/rand"
 
@@ -492,8 +491,8 @@ func (s *Sim) setInitialSpawnTimes(now Time) {
 
 	if s.State.LaunchConfig.ArrivalPushes {
 		// Figure out when the next arrival push will start
-		m := 1 + s.Rand.Intn(s.State.LaunchConfig.ArrivalPushFrequencyMinutes)
-		s.NextPushStart = now.Add(time.Duration(m) * time.Minute)
+		freq := time.Duration(s.State.LaunchConfig.ArrivalPushFrequencyMinutes) * time.Minute
+		s.NextPushStart = now.Add(s.Rand.DurationRange(1*time.Minute, freq+1*time.Minute))
 	}
 
 	for group, rates := range s.State.LaunchConfig.InboundFlowRates {
@@ -585,7 +584,7 @@ func randomWait(rate float32, pushActive bool, r *rand.Rand) time.Duration {
 	}
 
 	avgSeconds := 3600 / rate
-	seconds := math.Lerp(r.Float32(), .85*avgSeconds, 1.15*avgSeconds)
+	seconds := r.Float32Range(.85*avgSeconds, 1.15*avgSeconds)
 	return time.Duration(seconds * float32(time.Second))
 }
 
@@ -595,7 +594,7 @@ func randomInitialWait(rate float32, r *rand.Rand) time.Duration {
 		return 365 * 24 * time.Hour
 	}
 
-	seconds := r.Float32() * 3600 / rate
+	seconds := r.Float32Range(0, 3600/rate)
 	return time.Duration(seconds * float32(time.Second))
 }
 
@@ -628,4 +627,17 @@ func getAircraftTime(now Time, r *rand.Rand) Time {
 	}
 
 	return t
+}
+
+type DepartureRunway struct {
+	Airport     string      `json:"airport"`
+	Runway      av.RunwayID `json:"runway"`
+	Category    string      `json:"category,omitempty"`
+	DefaultRate int         `json:"rate"`
+}
+
+type ArrivalRunway struct {
+	Airport  string             `json:"airport"`
+	Runway   av.RunwayID        `json:"runway"`
+	GoAround *GoAroundProcedure `json:"go_around,omitempty"`
 }
