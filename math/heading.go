@@ -14,6 +14,15 @@ import (
 type MagneticHeading float32
 type TrueHeading float32
 
+// TurnDirection specifies the direction of a turn.
+type TurnDirection int
+
+const (
+	TurnClosest TurnDirection = iota // default: turn the shortest direction
+	TurnLeft
+	TurnRight
+)
+
 func MagneticToTrue(h MagneticHeading, magneticVariation float32) TrueHeading {
 	return TrueHeading(NormalizeHeading(float32(h) - magneticVariation))
 }
@@ -129,6 +138,31 @@ func HeadingDifference[T HeadingT](a, b T) float32 {
 func HeadingSignedTurn[T HeadingT](cur, target T) float32 {
 	rot := NormalizeHeading(180 - target)
 	return float32(180 - NormalizeHeading(cur+rot)) // w.r.t. 180 target
+}
+
+func HeadingInTurnArc[T HeadingT](from, heading, to T, turn TurnDirection) bool {
+	switch turn {
+	case TurnLeft:
+		total := NormalizeHeading(from - to)
+		delta := NormalizeHeading(from - heading)
+		return delta > 0 && delta < total
+	case TurnRight:
+		total := NormalizeHeading(to - from)
+		delta := NormalizeHeading(heading - from)
+		return delta > 0 && delta < total
+	case TurnClosest:
+		total := HeadingSignedTurn(from, to)
+		delta := HeadingSignedTurn(from, heading)
+		if total > 0 {
+			return delta > 0 && delta < total
+		}
+		if total < 0 {
+			return delta < 0 && delta > total
+		}
+		return false
+	default:
+		return false
+	}
 }
 
 // compass converts a heading expressed into degrees into a string

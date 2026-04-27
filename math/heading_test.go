@@ -157,6 +157,66 @@ func TestHeadingSignedTurn(t *testing.T) {
 	}
 }
 
+func TestHeadingInTurnArc(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		from       MagneticHeading
+		heading    MagneticHeading
+		to         MagneticHeading
+		turn       TurnDirection
+		wantInside bool
+	}{
+		{
+			name:       "course inside closest left turn",
+			from:       40,
+			heading:    310,
+			to:         280,
+			turn:       TurnClosest,
+			wantInside: true,
+		},
+		{
+			name:       "course inside assigned left turn",
+			from:       40,
+			heading:    310,
+			to:         280,
+			turn:       TurnLeft,
+			wantInside: true,
+		},
+		{
+			name:       "course outside assigned right turn",
+			from:       40,
+			heading:    310,
+			to:         280,
+			turn:       TurnRight,
+			wantInside: false,
+		},
+		{
+			name:       "course beyond assigned intercept heading",
+			from:       44,
+			heading:    224,
+			to:         200,
+			turn:       TurnClosest,
+			wantInside: false,
+		},
+		{
+			name:       "wraparound inside right turn",
+			from:       350,
+			heading:    10,
+			to:         30,
+			turn:       TurnClosest,
+			wantInside: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := HeadingInTurnArc(tc.from, tc.heading, tc.to, tc.turn)
+			if got != tc.wantInside {
+				t.Fatalf("HeadingInTurnArc(%v, %v, %v, %v) = %v, want %v",
+					tc.from, tc.heading, tc.to, tc.turn, got, tc.wantInside)
+			}
+		})
+	}
+}
+
 func TestCardinalOrdinalDirection(t *testing.T) {
 	tests := []struct {
 		dir      CardinalOrdinalDirection

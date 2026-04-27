@@ -2479,12 +2479,12 @@ func (arc *DMEArc) Initialize(loc Locator, startLoc, endLoc math.Point2LL, nmPer
 // Hold
 
 // TurnDirection specifies the direction of a turn.
-type TurnDirection int
+type TurnDirection math.TurnDirection
 
 const (
-	TurnClosest TurnDirection = iota // default: turn the shortest direction
-	TurnLeft
-	TurnRight
+	TurnClosest TurnDirection = TurnDirection(math.TurnClosest) // default: turn the shortest direction
+	TurnLeft    TurnDirection = TurnDirection(math.TurnLeft)
+	TurnRight   TurnDirection = TurnDirection(math.TurnRight)
 )
 
 func (t TurnDirection) String() string {
