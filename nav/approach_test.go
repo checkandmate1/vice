@@ -547,16 +547,17 @@ func TestHeadingAndClearanceWhenOffHeading(t *testing.T) {
 	f.Run()
 }
 
-// TestLocalizerOvershootOutsideCaptureArea verifies that an aircraft that
-// overshoots the localizer outside the lateral capture cone (too far from
-// the centerline relative to its distance from the antenna) requests
-// vectors instead of attempting recovery.
-func TestLocalizerOvershootOutsideCaptureArea(t *testing.T) {
-	// Position 5nm from threshold, 0.5nm right of outbound (SE = left
-	// of inbound). At ~6.5nm from the antenna, the capture cone
-	// half-width is ~6.5 * tan(2°) ≈ 0.23nm. The 0.5nm offset exceeds it.
+// TestLocalizerOvershootOutsideOldTwoDegreeConeRecovers verifies that a
+// minor overshoot outside the old 2 degree cone is still recoverable. A
+// localizer recovery envelope that narrow caused ordinary vectored final
+// intercepts to be rejected, which then made the aircraft request vectors
+// and drop its approach clearance.
+func TestLocalizerOvershootOutsideOldTwoDegreeConeRecovers(t *testing.T) {
+	// Position 8nm from threshold, 0.5nm right of outbound (SE = left
+	// of inbound). This is outside the old 2° threshold cone but still a
+	// normal localizer recovery.
 	apg := LookupApproachGeometry(t, "KJFK", "I22L")
-	pos := apg.ThresholdOffset(5, 0.5)
+	pos := apg.ThresholdOffset(8, 0.5)
 
 	f := NewArrivalFlight(t, ArrivalConfig{
 		Waypoints:        pos.DMSString() + " HAUPT/a6000 LEFER/a4000 ROSLY/a3000",
@@ -571,13 +572,20 @@ func TestLocalizerOvershootOutsideCaptureArea(t *testing.T) {
 	f.ExpectApproach("I22L")
 	f.ClearedApproach("I22L")
 
-	// Aircraft is outside the capture cone → requests vectors.
-	f.AfterTicks(100, func(f *FlightTest) {
-		if f.nav.Approach.InterceptState != NotIntercepting {
-			t.Errorf("expected NotIntercepting, got %d", f.nav.Approach.InterceptState)
+	for tick := 1; tick <= 300; tick++ {
+		f.AfterTicks(tick, func(f *FlightTest) {
+			if f.nav.Approach.RequestVectors {
+				t.Fatalf("tick %d: RequestVectors unexpectedly set", tick)
+			}
+		})
+	}
+
+	f.AtFix("ZALPO", func(f *FlightTest) {
+		if f.nav.Approach.InterceptState != OnApproachCourse {
+			t.Errorf("expected OnApproachCourse after recovery, got %d", f.nav.Approach.InterceptState)
 		}
-		if !f.nav.Approach.RequestVectors {
-			t.Errorf("expected RequestVectors to be set (outside capture area)")
+		if f.nav.Approach.RequestVectors {
+			t.Errorf("RequestVectors should not be set after successful recovery")
 		}
 	})
 

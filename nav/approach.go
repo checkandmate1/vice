@@ -212,7 +212,7 @@ func (nav *Nav) findInterceptSegment(ap *av.Approach, wxs wx.Sample) (math.TrueH
 
 // approachRecoveryFeasible returns true if the aircraft's current position
 // allows a turn back to the localizer: it must not be too close to the FAF
-// and must be within the localizer capture cone (2° half-width).
+// and must still be close enough laterally for a stable recovery.
 func (nav *Nav) approachRecoveryFeasible(ap *av.Approach) bool {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
@@ -227,15 +227,19 @@ func (nav *Nav) approachRecoveryFeasible(ap *av.Approach) bool {
 		}
 	}
 
-	// Check if within the localizer capture cone (2° half-width from threshold).
+	// Check if within a practical localizer recovery envelope. This is not
+	// CDI full-scale deflection; it is the area where a vectored aircraft
+	// that crossed final can still be given a corrective intercept without
+	// immediately asking ATC for new vectors. The previous 2° cone was too
+	// narrow and rejected ordinary intercept recoveries several miles out.
 	cl := ap.ExtendedCenterline(nmPerLong, magVar)
 	posNM := math.LL2NM(pos, nmPerLong)
 	cl0NM := math.LL2NM(cl[0], nmPerLong)
 	cl1NM := math.LL2NM(cl[1], nmPerLong)
 	lateralOffset := math.Abs(math.SignedPointLineDistance(posNM, cl0NM, cl1NM))
 	distFromThreshold := math.NMDistance2LLFast(pos, ap.Threshold, nmPerLong)
-	coneHalfWidth := distFromThreshold * math.Tan(math.Radians(float32(2)))
-	return lateralOffset <= coneHalfWidth
+	recoveryHalfWidth := max(float32(0.8), distFromThreshold*math.Tan(math.Radians(float32(5))))
+	return lateralOffset <= recoveryHalfWidth
 }
 
 // approachOvershootRequestVectors cancels the approach and flags the
