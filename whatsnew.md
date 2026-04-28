@@ -37,7 +37,7 @@
 - Fixed bug where aircraft on perfectly reasonable headings would ask for a vector to intercept when cleared for an approach
 - Include tower frequencies in "contact tower" readbacks
 
-- Scenario updates: Y90 (Ryan G), TPA (Nelson Tieku)
+- Scenario updates: Y90 (Ryan G), TPA (Nelson Tieku), N90 (manaphy)
 - Aircraft now ask for an altitude if vectored off an arrival without being assigned one (Michael Knight)
 - Visual approach bugfixes
 - Flight model

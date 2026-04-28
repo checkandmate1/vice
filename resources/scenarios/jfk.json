@@ -9037,15 +9037,21 @@
     "PARCH4": {
       "arrivals": [
         {
-          "spawn": "PARCH",
-          "cruise_altitude": 36000,
-          "star": "PARCH4",
           "initial_controller": "B46",
-          "initial_altitude": 18000,
+          "initial_altitude": 15000,
           "assigned_altitude": 12000,
-          "initial_speed": 275,
-          "speed_restriction": 250,
-          "description": "PARCH4",
+          "initial_speed": 250,
+          "route": "/. PARCH4",
+          "waypoints": "PARCH/ho CCC/a12000/s250",
+          "runway_waypoints": {
+            "KFRG": {
+              "1,14,19,32": "CCC/a12000/s250 KMANN/h283"
+            },
+            "KJFK": {
+              "22L,22R": "CCC/a12000/s250 ROBER CRAIL/h283",
+              "4L,4R,13L,13R,31L,31R": "CCC/a12000/s250 ROBER JFK/h278"
+            }
+          },
           "expect_approach": null,
           "airlines": {
             "KFRG": [
@@ -9467,14 +9473,12 @@
     "PARCH4.Finals22": {
       "arrivals": [
         {
-          "waypoints": "CCC ROBER/ho/h270",
-          "cruise_altitude": 36000,
-          "star": "PARCH4",
+          "waypoints": "CCC/a12000/s250 ROBER/ho CRAIL/h283",
+          "route": "/. PARCH4",
           "initial_controller": "2K",
           "initial_altitude": 12000,
           "assigned_altitude": 5000,
           "initial_speed": 250,
-          "description": "PARCH4",
           "expect_approach": "I2L",
           "scratchpad": "I2L",
           "airlines": {
@@ -9847,13 +9851,11 @@
     "PARCH4.Finals31": {
       "arrivals": [
         {
-          "waypoints": "CCC/a9000 ROBER/a5000/ho/h250",
-          "cruise_altitude": 36000,
-          "star": "PARCH4",
+          "waypoints": "CCC/s250 ROBER/ho JFK/h278",
+          "route": "/. PARCH4",
           "initial_controller": "2K",
           "initial_altitude": 9000,
-          "initial_speed": 250,
-          "description": "PARCH4",
+          "initial_speed": 240,
           "expect_approach": "I1R",
           "scratchpad": "I1R",
           "airlines": {
@@ -10226,13 +10228,11 @@
     "PARCH4.Finals13": {
       "arrivals": [
         {
-          "waypoints": "CCC/a9000 ROBER/a5000 N040.30.07.731,W073.24.25.383/a3000/ho/h250",
-          "cruise_altitude": 36000,
-          "star": "PARCH4",
+          "waypoints": "CCC/s250 ROBER/ho JFK/h278",
+          "route": "/. PARCH4",
           "initial_controller": "2K",
           "initial_altitude": 9000,
           "initial_speed": 250,
-          "description": "PARCH4",
           "expect_approach": "R3L",
           "scratchpad": "R3L",
           "airlines": {
@@ -10605,13 +10605,11 @@
     "PARCH4.Finals4": {
       "arrivals": [
         {
-          "waypoints": "CCC/a12000/d90 ROBER/a5000 N040.30.07.731,W073.24.25.383/a3000/ho/h250",
-          "cruise_altitude": 36000,
-          "star": "PARCH4",
+          "waypoints": "CCC/a12000/s250 ROBER/ho JFK/h278",
+          "route": "/. PARCH4",
           "initial_controller": "2K",
           "initial_altitude": 12000,
           "initial_speed": 250,
-          "description": "PARCH4",
           "expect_approach": "I4R",
           "scratchpad": "I4R",
           "airlines": {
