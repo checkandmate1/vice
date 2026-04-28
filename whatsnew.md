@@ -42,3 +42,5 @@
 - Visual approach bugfixes
 - Flight model
   - Fixed bugs with localizer intercept and approach clearance
+- STARS: allow scrolling the DCB if it's too big to fit the screen (Jud Lopez)
+

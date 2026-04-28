@@ -97,6 +97,12 @@ type STARSPane struct {
 
 	LockDisplay bool
 
+	// DCBScaleToFit, when true, sizes DCB buttons to exactly fill the pane's
+	// main axis instead of using the platform DPI. The button size is based
+	// on the maximum slot count across menus so the bar's cross-axis
+	// thickness doesn't change between menus, and scrolling is disabled.
+	DCBScaleToFit bool
+
 	// a/c callsign -> controllers
 	PointOuts         map[sim.ACID]PointOutControllers
 	RejectedPointOuts map[sim.ACID]any
@@ -170,6 +176,11 @@ type STARSPane struct {
 	// the previous frame's DCB drawing actually used. Lets dcbMaxScroll
 	// stop at the last real button so the user can't scroll into empty bar.
 	dcbContentSize float32
+
+	// dcbLastMenu is the DCB layout that was rendered last frame. drawDCB
+	// resets dcbScroll when this changes so a scroll offset from a wider
+	// menu doesn't carry into a narrower submenu.
+	dcbLastMenu dcbMenuID
 
 	lastTrackUpdate        sim.Time
 	lastHistoryTrackUpdate sim.Time
