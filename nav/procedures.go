@@ -153,6 +153,78 @@ func (m *LateralManeuver) targetHeading(nav *Nav, wxs wx.Sample) math.MagneticHe
 	return m.Heading
 }
 
+func turnToTrack(track math.MagneticHeading, turn av.TurnDirection) LateralManeuver {
+	return LateralManeuver{
+		Track: track,
+		Turn:  turn,
+		Until: ManeuverComplete{Type: UntilHeading, Heading: track},
+	}
+}
+
+func turnToHeading(heading math.MagneticHeading, turn av.TurnDirection) LateralManeuver {
+	return LateralManeuver{
+		Heading: heading,
+		Turn:    turn,
+		Until:   ManeuverComplete{Type: UntilHeading, Heading: heading},
+	}
+}
+
+func flyHeadingForTime(heading math.MagneticHeading, seconds float32) LateralManeuver {
+	return LateralManeuver{
+		Heading: heading,
+		Until:   ManeuverComplete{Type: UntilTime, Seconds: seconds},
+	}
+}
+
+func flyHeadingForDistance(heading math.MagneticHeading, dist float32) LateralManeuver {
+	return LateralManeuver{
+		Heading: heading,
+		Until:   ManeuverComplete{Type: UntilDist, Dist: dist},
+	}
+}
+
+func flyHeadingUntilIntercept(heading math.MagneticHeading, turn av.TurnDirection,
+	fix math.Point2LL, interceptCourse math.MagneticHeading) LateralManeuver {
+	return LateralManeuver{
+		Heading: heading,
+		Turn:    turn,
+		Until: ManeuverComplete{
+			Type:            UntilIntercept,
+			Fix:             fix,
+			InterceptCourse: interceptCourse,
+			InterceptTurn:   turn,
+		},
+	}
+}
+
+func flyTowardFix(fix math.Point2LL) LateralManeuver {
+	return LateralManeuver{
+		FlyToward: fix,
+		Until:     ManeuverComplete{Type: UntilFix, Fix: fix},
+	}
+}
+
+func flyTrackForTime(track math.MagneticHeading, seconds float32) LateralManeuver {
+	return LateralManeuver{
+		Track: track,
+		Until: ManeuverComplete{Type: UntilTime, Seconds: seconds},
+	}
+}
+
+func flyTrackUntilIntercept(track math.MagneticHeading, turn av.TurnDirection,
+	fix math.Point2LL, interceptCourse math.MagneticHeading) LateralManeuver {
+	return LateralManeuver{
+		Track: track,
+		Turn:  turn,
+		Until: ManeuverComplete{
+			Type:            UntilIntercept,
+			Fix:             fix,
+			InterceptCourse: interceptCourse,
+			InterceptTurn:   turn,
+		},
+	}
+}
+
 type maneuverResult struct {
 	heading   math.MagneticHeading
 	turn      av.TurnDirection
@@ -247,15 +319,17 @@ func makeStandard45Maneuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []Late
 	reverseHdg := math.OppositeHeading(awayHdg)
 	turn := av.TurnDirection(util.Select(pt.RightTurns, av.TurnRight, av.TurnLeft))
 
+	intercept := flyHeadingUntilIntercept(reverseHdg, av.TurnClosest, fixLoc, inboundHdg)
+	intercept.AssignAltitude = exitAlt
+
 	return []LateralManeuver{
-		{FlyToward: fixLoc, Until: ManeuverComplete{Type: UntilFix, Fix: fixLoc}},                           // approach fix
-		{Heading: outboundHdg, Until: ManeuverComplete{Type: UntilHeading, Heading: outboundHdg}},           // turn outbound
-		outboundLeg(nav, pt, outboundHdg, 1.2),                                                              // fly outbound
-		{Heading: awayHdg, Until: ManeuverComplete{Type: UntilHeading, Heading: awayHdg}},                   // turn 45° away
-		outboundLeg(nav, pt, awayHdg, 1),                                                                    // fly away
-		{Heading: reverseHdg, Turn: turn, Until: ManeuverComplete{Type: UntilHeading, Heading: reverseHdg}}, // 180° reversal
-		{Heading: reverseHdg, AssignAltitude: exitAlt, Until: ManeuverComplete{ // fly 45° intercept, descend to exit alt
-			Type: UntilIntercept, Fix: fixLoc, InterceptCourse: inboundHdg}},
+		flyTowardFix(fixLoc),
+		turnToHeading(outboundHdg, av.TurnClosest),
+		outboundLeg(nav, pt, outboundHdg, 1.2),
+		turnToHeading(awayHdg, av.TurnClosest),
+		outboundLeg(nav, pt, awayHdg, 1),
+		turnToHeading(reverseHdg, turn),
+		intercept,
 	}
 }
 
@@ -275,8 +349,7 @@ func makeRacetrackManeuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []Later
 	antiTurn := av.TurnDirection(util.Select(pt.RightTurns, av.TurnLeft, av.TurnRight))
 
 	maneuvers := []LateralManeuver{
-		// All entries start by approaching the fix
-		{FlyToward: fixLoc, Until: ManeuverComplete{Type: UntilFix, Fix: fixLoc}},
+		flyTowardFix(fixLoc),
 	}
 
 	switch entry {
@@ -287,17 +360,11 @@ func makeRacetrackManeuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []Later
 		tearHdg := math.OffsetHeading(outboundHdg, float32(util.Select(pt.RightTurns, -30, 30)))
 		baseHdg := math.OffsetHeading(inboundHdg, float32(util.Select(pt.RightTurns, -90, 90)))
 		maneuvers = append(maneuvers,
-			// turn to teardrop
-			LateralManeuver{Heading: tearHdg, Until: ManeuverComplete{Type: UntilHeading, Heading: tearHdg}},
-			// fly teardrop leg
+			turnToHeading(tearHdg, av.TurnClosest),
 			outboundLeg(nav, pt, tearHdg, 1.2),
-			// turn to base heading
-			LateralManeuver{Heading: baseHdg, Until: ManeuverComplete{Type: UntilHeading, Heading: baseHdg}},
-			// fly base until time to turn onto inbound course
-			LateralManeuver{Heading: baseHdg,
-				Until: ManeuverComplete{Type: UntilIntercept, Fix: fixLoc, InterceptCourse: inboundHdg}},
-			// fly to fix
-			LateralManeuver{FlyToward: fixLoc, Until: ManeuverComplete{Type: UntilFix, Fix: fixLoc}},
+			turnToHeading(baseHdg, av.TurnClosest),
+			flyHeadingUntilIntercept(baseHdg, av.TurnClosest, fixLoc, inboundHdg),
+			flyTowardFix(fixLoc),
 		)
 
 	case av.ParallelEntry:
@@ -305,33 +372,23 @@ func makeRacetrackManeuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []Later
 		// then fly it until shouldTurnToIntercept fires, then fly to fix.
 		interceptHdg := math.OffsetHeading(inboundHdg, float32(util.Select(pt.RightTurns, -30, 30)))
 		maneuvers = append(maneuvers,
-			// turn outbound
-			LateralManeuver{Heading: outboundHdg, Until: ManeuverComplete{Type: UntilHeading, Heading: outboundHdg}},
-			// fly outbound leg
+			turnToHeading(outboundHdg, av.TurnClosest),
 			outboundLeg(nav, pt, outboundHdg, 1),
-			// turn anti-PT to intercept heading
-			LateralManeuver{Heading: interceptHdg, Turn: antiTurn,
-				Until: ManeuverComplete{Type: UntilHeading, Heading: interceptHdg}},
-			// fly intercept heading until time to turn onto inbound course
-			LateralManeuver{Heading: interceptHdg,
-				Until: ManeuverComplete{Type: UntilIntercept, Fix: fixLoc, InterceptCourse: inboundHdg}},
-			// fly to fix
-			LateralManeuver{FlyToward: fixLoc, Until: ManeuverComplete{Type: UntilFix, Fix: fixLoc}},
+			turnToHeading(interceptHdg, antiTurn),
+			flyHeadingUntilIntercept(interceptHdg, av.TurnClosest, fixLoc, inboundHdg),
+			flyTowardFix(fixLoc),
 		)
 
 	default:
 		panic(fmt.Sprintf("unhandled racetrack entry type: %d", entry))
 	}
 
-	// Standard racetrack circuit; descend to exit altitude here.
+	turnOutbound := turnToHeading(outboundHdg, ptTurn)
+	turnOutbound.AssignAltitude = exitAlt
 	maneuvers = append(maneuvers,
-		// turn outbound
-		LateralManeuver{Heading: outboundHdg, Turn: ptTurn, AssignAltitude: exitAlt,
-			Until: ManeuverComplete{Type: UntilHeading, Heading: outboundHdg}},
-		// fly outbound leg
+		turnOutbound,
 		outboundLeg(nav, pt, outboundHdg, 1),
-		// turn inbound
-		LateralManeuver{Heading: inboundHdg, Turn: ptTurn, Until: ManeuverComplete{Type: UntilHeading, Heading: inboundHdg}})
+		turnToHeading(inboundHdg, ptTurn))
 
 	return maneuvers
 }
@@ -495,64 +552,6 @@ func (fh *FlyHold) turnDirection() av.TurnDirection {
 
 func (fh *FlyHold) oppositeTurnDirection() av.TurnDirection {
 	return util.Select(fh.Hold.TurnDirection == av.TurnRight, av.TurnLeft, av.TurnRight)
-}
-
-func turnToTrack(track math.MagneticHeading, turn av.TurnDirection) LateralManeuver {
-	return LateralManeuver{
-		Track: track,
-		Turn:  turn,
-		Until: ManeuverComplete{Type: UntilHeading, Heading: track},
-	}
-}
-
-func turnToHeading(heading math.MagneticHeading, turn av.TurnDirection) LateralManeuver {
-	return LateralManeuver{
-		Heading: heading,
-		Turn:    turn,
-		Until:   ManeuverComplete{Type: UntilHeading, Heading: heading},
-	}
-}
-
-func flyHeadingForTime(heading math.MagneticHeading, seconds float32) LateralManeuver {
-	return LateralManeuver{
-		Heading: heading,
-		Until:   ManeuverComplete{Type: UntilTime, Seconds: seconds},
-	}
-}
-
-func flyHeadingForDistance(heading math.MagneticHeading, dist float32) LateralManeuver {
-	return LateralManeuver{
-		Heading: heading,
-		Until:   ManeuverComplete{Type: UntilDist, Dist: dist},
-	}
-}
-
-func flyTowardFix(fix math.Point2LL) LateralManeuver {
-	return LateralManeuver{
-		FlyToward: fix,
-		Until:     ManeuverComplete{Type: UntilFix, Fix: fix},
-	}
-}
-
-func flyTrackForTime(track math.MagneticHeading, seconds float32) LateralManeuver {
-	return LateralManeuver{
-		Track: track,
-		Until: ManeuverComplete{Type: UntilTime, Seconds: seconds},
-	}
-}
-
-func flyTrackUntilIntercept(track math.MagneticHeading, turn av.TurnDirection,
-	fix math.Point2LL, interceptCourse math.MagneticHeading) LateralManeuver {
-	return LateralManeuver{
-		Track: track,
-		Turn:  turn,
-		Until: ManeuverComplete{
-			Type:            UntilIntercept,
-			Fix:             fix,
-			InterceptCourse: interceptCourse,
-			InterceptTurn:   turn,
-		},
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
