@@ -574,6 +574,10 @@ func (nav *Nav) ClearedApproach(airport string, id string, straightIn bool, simT
 		return av.MakeUnableIntent("unable. We were told to expect the {appr} approach.", ap.FullName)
 	}
 
+	if ap := nav.Approach.Assigned; ap.Type == av.VisualApproach {
+		return nav.ClearedVisualApproach(ap.Runway, nil, []*av.Approach{ap}, "", simTime)
+	}
+
 	if nav.Approach.Cleared {
 		cancelHold := nav.applyClearedApproachState()
 		if straightIn {
