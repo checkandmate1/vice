@@ -706,8 +706,8 @@ func (nav *Nav) Summary(fp av.FlightPlan, model *wx.Model, simTime Time, lg *log
 		}
 	}
 	if hold := nav.Heading.Hold; hold != nil {
-		lines = append(lines, fmt.Sprintf("Flying hold at %s, %s entry, state: %s",
-			hold.Hold.DisplayName(), hold.Entry.String(), hold.State.String()))
+		lines = append(lines, fmt.Sprintf("Flying hold at %s, %s entry, step: %s",
+			hold.Hold.DisplayName(), hold.Entry.String(), hold.currentStep()))
 	}
 	if dh := nav.DeferredNavHeading; dh != nil {
 		if len(dh.Waypoints) > 0 {

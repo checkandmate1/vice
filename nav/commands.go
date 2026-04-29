@@ -749,12 +749,13 @@ func (nav *Nav) makeFlyHold(callsign string, hold av.Hold) *FlyHold {
 	NavLog(callsign, Time{}, NavLogHold, "makeFlyHold: headingToFix=%.1f hold_inbound=%.1f turn=%s -> %s",
 		hdg, hold.InboundCourse, hold.TurnDirection, hold.Entry(hdg).String())
 
-	return &FlyHold{
+	fh := &FlyHold{
 		Hold:        hold,
 		FixLocation: pHold,
-		State:       HoldStateApproaching,
 		Entry:       hold.Entry(hdg),
 	}
+	fh.Maneuvers = fh.entryManeuvers()
+	return fh
 }
 
 func (nav *Nav) DepartFixDirect(fixa string, fixb string) av.CommandIntent {
