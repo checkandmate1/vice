@@ -120,13 +120,7 @@ func TestHoldInboundTurnDistanceMatchesOutboundTurn(t *testing.T) {
 	var inboundTurnStart math.Point2LL
 	var outboundTurnDistance float32
 	var inboundTurnDistance float32
-	outboundHeading := hold.outboundHeading(f.nav, wxs)
-	outboundTurnManeuver := turnToHeading(outboundHeading, av.TurnRight)
-	outboundLegManeuver := hold.outboundLeg(f.nav, wxs, outboundHeading)
-	inboundTurnManeuver := turnToHeading(math.OppositeHeading(outboundHeading), av.TurnRight)
-	outboundTurnStep := outboundTurnManeuver.String()
-	outboundLegStep := outboundLegManeuver.String()
-	inboundTurnStep := inboundTurnManeuver.String()
+	outboundTurnStep, outboundLegStep, inboundTurnStep := holdCircuitStepStrings(t, hold)
 	previousStep := hold.currentStep()
 
 	for tick := range 300 {
@@ -223,9 +217,7 @@ func TestFQM3HoldInboundTurnCompletesNearExpectedTrack(t *testing.T) {
 		case flyFixStep:
 			outboundTurnStart = f.nav.FlightState.Position
 			outboundTurnStep = step
-			inboundTurnManeuver := turnToHeading(math.OppositeHeading(hold.Maneuvers[0].Heading),
-				hold.turnDirection())
-			inboundTurnStep = inboundTurnManeuver.String()
+			_, _, inboundTurnStep = holdCircuitStepStrings(t, hold)
 		case outboundTurnStep:
 			outboundTurnDistance = math.NMDistance2LL(outboundTurnStart, f.nav.FlightState.Position)
 			outboundLegStep = step
@@ -311,13 +303,7 @@ func TestHoldInboundTurnCompletesAfterHalfCircuitWithStrongWind(t *testing.T) {
 	hold.Maneuvers = hold.circuitManeuvers(f.nav, wxs)
 	f.nav.Heading = NavHeading{Hold: hold}
 
-	outboundHeading := hold.outboundHeading(f.nav, wxs)
-	outboundTurnManeuver := turnToHeading(outboundHeading, av.TurnRight)
-	outboundLegManeuver := hold.outboundLeg(f.nav, wxs, outboundHeading)
-	inboundTurnManeuver := turnToHeading(math.OppositeHeading(outboundHeading), av.TurnRight)
-	outboundTurnStep := outboundTurnManeuver.String()
-	outboundLegStep := outboundLegManeuver.String()
-	inboundTurnStep := inboundTurnManeuver.String()
+	outboundTurnStep, outboundLegStep, inboundTurnStep := holdCircuitStepStrings(t, hold)
 	previousStep := hold.currentStep()
 
 	outboundTurnStartTick := 0
@@ -350,8 +336,8 @@ func TestHoldInboundTurnCompletesAfterHalfCircuitWithStrongWind(t *testing.T) {
 				outboundTurnSeconds, inboundTurnSeconds, f.nav.FlightState.Position,
 				math.NMDistance2LL(f.nav.FlightState.Position, fixLocation))
 
-			if inboundTurnSeconds > 62 {
-				t.Fatalf("inbound turn took %d seconds; want about 60 seconds for a 180-degree turn",
+			if inboundTurnSeconds > 45 {
+				t.Fatalf("inbound turn took %d seconds; want about 40 seconds for the partial inbound turn",
 					inboundTurnSeconds)
 			}
 			return
@@ -362,4 +348,12 @@ func TestHoldInboundTurnCompletesAfterHalfCircuitWithStrongWind(t *testing.T) {
 
 	t.Fatalf("inbound turn did not complete; step=%s heading=%.1f position=%v",
 		hold.currentStep(), f.nav.FlightState.Heading, f.nav.FlightState.Position)
+}
+
+func holdCircuitStepStrings(t *testing.T, hold *FlyHold) (string, string, string) {
+	t.Helper()
+	if len(hold.Maneuvers) < 3 {
+		t.Fatalf("hold circuit has %d maneuvers, want at least 3", len(hold.Maneuvers))
+	}
+	return hold.Maneuvers[0].String(), hold.Maneuvers[1].String(), hold.Maneuvers[2].String()
 }

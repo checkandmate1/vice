@@ -506,11 +506,14 @@ func (fh *FlyHold) entryManeuvers() []LateralManeuver {
 func (fh *FlyHold) circuitManeuvers(nav *Nav, wxs wx.Sample) []LateralManeuver {
 	outbound := fh.outboundHeading(nav, wxs)
 	turn := fh.turnDirection()
+	// Don't turn all the way so that we don't over-turn (given tracks/wind correction) and then
+	// swing back toward the fix; this way, going direct to the fix will finish the turn.
+	almostInbound := math.OffsetHeading(outbound, float32(util.Select(turn == av.TurnRight, 120, -120)))
 
 	return []LateralManeuver{
 		turnToHeading(outbound, turn),
 		fh.outboundLeg(nav, wxs, outbound),
-		turnToHeading(math.OppositeHeading(outbound), turn),
+		turnToHeading(almostInbound, turn),
 		flyTowardFix(fh.FixLocation),
 	}
 }
