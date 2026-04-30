@@ -238,7 +238,7 @@ func racetrackEntryManeuvers(entry av.HoldEntry, fix math.Point2LL, inbound math
 		return maneuvers
 
 	case av.HoldEntryParallel:
-		intercept := math.OffsetHeading(inbound, float32(util.Select(turn == av.TurnRight, -40, 40)))
+		intercept := math.OffsetHeading(inbound, util.Select(turn == av.TurnRight, -40, 40))
 		return append(maneuvers,
 			turnToTrack(outbound, av.TurnClosest),
 			entryLeg(outbound),
@@ -248,7 +248,7 @@ func racetrackEntryManeuvers(entry av.HoldEntry, fix math.Point2LL, inbound math
 			flyTowardFix(fix))
 
 	case av.HoldEntryTeardrop:
-		teardrop := math.OffsetHeading(inbound, float32(util.Select(turn == av.TurnRight, 150, -150)))
+		teardrop := math.OffsetHeading(inbound, util.Select(turn == av.TurnRight, 150, -150))
 		base := math.OppositeHeading(teardrop)
 		return append(maneuvers,
 			turnToTrack(teardrop, av.TurnClosest),
@@ -357,7 +357,7 @@ func makeStandard45Maneuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []Late
 
 	inboundHdg := math.TrueToMagnetic(math.Heading2LL(wp[0].Location, wp[1].Location, nmPerLong), magVar)
 	outboundHdg := math.OppositeHeading(inboundHdg)
-	awayHdg := math.OffsetHeading(outboundHdg, float32(util.Select(pt.RightTurns, -45, 45)))
+	awayHdg := math.OffsetHeading(outboundHdg, util.Select(pt.RightTurns, -45, 45))
 	reverseHdg := math.OppositeHeading(awayHdg)
 	turn := av.TurnDirection(util.Select(pt.RightTurns, av.TurnRight, av.TurnLeft))
 
@@ -508,7 +508,7 @@ func (fh *FlyHold) circuitManeuvers(nav *Nav, wxs wx.Sample) []LateralManeuver {
 	turn := fh.turnDirection()
 	// Don't turn all the way so that we don't over-turn (given tracks/wind correction) and then
 	// swing back toward the fix; this way, going direct to the fix will finish the turn.
-	almostInbound := math.OffsetHeading(outbound, float32(util.Select(turn == av.TurnRight, 120, -120)))
+	almostInbound := math.OffsetHeading(outbound, util.Select(turn == av.TurnRight, 120, -120))
 
 	return []LateralManeuver{
 		turnToHeading(outbound, turn),

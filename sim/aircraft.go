@@ -404,7 +404,7 @@ func (ac *Aircraft) AssignHeading(heading int, turn av.TurnDirection, simTime Ti
 }
 
 func (ac *Aircraft) TurnLeft(deg int, simTime Time, delayReduction time.Duration) av.CommandIntent {
-	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(-deg))
+	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, -deg)
 	ac.Nav.AssignHeading(hdg, av.TurnLeft, simTime.NavTime(), delayReduction)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnLeft,
@@ -414,7 +414,7 @@ func (ac *Aircraft) TurnLeft(deg int, simTime Time, delayReduction time.Duration
 }
 
 func (ac *Aircraft) TurnRight(deg int, simTime Time, delayReduction time.Duration) av.CommandIntent {
-	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, float32(deg))
+	hdg := math.OffsetHeading(ac.Nav.FlightState.Heading, deg)
 	ac.Nav.AssignHeading(hdg, av.TurnRight, simTime.NavTime(), delayReduction)
 	return av.HeadingIntent{
 		Type:    av.HeadingTurnRight,
