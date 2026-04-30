@@ -427,10 +427,6 @@ func processFacilityAtmos(ctx context.Context, bucket *storage.BucketHandle, man
 		// Convert SOA to regular Atmos object and store the averaged stack
 		atmos := atmosSOA.ToAOS()
 		_, avgStack := atmos.Average()
-		if avgStack == nil {
-			fmt.Printf("%s: empty atmos object at %s (%s), skipping\n", facilityID, timestamp.Format(time.RFC3339), objectPath)
-			continue
-		}
 		facilityAtmos.SampleStacks[timestamp] = avgStack
 	}
 
