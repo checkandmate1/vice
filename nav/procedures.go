@@ -225,6 +225,48 @@ func flyTrackUntilIntercept(track math.MagneticHeading, turn av.TurnDirection,
 	}
 }
 
+func racetrackEntryManeuvers(entry av.HoldEntry, fix math.Point2LL, inbound math.MagneticHeading,
+	turn av.TurnDirection, entryLeg func(math.MagneticHeading) LateralManeuver) []LateralManeuver {
+	outbound := math.OppositeHeading(inbound)
+
+	maneuvers := []LateralManeuver{
+		flyTowardFix(fix),
+	}
+
+	switch entry {
+	case av.HoldEntryDirect:
+		return maneuvers
+
+	case av.HoldEntryParallel:
+		intercept := math.OffsetHeading(inbound, float32(util.Select(turn == av.TurnRight, -40, 40)))
+		return append(maneuvers,
+			turnToTrack(outbound, av.TurnClosest),
+			entryLeg(outbound),
+			turnToTrack(intercept, oppositeTurnDirection(turn)),
+			flyTrackUntilIntercept(intercept, turn, fix, inbound),
+			turnToTrack(inbound, turn),
+			flyTowardFix(fix))
+
+	case av.HoldEntryTeardrop:
+		teardrop := math.OffsetHeading(inbound, float32(util.Select(turn == av.TurnRight, 150, -150)))
+		base := math.OppositeHeading(teardrop)
+		return append(maneuvers,
+			turnToTrack(teardrop, av.TurnClosest),
+			entryLeg(teardrop),
+			turnToTrack(base, turn),
+			flyTrackUntilIntercept(base, turn, fix, inbound),
+			turnToTrack(inbound, turn),
+			flyTowardFix(fix))
+
+	default:
+		panic(fmt.Sprintf("unhandled hold entry type: %d", entry))
+	}
+}
+
+func oppositeTurnDirection(turn av.TurnDirection) av.TurnDirection {
+	return util.Select(turn == av.TurnRight, av.TurnLeft, av.TurnRight)
+}
+
 type maneuverResult struct {
 	heading   math.MagneticHeading
 	turn      av.TurnDirection
@@ -343,45 +385,13 @@ func makeRacetrackManeuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []Later
 	outboundHdg := math.OppositeHeading(inboundHdg)
 
 	acFixHdg := math.TrueToMagnetic(math.Heading2LL(nav.FlightState.Position, fixLoc, nmPerLong), magVar)
-	entry := pt.SelectRacetrackEntry(inboundHdg, acFixHdg)
 
 	ptTurn := av.TurnDirection(util.Select(pt.RightTurns, av.TurnRight, av.TurnLeft))
-	antiTurn := av.TurnDirection(util.Select(pt.RightTurns, av.TurnLeft, av.TurnRight))
-
-	maneuvers := []LateralManeuver{
-		flyTowardFix(fixLoc),
-	}
-
-	switch entry {
-	case av.DirectEntryShortTurn, av.DirectEntryLongTurn:
-		// no entry
-
-	case av.TeardropEntry:
-		tearHdg := math.OffsetHeading(outboundHdg, float32(util.Select(pt.RightTurns, -30, 30)))
-		baseHdg := math.OffsetHeading(inboundHdg, float32(util.Select(pt.RightTurns, -90, 90)))
-		maneuvers = append(maneuvers,
-			turnToHeading(tearHdg, av.TurnClosest),
-			outboundLeg(nav, pt, tearHdg, 1.2),
-			turnToHeading(baseHdg, av.TurnClosest),
-			flyHeadingUntilIntercept(baseHdg, av.TurnClosest, fixLoc, inboundHdg),
-			flyTowardFix(fixLoc),
-		)
-
-	case av.ParallelEntry:
-		// After the outbound leg, turn anti-PT to a 30° intercept heading,
-		// then fly it until shouldTurnToIntercept fires, then fly to fix.
-		interceptHdg := math.OffsetHeading(inboundHdg, float32(util.Select(pt.RightTurns, -30, 30)))
-		maneuvers = append(maneuvers,
-			turnToHeading(outboundHdg, av.TurnClosest),
-			outboundLeg(nav, pt, outboundHdg, 1),
-			turnToHeading(interceptHdg, antiTurn),
-			flyHeadingUntilIntercept(interceptHdg, av.TurnClosest, fixLoc, inboundHdg),
-			flyTowardFix(fixLoc),
-		)
-
-	default:
-		panic(fmt.Sprintf("unhandled racetrack entry type: %d", entry))
-	}
+	entry := av.Hold{InboundCourse: inboundHdg, TurnDirection: ptTurn}.Entry(acFixHdg)
+	maneuvers := racetrackEntryManeuvers(entry, fixLoc, inboundHdg, ptTurn,
+		func(track math.MagneticHeading) LateralManeuver {
+			return outboundTrackLeg(nav, pt, track, 1)
+		})
 
 	turnOutbound := turnToHeading(outboundHdg, ptTurn)
 	turnOutbound.AssignAltitude = exitAlt
@@ -398,23 +408,36 @@ func makeRacetrackManeuver(nav *Nav, wp []av.Waypoint, exitAlt *float32) []Later
 // specified: UntilDist if a distance was given, UntilTime if a time was
 // given. scale multiplies the extent (e.g. 1.5 for teardrop legs).
 func outboundLeg(nav *Nav, pt *av.ProcedureTurn, heading math.MagneticHeading, scale float32) LateralManeuver {
-	step := LateralManeuver{Heading: heading, Turn: av.TurnClosest}
-	if pt.NmLimit > 0 {
-		step.Until = ManeuverComplete{Type: UntilDist, Dist: pt.NmLimit * scale}
-	} else if pt.MinuteLimit > 0 {
-		step.Until = ManeuverComplete{Type: UntilTime, Seconds: pt.MinuteLimit * 60 * scale}
-	} else {
-		// Default: 1 minute for ILS/LOC/VOR, 4nm for RNAV
-		switch nav.Approach.Assigned.Type {
-		case av.ILSApproach, av.LocalizerApproach, av.VORApproach:
-			step.Until = ManeuverComplete{Type: UntilTime, Seconds: 60 * scale}
-		case av.RNAVApproach:
-			step.Until = ManeuverComplete{Type: UntilDist, Dist: 4 * scale}
-		default:
-			panic(fmt.Sprintf("unhandled approach type: %s", nav.Approach.Assigned.Type))
-		}
+	return LateralManeuver{
+		Heading: heading,
+		Turn:    av.TurnClosest,
+		Until:   procedureTurnLegCompletion(nav, pt, scale),
 	}
-	return step
+}
+
+func outboundTrackLeg(nav *Nav, pt *av.ProcedureTurn, track math.MagneticHeading, scale float32) LateralManeuver {
+	return LateralManeuver{
+		Track: track,
+		Turn:  av.TurnClosest,
+		Until: procedureTurnLegCompletion(nav, pt, scale),
+	}
+}
+
+func procedureTurnLegCompletion(nav *Nav, pt *av.ProcedureTurn, scale float32) ManeuverComplete {
+	if pt.NmLimit > 0 {
+		return ManeuverComplete{Type: UntilDist, Dist: pt.NmLimit * scale}
+	} else if pt.MinuteLimit > 0 {
+		return ManeuverComplete{Type: UntilTime, Seconds: pt.MinuteLimit * 60 * scale}
+	}
+
+	switch nav.Approach.Assigned.Type {
+	case av.ILSApproach, av.LocalizerApproach, av.VORApproach:
+		return ManeuverComplete{Type: UntilTime, Seconds: 60 * scale}
+	case av.RNAVApproach:
+		return ManeuverComplete{Type: UntilDist, Dist: 4 * scale}
+	default:
+		panic(fmt.Sprintf("unhandled approach type: %s", nav.Approach.Assigned.Type))
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -473,41 +496,11 @@ func (fh *FlyHold) currentStep() string {
 }
 
 func (fh *FlyHold) entryManeuvers() []LateralManeuver {
-	inbound := fh.Hold.InboundCourse
-	outbound := math.OppositeHeading(inbound)
 	holdTurn := fh.turnDirection()
-
-	maneuvers := []LateralManeuver{
-		flyTowardFix(fh.FixLocation),
-	}
-
-	switch fh.Entry {
-	case av.HoldEntryDirect:
-		// The initial fly-to-fix maneuver is the whole entry.
-
-	case av.HoldEntryParallel:
-		intercept := math.OffsetHeading(inbound, float32(util.Select(fh.Hold.TurnDirection == av.TurnRight, -40, 40)))
-		maneuvers = append(maneuvers,
-			turnToTrack(outbound, av.TurnClosest),
-			flyTrackForTime(outbound, 70),
-			turnToTrack(intercept, fh.oppositeTurnDirection()),
-			flyTrackUntilIntercept(intercept, holdTurn, fh.FixLocation, inbound),
-			turnToTrack(inbound, holdTurn),
-			flyTowardFix(fh.FixLocation))
-
-	case av.HoldEntryTeardrop:
-		teardrop := math.OffsetHeading(inbound, float32(util.Select(fh.Hold.TurnDirection == av.TurnRight, 150, -150)))
-		base := math.OppositeHeading(teardrop)
-		maneuvers = append(maneuvers,
-			turnToTrack(teardrop, av.TurnClosest),
-			flyTrackForTime(teardrop, 70),
-			turnToTrack(base, holdTurn),
-			flyTrackUntilIntercept(base, holdTurn, fh.FixLocation, inbound),
-			turnToTrack(inbound, holdTurn),
-			flyTowardFix(fh.FixLocation))
-	}
-
-	return maneuvers
+	return racetrackEntryManeuvers(fh.Entry, fh.FixLocation, fh.Hold.InboundCourse, holdTurn,
+		func(track math.MagneticHeading) LateralManeuver {
+			return flyTrackForTime(track, 70)
+		})
 }
 
 func (fh *FlyHold) circuitManeuvers(nav *Nav, wxs wx.Sample) []LateralManeuver {
@@ -548,10 +541,6 @@ func (fh *FlyHold) outboundLeg(nav *Nav, wxs wx.Sample, heading math.MagneticHea
 
 func (fh *FlyHold) turnDirection() av.TurnDirection {
 	return util.Select(fh.Hold.TurnDirection == av.TurnRight, av.TurnRight, av.TurnLeft)
-}
-
-func (fh *FlyHold) oppositeTurnDirection() av.TurnDirection {
-	return util.Select(fh.Hold.TurnDirection == av.TurnRight, av.TurnLeft, av.TurnRight)
 }
 
 ///////////////////////////////////////////////////////////////////////////
