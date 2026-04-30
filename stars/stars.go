@@ -878,6 +878,7 @@ func (sp *STARSPane) ResetSim(client *client.ControlClient, pl platform.Platform
 	sp.LastATIS = client.State.ATIS
 	sp.LastGIText = client.State.GIText
 	sp.FlashATIS = [10]bool{}
+	sp.highlightedLocationEndTime = sim.Time{}
 
 	sp.lastTrackUpdate = sim.Time{} // force update
 	sp.lastHistoryTrackUpdate = sim.Time{}
