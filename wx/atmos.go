@@ -18,13 +18,13 @@ import (
 	"github.com/mmp/vice/util"
 )
 
-// vice -listscenarios 2>/dev/null | cut -d / -f 1 | uniq
+// vice -listscenarios 2>/dev/null | cut -d / -f 1 | uniq (ex FAT, HNL)
 var AtmosTRACONs = []string{
 	"A11", "A80", "A90", "AAC", "ABE", "ABQ", "AGS", "ALB", "ASE", "AUS", "AVL", "BGR", "BHM", "BIL", "BNA", "BOI",
-	"BTV", "BUF", "C90", "CHS", "CID", "CLE", "CLT", "COS", "CPR", "D01", "D10", "D21", "DAB", "EWR", "F11", "GSO",
-	"GSP", "GTF", "I90", "IND", "JAX", "L30", "M98", "MCI", "MDT", "MIA", "MKE", "N90", "NCT", "OKC", "P31", "P50",
+	"BTV", "BUF", "C90", "CHS", "CID", "CLE", "CLT", "COS", "CPR", "CVG", "D01", "D10", "D21", "DAB", "EWR", "F11", "GSO",
+	"GSP", "GTF", "I90", "IND", "JAX", "L30", "LBB", "M98", "MCI", "MDT", "MIA", "MKE", "MYR", "N90", "NCT", "OGG", "OKC", "ORF", "P31", "P50",
 	"P80", "PCT", "PHL", "PIT", "PVD", "PWM", "R90", "RDU", "S46", "S56", "SAT", "SAV", "SBA", "SBN", "SCT", "SDF",
-	"SGF", "SYR", "TPA", "Y90",
+	"SGF", "SYR", "TPA", "TYS", "Y90",
 	// not currently needed but let's save ourselves the trouble of
 	// downloading all the Alaska gribs again just in case.
 	"FAI",
