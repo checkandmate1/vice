@@ -169,6 +169,8 @@ type NewSimConfiguration struct {
 	WindSpecifier     *wx.WindSpecifier
 	Center            math.Point2LL
 	Range             float32
+	ScenarioCenter    math.Point2LL
+	ScenarioRange     float32
 	DefaultMaps       []string
 	DefaultMapGroup   string
 	Airspace          av.Airspace

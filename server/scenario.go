@@ -2396,6 +2396,8 @@ func CreateNewSimConfiguration(catalog *ScenarioCatalog, scenarioGroup *scenario
 		WindSpecifier:           scenario.WindSpecifier,
 		Center:                  util.Select(scenario.Center.IsZero(), scenarioGroup.FacilityConfig.FacilityAdaptation.Center, scenario.Center),
 		Range:                   util.Select(scenario.Range == 0, scenarioGroup.FacilityConfig.FacilityAdaptation.Range, scenario.Range),
+		ScenarioCenter:          scenario.Center,
+		ScenarioRange:           scenario.Range,
 		DefaultMaps:             scenario.DefaultMaps,
 		DefaultMapGroup:         scenario.DefaultMapGroup,
 		Airspace:                scenarioGroup.Airspace,
