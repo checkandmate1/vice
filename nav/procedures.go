@@ -538,18 +538,10 @@ func init() {
 		HoldStateTurningInbound: func(nav *Nav, fh *FlyHold, wxs wx.Sample, simTime Time) (math.MagneticHeading, av.TurnDirection, HoldState) {
 			turn := util.Select(fh.Hold.TurnDirection == av.TurnRight, av.TurnRight, av.TurnLeft)
 
-			if math.HeadingDifference(nav.FlightState.Heading, fh.Hold.InboundCourse) > 60 {
-				// Initial turn off the outbound leg
+			if math.HeadingDifference(nav.FlightState.Heading, fh.Hold.InboundCourse) > 5 {
 				return fh.Hold.InboundCourse, turn, HoldStateTurningInbound
 			}
 
-			if nav.shouldTurnToIntercept(fh.FixLocation, fh.Hold.InboundCourse, turn, wxs) != turnToInterceptTurn {
-				// Don't finish the turn and instead fly present heading a bit until the point at
-				// which finishing the turn would have us roll out to the inbound course.
-				return nav.FlightState.Heading, turn, HoldStateTurningInbound
-			}
-
-			// Wrap up the turn and start flying the inbound leg.
 			return fh.Hold.InboundCourse, av.TurnClosest, HoldStateFlyingInbound
 		},
 
