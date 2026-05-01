@@ -85,8 +85,8 @@ type Sim struct {
 	FutureOnCourse         []FutureOnCourse
 	FutureSquawkChanges    []FutureChangeSquawk
 	FutureEmergencyUpdates []FutureEmergencyUpdate
-	FutureFieldInSights    []FutureFieldInSight
-	FutureTrafficInSights  []FutureTrafficInSight
+	FutureFieldChecks      []FutureFieldCheck
+	FutureTrafficChecks    []FutureTrafficCheck
 
 	NextEmergencyTime Time
 
@@ -1177,9 +1177,9 @@ func (s *Sim) updateState() {
 		s.processVirtualControllerContacts()
 
 		s.processFutureOnCourse()
-		s.processFutureChangeSquawk()
-		s.processFutureFieldInSight()
-		s.processFutureTrafficInSight()
+		s.processFutureSquawkChanges()
+		s.processFutureFieldChecks()
+		s.processFutureTrafficChecks()
 
 		s.updateEmergencies()
 

@@ -43,11 +43,6 @@ type SeenAircraft struct {
 	MaintainingVisualSeparation bool
 }
 
-type UnseenTrafficCall struct {
-	Callsign   av.ADSBCallsign
-	CalledTime Time
-}
-
 type Aircraft struct {
 	// This is ADS-B callsign of the aircraft. Just because different the
 	// callsign in the flight plan can be different across multiple STARS
@@ -133,8 +128,6 @@ type Aircraft struct {
 	// SeenTraffic tracks traffic the pilot has reported in sight, ordered
 	// from oldest to newest.
 	SeenTraffic []SeenAircraft
-	// UnseenTrafficCall tracks the latest unresolved TRAFFIC advisory.
-	UnseenTrafficCall *UnseenTrafficCall
 
 	// FieldInSight is set when the pilot has confirmed the airport is in sight
 	// (either via AP command response or spontaneous report).
@@ -167,10 +160,6 @@ func (ac *Aircraft) GetRadarTrack(now Time) av.RadarTrack {
 		Groundspeed:         ac.GS(),
 		TypeOfFlight:        ac.TypeOfFlight,
 	}
-}
-
-func (ac *Aircraft) clearUnseenTrafficCall() {
-	ac.UnseenTrafficCall = nil
 }
 
 func (ac *Aircraft) clearOfferedToMaintainSeparation() {

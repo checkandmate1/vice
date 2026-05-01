@@ -155,7 +155,7 @@ func (vs *VisualScenario) AdvanceTime(d time.Duration) {
 
 // CheckDelayedFieldInSight runs the delayed field-in-sight processor.
 func (vs *VisualScenario) CheckDelayedFieldInSight() {
-	vs.Sim.processFutureFieldInSight()
+	vs.Sim.processFutureFieldChecks()
 }
 
 // CheckSpontaneousVisual runs the spontaneous visual request check.
@@ -1176,7 +1176,6 @@ func TestEffectiveVisualRangeObscurationPenalty(t *testing.T) {
 
 func TestFutureFieldInSightDropsWhenFieldNotVisible(t *testing.T) {
 	// Field is out of range → processor fires at event.Time but drops without
-	// setting FieldInSight. Event is removed from the queue.
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
 	sim := makeVisualTestSim(airportLoc, "13L")
@@ -1186,14 +1185,19 @@ func TestFutureFieldInSightDropsWhenFieldNotVisible(t *testing.T) {
 	sim.Aircraft = map[av.ADSBCallsign]*Aircraft{"AAL123": ac}
 	sim.PendingContacts = make(map[TCP][]PendingContact)
 
-	sim.FutureFieldInSights = []FutureFieldInSight{{ac.ADSBCallsign, sim.State.SimTime.Add(-time.Second)}}
+	originalCheckTime := sim.State.SimTime.Add(-time.Second)
+	sim.FutureFieldChecks = []FutureFieldCheck{{ac.ADSBCallsign, originalCheckTime}}
 
-	sim.processFutureFieldInSight()
+	sim.processFutureFieldChecks()
 	if ac.FieldInSight {
 		t.Fatal("aircraft beyond effective range should not report field in sight")
 	}
-	if len(sim.FutureFieldInSights) != 0 {
-		t.Fatal("fired event should be removed from queue")
+	if len(sim.FutureFieldChecks) != 1 {
+		t.Fatalf("not-yet-visible field check should be rescheduled, got %d checks", len(sim.FutureFieldChecks))
+	}
+	if !sim.FutureFieldChecks[0].Time.After(originalCheckTime) {
+		t.Fatalf("rescheduled check time %v should be after original time %v",
+			sim.FutureFieldChecks[0].Time, originalCheckTime)
 	}
 }
 
@@ -1205,24 +1209,23 @@ func TestFutureTrafficInSightFiresAtDeadline(t *testing.T) {
 	sim.PendingContacts = make(map[TCP][]PendingContact)
 
 	ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180)
-	sim.Aircraft = map[av.ADSBCallsign]*Aircraft{ac.ADSBCallsign: ac}
-	ac.UnseenTrafficCall = &UnseenTrafficCall{
-		Callsign:   "DAL456",
-		CalledTime: sim.State.SimTime.Add(-15 * time.Second),
+	traffic := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180)
+	traffic.ADSBCallsign = "DAL456"
+	sim.Aircraft = map[av.ADSBCallsign]*Aircraft{
+		ac.ADSBCallsign:      ac,
+		traffic.ADSBCallsign: traffic,
 	}
-	sim.FutureTrafficInSights = []FutureTrafficInSight{
-		{ac.ADSBCallsign, "DAL456", sim.State.SimTime.Add(-time.Second)},
+	sim.Rand.Seed(1)
+	sim.FutureTrafficChecks = []FutureTrafficCheck{
+		{ac.ADSBCallsign, traffic.ADSBCallsign, sim.State.SimTime.Add(-time.Second)},
 	}
 
-	sim.processFutureTrafficInSight()
+	sim.processFutureTrafficChecks()
 
 	if sighting := requireSeenTraffic(t, ac, "DAL456"); sighting.OfferedToMaintainSeparation {
 		t.Fatal("delayed traffic-in-sight report should not volunteer separation")
 	}
-	if ac.UnseenTrafficCall != nil {
-		t.Fatal("future traffic-in-sight report should clear the matching unseen traffic call")
-	}
-	if len(sim.FutureTrafficInSights) != 0 {
+	if len(sim.FutureTrafficChecks) != 0 {
 		t.Fatal("fired event should be removed from queue")
 	}
 }
@@ -1232,22 +1235,19 @@ func TestFutureTrafficInSightFiresAtDeadline(t *testing.T) {
 func TestFutureTrafficInSightSupersededByNewAdvisory(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
-	sim := makeVisualTestSim(airportLoc, "13L")
-	sim.State.SimTime = NewSimTime(time.Now())
-	sim.PendingContacts = make(map[TCP][]PendingContact)
-
-	ac := makeVisualTestAircraft(math.Point2LL{0, 5.0 / 60}, 180)
-	sim.Aircraft = map[av.ADSBCallsign]*Aircraft{ac.ADSBCallsign: ac}
+	vs := NewVisualScenario(t, airportLoc, "13L", math.Point2LL{0, 5.0 / 60}, 180)
 
 	// Stale event from an earlier advisory.
-	sim.FutureTrafficInSights = []FutureTrafficInSight{
-		{ac.ADSBCallsign, "OLD456", sim.State.SimTime.Add(10 * time.Second)},
+	vs.Sim.FutureTrafficChecks = []FutureTrafficCheck{
+		{vs.callsign, "OLD456", vs.Sim.State.SimTime.Add(10 * time.Second)},
 	}
 
 	// Any new advisory path must purge the stale entry.
-	sim.handleTrafficAdvisory(ac, 12, 5, ac.Altitude())
+	if _, err := vs.Sim.TrafficAdvisory(vs.tcw, vs.callsign, 12, 5, int(vs.AC.Altitude()), false); err != nil {
+		t.Fatalf("TrafficAdvisory returned error: %v", err)
+	}
 
-	for _, f := range sim.FutureTrafficInSights {
+	for _, f := range vs.Sim.FutureTrafficChecks {
 		if f.TrafficCallsign == "OLD456" {
 			t.Fatal("stale FutureTrafficInSight for OLD456 should be purged by a new advisory")
 		}
@@ -1328,15 +1328,14 @@ func TestTrafficAdvisoryClearsOfferedStateButKeepsSightingHistory(t *testing.T) 
 
 	sighting := vs.AC.RecordSighting("DAL456", vs.Sim.State.SimTime.Add(-20*time.Second))
 	sighting.OfferedToMaintainSeparation = true
-	vs.AC.UnseenTrafficCall = &UnseenTrafficCall{
-		Callsign:   "DAL456",
-		CalledTime: vs.Sim.State.SimTime.Add(-15 * time.Second),
-	}
-	vs.Sim.FutureTrafficInSights = []FutureTrafficInSight{
+	vs.Sim.FutureTrafficChecks = []FutureTrafficCheck{
 		{vs.callsign, "DAL456", vs.Sim.State.SimTime.Add(10 * time.Second)},
 	}
 
-	intent := vs.Sim.handleTrafficAdvisory(vs.AC, 12, 5, vs.AC.Altitude())
+	intent, err := vs.Sim.TrafficAdvisory(vs.tcw, vs.callsign, 12, 5, int(vs.AC.Altitude()), false)
+	if err != nil {
+		t.Fatalf("TrafficAdvisory returned error: %v", err)
+	}
 	ti, ok := intent.(av.TrafficAdvisoryIntent)
 	if !ok {
 		t.Fatalf("expected TrafficAdvisoryIntent, got %T", intent)
@@ -1351,10 +1350,7 @@ func TestTrafficAdvisoryClearsOfferedStateButKeepsSightingHistory(t *testing.T) 
 	if sighting.OfferedToMaintainSeparation {
 		t.Fatal("new traffic advisory should clear stale offered-to-maintain state")
 	}
-	if vs.AC.UnseenTrafficCall != nil {
-		t.Fatal("no-traffic advisory response should clear the unresolved unseen traffic call")
-	}
-	if len(vs.Sim.FutureTrafficInSights) != 0 {
+	if len(vs.Sim.FutureTrafficChecks) != 0 {
 		t.Fatal("new traffic advisory should cancel stale delayed traffic-in-sight events")
 	}
 }

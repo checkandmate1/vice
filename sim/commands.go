@@ -435,8 +435,7 @@ func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, oclock, miles, 
 }
 
 func (s *Sim) startTrafficAdvisory(ac *Aircraft) {
-	s.cancelFutureTrafficInSight(ac.ADSBCallsign)
-	ac.clearUnseenTrafficCall()
+	s.cancelFutureTrafficCheck(ac.ADSBCallsign)
 	ac.clearOfferedToMaintainSeparation()
 }
 
@@ -491,11 +490,6 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 	}
 
-	ac.UnseenTrafficCall = &UnseenTrafficCall{
-		Callsign:   trafficFound,
-		CalledTime: s.State.SimTime,
-	}
-
 	// Base probability from METAR-derived effective visual range at the pilot's AGL.
 	altAGL := max(ac.Altitude()-nearestElev, 0)
 	trafficAltAGL := max(s.Aircraft[trafficFound].Altitude()-nearestElev, 0)
@@ -515,7 +509,6 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 
 	if s.Rand.Float32() < seeProb {
 		sighting := ac.RecordSighting(trafficFound, s.State.SimTime)
-		ac.clearUnseenTrafficCall()
 		sighting.OfferedToMaintainSeparation = s.Rand.Float32() < 0.3
 		return av.TrafficAdvisoryIntent{
 			Response:               av.TrafficResponseTrafficSeen,
@@ -524,8 +517,35 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	}
 
 	// "Looking" - schedule possible delayed traffic-in-sight call
-	s.enqueueFutureTrafficInSight(ac.ADSBCallsign, trafficFound)
+	s.enqueueFutureTrafficCheck(ac.ADSBCallsign, trafficFound)
 	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
+}
+
+func (s *Sim) trafficIsVisible(ac, traffic *Aircraft) bool {
+	nearestMETAR, nearestElev := s.nearestMETAR(ac.Position())
+	if nearestMETAR.ICAO != "" && !nearestMETAR.IsVMC() {
+		return false
+	}
+
+	// Base probability from METAR-derived effective visual range at the pilot's AGL.
+	trafficAltAGL := max(traffic.Altitude()-nearestElev, 0)
+	acAltAGL := max(ac.Altitude()-nearestElev, 0)
+	dist := math.NMDistance2LL(ac.Position(), traffic.Position())
+	p := pilotSeeProb(nearestMETAR.EffectiveVisualRange(acAltAGL, trafficAltAGL), dist)
+
+	// Only apply altitude modulation + floor clamp if the target is within
+	// effective visual range; otherwise the pilot simply can't see it.
+	if p > 0 {
+		// Traffic above is easier to see against sky; below, harder against ground.
+		if traffic.Altitude() > ac.Altitude()+500 {
+			p *= 1.3
+		} else if traffic.Altitude() < ac.Altitude()-500 {
+			p *= 0.7
+		}
+		p = math.Clamp(p, 0.2, 0.95)
+	}
+
+	return s.Rand.Float32() < p
 }
 
 // nearestMETAR returns the METAR and airport elevation for the reporting
@@ -566,7 +586,6 @@ func (s *Sim) MaintainVisualSeparation(tcw TCW, callsign av.ADSBCallsign) (av.Co
 			if sighting := ac.RecentSighting(s.State.SimTime, trafficSightingMaxAge); sighting != nil {
 				ac.clearOfferedToMaintainSeparation()
 				sighting.MaintainingVisualSeparation = true
-				ac.clearUnseenTrafficCall()
 				return av.VisualSeparationIntent{}
 			}
 			// If they don't have traffic in sight, they can't maintain visual separation

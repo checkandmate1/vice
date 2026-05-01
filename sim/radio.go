@@ -563,7 +563,7 @@ func (s *Sim) enqueueTransponderChange(callsign av.ADSBCallsign, code av.Squawk,
 		FutureChangeSquawk{ADSBCallsign: callsign, Code: code, Mode: mode, Time: s.State.SimTime.Add(wait)})
 }
 
-func (s *Sim) processFutureChangeSquawk() {
+func (s *Sim) processFutureSquawkChanges() {
 	s.FutureSquawkChanges = util.FilterSliceInPlace(s.FutureSquawkChanges,
 		func(fcs FutureChangeSquawk) bool {
 			if s.State.SimTime.After(fcs.Time) {
