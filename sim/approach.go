@@ -438,8 +438,9 @@ func (s *Sim) trafficStillVisible(ac *Aircraft, seen *SeenAircraft) bool {
 	}
 
 	altAGL := max(ac.Altitude()-nearestElev, 0)
+	trafficAltAGL := max(traffic.Altitude()-nearestElev, 0)
 	dist := math.NMDistance2LLFast(ac.Position(), traffic.Position(), ac.NmPerLongitude())
-	return pilotSeeProb(nearestMETAR.EffectiveVisualRange(altAGL), dist) > 0
+	return pilotSeeProb(nearestMETAR.EffectiveVisualRange(altAGL, trafficAltAGL), dist) > 0
 }
 
 // canRequestVisualApproach reports whether an aircraft is eligible to
@@ -510,7 +511,7 @@ func (s *Sim) checkVisualEligibility(ac *Aircraft) VisualEligibility {
 			altAGL = 0
 		}
 	}
-	maxRange := metar.EffectiveVisualRange(altAGL)
+	maxRange := metar.EffectiveVisualRange(altAGL, 0)
 	dist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
 	if dist > maxRange {
 		reason := util.Select(metar.HasObscuration(), visualEligibilityObscured, visualEligibilityOutOfRange)

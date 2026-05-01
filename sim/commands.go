@@ -533,7 +533,8 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 
 	// Base probability from METAR-derived effective visual range at the pilot's AGL.
 	altAGL := max(ac.Altitude()-nearestElev, 0)
-	seeProb := pilotSeeProb(nearestMETAR.EffectiveVisualRange(altAGL), float32(miles))
+	trafficAltAGL := max(s.Aircraft[trafficFound].Altitude()-nearestElev, 0)
+	seeProb := pilotSeeProb(nearestMETAR.EffectiveVisualRange(altAGL, trafficAltAGL), float32(miles))
 
 	// Only apply altitude modulation + floor clamp if the target is within
 	// effective visual range; otherwise the pilot simply can't see it.

@@ -1167,8 +1167,8 @@ func TestEffectiveVisualRangeObscurationPenalty(t *testing.T) {
 	clear := wx.METAR{Raw: "KJFK 10SM BKN050"}
 	haze := wx.METAR{Raw: "KJFK 10SM HZ BKN050"}
 
-	clearRange := clear.EffectiveVisualRange(0)
-	hazeRange := haze.EffectiveVisualRange(0)
+	clearRange := clear.EffectiveVisualRange(0, 0)
+	hazeRange := haze.EffectiveVisualRange(0, 0)
 	if hazeRange >= clearRange {
 		t.Fatalf("obscured range = %.2f, clear range = %.2f; expected obscuration penalty", hazeRange, clearRange)
 	}
