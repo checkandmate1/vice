@@ -74,7 +74,8 @@ import (
 // 64: stars datablock intervals
 // 65: TFR ingest pipeline
 // 66: Waypoint SpeedRestriction
-const ViceSerializeVersion = 66
+// 67: visual approach v2
+const ViceSerializeVersion = 67
 
 const ViceServerAddress = "vice.pharr.org"
 const ViceServerPort = 8000 - 50 + ViceRPCVersion
