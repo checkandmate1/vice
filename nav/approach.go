@@ -842,8 +842,20 @@ func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *
 
 	rwy, _ := av.LookupRunway(nav.FlightState.ArrivalAirport.Fix, runway)
 	finalPoint, hasFinalPoint := visualRoutePointAtDistance(joinPoint.route, 3, nmPerLong)
-	alt := rwy.Elevation + rwy.ThresholdCrossingHeight
+	thresholdAlt := rwy.Elevation + rwy.ThresholdCrossingHeight
 	final3nmAlt := float32(rwy.Elevation) + 900
+
+	// Top-of-descent altitude: continue any in-progress controller-assigned descent (so "descend
+	// and maintain 3000" still completes), otherwise hold current.  Reference Altitude.Assigned if
+	// set so that we place the TOD for the altitude the aircraft is heading for, not where it is
+	// currently.
+	todAlt := nav.FlightState.Altitude
+	if a := nav.Altitude.Assigned; a != nil && *a < todAlt {
+		todAlt = *a
+	}
+	// Distance from threshold for a 3° glideslope crossing the threshold at TCH.
+	ftPerNMOnGlideslope := math.Tan(math.Radians(float32(3))) * math.NauticalMilesToFeet
+	todDist := (todAlt - float32(thresholdAlt)) / ftPerNMOnGlideslope
 
 	var wps []av.Waypoint
 	join := av.Waypoint{
@@ -868,28 +880,62 @@ func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *
 
 	start := joinPoint.segment + 1
 	if followTraffic != nil && joinPoint.segmentFraction <= 1e-4 &&
-		math.NMDistance2LLFast(*followTraffic, joinPoint.route[joinPoint.segment].Location, nmPerLong) > 0.05 {
+		math.NMDistance2LL(*followTraffic, joinPoint.route[joinPoint.segment].Location) > 0.05 {
 		start = joinPoint.segment
 	}
 	if hasFinalPoint && joinPoint.distanceToThreshold > 3.25 {
-		if start < finalPoint.segment+1 {
-			// Clear FAF flags inherited from the underlying RNAV/ILS
-			// reference; the synthetic _3NM_FINAL is the visual approach's
-			// FAF, and an earlier FAF would prematurely flip nav.Approach
-			// .PassedFAF and bypass the visual-glideslope descent logic.
-			copied := util.DuplicateSlice(joinPoint.route[start : finalPoint.segment+1])
+		// The geometric-descent path keys off the FAF flag, so the visual route hosts it on
+		// exactly one waypoint. Pick that waypoint here based on glideslope geometry:
+		//   - todDist past the join: aircraft is too high to fit a level segment, so the join
+		//     itself becomes the FAF, restricted to the glideslope altitude at its distance.
+		//   - todDist between the join and the 3-NM final: insert a synthetic TOD waypoint
+		//     restricted to todAlt.
+		//   - otherwise (aircraft already low): legacy fallback, FAF stays on _3NM_FINAL.
+		var todPoint *visualApproachRoute
+		if 3.25 < todDist && todDist < joinPoint.distanceToThreshold {
+			if p, ok := visualRoutePointAtDistance(joinPoint.route, todDist, nmPerLong); ok {
+				todPoint = &p
+			}
+		}
+		joinIsFAF := todDist >= joinPoint.distanceToThreshold
+
+		if joinIsFAF {
+			glideAlt := float32(thresholdAlt) + ftPerNMOnGlideslope*joinPoint.distanceToThreshold
+			wps[0].SetFAF(true)
+			wps[0].SetAltitudeRestriction(av.MakeAtAltitudeRestriction(glideAlt))
+		}
+
+		// Reference dogleg fixes between join and 3-NM final, with FAF flags cleared (an
+		// inherited FAF would prematurely flip nav.Approach.PassedFAF).
+		intermediates := func(lo, hi int) []av.Waypoint {
+			if lo >= hi {
+				return nil
+			}
+			copied := util.DuplicateSlice(joinPoint.route[lo:hi])
 			for i := range copied {
 				copied[i].SetFAF(false)
 			}
-			wps = append(wps, copied...)
+			return copied
 		}
-		finalWp := av.Waypoint{
-			Fix:      "_" + runway + "_3NM_FINAL",
-			Location: finalPoint.location,
+
+		if todPoint != nil {
+			wps = append(wps, intermediates(start, todPoint.segment+1)...)
+			todWp := av.Waypoint{Fix: "_" + runway + "_TOD", Location: todPoint.location}
+			todWp.SetOnApproach(true)
+			todWp.SetFAF(true)
+			todWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(todAlt))
+			wps = append(wps, todWp)
+			wps = append(wps, intermediates(todPoint.segment+1, finalPoint.segment+1)...)
+		} else {
+			wps = append(wps, intermediates(start, finalPoint.segment+1)...)
 		}
+
+		finalWp := av.Waypoint{Fix: "_" + runway + "_3NM_FINAL", Location: finalPoint.location}
 		finalWp.SetOnApproach(true)
 		finalWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(final3nmAlt))
-		finalWp.SetFAF(true)
+		if !joinIsFAF && todPoint == nil {
+			finalWp.SetFAF(true)
+		}
 		wps = append(wps, finalWp)
 		start = finalPoint.segment + 1
 	}
@@ -908,8 +954,9 @@ func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *
 	last.SetLand(true)
 	last.SetFlyOver(true)
 	if last.AltitudeRestriction() == nil {
-		last.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(alt)))
+		last.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(float32(thresholdAlt)))
 	}
+
 	for i := range wps {
 		wps[i].SetOnApproach(true)
 	}
@@ -1003,11 +1050,26 @@ func (nav *Nav) clearedVisualApproach(runway string, lahsoRunway string, wps []a
 	}
 	nav.Approach.AssignedId = nav.Approach.Assigned.Id
 
-	// Visual-approach clearance installs a full precomputed route, so clear
-	// any lingering heading or altitude nav state beyond the shared reset.
+	// Visual-approach clearance installs a full precomputed route, so clear any
+	// lingering heading nav state beyond the shared reset. Preserve a controller-
+	// assigned descent only when it sits above the visual profile's _3NM_FINAL
+	// anchor (rwy.Elevation + 900) so "descend and maintain 3000" still completes
+	// at standard rate before the aircraft holds for the TOD. Drop maintain/climb
+	// assignments and any descent that would dive below the profile, since
+	// TargetAltitude's activeAssignedAltitude check would otherwise shadow the
+	// route's altitude restrictions. lateral.go's clearAltitudeForApproach at
+	// each cleared-approach waypoint crossing finishes cleaning up the descent
+	// assignment once the aircraft has reached it.
 	nav.Heading = NavHeading{}
 	nav.DeferredNavHeading = nil
-	nav.Altitude = NavAltitude{}
+	profileFloor := float32(rwy.Elevation) + 900
+	preserved := NavAltitude{}
+	if a := nav.Altitude.Assigned; a != nil && *a < nav.FlightState.Altitude && *a >= profileFloor {
+		preserved.Assigned = nav.Altitude.Assigned
+		preserved.ActiveAssigned = nav.Altitude.ActiveAssigned
+		preserved.ActivateAt = nav.Altitude.ActivateAt
+	}
+	nav.Altitude = preserved
 
 	return av.ClearedApproachIntent{
 		Approach:    "Visual Approach Runway " + runway,

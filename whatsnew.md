@@ -38,3 +38,7 @@
   - Added "flash_on_atis_update" adaptation for STARS SSA lists
   - Added support for actions at waypoints until reaching an altitude or DME from a fix, e.g. "FIX/h090@a30/h120" departs fix at an 090 heading until reaching 3,000', then flies 120.
   - Candidate visual approach courses can be specified in scenarios as `"type": "Visual"` (we now use "ChartedVisual" for charted visual approaches)
+
+- Visual approaches:
+  - Fixed some bugs with delayed reporting of aircraft/the field in sight
+  - Fixed descent profile after visual approach clearances
