@@ -489,8 +489,7 @@ const (
 // VisualEligibility describes whether an aircraft can see the field
 // and request a visual approach.
 type VisualEligibility struct {
-	FieldInSight     bool   // true if VMC, within range, and airport visible
-	Runway           string // runway for the visual approach (when FieldInSight)
+	FieldInSight     bool // true if VMC, within range, and airport visible
 	Reason           visualEligibilityReason
 	Distance         float32
 	MaxRange         float32
@@ -498,9 +497,6 @@ type VisualEligibility struct {
 }
 
 // checkAirportVisibility determines whether the aircraft can see the field.
-// A visual approach does not require a charted visual procedure; VMC and
-// field in sight are sufficient.
-// Shared by AirportAdvisory and checkSpontaneousVisualRequest.
 func (s *Sim) checkAirportVisibility(ac *Aircraft) VisualEligibility {
 	arrivalAirport := ac.FlightPlan.ArrivalAirport
 	ap := s.State.Airports[arrivalAirport]
@@ -550,14 +546,8 @@ func (s *Sim) checkAirportVisibility(ac *Aircraft) VisualEligibility {
 		}
 	}
 
-	var runway string
-	if ac.Nav.Approach.Assigned != nil {
-		runway = ac.Nav.Approach.Assigned.Runway
-	}
-
 	return VisualEligibility{
 		FieldInSight:     true,
-		Runway:           runway,
 		Reason:           visualEligibilityOK,
 		Distance:         dist,
 		MaxRange:         maxRange,
