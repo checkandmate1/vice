@@ -22,6 +22,7 @@ func TestSelectVisualApproachRouteUsesLaterViableIntercept(t *testing.T) {
 			MagneticVariation: 0,
 		},
 	}
+	n.Perf.Category.CWT = "F" // commercial jet → stabilized-final filter applies
 
 	ref := &av.Approach{
 		Type:      av.RNAVApproach,
@@ -49,6 +50,82 @@ func TestSelectVisualApproachRouteUsesLaterViableIntercept(t *testing.T) {
 	}
 	if join.segment != 0 {
 		t.Fatalf("segment = %d, want 0 for the base segment", join.segment)
+	}
+}
+
+// TestSelectVisualApproachRouteJFK13L is a regression test for the VIV3852
+// case: aircraft south of BUZON-TELEX, heading 040°, cleared for the JFK
+// 13L visual. The two reference routes (northern: BUZON-TELEX-CAXUN; southern:
+// ASALT-CNRSE-LEISA-SILJY-ROBJE) both end at RW13L. The aircraft's heading
+// crosses BUZON-TELEX with distanceToThreshold ~9 nm — previously rejected
+// by a `> 8` cap, falling through to a synthesized 3-NM final that visually
+// looked like joining the southern reference. The fix is selecting the
+// northern intercept.
+func TestSelectVisualApproachRouteJFK13L(t *testing.T) {
+	faa, ok := av.DB.Airports["KJFK"]
+	if !ok {
+		t.Fatal("KJFK not in aviation DB")
+	}
+	nmPerLong := math.NMPerLongitudeAt(faa.Location)
+	magVar, err := av.DB.MagneticGrid.Lookup(faa.Location)
+	if err != nil {
+		t.Fatalf("magnetic grid lookup: %v", err)
+	}
+
+	northern := parseRoute(t, "BUZON/a2900/iaf TELEX/a2100+/if CAXUN/a1500+/faf")
+	southern := parseRoute(t, "ASALT/if/a3000/s210 CNRSE/a2000+/faf LEISA/a1246+ SILJY/a835+ ROBJE/a450+")
+	rwy, ok := av.LookupRunway("KJFK", "13L")
+	if !ok {
+		t.Fatal("KJFK 13L not found")
+	}
+	thresholdWP := av.Waypoint{Fix: "RW13L", Location: rwy.Threshold}
+	northern = append(northern, thresholdWP)
+	southern = append(southern, thresholdWP)
+
+	ref := &av.Approach{
+		Type:      av.VisualApproach,
+		Runway:    "13L",
+		Threshold: rwy.Threshold,
+		Waypoints: []av.WaypointArray{southern, northern},
+	}
+
+	// Aircraft south of BUZON-TELEX line, roughly between BUZON and TELEX,
+	// heading 040° toward the segment. Position is in NM offsets from BUZON.
+	var buzon math.Point2LL
+	for _, wp := range northern {
+		if wp.Fix == "BUZON" {
+			buzon = wp.Location
+		}
+	}
+	bNM := math.LL2NM(buzon, nmPerLong)
+	pos := math.NM2LL([2]float32{bNM[0] + 1.76, bNM[1] - 0.69}, nmPerLong)
+
+	n := Nav{
+		FlightState: FlightState{
+			Position:          pos,
+			Heading:           40,
+			NmPerLongitude:    nmPerLong,
+			MagneticVariation: magVar,
+		},
+	}
+	n.Perf.Category.CWT = "F" // commercial jet (A320)
+
+	join := n.selectVisualApproachRoute(nil, []*av.Approach{ref})
+	if join == nil {
+		t.Fatal("expected a visual join")
+	}
+	if join.finalPoint {
+		t.Errorf("expected an intercept, got synthesized 3-NM final")
+	}
+	if join.route[0].Fix != "BUZON" {
+		t.Errorf("joined the wrong reference: route[0]=%s, want BUZON (northern)",
+			join.route[0].Fix)
+	}
+	if join.segment != 0 {
+		t.Errorf("segment = %d, want 0 (BUZON-TELEX intercept)", join.segment)
+	}
+	if join.distanceToThreshold < 3 || join.distanceToThreshold > 10 {
+		t.Errorf("distanceToThreshold = %.2f, want roughly 6-10 nm", join.distanceToThreshold)
 	}
 }
 

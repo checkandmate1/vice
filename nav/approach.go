@@ -642,7 +642,6 @@ type visualApproachRoute struct {
 	location            math.Point2LL
 	distanceToThreshold float32
 	lateralDistance     float32
-	interceptDistance   float32
 	finalPoint          bool
 }
 
@@ -657,8 +656,8 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 		if len(route) < 2 {
 			continue
 		}
-		tailDistance := visualRouteTailDistances(route, nmPerLong)
-		for i := range len(route) - 1 {
+		var tailDistance float32 // distance from route[i+1] to threshold
+		for i := len(route) - 2; i >= 0; i-- {
 			p0 := math.LL2NM(route[i].Location, nmPerLong)
 			p1 := math.LL2NM(route[i+1].Location, nmPerLong)
 			seg := math.Sub2f(p1, p0)
@@ -670,7 +669,7 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 			t := math.Clamp(math.Dot(math.Sub2f(posNM, p0), seg)/segLen2, 0, 1)
 			proj := math.Add2f(p0, math.Scale2f(seg, t))
 			lateral := math.Distance2f(posNM, proj)
-			distToThreshold := math.Distance2f(proj, p1) + tailDistance[i+1]
+			distToThreshold := math.Distance2f(proj, p1) + tailDistance
 
 			if !found || lateral < best.lateralDistance ||
 				(lateral == best.lateralDistance && distToThreshold < best.distanceToThreshold) {
@@ -684,51 +683,12 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 				}
 				found = true
 			}
+
+			tailDistance += math.Distance2f(p0, p1)
 		}
 	}
 
 	return best, found
-}
-
-func (nav *Nav) collectHeadingInterceptCandidates(routes []av.WaypointArray, heading math.MagneticHeading) []visualApproachRoute {
-	nmPerLong := nav.FlightState.NmPerLongitude
-	magVar := nav.FlightState.MagneticVariation
-	origin := nav.FlightState.Position
-	tHdg := math.MagneticToTrue(heading, magVar)
-
-	var candidates []visualApproachRoute
-
-	for _, hit := range av.IntersectRayWithRoutes(origin, tHdg, routes) {
-		// Skip hits very close to the aircraft (robust-geometry guard for
-		// when the aircraft happens to sit right on a segment).
-		rayDist := math.NMDistance2LL(origin, hit.Location)
-		if rayDist <= 0.1 {
-			continue
-		}
-
-		route := routes[hit.RouteIndex]
-		tail := visualRouteTailDistances(route, nmPerLong)
-		distToThreshold := math.NMDistance2LLFast(hit.Location, route[hit.Index+1].Location, nmPerLong) + tail[hit.Index+1]
-
-		candidates = append(candidates, visualApproachRoute{
-			route:               route,
-			segment:             hit.Index,
-			segmentFraction:     hit.SegT,
-			location:            hit.Location,
-			distanceToThreshold: distToThreshold,
-			interceptDistance:   rayDist,
-		})
-	}
-
-	return candidates
-}
-
-func visualRouteTailDistances(route []av.Waypoint, nmPerLong float32) []float32 {
-	dist := make([]float32, len(route))
-	for i := len(route) - 2; i >= 0; i-- {
-		dist[i] = dist[i+1] + math.NMDistance2LLFast(route[i].Location, route[i+1].Location, nmPerLong)
-	}
-	return dist
 }
 
 func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32, nmPerLong float32) (visualApproachRoute, bool) {
@@ -761,11 +721,13 @@ func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32
 	return visualApproachRoute{}, false
 }
 
-// selectVisualApproachRoute picks the best join point and route across the supplied reference
-// approaches: in front of the aircraft, easiest to turn onto, soonest to reach.
+// selectVisualApproachRoute picks the join point and route across the supplied reference
+// approaches. The primary case is a forward heading-ray intercept; failing that, the
+// aircraft is sent to a synthesized 3-NM final on the laterally-closest reference.
 func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, references []*av.Approach) *visualApproachRoute {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
+	pos := nav.FlightState.Position
 	joinHeading := nav.FlightState.Heading
 	if assignedHeading, ok := nav.AssignedHeading(); ok {
 		joinHeading = assignedHeading
@@ -787,107 +749,87 @@ func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, referenc
 		if bestRef == nil || best.distanceToThreshold <= 0.5 {
 			return nil
 		}
-		bearingToJoin := math.Heading2LL(nav.FlightState.Position, *followTraffic, nmPerLong)
+		bearingToJoin := math.Heading2LL(pos, *followTraffic, nmPerLong)
 		if math.HeadingDifference(bearingToJoin, math.MagneticToTrue(joinHeading, magVar)) > 120 {
 			return nil
 		}
 		return &best
 	}
 
-	// Intercept along heading: pick the candidate that requires the gentlest
-	// turn (tier), breaking ties by smallest interceptDistance (soonest).
-	type intCand struct {
-		point visualApproachRoute
-		tier  int
-	}
-	var intercepts []intCand
+	// Stabilized-approach criterion: heavy/large/medium aircraft (CWT A-G)
+	// shouldn't intercept within 3 nm of the threshold; small aircraft can.
+	stabilizedRequired := len(nav.Perf.Category.CWT) > 0 &&
+		nav.Perf.Category.CWT[0] >= 'A' && nav.Perf.Category.CWT[0] <= 'G'
+
+	// Flatten reference routes from all approaches into a single slice.
+	var routes []av.WaypointArray
 	for _, ref := range references {
-		for _, ip := range nav.collectHeadingInterceptCandidates(ref.Waypoints, joinHeading) {
-			if ip.distanceToThreshold <= 3 || ip.distanceToThreshold > 8 {
-				continue
-			}
-			segHdgTrue := math.Heading2LL(ip.route[ip.segment].Location, ip.route[ip.segment+1].Location, nmPerLong)
-			segHdg := math.TrueToMagnetic(segHdgTrue, magVar)
-			turnAngle := math.HeadingDifference(joinHeading, segHdg)
-			if turnAngle > 90 {
-				continue
-			}
-			var tier int
-			switch {
-			case turnAngle <= 30:
-				tier = 1
-			case turnAngle <= 60:
-				tier = 2
-			default:
-				tier = 3
-			}
-			intercepts = append(intercepts, intCand{point: ip, tier: tier})
-		}
-	}
-	if len(intercepts) > 0 {
-		best := intercepts[0]
-		for _, c := range intercepts[1:] {
-			if c.tier < best.tier ||
-				(c.tier == best.tier && c.point.interceptDistance < best.point.interceptDistance) {
-				best = c
-			}
-		}
-		return &best.point
+		routes = append(routes, ref.Waypoints...)
 	}
 
-	// Projection fallback: pick the reference whose route is closest laterally to the aircraft.
-	type projCand struct {
-		proj visualApproachRoute
-		ref  *av.Approach
-	}
-	var projections []projCand
-	for _, ref := range references {
-		proj, ok := nav.projectOntoApproachRoutes(ref.Waypoints, nav.FlightState.Position)
-		if !ok || proj.distanceToThreshold <= 0.5 {
+	// Phase 1: forward heading-ray intercept. Pick the closest viable hit.
+	tHdg := math.MagneticToTrue(joinHeading, magVar)
+	var bestJoin *visualApproachRoute
+	var bestDist float32
+	for _, hit := range av.IntersectRayWithRoutes(pos, tHdg, routes) {
+		route := routes[hit.RouteIndex]
+		segHdgTrue := math.Heading2LL(route[hit.Index].Location, route[hit.Index+1].Location, nmPerLong)
+		segHdg := math.TrueToMagnetic(segHdgTrue, magVar)
+		if math.HeadingDifference(joinHeading, segHdg) > 90 {
 			continue
 		}
-		projections = append(projections, projCand{proj: proj, ref: ref})
-	}
-	if len(projections) == 0 {
-		return nil
-	}
-	bestProj := projections[0]
-	for _, c := range projections[1:] {
-		if c.proj.lateralDistance < bestProj.proj.lateralDistance {
-			bestProj = c
+
+		distToThreshold := math.NMDistance2LL(hit.Location, route[hit.Index+1].Location)
+		for i := hit.Index + 1; i < len(route)-1; i++ {
+			distToThreshold += math.NMDistance2LL(route[i].Location, route[i+1].Location)
+		}
+
+		if stabilizedRequired && distToThreshold < 3 {
+			continue
+		}
+		rayDist := math.NMDistance2LL(pos, hit.Location)
+		if bestJoin == nil || rayDist < bestDist {
+			bestJoin = &visualApproachRoute{
+				route:               route,
+				segment:             hit.Index,
+				segmentFraction:     hit.SegT,
+				location:            hit.Location,
+				distanceToThreshold: distToThreshold,
+				// When the intercept is at/inside the 3-NM final, treat the
+				// join as the FAF — there's no separate stabilized segment
+				// to insert between the join and the threshold.
+				finalPoint: distToThreshold <= 3.25,
+			}
+			bestDist = rayDist
 		}
 	}
-	projection := bestProj.proj
+	if bestJoin != nil {
+		return bestJoin
+	}
 
-	// Re-check intercept on the chosen reference for the "would intercept
-	// inside the stabilized final segment" branch.
-	hasNearIntercept := slices.ContainsFunc(
-		nav.collectHeadingInterceptCandidates(bestProj.ref.Waypoints, joinHeading),
-		func(ip visualApproachRoute) bool {
-			return ip.distanceToThreshold <= 3
-		})
-
-	headingDir := math.HeadingVector(math.MagneticToTrue(joinHeading, magVar))
-	threshold := projection.route[len(projection.route)-1].Location
-	thresholdDir := math.Normalize2f(math.Sub2f(
-		math.LL2NM(threshold, nmPerLong),
-		math.LL2NM(nav.FlightState.Position, nmPerLong)))
-
-	if hasNearIntercept || math.Dot(headingDir, thresholdDir) >= 0 {
-		// Join at the route-equivalent 3nm point if the aircraft
-		// is already pointed generally toward the field or would
-		// intercept inside the stabilized final segment.
-		if finalPoint, ok := visualRoutePointAtDistance(projection.route, 3, nmPerLong); ok {
+	// Phase 2: no forward intercept. Project onto the laterally-closest reference. If the aircraft
+	// is pointed generally toward the runway, promote the join to the synthesized 3-NM final
+	// (skipping any intermediate route fixes); otherwise hand back the projection so the route
+	// construction layer adds the dogleg fixes and the 3-NM final.  If the projection would require
+	// a U-turn (bearing > 90° from heading), give up and return unable.
+	proj, ok := nav.projectOntoApproachRoutes(routes, pos)
+	if !ok || proj.distanceToThreshold <= 0.5 {
+		return nil
+	}
+	headingDir := math.HeadingVector(tHdg)
+	threshold := proj.route[len(proj.route)-1].Location
+	thresholdDir := math.Normalize2f(math.Sub2f(math.LL2NM(threshold, nmPerLong), math.LL2NM(pos, nmPerLong)))
+	if math.Dot(headingDir, thresholdDir) >= 0 {
+		if finalPoint, ok := visualRoutePointAtDistance(proj.route, 3, nmPerLong); ok {
 			return &finalPoint
 		}
-		return &projection
+		return &proj
 	}
-
-	bearingToProjection := math.Heading2LL(nav.FlightState.Position, projection.location, nmPerLong)
-	if math.HeadingDifference(bearingToProjection, math.MagneticToTrue(joinHeading, magVar)) > 90 {
+	bearingToProj := math.Heading2LL(pos, proj.location, nmPerLong)
+	if math.HeadingDifference(bearingToProj, tHdg) > 90 {
 		return nil
 	}
-	return &projection
+	return &proj
 }
 
 func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *math.Point2LL, references []*av.Approach) []av.Waypoint {
@@ -920,6 +862,7 @@ func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *
 	if joinPoint.finalPoint {
 		join.Fix = "_" + runway + "_3NM_FINAL"
 		join.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(final3nmAlt))
+		join.SetFAF(true)
 	}
 	wps = append(wps, join)
 
@@ -930,7 +873,15 @@ func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *
 	}
 	if hasFinalPoint && joinPoint.distanceToThreshold > 3.25 {
 		if start < finalPoint.segment+1 {
-			wps = append(wps, util.DuplicateSlice(joinPoint.route[start:finalPoint.segment+1])...)
+			// Clear FAF flags inherited from the underlying RNAV/ILS
+			// reference; the synthetic _3NM_FINAL is the visual approach's
+			// FAF, and an earlier FAF would prematurely flip nav.Approach
+			// .PassedFAF and bypass the visual-glideslope descent logic.
+			copied := util.DuplicateSlice(joinPoint.route[start : finalPoint.segment+1])
+			for i := range copied {
+				copied[i].SetFAF(false)
+			}
+			wps = append(wps, copied...)
 		}
 		finalWp := av.Waypoint{
 			Fix:      "_" + runway + "_3NM_FINAL",
@@ -938,6 +889,7 @@ func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *
 		}
 		finalWp.SetOnApproach(true)
 		finalWp.SetAltitudeRestriction(av.MakeAtAltitudeRestriction(final3nmAlt))
+		finalWp.SetFAF(true)
 		wps = append(wps, finalWp)
 		start = finalPoint.segment + 1
 	}
