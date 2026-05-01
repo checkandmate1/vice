@@ -419,7 +419,7 @@ func TestCheckVisualEligibility(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			elig := tt.sim.checkVisualEligibility(tt.ac)
+			elig := tt.sim.checkAirportVisibility(tt.ac)
 			if elig.FieldInSight != tt.wantField {
 				t.Errorf("FieldInSight = %v, want %v", elig.FieldInSight, tt.wantField)
 			}

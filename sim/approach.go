@@ -51,7 +51,7 @@ func (s *Sim) AirportAdvisory(tcw TCW, callsign av.ADSBCallsign, oclock, miles i
 }
 
 // handleAirportAdvisory determines the pilot's response to an AP command.
-// It reuses checkVisualEligibility for METAR/VMC/ceiling/distance/bearing
+// It reuses checkAirportVisibility for METAR/VMC/ceiling/distance/bearing
 // checks, then layers on AP-specific logic (o'clock validation, probability,
 // looking delay).
 func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.CommandIntent {
@@ -60,7 +60,7 @@ func (s *Sim) handleAirportAdvisory(ac *Aircraft, oclock int, miles int) av.Comm
 	s.cancelFutureFieldInSight(ac.ADSBCallsign)
 
 	// Use the shared eligibility check for VMC, ceiling, range, and bearing.
-	elig := s.checkVisualEligibility(ac)
+	elig := s.checkAirportVisibility(ac)
 	if !elig.FieldInSight {
 		if elig.Reason == visualEligibilityIMC {
 			return av.LookForFieldLookingIMC
@@ -379,7 +379,7 @@ func (s *Sim) processFutureFieldInSight() {
 			if !ok || ac.FieldInSight || ac.ControllerFrequency == "" || ac.Nav.Approach.Cleared {
 				return false
 			}
-			if !s.checkVisualEligibility(ac).FieldInSight {
+			if !s.checkAirportVisibility(ac).FieldInSight {
 				return false
 			}
 			ac.FieldInSight = true
@@ -480,11 +480,11 @@ type VisualEligibility struct {
 	BearingToAirport math.MagneticHeading
 }
 
-// checkVisualEligibility determines whether the aircraft can see the field.
+// checkAirportVisibility determines whether the aircraft can see the field.
 // A visual approach does not require a charted visual procedure; VMC and
 // field in sight are sufficient.
 // Shared by AirportAdvisory and checkSpontaneousVisualRequest.
-func (s *Sim) checkVisualEligibility(ac *Aircraft) VisualEligibility {
+func (s *Sim) checkAirportVisibility(ac *Aircraft) VisualEligibility {
 	arrivalAirport := ac.FlightPlan.ArrivalAirport
 	ap := s.State.Airports[arrivalAirport]
 
@@ -593,7 +593,7 @@ func (s *Sim) checkSpontaneousVisualRequest(ac *Aircraft) {
 		if dist > ac.VisualApproachRequestDistance {
 			return
 		}
-		if s.checkVisualEligibility(ac).FieldInSight {
+		if s.checkAirportVisibility(ac).FieldInSight {
 			ac.FieldInSight = true
 			ac.RequestedVisualApproach = true
 			s.enqueuePilotTransmission(ac.ADSBCallsign, ac.ControllerFrequency, PendingTransmissionRequestVisual)
@@ -602,7 +602,7 @@ func (s *Sim) checkSpontaneousVisualRequest(ac *Aircraft) {
 		return
 	}
 
-	if ac.WantsVisualApproach && s.checkVisualEligibility(ac).FieldInSight {
+	if ac.WantsVisualApproach && s.checkAirportVisibility(ac).FieldInSight {
 		ac.FieldInSight = true
 		s.enqueuePilotTransmission(ac.ADSBCallsign, ac.ControllerFrequency, PendingTransmissionFieldInSight)
 	}
