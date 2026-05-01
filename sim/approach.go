@@ -517,15 +517,11 @@ func (s *Sim) checkAirportVisibility(ac *Aircraft) VisualEligibility {
 	}
 
 	// Must be within effective visual range (METAR visibility + altitude bonus).
-	var altAGL float32
-	if faa, ok := av.DB.Airports[arrivalAirport]; ok {
-		altAGL = ac.Altitude() - float32(faa.Elevation)
-		if altAGL < 0 {
-			altAGL = 0
-		}
-	}
+	faa := av.DB.Airports[arrivalAirport]
+	altAGL := max(0, ac.Altitude()-float32(faa.Elevation))
+
 	maxRange := metar.EffectiveVisualRange(altAGL, 0)
-	dist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
+	dist := math.NMDistance2LL(ac.Position(), ap.Location)
 	if dist > maxRange {
 		reason := util.Select(metar.HasObscuration(), visualEligibilityObscured, visualEligibilityOutOfRange)
 		return VisualEligibility{
@@ -557,12 +553,12 @@ func (s *Sim) checkAirportVisibility(ac *Aircraft) VisualEligibility {
 
 // Tunables for the pilot-vision model.
 const (
-	visualMaxBearingOff  = float32(120)  // degrees off nose; forward visibility arc
-	visualFieldProb      = float32(0.10) // fraction of pilots who spontaneously report field in sight
-	visualRequestProb    = float32(0.10) // fraction of field-in-sight pilots who also request the visual
+	visualMaxBearingOff  = 120  // degrees off nose; forward visibility arc
+	visualFieldProb      = 0.15 // fraction of pilots who spontaneously report field in sight
+	visualRequestProb    = 0.3  // fraction of field-in-sight pilots who also request the visual
 	pilotLookDurationMin = 10 * time.Second
 	pilotLookDurationMax = 20 * time.Second
-	pilotNoReportProb    = float32(0.12) // probability a "looking" pilot never speaks up this window
+	pilotNoReportProb    = 0.12 // probability a "looking" pilot never speaks up this window
 )
 
 // pilotSeeProb returns a probability (0..1) that a pilot can visually
@@ -603,11 +599,8 @@ func (s *Sim) checkSpontaneousVisualRequest(ac *Aircraft) {
 	}
 
 	if ac.VisualApproachRequestDistance > 0 {
-		ap, ok := s.State.Airports[ac.FlightPlan.ArrivalAirport]
-		if !ok {
-			return
-		}
-		dist := math.NMDistance2LLFast(ac.Position(), ap.Location, ac.NmPerLongitude())
+		ap := s.State.Airports[ac.FlightPlan.ArrivalAirport]
+		dist := math.NMDistance2LL(ac.Position(), ap.Location)
 		if dist > ac.VisualApproachRequestDistance {
 			return
 		}
@@ -617,10 +610,7 @@ func (s *Sim) checkSpontaneousVisualRequest(ac *Aircraft) {
 			s.enqueuePilotTransmission(ac.ADSBCallsign, ac.ControllerFrequency, PendingTransmissionRequestVisual)
 		}
 		ac.VisualApproachRequestDistance = 0
-		return
-	}
-
-	if ac.WantsVisualApproach && s.checkAirportVisibility(ac).FieldInSight {
+	} else if ac.WantsVisualApproach && s.checkAirportVisibility(ac).FieldInSight {
 		ac.FieldInSight = true
 		s.enqueuePilotTransmission(ac.ADSBCallsign, ac.ControllerFrequency, PendingTransmissionFieldInSight)
 	}

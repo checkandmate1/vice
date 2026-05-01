@@ -1149,11 +1149,14 @@ func TestAirportAdvisoryObscuration(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
 	sim := makeVisualTestSim(airportLoc, "13L")
-	sim.State.METAR["KJFK"] = wx.METAR{Raw: "KJFK 10SM HZ BKN050"}
+	metar := wx.METAR{Raw: "KJFK 10SM HZ BKN050"}
+	sim.State.METAR["KJFK"] = metar
 
-	// Haze reduces the effective range below this distance even with 10SM reported visibility.
-	ac := makeVisualTestAircraft(math.Point2LL{0, 21.0 / 60}, 180)
-	intent := sim.handleAirportAdvisory(ac, 12, 21)
+	ac := makeVisualTestAircraft(math.Point2LL{}, 180)
+	distanceNM := metar.EffectiveVisualRange(ac.Altitude(), 0) + 1
+	ac.Nav.FlightState.Position = math.Point2LL{0, distanceNM / 60}
+
+	intent := sim.handleAirportAdvisory(ac, 12, int(distanceNM+0.5))
 	fi, ok := intent.(av.LookForFieldIntent)
 	if !ok {
 		t.Fatalf("expected LookForFieldIntent, got %T", intent)
@@ -1174,8 +1177,7 @@ func TestEffectiveVisualRangeObscurationPenalty(t *testing.T) {
 	}
 }
 
-func TestFutureFieldInSightDropsWhenFieldNotVisible(t *testing.T) {
-	// Field is out of range → processor fires at event.Time but drops without
+func TestFutureFieldCheckRetriesWhenFieldNotVisible(t *testing.T) {
 	airportLoc := math.Point2LL{0, 0}
 	setupTestRunway(t, "KJFK", av.Runway{Id: "13L", Heading: 130, Threshold: airportLoc})
 	sim := makeVisualTestSim(airportLoc, "13L")

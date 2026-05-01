@@ -426,17 +426,16 @@ func (s *Sim) TrafficAdvisory(tcw TCW, callsign av.ADSBCallsign, oclock, miles, 
 	return s.dispatchAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) error { return nil },
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			// A fresh traffic call supersedes any earlier unresolved advisory or volunteered
+			// separation offer.
+			s.cancelFutureTrafficCheck(ac.ADSBCallsign)
+			ac.clearOfferedToMaintainSeparation()
+
 			if otherMaintainsVisual {
-				s.startTrafficAdvisory(ac)
 				return av.TrafficAdvisoryIntent{Response: av.TrafficResponseAcknowledged}
 			}
-			return s.handleTrafficAdvisory(ac, oclock, miles, float32(trafficAlt*100))
+			return s.handleTrafficAdvisory(ac, oclock, miles, trafficAlt)
 		})
-}
-
-func (s *Sim) startTrafficAdvisory(ac *Aircraft) {
-	s.cancelFutureTrafficCheck(ac.ADSBCallsign)
-	ac.clearOfferedToMaintainSeparation()
 }
 
 // handleTrafficAdvisory determines the pilot response to a traffic advisory based on:
@@ -444,12 +443,8 @@ func (s *Sim) startTrafficAdvisory(ac *Aircraft) {
 //  2. Presence of traffic (if no traffic in area -> "looking")
 //  3. Pilot see-probability derived from METAR effective visual range, with a
 //     relative-altitude boost/penalty (above against sky, below against ground)
-func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, trafficAltFeet float32) av.CommandIntent {
-	// A fresh TRAFFIC call supersedes any earlier unresolved advisory or
-	// volunteered separation offer.
-	s.startTrafficAdvisory(ac)
-
-	nearestMETAR, nearestElev := s.nearestMETAR(ac.Position())
+func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles, callAlt int) av.CommandIntent {
+	nearestMETAR, _ := s.nearestMETAR(ac.Position())
 	if nearestMETAR.ICAO != "" && !nearestMETAR.IsVMC() {
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseIMC}
 	}
@@ -457,68 +452,61 @@ func (s *Sim) handleTrafficAdvisory(ac *Aircraft, oclock int, miles int, traffic
 	// Convert o'clock to heading offset from aircraft heading
 	// 12 o'clock = 0 degrees, 3 o'clock = 90 degrees, etc.
 	oclockHeading := math.MagneticHeading((oclock % 12) * 30) // 0, 30, 60, 90... 330
-	trafficHeading := math.NormalizeHeading(ac.Heading() + oclockHeading)
+	acHeading := math.NormalizeHeading(ac.Heading() + oclockHeading)
 
 	// Calculate the approximate position of the reported traffic
 	nmPerLong := ac.NmPerLongitude()
 	magVar := ac.MagneticVariation()
-	trafficPos := math.Offset2LL(ac.Position(), math.MagneticToTrue(trafficHeading, magVar), float32(miles), nmPerLong)
+	callPos := math.Offset2LL(ac.Position(), math.MagneticToTrue(acHeading, magVar), float32(miles), nmPerLong)
 
 	// Search for actual traffic near the reported position
 	// Tolerance: +/- 2 miles horizontal, +/- 1000 feet vertical
 	const horizontalToleranceNM = 2.0
 	const verticalToleranceFeet = 1000.0
 
-	var trafficFound av.ADSBCallsign
-	trafficDist := float32(999999)
-	for cs, other := range s.Aircraft {
-		if cs == ac.ADSBCallsign {
-			continue // Skip self
+	traffic := func() *Aircraft {
+		var best *Aircraft
+		for cs, candidate := range s.Aircraft {
+			if cs == ac.ADSBCallsign {
+				continue // Skip self
+			}
+
+			// Use altitude as a strict cutoff selector.
+			altDiff := math.Abs(candidate.Altitude() - float32(callAlt))
+			if altDiff > verticalToleranceFeet {
+				continue
+			}
+
+			// Distance must be in range; then we take the closest if there are multiple
+			if dist := math.NMDistance2LL(callPos, candidate.Position()); dist < horizontalToleranceNM {
+				if best == nil {
+					best = candidate
+				} else if dist < math.NMDistance2LL(callPos, best.Position()) {
+					best = candidate
+				}
+			}
 		}
+		return best
+	}()
 
-		dist := math.NMDistance2LL(trafficPos, other.Position())
-		altDiff := math.Abs(other.Altitude() - trafficAltFeet)
-
-		if dist <= horizontalToleranceNM && altDiff <= verticalToleranceFeet && dist < trafficDist {
-			trafficFound = cs
-			trafficDist = dist
-		}
-	}
-
-	if trafficFound == "" {
-		// No traffic found - respond "looking"
+	if traffic == nil {
+		// Nothing there; the pilot will report that they're looking but we won't re-check in the
+		// future since there's no identified aircraft to check...
 		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 	}
 
-	// Base probability from METAR-derived effective visual range at the pilot's AGL.
-	altAGL := max(ac.Altitude()-nearestElev, 0)
-	trafficAltAGL := max(s.Aircraft[trafficFound].Altitude()-nearestElev, 0)
-	seeProb := pilotSeeProb(nearestMETAR.EffectiveVisualRange(altAGL, trafficAltAGL), float32(miles))
-
-	// Only apply altitude modulation + floor clamp if the target is within
-	// effective visual range; otherwise the pilot simply can't see it.
-	if seeProb > 0 {
-		// Traffic above is easier to see against sky; below, harder against ground.
-		if trafficAltFeet > ac.Altitude()+500 {
-			seeProb *= 1.3
-		} else if trafficAltFeet < ac.Altitude()-500 {
-			seeProb *= 0.7
-		}
-		seeProb = max(0.2, min(0.95, seeProb))
-	}
-
-	if s.Rand.Float32() < seeProb {
-		sighting := ac.RecordSighting(trafficFound, s.State.SimTime)
+	if s.trafficIsVisible(ac, traffic) {
+		sighting := ac.RecordSighting(traffic.ADSBCallsign, s.State.SimTime)
 		sighting.OfferedToMaintainSeparation = s.Rand.Float32() < 0.3
 		return av.TrafficAdvisoryIntent{
 			Response:               av.TrafficResponseTrafficSeen,
 			WillMaintainSeparation: sighting.OfferedToMaintainSeparation,
 		}
+	} else {
+		// "Looking" - schedule a recheck
+		s.enqueueFutureTrafficCheck(ac.ADSBCallsign, traffic.ADSBCallsign)
+		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 	}
-
-	// "Looking" - schedule possible delayed traffic-in-sight call
-	s.enqueueFutureTrafficCheck(ac.ADSBCallsign, trafficFound)
-	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
 }
 
 func (s *Sim) trafficIsVisible(ac, traffic *Aircraft) bool {
@@ -565,11 +553,7 @@ func (s *Sim) nearestMETAR(pos math.Point2LL) (wx.METAR, float32) {
 		}
 		closestDist = dist
 		nearest = metar
-		if faa, ok := av.DB.Airports[metar.ICAO]; ok {
-			elev = float32(faa.Elevation)
-		} else {
-			elev = 0
-		}
+		elev = float32(av.DB.Airports[metar.ICAO].Elevation)
 	}
 	return nearest, elev
 }
