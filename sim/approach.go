@@ -566,13 +566,24 @@ const (
 )
 
 // pilotSeeProb returns a probability (0..1) that a pilot can visually
-// identify a target at distNM, given the effective visual range (NM). Zero
-// beyond effective range; tapers linearly below it.
+// identify a target at distNM, given the effective visual range (NM).
 func pilotSeeProb(effectiveRangeNM, distNM float32) float32 {
 	if effectiveRangeNM <= 0 || distNM > effectiveRangeNM {
 		return 0
 	}
-	return max(0.4, 0.95*(1-0.5*distNM/effectiveRangeNM))
+
+	t := distNM / effectiveRangeNM
+	if t < 0.5 {
+		// It's fairly close w.r.t. the visual range, so it's highly likely it will be seen.
+		return 0.98
+	} else {
+		// Otherwise ramp probability down to 0.3 at effectiveRangeNM. t is squared so that
+		// distances up until then have higher probabilities, with a faster falloff at the end.
+		// This does give a sharp cutoff at effectiveRangeNM, FWIW.
+		t = 2 * (t - 0.5)
+		t *= t
+		return max(0, math.Lerp(t, 0.98, 0.3))
+	}
 }
 
 // checkSpontaneousVisualRequest handles two per-tick behaviours for an
