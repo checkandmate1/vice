@@ -28,7 +28,7 @@ const (
 	mapsMainDCBColumns     = 5
 	mainDCBMapColumns      = 3
 	mapsSubmenuControlCols = 1
-	mapsSubmenuMapColumns  = 16
+	mapsSubmenuMapColumns  = 15
 )
 
 type dcbFlags int
