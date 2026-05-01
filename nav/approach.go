@@ -635,7 +635,7 @@ func (nav *Nav) applyClearedApproachState() (cancelHold bool) {
 	return
 }
 
-type visualApproachRoute struct {
+type visualApproachJoinPoint struct {
 	route               []av.Waypoint
 	segment             int
 	segmentFraction     float32
@@ -645,11 +645,11 @@ type visualApproachRoute struct {
 	finalPoint          bool
 }
 
-func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position math.Point2LL) (visualApproachRoute, bool) {
+func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position math.Point2LL) (visualApproachJoinPoint, bool) {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	posNM := math.LL2NM(position, nmPerLong)
 
-	best := visualApproachRoute{lateralDistance: 1e9}
+	best := visualApproachJoinPoint{lateralDistance: 1e9}
 	found := false
 
 	for _, route := range routes {
@@ -673,7 +673,7 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 
 			if !found || lateral < best.lateralDistance ||
 				(lateral == best.lateralDistance && distToThreshold < best.distanceToThreshold) {
-				best = visualApproachRoute{
+				best = visualApproachJoinPoint{
 					route:               route,
 					segment:             i,
 					segmentFraction:     t,
@@ -691,9 +691,9 @@ func (nav *Nav) projectOntoApproachRoutes(routes []av.WaypointArray, position ma
 	return best, found
 }
 
-func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32, nmPerLong float32) (visualApproachRoute, bool) {
+func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32, nmPerLong float32) (visualApproachJoinPoint, bool) {
 	if len(route) < 2 {
-		return visualApproachRoute{}, false
+		return visualApproachJoinPoint{}, false
 	}
 
 	dist := float32(0)
@@ -707,7 +707,7 @@ func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32
 		if dist+segLen >= distanceToThreshold {
 			t := (distanceToThreshold - dist) / segLen
 			locNM := math.Lerp2f(t, p1, p0)
-			return visualApproachRoute{
+			return visualApproachJoinPoint{
 				route:               route,
 				segment:             i - 1,
 				location:            math.NM2LL(locNM, nmPerLong),
@@ -718,13 +718,13 @@ func visualRoutePointAtDistance(route []av.Waypoint, distanceToThreshold float32
 		dist += segLen
 	}
 
-	return visualApproachRoute{}, false
+	return visualApproachJoinPoint{}, false
 }
 
 // selectVisualApproachRoute picks the join point and route across the supplied reference
 // approaches. The primary case is a forward heading-ray intercept; failing that, the
 // aircraft is sent to a synthesized 3-NM final on the laterally-closest reference.
-func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, references []*av.Approach) *visualApproachRoute {
+func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, references []*av.Approach) *visualApproachJoinPoint {
 	nmPerLong := nav.FlightState.NmPerLongitude
 	magVar := nav.FlightState.MagneticVariation
 	pos := nav.FlightState.Position
@@ -734,7 +734,7 @@ func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, referenc
 	}
 
 	if followTraffic != nil {
-		var best visualApproachRoute
+		var best visualApproachJoinPoint
 		var bestRef *av.Approach
 		for _, ref := range references {
 			tp, ok := nav.projectOntoApproachRoutes(ref.Waypoints, *followTraffic)
@@ -769,7 +769,7 @@ func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, referenc
 
 	// Phase 1: forward heading-ray intercept. Pick the closest viable hit.
 	tHdg := math.MagneticToTrue(joinHeading, magVar)
-	var bestJoin *visualApproachRoute
+	var bestJoin *visualApproachJoinPoint
 	var bestDist float32
 	for _, hit := range av.IntersectRayWithRoutes(pos, tHdg, routes) {
 		route := routes[hit.RouteIndex]
@@ -789,7 +789,7 @@ func (nav *Nav) selectVisualApproachRoute(followTraffic *math.Point2LL, referenc
 		}
 		rayDist := math.NMDistance2LL(pos, hit.Location)
 		if bestJoin == nil || rayDist < bestDist {
-			bestJoin = &visualApproachRoute{
+			bestJoin = &visualApproachJoinPoint{
 				route:               route,
 				segment:             hit.Index,
 				segmentFraction:     hit.SegT,
@@ -891,7 +891,7 @@ func (nav *Nav) visualApproachRouteFromReferences(runway string, followTraffic *
 		//   - todDist between the join and the 3-NM final: insert a synthetic TOD waypoint
 		//     restricted to todAlt.
 		//   - otherwise (aircraft already low): legacy fallback, FAF stays on _3NM_FINAL.
-		var todPoint *visualApproachRoute
+		var todPoint *visualApproachJoinPoint
 		if 3.25 < todDist && todDist < joinPoint.distanceToThreshold {
 			if p, ok := visualRoutePointAtDistance(joinPoint.route, todDist, nmPerLong); ok {
 				todPoint = &p
