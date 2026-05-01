@@ -38,9 +38,16 @@
 - Include tower frequencies in "contact tower" readbacks
 
 - Scenario updates: Y90 (Ryan G), TPA (Nelson Tieku), N90 (manaphy)
+- Visual approaches:
+  - Many bugfixes and minor improvements
+  - Candidate courses can be specified in scenarios as `"type": "Visual"` (we now use "ChartedVisual" for charted visual approaches)
+  - If multiple are specified, the closest/best is chosen
 - Aircraft now ask for an altitude if vectored off an arrival without being assigned one (Michael Knight)
-- Visual approach bugfixes
+- Fixed bug where aircraft would be at bogus altitudes, etc. after prespawn
+- Fixed bug where in some ZNY scenarios aircraft handed off externally would become unassociated
+- Fixed some bug in speed assignment readbacks
 - Flight model
   - Fixed bugs with localizer intercept and approach clearance
+  - Fix bug where aircraft would sometimes spontaneously leave holds (Jud Lopez)
 - STARS: allow scrolling the DCB if it's too big to fit the screen (Jud Lopez)
-
+- ERAM: fixed bug where far-away fixes weren't known for control instructions

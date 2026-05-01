@@ -568,6 +568,15 @@
           "type": "RNAV",
           "waypoints": ["ASALT/if/a3000/s210 CNRSE/a2000+/faf LEISA/a1246+ SILJY/a835+ ROBJE/a450+"]
         },
+        "VIS13L": {
+          "full_name": "Visual Runway 13 Left",
+          "runway": "13L",
+          "type": "Visual",
+          "waypoints": [
+            "ASALT/if/a3000/s210 CNRSE/a2000+/faf LEISA/a1246+ SILJY/a835+ ROBJE/a450+",
+            "BUZON/a2900/iaf TELEX/a2100+/if CAXUN/a1500+/faf"
+          ]
+        },
         "V3L": {
           "full_name": "VOR Runway 13 Left",
           "runway": "13L",
@@ -588,6 +597,12 @@
           "full_name": "RNAV Z Runway 13 Right",
           "runway": "13R",
           "type": "RNAV",
+          "waypoints": ["ASALT/if/a3000/s210 NUCRI/a2000+/faf PEEBO/a921+ MAYMA/a520+"]
+        },
+        "VIS13R": {
+          "full_name": "Visual Runway 13 Right",
+          "runway": "13R",
+          "type": "Visual",
           "waypoints": ["ASALT/if/a3000/s210 NUCRI/a2000+/faf PEEBO/a921+ MAYMA/a520+"]
         },
         "V3R": {
