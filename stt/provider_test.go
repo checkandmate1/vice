@@ -2513,6 +2513,79 @@ func TestVisualApproachSTTPatterns(t *testing.T) {
 			},
 			expected: []string{"EVA22L/LAHSO26"},
 		},
+		{
+			// "expect Mount Vernon visual runway one" — the charted visual
+			// approach name precedes "visual", so this must match the
+			// charted-visual code (MTV) via the {approach} parser, not be
+			// stolen by the priority-17 {visual_approach} pattern.
+			name: "expect named charted visual emits charted code",
+			tokens: []Token{
+				{Text: "expect", Type: TokenWord},
+				{Text: "Mount", Type: TokenWord},
+				{Text: "Vernon", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "1", Type: TokenNumber, Value: 1},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateApproaches: map[string]string{
+					"Mount Vernon Visual runway one": "MTV",
+				},
+				CandidateVisualApproaches: map[string]string{
+					"visual runway one":          "1",
+					"visual approach runway one": "1",
+					"visual one":                 "1",
+				},
+			},
+			expected: []string{"EMTV"},
+		},
+		{
+			name: "cleared named charted visual emits charted code",
+			tokens: []Token{
+				{Text: "cleared", Type: TokenWord},
+				{Text: "Mount", Type: TokenWord},
+				{Text: "Vernon", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "1", Type: TokenNumber, Value: 1},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateApproaches: map[string]string{
+					"Mount Vernon Visual runway one": "MTV",
+				},
+				CandidateVisualApproaches: map[string]string{
+					"visual runway one":          "1",
+					"visual approach runway one": "1",
+					"visual one":                 "1",
+				},
+			},
+			expected: []string{"CMTV"},
+		},
+		{
+			name: "vectors named charted visual emits charted code",
+			tokens: []Token{
+				{Text: "vectors", Type: TokenWord},
+				{Text: "Mount", Type: TokenWord},
+				{Text: "Vernon", Type: TokenWord},
+				{Text: "visual", Type: TokenWord},
+				{Text: "runway", Type: TokenWord},
+				{Text: "1", Type: TokenNumber, Value: 1},
+			},
+			ac: Aircraft{
+				State: "arrival",
+				CandidateApproaches: map[string]string{
+					"Mount Vernon Visual runway one": "MTV",
+				},
+				CandidateVisualApproaches: map[string]string{
+					"visual runway one":          "1",
+					"visual approach runway one": "1",
+					"visual one":                 "1",
+				},
+			},
+			expected: []string{"EMTV"},
+		},
 	}
 
 	for _, tt := range tests {

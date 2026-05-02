@@ -532,9 +532,22 @@ func (p *approachParser) parse(tokens []Token, pos int, ac Aircraft) (any, int, 
 	return appr, consumed, ""
 }
 
+// anchoredParser is an optional extension of typeParser. Parsers that
+// implement it and return true from anchored() require the matcher to find
+// their keyword at the exact starting position; the typedMatcher slack
+// mechanism is skipped. This prevents the slack from skipping over tokens
+// that legitimately belong to a different command's payload (e.g., a
+// charted-visual approach name preceding "visual").
+type anchoredParser interface {
+	typeParser
+	anchored() bool
+}
+
 type visualApproachParser struct {
 	allowLAHSO bool
 }
+
+func (p *visualApproachParser) anchored() bool { return true }
 
 func (p *visualApproachParser) identifier() string {
 	return "visual_approach"
