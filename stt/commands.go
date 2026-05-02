@@ -500,7 +500,28 @@ func extractApproach(tokens []Token, approaches map[string]string, assignedAppro
 			}
 			prefixPhrase := strings.Join(prefixParts, " ")
 
-			// Find the best matching approach by comparing prefix to approach type portion
+			// Also build a suffix phrase from tokens after the runway number+direction.
+			// This handles non-canonical pilot phrasings where the approach type comes
+			// after the runway, e.g., "runway four right rnav zulu approach".
+			var suffixParts []string
+			suffixStart := numPos + 1
+			if runwayDir != "" {
+				suffixStart++
+			}
+			for k := suffixStart; k < len(tokens); k++ {
+				text := strings.ToLower(tokens[k].Text)
+				if text == "approach" || text == "runway" || IsFillerWord(text) {
+					continue
+				}
+				if tokens[k].Type == TokenNumber {
+					suffixParts = append(suffixParts, spokenDigits(tokens[k].Value))
+				} else {
+					suffixParts = append(suffixParts, text)
+				}
+			}
+			suffixPhrase := strings.Join(suffixParts, " ")
+
+			// Find the best matching approach by comparing prefix/suffix to approach type portion
 			var bestMatch string
 			var bestMatchScore float64
 			for _, ma := range matchingApproaches {
@@ -512,11 +533,15 @@ func extractApproach(tokens []Token, approaches map[string]string, assignedAppro
 				}
 				approachTypePortion := strings.TrimSpace(spokenLower[:typeEnd])
 
-				// Compare using Jaro-Winkler
+				// Compare using Jaro-Winkler against both prefix and suffix; take the better.
 				score := JaroWinkler(prefixPhrase, approachTypePortion)
+				if s := JaroWinkler(suffixPhrase, approachTypePortion); s > score {
+					score = s
+				}
 
 				// Also try phonetic matching for short garbled inputs
-				if PhoneticMatch(prefixPhrase, approachTypePortion) {
+				if PhoneticMatch(prefixPhrase, approachTypePortion) ||
+					PhoneticMatch(suffixPhrase, approachTypePortion) {
 					score = max(score, 0.85)
 				}
 

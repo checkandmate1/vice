@@ -548,6 +548,7 @@ var phraseExpansions = map[string][]string{
 var multiTokenReplacements = map[string][]string{
 	"i l s":        {"ils"},
 	"r nav":        {"rnav"},
+	"air nav":      {"rnav"}, // STT error: "R-Nav" transcribed as "Air Nav"
 	"fly level":    {"flight", "level"},
 	"time riding":  {"turn", "right"},
 	"seven e":      {"70"},
@@ -558,7 +559,10 @@ var multiTokenReplacements = map[string][]string{
 	"r on a":       {"runway"},
 	"right a star": {"via", "star"},
 	"i dead":       {"ident"},
-	"i file":       {"5", "mile"}, // STT error: "five mile" transcribed as "I file"
+	"i file":       {"5", "mile"},   // STT error: "five mile" transcribed as "I file"
+	"for left":     {"4", "left"},   // STT error: "four left" transcribed as "for left"
+	"for right":    {"4", "right"},  // STT error: "four right" transcribed as "for right"
+	"for center":   {"4", "center"}, // STT error: "four center" transcribed as "for center"
 }
 
 // matchMultiToken tries to match tokens against multiTokenReplacements.
