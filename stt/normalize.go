@@ -542,6 +542,7 @@ var phraseExpansions = map[string][]string{
 	"sediment":   {"descend", "maintain"},
 	"decimate":   {"descend", "maintain"},
 	"fl":         {"flight", "level"},
+	"insight":    {"in", "sight"}, // STT: "in sight" rendered as one word
 }
 
 // multiTokenReplacements maps sequences of tokens (space-joined) to replacements.

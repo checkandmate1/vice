@@ -2166,18 +2166,32 @@ func extractTraffic(tokens []Token) (int, int, int, bool, int) {
 	// Consume trailing traffic advisory words that follow the altitude.
 	// These are part of the traffic call and should not be re-parsed as commands.
 	// Pattern: "[descending/climbing] [report [traffic] in sight]"
-	for consumed < len(tokens) {
-		text := strings.ToLower(tokens[consumed].Text)
-		if FuzzyMatch(text, "descending", 0.8) || FuzzyMatch(text, "climbing", 0.8) ||
-			text == "descend" || text == "climb" {
-			consumed++
-			continue
+	//
+	// If "airport" or "field" appears in the upcoming tokens, the trailing
+	// phrase is requesting an airport sighting (e.g. "report it and the airport
+	// in sight"). Leave those tokens in place so the AP handler can match.
+	hasAirportSighting := false
+	for j := consumed; j < len(tokens) && j < consumed+8; j++ {
+		text := strings.ToLower(tokens[j].Text)
+		if text == "airport" || text == "field" {
+			hasAirportSighting = true
+			break
 		}
-		if text == "report" || text == "sight" || text == "in" || IsFillerWord(text) {
-			consumed++
-			continue
+	}
+	if !hasAirportSighting {
+		for consumed < len(tokens) {
+			text := strings.ToLower(tokens[consumed].Text)
+			if FuzzyMatch(text, "descending", 0.8) || FuzzyMatch(text, "climbing", 0.8) ||
+				text == "descend" || text == "climb" {
+				consumed++
+				continue
+			}
+			if text == "report" || text == "sight" || text == "in" || IsFillerWord(text) {
+				consumed++
+				continue
+			}
+			break
 		}
-		break
 	}
 
 	return oclock, miles, alt, otherAircraftWillMaintainVisualSeparation, consumed
