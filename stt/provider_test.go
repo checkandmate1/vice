@@ -1116,6 +1116,62 @@ func TestNavigationCommands(t *testing.T) {
 			},
 			expected: "AAL456 AMERIT/I",
 		},
+		{
+			name:       "direct fix intercept localizer",
+			transcript: "Delta 8499 direct Fergi intercept the localizer",
+			aircraft: map[string]Aircraft{
+				"Delta 8499": {
+					Callsign:         "DAL8499",
+					Altitude:         4000,
+					State:            "arrival",
+					AssignedApproach: "I22L",
+					Fixes:            map[string]string{"Fergi": "FERGI"},
+				},
+			},
+			expected: "DAL8499 DFERGI AFERGI/I",
+		},
+		{
+			name:       "proceed direct fix intercept with runway identifier",
+			transcript: "United 123 proceed direct Rosly intercept the 2 2 left localizer",
+			aircraft: map[string]Aircraft{
+				"United 123": {
+					Callsign:         "UAL123",
+					Altitude:         3000,
+					State:            "arrival",
+					AssignedApproach: "I22L",
+					Fixes:            map[string]string{"Rosly": "ROSLY"},
+				},
+			},
+			expected: "UAL123 DROSLY AROSLY/I",
+		},
+		{
+			name:       "direct fix intercept with runway keyword",
+			transcript: "American 456 direct Merit intercept the runway 3 1 right localizer",
+			aircraft: map[string]Aircraft{
+				"American 456": {
+					Callsign:         "AAL456",
+					Altitude:         5000,
+					State:            "arrival",
+					AssignedApproach: "I31R",
+					Fixes:            map[string]string{"Merit": "MERIT"},
+				},
+			},
+			expected: "AAL456 DMERIT AMERIT/I",
+		},
+		{
+			name:       "direct fix intercept final approach course",
+			transcript: "Delta 8499 direct Fergi intercept the final approach course",
+			aircraft: map[string]Aircraft{
+				"Delta 8499": {
+					Callsign:         "DAL8499",
+					Altitude:         4000,
+					State:            "arrival",
+					AssignedApproach: "R22L",
+					Fixes:            map[string]string{"Fergi": "FERGI"},
+				},
+			},
+			expected: "DAL8499 DFERGI AFERGI/I",
+		},
 		// Hold commands
 		{
 			name:       "hold at fix as published",

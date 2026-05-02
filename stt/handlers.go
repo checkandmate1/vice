@@ -1247,6 +1247,29 @@ func registerAllCommands() {
 		WithPriority(15),
 	)
 
+	// "[proceed] direct FIX intercept the localizer" — preserves the explicit
+	// "direct" instruction and adds an at-fix intercept. Emits two commands:
+	// D{fix} routes the aircraft (also handles approach-only fixes via
+	// directFixWaypoints), A{fix}/I sets up the intercept-at-fix trigger.
+	registerSTTCommand(
+		"direct|proceed [direct] [to] [at] {fix} intercept [the] localizer",
+		func(fix string) string { return fmt.Sprintf("D%s A%s/I", fix, fix) },
+		WithName("direct_fix_intercept_localizer"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"direct|proceed [direct] [to] [at] {fix} intercept [the] [runway] {num:1-36} [left|right|center] localizer",
+		func(fix string, _ int) string { return fmt.Sprintf("D%s A%s/I", fix, fix) },
+		WithName("direct_fix_intercept_localizer_runway"),
+		WithPriority(16),
+	)
+	registerSTTCommand(
+		"direct|proceed [direct] [to] [at] {fix} intercept|join [the] [final] approach [course]",
+		func(fix string) string { return fmt.Sprintf("D%s A%s/I", fix, fix) },
+		WithName("direct_fix_intercept_approach"),
+		WithPriority(15),
+	)
+
 	registerSTTCommand(
 		"expect [vectors] [for] [to] [the] {approach_lahso}",
 		func(appr string) string { return fmt.Sprintf("E%s", appr) },

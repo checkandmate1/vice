@@ -392,7 +392,29 @@ func (nav *Nav) InterceptApproach(airport string, lg *log.Logger) av.CommandInte
 	}
 }
 
-func (nav *Nav) AtFixCleared(fix, id string, straightIn bool) av.CommandIntent {
+// routeDirectIfNeeded ensures the named fix is in the aircraft's route.
+// If it's already in AssignedWaypoints, this is a no-op. Otherwise it tries
+// to route direct using directFixWaypoints (which searches the assigned
+// approach's waypoints), and on success enqueues the route via
+// EnqueueDirectFix. Returns true if the fix is now (or already was) in the
+// route.
+func (nav *Nav) routeDirectIfNeeded(fix string, simTime Time, delayReduction time.Duration) bool {
+	if slices.ContainsFunc(nav.AssignedWaypoints(), func(wp av.Waypoint) bool { return wp.Fix == fix }) {
+		return true
+	}
+	wps, source, err := nav.directFixWaypoints(fix)
+	if err != nil || wps == nil {
+		return false
+	}
+	nav.EnqueueDirectFix(wps, av.TurnClosest, simTime, delayReduction)
+	nav.Approach.NoPT = false
+	if source == waypointSourceApproach && !nav.Approach.Cleared {
+		nav.Approach.InterceptState = OnApproachCourse
+	}
+	return true
+}
+
+func (nav *Nav) AtFixCleared(fix, id string, simTime Time, delayReduction time.Duration, straightIn bool) av.CommandIntent {
 	if nav.Approach.AssignedId == "" {
 		return av.MakeUnableIntent("unable. you never told us to expect an approach")
 	}
@@ -405,7 +427,7 @@ func (nav *Nav) AtFixCleared(fix, id string, straightIn bool) av.CommandIntent {
 		return av.MakeUnableIntent("unable. We were told to expect the {appr} approach.", ap.FullName)
 	}
 
-	if !slices.ContainsFunc(nav.AssignedWaypoints(), func(wp av.Waypoint) bool { return wp.Fix == fix }) {
+	if !nav.routeDirectIfNeeded(fix, simTime, delayReduction) {
 		return av.MakeUnableIntent("unable. {fix} is not in our route", fix)
 	}
 	nav.Approach.AtFixClearedRoute = nil
@@ -432,7 +454,7 @@ func (nav *Nav) AtFixCleared(fix, id string, straightIn bool) av.CommandIntent {
 	}
 }
 
-func (nav *Nav) AtFixIntercept(fix, airport string, lg *log.Logger) av.CommandIntent {
+func (nav *Nav) AtFixIntercept(fix, airport string, simTime Time, delayReduction time.Duration, lg *log.Logger) av.CommandIntent {
 	if nav.Approach.AssignedId == "" {
 		return av.MakeUnableIntent("unable. you never told us to expect an approach")
 	}
@@ -442,7 +464,7 @@ func (nav *Nav) AtFixIntercept(fix, airport string, lg *log.Logger) av.CommandIn
 		return av.MakeUnableIntent("unable. We were never told to expect an approach")
 	}
 
-	if !slices.ContainsFunc(nav.AssignedWaypoints(), func(wp av.Waypoint) bool { return wp.Fix == fix }) {
+	if !nav.routeDirectIfNeeded(fix, simTime, delayReduction) {
 		return av.MakeUnableIntent("unable. {fix} is not in our route", fix)
 	}
 

@@ -260,6 +260,60 @@ func TestAtFixClearedApproach(t *testing.T) {
 	f.Run()
 }
 
+// TestAtFixInterceptApproachOnlyFix verifies that "at FIX intercept the
+// localizer" works when the named fix is on the assigned approach but not
+// yet in the aircraft's route (e.g., aircraft is being vectored). The
+// command should splice the direct-to-fix route in via directFixWaypoints
+// and arm the at-fix intercept.
+func TestAtFixInterceptApproachOnlyFix(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "HAUPT/a6000 LEFER/a4000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  5000,
+		InitialSpeed:     210,
+		AssignedAltitude: 5000,
+	})
+
+	f.ExpectApproach("I22L")
+	intent := f.AtFixIntercept("ROSLY")
+	if _, ok := intent.(av.UnableIntent); ok {
+		t.Fatalf("AtFixIntercept returned unable: %+v", intent)
+	}
+
+	if f.nav.Approach.AtFixInterceptFix != "ROSLY" {
+		t.Errorf("AtFixInterceptFix = %q, want ROSLY", f.nav.Approach.AtFixInterceptFix)
+	}
+	if f.nav.Approach.InterceptState != OnApproachCourse {
+		t.Errorf("expected OnApproachCourse, got %d", f.nav.Approach.InterceptState)
+	}
+	if f.nav.Approach.Cleared {
+		t.Errorf("approach should not be cleared")
+	}
+}
+
+// TestAtFixClearedApproachOnlyFix verifies the same approach-only-fix
+// relaxation for AtFixCleared.
+func TestAtFixClearedApproachOnlyFix(t *testing.T) {
+	f := NewArrivalFlight(t, ArrivalConfig{
+		Waypoints:        "HAUPT/a6000 LEFER/a4000",
+		DepartureAirport: "KMCO",
+		ArrivalAirport:   "KJFK",
+		AircraftType:     "A320",
+		InitialAltitude:  5000,
+		InitialSpeed:     210,
+		AssignedAltitude: 5000,
+	})
+
+	f.ExpectApproach("I22L")
+	f.AtFixCleared("ROSLY", "I22L", false)
+
+	if f.nav.Approach.AtFixClearedRoute == nil {
+		t.Errorf("AtFixClearedRoute should be populated for approach-only fix")
+	}
+}
+
 // TestApproachWindCorrectionOnLocalizer verifies that an aircraft tracks
 // the extended centerline closely despite crosswind. The bug (216f11fa)
 // caused the aircraft to drift off the localizer because TurningToJoin

@@ -347,23 +347,23 @@ func (s *Sim) AfterFixAltitude(tcw TCW, callsign av.ADSBCallsign, fix string, al
 		})
 }
 
-func (s *Sim) AtFixCleared(tcw TCW, callsign av.ADSBCallsign, fix, approach string, straightIn bool) (av.CommandIntent, error) {
+func (s *Sim) AtFixCleared(tcw TCW, callsign av.ADSBCallsign, fix, approach string, straightIn bool, delayReduction time.Duration) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.AtFixCleared(fix, approach, straightIn)
+			return ac.AtFixCleared(fix, approach, s.State.SimTime, delayReduction, straightIn)
 		})
 }
 
-func (s *Sim) AtFixIntercept(tcw TCW, callsign av.ADSBCallsign, fix string) (av.CommandIntent, error) {
+func (s *Sim) AtFixIntercept(tcw TCW, callsign av.ADSBCallsign, fix string, delayReduction time.Duration) (av.CommandIntent, error) {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
-			return ac.AtFixIntercept(fix, s.lg)
+			return ac.AtFixIntercept(fix, s.State.SimTime, delayReduction, s.lg)
 		})
 }
 

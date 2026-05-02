@@ -679,7 +679,12 @@ func (f *FlightTest) CompoundSpeed(segments []av.CompoundSpeedSegment) {
 
 func (f *FlightTest) AtFixCleared(fix, approach string, straightIn bool) {
 	f.t.Helper()
-	f.nav.AtFixCleared(fix, approach, straightIn)
+	f.nav.AtFixCleared(fix, approach, f.simTime, 0, straightIn)
+}
+
+func (f *FlightTest) AtFixIntercept(fix string) av.CommandIntent {
+	f.t.Helper()
+	return f.nav.AtFixIntercept(fix, f.fp.ArrivalAirport, f.simTime, 0, nil)
 }
 
 func (f *FlightTest) InterceptApproach() {
