@@ -15,7 +15,7 @@
   "processor": "GPU: Apple M4, 10 CPU / 10 GPU cores, 24GB",
   "whisper_model": "ggml-base.en-jlvatc-q5_0.bin",
   "callsign": "KAP1",
-  "command": "AGAIN",
+  "command": "",
   "stt_aircraft": {
     "Air Canada 64 heavy": {
       "Callsign": "ACA64",

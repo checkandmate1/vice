@@ -1390,6 +1390,21 @@ func registerAllCommands() {
 		WithPriority(10),
 	)
 
+	// "traffic <position> no factor" — informational chatter; the controller is
+	// announcing traffic that is not a separation factor, no command intended.
+	registerSTTCommand(
+		"traffic [at|to] [your] {num:1-12} [o'clock] no factor",
+		func(_ int) string { return "" },
+		WithName("traffic_no_factor"),
+		WithPriority(11),
+	)
+	registerSTTCommand(
+		"traffic no factor",
+		func() string { return "" },
+		WithName("traffic_no_factor_bare"),
+		WithPriority(11),
+	)
+
 	registerSTTCommand(
 		"maintain visual separation [from] [the] [traffic]",
 		func() string { return "VISSEP" },
