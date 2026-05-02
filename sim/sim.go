@@ -85,8 +85,8 @@ type Sim struct {
 	FutureOnCourse         []FutureOnCourse
 	FutureSquawkChanges    []FutureChangeSquawk
 	FutureEmergencyUpdates []FutureEmergencyUpdate
-	FutureFieldChecks      []FutureFieldCheck
-	FutureTrafficChecks    []FutureTrafficCheck
+	FutureFieldChecks      map[av.ADSBCallsign]*FutureFieldCheck
+	FutureTrafficChecks    map[av.ADSBCallsign]*FutureTrafficCheck
 
 	NextEmergencyTime Time
 
@@ -221,6 +221,9 @@ func NewSim(config NewSimConfiguration, lg *log.Logger) *Sim {
 
 		PilotErrorInterval: time.Duration(config.PilotErrorInterval * float32(time.Minute)),
 		LastPilotError:     NewSimTime(config.StartTime),
+
+		FutureFieldChecks:   make(map[av.ADSBCallsign]*FutureFieldCheck),
+		FutureTrafficChecks: make(map[av.ADSBCallsign]*FutureTrafficCheck),
 
 		NextEmergencyTime: util.Select(config.LaunchConfig.EmergencyAircraftRate > 0, NewSimTime(config.StartTime), Time{}),
 

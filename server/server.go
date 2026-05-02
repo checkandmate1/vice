@@ -1,4 +1,4 @@
-// pkg/server/server.go
+// server/server.go
 // Copyright(c) 2022-2024 vice contributors, licensed under the GNU Public License, Version 3.
 // SPDX: GPL-3.0-only
 
@@ -75,7 +75,8 @@ import (
 // 65: TFR ingest pipeline
 // 66: Waypoint SpeedRestriction
 // 67: visual approach v2
-const ViceSerializeVersion = 67
+// 68: sim.Future{Field,Traffic}Checks -> map
+const ViceSerializeVersion = 68
 
 const ViceServerAddress = "vice.pharr.org"
 const ViceServerPort = 8000 - 50 + ViceRPCVersion
