@@ -783,6 +783,9 @@ func processOrNoise(w string, ctx *normalizeContext) ([]string, int, bool) {
 // processAndDigit handles "and" between digits: STT mishears "one" as "and".
 // e.g., "two and zero" → "two one zero" (210).
 // But "two nine and zero" → "290" (and is filler, not replacing one).
+// And when either side is already a multi-digit number (e.g., "8000 and 250"),
+// "and" is a natural-language connector between distinct values, not a misheard
+// "one"; drop it as filler.
 func processAndDigit(w string, ctx *normalizeContext) ([]string, int, bool) {
 	if w != "and" || len(ctx.result) == 0 || ctx.i+1 >= len(ctx.words) {
 		return nil, 0, false
@@ -795,9 +798,19 @@ func processAndDigit(w string, ctx *normalizeContext) ([]string, int, bool) {
 	nextIsDigit := IsNumber(nextWord) || nextIsDigitWord
 	if prevIsDigit && nextIsDigit {
 		// In a multi-digit sequence (prev-prev is also a digit), skip "and" as filler.
-		// Otherwise convert to "1".
 		if len(ctx.result) >= 2 && IsNumber(ctx.result[len(ctx.result)-2]) {
-			return nil, 0, true // skip "and" in multi-digit sequence
+			return nil, 0, true
+		}
+		// digitWords entries always map to a single-digit string; bare numeric
+		// tokens carry their own length. The "and→1" mishearing only makes sense
+		// in pure single-digit sequences (e.g., "two and zero" → "210"). When
+		// either side is multi-digit, "and" is a connector — drop it as filler.
+		nextLen := 1
+		if IsNumber(nextWord) {
+			nextLen = len(nextWord)
+		}
+		if len(prev) > 1 || nextLen > 1 {
+			return nil, 0, true
 		}
 		return []string{"1"}, 0, true // "and" → "1"
 	}

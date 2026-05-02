@@ -174,15 +174,17 @@ func TestCrossFixAltitudeSpeedCombined(t *testing.T) {
 		expected   string
 	}{
 		// Plain alt × plain spd, both orders.
-		// Note: between two numbers, the normalizer converts "and" to digit
-		// "1" (processAndDigit) which then merges into the previous number,
-		// so use "at" or comma-style phrasing as the connector. "and"
-		// between a word and a number is fine — see the dist/dir cases.
 		{"plain alt then spd",
 			"United 452 cross IZEKO at 8000 at 250 knots",
 			makeAC(izeko), "UAL452 CIZEKO/A80/S250"},
 		{"plain spd then alt",
 			"United 452 cross IZEKO at 250 knots at 8000",
+			makeAC(izeko), "UAL452 CIZEKO/A80/S250"},
+		{"plain alt and spd",
+			"United 452 cross IZEKO at 8000 and 250 knots",
+			makeAC(izeko), "UAL452 CIZEKO/A80/S250"},
+		{"plain spd and alt",
+			"United 452 cross IZEKO at 250 knots and 8000",
 			makeAC(izeko), "UAL452 CIZEKO/A80/S250"},
 		// Speed modifiers
 		{"plain alt + or-greater spd",
@@ -1868,6 +1870,13 @@ func TestNormalizeTranscript(t *testing.T) {
 		{"flighting 030", []string{"fly", "heading", "030"}},
 		// "@" should be treated as "at"
 		{"@ cameron descend", []string{"at", "cameron", "descend"}},
+		// processAndDigit: single digits on both sides → "and" → "1" (mishearing of "one")
+		{"two and zero", []string{"2", "1", "0"}},
+		// processAndDigit: prev-prev also digit → multi-digit-sequence skip wins
+		{"two nine and zero", []string{"2", "9", "0"}},
+		// processAndDigit: multi-digit on either side → "and" is a connector, dropped
+		{"8000 and 250", []string{"8000", "250"}},
+		{"5 and 8000", []string{"5", "8000"}},
 	}
 
 	for _, tt := range tests {
