@@ -812,6 +812,12 @@ func (p *atisLetterParser) parse(tokens []Token, pos int, ac Aircraft) (value an
 
 	word := strings.ToLower(tokens[pos].Text)
 
+	// "information" is the ATIS keyword itself, never a NATO letter — it
+	// otherwise fuzzy-matches "uniform" via phonetic prefix.
+	if word == "information" {
+		return nil, 0, ""
+	}
+
 	// Exact NATO match.
 	if letter, ok := ConvertNATOLetter(word); ok {
 		return strings.ToUpper(letter), 1, ""

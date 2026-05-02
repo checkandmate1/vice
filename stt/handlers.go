@@ -1419,6 +1419,13 @@ func registerAllCommands() {
 		WithPriority(15),
 	)
 
+	registerSTTCommand(
+		"{atis_letter} [is] [now] current",
+		func(letter string) string { return "ATIS/" + letter },
+		WithName("atis_letter_current"),
+		WithPriority(15),
+	)
+
 	// === AIRPORT ADVISORY ===
 	registerSTTCommand(
 		"[the] airport [is] [will] [be] [at] [your] {num:1-12} o'clock {num:1-50} [miles|mile]",
