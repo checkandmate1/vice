@@ -2592,6 +2592,111 @@ func TestAirportAdvisorySTTPatterns(t *testing.T) {
 			},
 			expected: "AAL123 AP",
 		},
+		{
+			name:       "do you have the field (no in sight suffix)",
+			transcript: "American 123 do you have the field",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP",
+		},
+		{
+			name:       "do you have the airport (no in sight suffix)",
+			transcript: "American 123 do you have the airport",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP",
+		},
+		{
+			name:       "report the field in sight",
+			transcript: "American 123 report the field in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 AP",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := provider.DecodeTranscript(tt.aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestTrafficInSightSTTPatterns(t *testing.T) {
+	provider := NewTranscriber(nil)
+
+	tests := []struct {
+		name       string
+		transcript string
+		aircraft   map[string]Aircraft
+		expected   string
+	}{
+		{
+			name:       "do you have the traffic",
+			transcript: "American 123 do you have the traffic",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC",
+		},
+		{
+			name:       "do you have the traffic in sight",
+			transcript: "American 123 do you have the traffic in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC",
+		},
+		{
+			name:       "you have the traffic in sight (do garbled)",
+			transcript: "American 123 you have the traffic in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC",
+		},
+		{
+			name:       "report traffic in sight",
+			transcript: "American 123 report traffic in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC",
+		},
+		{
+			name:       "report the traffic in sight",
+			transcript: "American 123 report the traffic in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC",
+		},
+		{
+			name:       "report traffic and field in sight",
+			transcript: "American 123 report traffic and field in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC AP",
+		},
+		{
+			name:       "report the traffic and the airport in sight",
+			transcript: "American 123 report the traffic and the airport in sight",
+			aircraft: map[string]Aircraft{
+				"American 123": {Callsign: "AAL123", State: "arrival", Altitude: 5000},
+			},
+			expected: "AAL123 TRAFFIC AP",
+		},
 	}
 
 	for _, tt := range tests {

@@ -879,7 +879,9 @@ func (s *Sim) runOneControlCommand(tcw TCW, callsign av.ADSBCallsign, command st
 		}
 
 	case 'T':
-		if trafficSpec, ok := strings.CutPrefix(command, "TRAFFIC/"); ok {
+		if command == "TRAFFIC" {
+			return s.TrafficInSightInquiry(tcw, callsign)
+		} else if trafficSpec, ok := strings.CutPrefix(command, "TRAFFIC/"); ok {
 			// Parse the command: TRAFFIC/oclock/miles/altitude[/VISSEP]
 			args := strings.Split(trafficSpec, "/")
 			if len(args) != 3 && len(args) != 4 {

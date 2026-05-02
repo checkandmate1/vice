@@ -1696,11 +1696,12 @@ func registerAllCommands() {
 		WithName("airport_advisory_named"),
 		WithPriority(9), // Lower priority so explicit "airport"/"field" patterns win
 	)
-	// "do you have the field/airport in sight" — bare inquiry with no o'clock
-	// or distance. The probability of sighting depends on distance vs. the
-	// weather-influenced effective visual range.
+	// "do you have the field/airport [in sight]" — bare inquiry with no o'clock
+	// or distance. The "in sight" suffix is optional so this also covers
+	// "do you have the field". The probability of sighting depends on distance
+	// vs. the weather-influenced effective visual range.
 	registerSTTCommand(
-		"[do] have field|airport in sight",
+		"[do] have [the] field|airport [in sight]",
 		func() string { return "AP" },
 		WithName("airport_in_sight_inquiry"),
 		WithPriority(10),
@@ -1708,7 +1709,37 @@ func registerAllCommands() {
 	registerSTTCommand(
 		"report [the] field|airport in sight",
 		func() string { return "AP" },
-		WithName("airport_in_sight_inquiry"),
+		WithName("airport_in_sight_report"),
 		WithPriority(10),
+	)
+
+	// === TRAFFIC IN-SIGHT INQUIRY ===
+	// Bare traffic inquiries with no o'clock/distance/altitude — the controller
+	// is asking whether the pilot has previously-called or obvious nearby
+	// traffic in sight. The TRAFFIC command re-evaluates any queued
+	// FutureTrafficCheck and, failing that, looks for a single nearby aircraft
+	// in front of the asker.
+	registerSTTCommand(
+		"[do] have [the] traffic [in sight]",
+		func() string { return "TRAFFIC" },
+		WithName("traffic_in_sight_inquiry"),
+		WithPriority(10),
+	)
+	registerSTTCommand(
+		"report [the] traffic in sight",
+		func() string { return "TRAFFIC" },
+		WithName("traffic_in_sight_report"),
+		WithPriority(10),
+	)
+
+	// Compound: "report [the] traffic and [the] field|airport in sight" —
+	// emits both commands. Higher priority than the individual patterns so it
+	// wins when both clauses are present (otherwise the field/airport pattern
+	// would slack-skip past "traffic" and emit only AP).
+	registerSTTCommand(
+		"report [the] traffic [and] [the] field|airport in sight",
+		func() string { return "TRAFFIC AP" },
+		WithName("traffic_and_airport_in_sight"),
+		WithPriority(15),
 	)
 }

@@ -5,6 +5,7 @@
 package sim
 
 import (
+	"maps"
 	"slices"
 	"time"
 
@@ -25,10 +26,73 @@ func (s *Sim) AirportInSightInquiry(tcw TCW, callsign av.ADSBCallsign) (av.Comma
 	return s.dispatchControlledAircraftCommand(tcw, callsign,
 		func(tcw TCW, ac *Aircraft) av.CommandIntent {
 			if ac.FieldInSight || ac.RequestedVisualApproach || ac.Nav.Approach.Cleared {
+				s.cancelFutureFieldCheck(ac.ADSBCallsign)
 				return av.LookForFieldFound
 			}
 			return s.handleAirportAdvisory(ac, 0, 0)
 		})
+}
+
+// TrafficInSightInquiry handles the bare "TRAFFIC" command — the controller
+// asking "do you have the traffic?" without restating the call. If a queued
+// FutureTrafficCheck still references a live aircraft, the pilot re-checks
+// that target immediately. Otherwise the pilot looks for a single nearby
+// aircraft in front and within tight tolerances; if exactly one matches, the
+// pilot reports it in sight, otherwise the pilot asks where the traffic was.
+func (s *Sim) TrafficInSightInquiry(tcw TCW, callsign av.ADSBCallsign) (av.CommandIntent, error) {
+	s.mu.Lock(s.lg)
+	defer s.mu.Unlock(s.lg)
+
+	return s.dispatchControlledAircraftCommand(tcw, callsign,
+		func(tcw TCW, ac *Aircraft) av.CommandIntent {
+			return s.handleTrafficInSightInquiry(ac)
+		})
+}
+
+// handleTrafficInSightInquiry implements the bare TRAFFIC inquiry resolution.
+// Caller must hold the sim mutex.
+func (s *Sim) handleTrafficInSightInquiry(ac *Aircraft) av.CommandIntent {
+	// If there is a queued FutureTrafficCheck for this aircraft, re-evaluate
+	// visibility.
+	for i, f := range s.FutureTrafficChecks {
+		if f.ADSBCallsign != ac.ADSBCallsign {
+			continue
+		}
+		traffic, ok := s.Aircraft[f.TrafficCallsign]
+		if !ok {
+			// Traffic is gone; drop the entry and fall through to the "in front of us" search
+			// below.
+			s.FutureTrafficChecks = slices.Delete(s.FutureTrafficChecks, i, i+1)
+			break
+		}
+		if s.trafficIsVisible(ac, traffic) {
+			ac.RecordSighting(f.TrafficCallsign, s.State.SimTime)
+			s.FutureTrafficChecks = slices.Delete(s.FutureTrafficChecks, i, i+1)
+			return av.TrafficAdvisoryIntent{Response: av.TrafficResponseTrafficSeen}
+		}
+		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseLooking}
+	}
+
+	// Look for a single aircraft within 3 NM, ±1000 ft, and ±45 degrees of the aircraft's nose.
+	matches := slices.Collect(util.FilterSeq(maps.Values(s.Aircraft), func(candidate *Aircraft) bool {
+		const horizontalNM = 3
+		const verticalFeet = 1000
+		const bearingTolerance = 45
+
+		bearing := math.TrueToMagnetic(
+			math.Heading2LL(ac.Position(), candidate.Position(), ac.NmPerLongitude()),
+			ac.MagneticVariation())
+		return candidate.ADSBCallsign != ac.ADSBCallsign &&
+			math.Abs(candidate.Altitude()-ac.Altitude()) < verticalFeet &&
+			math.NMDistance2LL(ac.Position(), candidate.Position()) < horizontalNM &&
+			math.HeadingDifference(ac.Heading(), bearing) < bearingTolerance
+	}))
+
+	if len(matches) == 1 {
+		ac.RecordSighting(matches[0].ADSBCallsign, s.State.SimTime)
+		return av.TrafficAdvisoryIntent{Response: av.TrafficResponseTrafficSeen}
+	}
+	return av.TrafficAdvisoryIntent{Response: av.TrafficResponseWhereWasIt}
 }
 
 // AirportAdvisory handles the AP/{oclock}/{miles} command. The controller tells the

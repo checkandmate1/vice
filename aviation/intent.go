@@ -893,6 +893,7 @@ const (
 	TrafficResponseLooking                                     // No traffic visible, will look
 	TrafficResponseTrafficSeen                                 // Traffic is in sight
 	TrafficResponseAcknowledged                                // Other traffic is maintaining visual separation
+	TrafficResponseWhereWasIt                                  // Pilot asks the controller to repeat the traffic call
 )
 
 // TrafficAdvisoryIntent represents a pilot's response to a traffic advisory
@@ -915,6 +916,8 @@ func (t TrafficAdvisoryIntent) Render(rt *RadioTransmission, r *rand.Rand) {
 		}
 	case TrafficResponseAcknowledged:
 		rt.Add("[roger|copy the traffic|roger, we have the traffic]")
+	case TrafficResponseWhereWasIt:
+		rt.Add("[where was that traffic|where was the traffic|where was that traffic again|say again on the traffic]")
 	}
 }
 
