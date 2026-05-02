@@ -1470,4 +1470,10 @@ func registerAllCommands() {
 		WithName("airport_in_sight_inquiry"),
 		WithPriority(10),
 	)
+	registerSTTCommand(
+		"report [the] field|airport in sight",
+		func() string { return "AP" },
+		WithName("airport_in_sight_inquiry"),
+		WithPriority(10),
+	)
 }
