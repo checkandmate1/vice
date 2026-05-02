@@ -798,6 +798,153 @@ func registerAllCommands() {
 		WithPriority(10),
 	)
 
+	// Combined altitude + speed crossing restrictions: all combinations of
+	// (plain | at-or-above) altitude × (plain | or-greater | do-not-exceed)
+	// speed, plus mach variants, in both word orders. Outputs match the
+	// keyboard /A.../S.../M... grammar accepted by sim/command_parser.go.
+	// Priority follows the +2-per-modifier ladder used by single-constraint
+	// handlers (15 base) so more-specific patterns win over less-specific
+	// ones for inputs containing modifier keywords like "above" / "or
+	// greater" / "do not exceed".
+
+	// Altitude-first: plain altitude × speed variants
+	registerSTTCommand(
+		"cross {fix} [at] {altitude} [and] [at] {speed}",
+		func(fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/A%d/S%d", fix, alt, spd)
+		},
+		WithName("cross_fix_altitude_speed"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] {altitude} [and] [at] {speed} or greater|better",
+		func(fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/A%d/S%d+", fix, alt, spd)
+		},
+		WithName("cross_fix_altitude_speed_or_greater"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] {altitude} [and] [at] [do] not [to] exceed {speed}",
+		func(fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/A%d/S%d-", fix, alt, spd)
+		},
+		WithName("cross_fix_altitude_do_not_exceed"),
+		WithPriority(17),
+	)
+
+	// Altitude-first: at-or-above altitude × speed variants
+	registerSTTCommand(
+		"cross {fix} [at] [or] above {altitude} [and] [at] {speed}",
+		func(fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/A%d+/S%d", fix, alt, spd)
+		},
+		WithName("cross_fix_at_or_above_speed"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] [or] above {altitude} [and] [at] {speed} or greater|better",
+		func(fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/A%d+/S%d+", fix, alt, spd)
+		},
+		WithName("cross_fix_at_or_above_speed_or_greater"),
+		WithPriority(19),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] [or] above {altitude} [and] [at] [do] not [to] exceed {speed}",
+		func(fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/A%d+/S%d-", fix, alt, spd)
+		},
+		WithName("cross_fix_at_or_above_do_not_exceed"),
+		WithPriority(19),
+	)
+
+	// Speed-first: speed variants × plain altitude
+	registerSTTCommand(
+		"cross {fix} [at] {speed} [and] [at] {altitude}",
+		func(fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/A%d/S%d", fix, alt, spd)
+		},
+		WithName("cross_fix_speed_altitude"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] {speed} or greater|better [and] [at] {altitude}",
+		func(fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/A%d/S%d+", fix, alt, spd)
+		},
+		WithName("cross_fix_speed_or_greater_altitude"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] [do] not [to] exceed {speed} [and] [at] {altitude}",
+		func(fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/A%d/S%d-", fix, alt, spd)
+		},
+		WithName("cross_fix_do_not_exceed_altitude"),
+		WithPriority(17),
+	)
+
+	// Speed-first: speed variants × at-or-above altitude
+	registerSTTCommand(
+		"cross {fix} [at] {speed} [and] [at] [or] above {altitude}",
+		func(fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/A%d+/S%d", fix, alt, spd)
+		},
+		WithName("cross_fix_speed_at_or_above"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] {speed} or greater|better [and] [at] [or] above {altitude}",
+		func(fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/A%d+/S%d+", fix, alt, spd)
+		},
+		WithName("cross_fix_speed_or_greater_at_or_above"),
+		WithPriority(19),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] [do] not [to] exceed {speed} [and] [at] [or] above {altitude}",
+		func(fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/A%d+/S%d-", fix, alt, spd)
+		},
+		WithName("cross_fix_do_not_exceed_at_or_above"),
+		WithPriority(19),
+	)
+
+	// Mach combinations (no spd-modifier — mach IS the speed type)
+	registerSTTCommand(
+		"cross {fix} [at] {altitude} [and] [at] mach [point] {mach}",
+		func(fix string, alt int, mach int) string {
+			return fmt.Sprintf("C%s/A%d/M%d", fix, alt, mach)
+		},
+		WithName("cross_fix_altitude_mach"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] [or] above {altitude} [and] [at] mach [point] {mach}",
+		func(fix string, alt int, mach int) string {
+			return fmt.Sprintf("C%s/A%d+/M%d", fix, alt, mach)
+		},
+		WithName("cross_fix_at_or_above_mach"),
+		WithPriority(17),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] mach [point] {mach} [and] [at] {altitude}",
+		func(fix string, mach int, alt int) string {
+			return fmt.Sprintf("C%s/A%d/M%d", fix, alt, mach)
+		},
+		WithName("cross_fix_mach_altitude"),
+		WithPriority(15),
+	)
+	registerSTTCommand(
+		"cross {fix} [at] mach [point] {mach} [and] [at] [or] above {altitude}",
+		func(fix string, mach int, alt int) string {
+			return fmt.Sprintf("C%s/A%d+/M%d", fix, alt, mach)
+		},
+		WithName("cross_fix_mach_at_or_above"),
+		WithPriority(17),
+	)
+
 	registerSTTCommand(
 		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [and] [maintain] {altitude_fl}",
 		func(dist int, dir string, fix string, alt int) string {
@@ -841,6 +988,79 @@ func registerAllCommands() {
 		},
 		WithName("cross_distance_direction_fix_mach"),
 		WithPriority(14),
+	)
+
+	// Combined dist/dir altitude + speed crossing restrictions. Mirrors the
+	// single-constraint dist/dir handlers (no at-or-above-altitude variant
+	// exists for dist/dir, so combined dist/dir uses plain altitude only).
+	// Priority +2 per speed modifier above the 18 base.
+
+	// Altitude-first
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [and] [maintain] {altitude_fl} [and] [at] {speed}",
+		func(dist int, dir string, fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/S%d", fix, dist, dir, alt, spd)
+		},
+		WithName("cross_distance_direction_fix_altitude_speed"),
+		WithPriority(18),
+	)
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [and] [maintain] {altitude_fl} [and] [at] {speed} or greater|better",
+		func(dist int, dir string, fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/S%d+", fix, dist, dir, alt, spd)
+		},
+		WithName("cross_distance_direction_fix_altitude_speed_or_greater"),
+		WithPriority(20),
+	)
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [and] [maintain] {altitude_fl} [and] [at] [do] not [to] exceed {speed}",
+		func(dist int, dir string, fix string, alt int, spd int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/S%d-", fix, dist, dir, alt, spd)
+		},
+		WithName("cross_distance_direction_fix_altitude_do_not_exceed"),
+		WithPriority(20),
+	)
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [and] [maintain] {altitude_fl} [and] [at] mach [point] {mach}",
+		func(dist int, dir string, fix string, alt int, mach int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/M%d", fix, dist, dir, alt, mach)
+		},
+		WithName("cross_distance_direction_fix_altitude_mach"),
+		WithPriority(18),
+	)
+
+	// Speed-first
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] {speed} [and] [at] {altitude_fl}",
+		func(dist int, dir string, fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/S%d", fix, dist, dir, alt, spd)
+		},
+		WithName("cross_distance_direction_fix_speed_altitude"),
+		WithPriority(18),
+	)
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] {speed} or greater|better [and] [at] {altitude_fl}",
+		func(dist int, dir string, fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/S%d+", fix, dist, dir, alt, spd)
+		},
+		WithName("cross_distance_direction_fix_speed_or_greater_altitude"),
+		WithPriority(20),
+	)
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] [do] not [to] exceed {speed} [and] [at] {altitude_fl}",
+		func(dist int, dir string, fix string, spd int, alt int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/S%d-", fix, dist, dir, alt, spd)
+		},
+		WithName("cross_distance_direction_fix_do_not_exceed_altitude"),
+		WithPriority(20),
+	)
+	registerSTTCommand(
+		"cross {num:1-99} miles|mile {compass_dir} [of] {fix} [at] mach [point] {mach} [and] [at] {altitude_fl}",
+		func(dist int, dir string, fix string, mach int, alt int) string {
+			return fmt.Sprintf("C%s/%d%s/A%d/M%d", fix, dist, dir, alt, mach)
+		},
+		WithName("cross_distance_direction_fix_mach_altitude"),
+		WithPriority(18),
 	)
 
 	// Cross N DME commands. These apply to a cleared visual approach; the

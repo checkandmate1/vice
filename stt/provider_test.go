@@ -155,6 +155,93 @@ func TestBasicAltitudeCommands(t *testing.T) {
 	}
 }
 
+func TestCrossFixAltitudeSpeedCombined(t *testing.T) {
+	makeAC := func(fixes map[string]string) map[string]Aircraft {
+		return map[string]Aircraft{
+			"United 452": {
+				Callsign: "UAL452", Altitude: 28000, State: "overflight",
+				Fixes: fixes,
+			},
+		}
+	}
+	izeko := map[string]string{"Izeko": "IZEKO"}
+	detgy := map[string]string{"Detgy": "DETGY"}
+
+	tests := []struct {
+		name       string
+		transcript string
+		aircraft   map[string]Aircraft
+		expected   string
+	}{
+		// Plain alt × plain spd, both orders.
+		// Note: between two numbers, the normalizer converts "and" to digit
+		// "1" (processAndDigit) which then merges into the previous number,
+		// so use "at" or comma-style phrasing as the connector. "and"
+		// between a word and a number is fine — see the dist/dir cases.
+		{"plain alt then spd",
+			"United 452 cross IZEKO at 8000 at 250 knots",
+			makeAC(izeko), "UAL452 CIZEKO/A80/S250"},
+		{"plain spd then alt",
+			"United 452 cross IZEKO at 250 knots at 8000",
+			makeAC(izeko), "UAL452 CIZEKO/A80/S250"},
+		// Speed modifiers
+		{"plain alt + or-greater spd",
+			"United 452 cross IZEKO at 8000 at 250 or greater",
+			makeAC(izeko), "UAL452 CIZEKO/A80/S250+"},
+		{"plain alt + do-not-exceed spd",
+			"United 452 cross IZEKO at 8000 do not exceed 250",
+			makeAC(izeko), "UAL452 CIZEKO/A80/S250-"},
+		// Altitude modifier
+		{"or-above alt + plain spd",
+			"United 452 cross IZEKO at or above 8000 at 250",
+			makeAC(izeko), "UAL452 CIZEKO/A80+/S250"},
+		// Dual modifiers
+		{"or-above alt + or-greater spd",
+			"United 452 cross IZEKO at or above 8000 at 250 or greater",
+			makeAC(izeko), "UAL452 CIZEKO/A80+/S250+"},
+		{"or-above alt + do-not-exceed spd",
+			"United 452 cross IZEKO at or above 8000 do not exceed 250",
+			makeAC(izeko), "UAL452 CIZEKO/A80+/S250-"},
+		// Mach
+		{"plain alt + mach",
+			"United 452 cross IZEKO at 8000 mach point 80",
+			makeAC(izeko), "UAL452 CIZEKO/A80/M80"},
+		{"or-above alt + mach",
+			"United 452 cross IZEKO at or above 8000 mach point 80",
+			makeAC(izeko), "UAL452 CIZEKO/A80+/M80"},
+		// Distance-direction
+		{"dist/dir plain alt + plain spd",
+			"United 452 cross 5 miles west of DETGY at 8000 at 250 knots",
+			makeAC(detgy), "UAL452 CDETGY/5W/A80/S250"},
+		{"dist/dir plain spd + plain alt",
+			"United 452 cross 5 miles west of DETGY at 250 knots and 8000",
+			makeAC(detgy), "UAL452 CDETGY/5W/A80/S250"},
+		{"dist/dir alt + or-greater spd",
+			"United 452 cross 5 miles west of DETGY at 8000 at 250 or greater",
+			makeAC(detgy), "UAL452 CDETGY/5W/A80/S250+"},
+		{"dist/dir alt + do-not-exceed spd",
+			"United 452 cross 5 miles west of DETGY at 8000 do not exceed 250",
+			makeAC(detgy), "UAL452 CDETGY/5W/A80/S250-"},
+		{"dist/dir alt + mach",
+			"United 452 cross 5 miles west of DETGY at 8000 mach point 80",
+			makeAC(detgy), "UAL452 CDETGY/5W/A80/M80"},
+	}
+
+	provider := NewTranscriber(nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := provider.DecodeTranscript(tt.aircraft, tt.transcript, "")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestBasicHeadingCommands(t *testing.T) {
 	tests := []struct {
 		name       string
